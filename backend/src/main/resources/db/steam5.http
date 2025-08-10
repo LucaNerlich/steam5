@@ -10,3 +10,7 @@ GET https://api.steampowered.com/IStoreService/GetAppList/v1/?include_games=true
 ### GET game list paging, if "have_more_results === true"
 GET https://api.steampowered.com/IStoreService/GetAppList/v1/?include_games=true&key={{apikey}}&max_results=50000&
     last_appid=1533580
+
+### GET game reviews, skip details
+GET https://store.steampowered.com/appreviews/{{appId}}?json=1&num_per_page=0&language=all&purchase_type=all&
+    key={{apikey}}
