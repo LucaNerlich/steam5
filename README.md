@@ -3,6 +3,10 @@
 Spring Boot backend for a daily game that shows five random Steam games. Players guess each game's review count; results
 are revealed after submitting guesses.
 
+### APIs
+
+- https://steamapi.xpaw.me/#IStoreService/GetAppList
+
 ### Tech stack
 
 - Java 21, Spring Boot 3.5

@@ -4,10 +4,11 @@ spring:
   profiles:
     active: dev # Activate the 'dev' profile by default
   datasource:
-    url: jdbc:postgresql://localhost:5432/steam5
+    url: jdbc:postgresql://localhost:5432/steam5_db
     username: steam5_user
     password: steam5_password
     driver-class-name: org.postgresql.Driver
+    name: steam5_db
   jpa:
     hibernate:
       ddl-auto: validate

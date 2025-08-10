@@ -32,6 +32,7 @@ dependencies {
     compileOnly("org.projectlombok:lombok")
     developmentOnly("org.springframework.boot:spring-boot-devtools")
     implementation("io.jsonwebtoken:jjwt-api:0.12.6")
+    implementation("me.paulschwarz:spring-dotenv:4.0.0")
     implementation("org.flywaydb:flyway-core")
     implementation("org.flywaydb:flyway-database-postgresql")
     implementation("org.modelmapper:modelmapper:3.2.3")
