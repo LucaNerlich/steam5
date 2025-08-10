@@ -14,6 +14,7 @@ import org.steam5.config.SteamAppsConfig;
 import org.steam5.domain.IngestState;
 import org.steam5.domain.SteamAppIndex;
 import org.steam5.domain.SteamAppReviews;
+import org.steam5.http.SteamHttpClient;
 import org.steam5.repository.IngestStateRepository;
 import org.steam5.repository.SteamAppIndexRepository;
 import org.steam5.repository.SteamAppReviewsRepository;
@@ -29,20 +30,20 @@ public class SteamAppReviewsFetcher {
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
     private final SteamAppsConfig properties;
-    private final SteamRateLimiter rateLimiter;
+    private final SteamHttpClient http;
     private final SteamAppIndexRepository appIndexRepository;
     private final SteamAppReviewsRepository reviewsRepository;
     private final IngestStateRepository ingestStateRepository;
 
     public SteamAppReviewsFetcher(SteamAppsConfig properties,
                                   ObjectMapper objectMapper,
-                                  SteamRateLimiter rateLimiter,
+                                  SteamHttpClient http,
                                   SteamAppIndexRepository appIndexRepository,
                                   SteamAppReviewsRepository reviewsRepository,
                                   IngestStateRepository ingestStateRepository) {
         this.properties = properties;
         this.objectMapper = objectMapper;
-        this.rateLimiter = rateLimiter;
+        this.http = http;
         this.appIndexRepository = appIndexRepository;
         this.reviewsRepository = reviewsRepository;
         this.ingestStateRepository = ingestStateRepository;
@@ -68,11 +69,10 @@ public class SteamAppReviewsFetcher {
         while (more) {
             var page = appIndexRepository.findByAppIdGreaterThan(cursor, PageRequest.of(0, pageSize, Sort.by("appId").ascending()));
             if (page.isEmpty()) {
-                more = false;
                 break;
             }
             for (SteamAppIndex idx : page) {
-                Long appId = idx.getAppId();
+                final Long appId = idx.getAppId();
                 if (appId == null) continue;
                 try {
                     processSingleAppId(appId);
@@ -90,7 +90,7 @@ public class SteamAppReviewsFetcher {
     }
 
     private void processSingleAppId(Long appId) throws IOException {
-        String url = UriComponentsBuilder.fromUriString("https://store.steampowered.com/appreviews/" + appId)
+        final String url = UriComponentsBuilder.fromUriString("https://store.steampowered.com/appreviews/" + appId)
                 .queryParam("json", 1)
                 .queryParam("num_per_page", 0) //  don't fetch actual reviews details
                 .queryParam("language", "all")
@@ -99,18 +99,17 @@ public class SteamAppReviewsFetcher {
                 .build(true)
                 .toUriString();
 
-        rateLimiter.acquirePermit();
-        String body = restTemplate.getForObject(url, String.class);
+        final String body = http.get(url);
         if (body == null) {
             throw new IOException("Empty response from reviews API for appId=" + appId);
         }
 
-        JsonNode root = objectMapper.readTree(body);
+        final JsonNode root = objectMapper.readTree(body);
         if (root.path("success").asInt(0) != 1) {
             log.debug("Reviews API returned non-success for appId {}: {}", appId, body);
         }
 
-        JsonNode summary = root.path("query_summary");
+        final JsonNode summary = root.path("query_summary");
         int totalPositive = summary.path("total_positive").asInt(0);
         int totalNegative = summary.path("total_negative").asInt(0);
 

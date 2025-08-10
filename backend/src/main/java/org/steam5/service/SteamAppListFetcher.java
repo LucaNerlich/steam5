@@ -4,13 +4,12 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.steam5.config.SteamAppsConfig;
 import org.steam5.domain.IngestState;
 import org.steam5.domain.SteamAppIndex;
+import org.steam5.http.SteamHttpClient;
 import org.steam5.repository.IngestStateRepository;
 import org.steam5.repository.SteamAppIndexRepository;
 
@@ -23,27 +22,21 @@ public class SteamAppListFetcher {
     private static final Logger log = LoggerFactory.getLogger(SteamAppListFetcher.class);
 
     private final SteamAppsConfig properties;
-    private final RestTemplate restTemplate;
+    private final SteamHttpClient http;
     private final ObjectMapper objectMapper;
     private final SteamAppIndexRepository appIndexRepository;
-    private final SteamRateLimiter rateLimiter;
     private final IngestStateRepository ingestStateRepository;
 
     public SteamAppListFetcher(SteamAppsConfig properties,
                                ObjectMapper objectMapper,
                                SteamAppIndexRepository appIndexRepository,
-                               SteamRateLimiter rateLimiter,
-                               IngestStateRepository ingestStateRepository) {
+                               IngestStateRepository ingestStateRepository,
+                               SteamHttpClient http) {
         this.properties = properties;
         this.objectMapper = objectMapper;
         this.appIndexRepository = appIndexRepository;
-        this.rateLimiter = rateLimiter;
         this.ingestStateRepository = ingestStateRepository;
-
-        final SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
-        requestFactory.setConnectTimeout(properties.getHttpTimeoutMs());
-        requestFactory.setReadTimeout(properties.getHttpTimeoutMs());
-        this.restTemplate = new RestTemplate(requestFactory);
+        this.http = http;
     }
 
     public void ingestFullListToDatabase() throws IOException {
@@ -58,24 +51,23 @@ public class SteamAppListFetcher {
 
         while (haveMore) {
             page++;
-            String url = buildUrl(lastAppId);
+            final String url = buildUrl(lastAppId);
             log.info("Fetching Steam app list page {} with last_appid={} ...", page, lastAppId);
 
-            rateLimiter.acquirePermit();
-            String body = restTemplate.getForObject(url, String.class);
+            final String body = http.get(url);
             if (body == null) {
                 throw new IOException("Empty response from Steam API");
             }
 
-            JsonNode root = objectMapper.readTree(body);
-            JsonNode response = root.path("response");
-            JsonNode apps = response.path("apps");
+            final JsonNode root = objectMapper.readTree(body);
+            final JsonNode response = root.path("response");
+            final JsonNode apps = response.path("apps");
 
             int batchCount = 0;
             if (apps.isArray()) {
                 for (JsonNode app : apps) {
-                    long appId = app.path("appid").asLong();
-                    String name = app.path("name").asText("");
+                    final long appId = app.path("appid").asLong();
+                    final String name = app.path("name").asText("");
                     if (appId <= 0 || name.isEmpty()) {
                         continue;
                     }
@@ -99,7 +91,7 @@ public class SteamAppListFetcher {
     }
 
     private String buildUrl(long lastAppId) {
-        UriComponentsBuilder b = UriComponentsBuilder.fromHttpUrl(properties.getApiUrl())
+        final UriComponentsBuilder b = UriComponentsBuilder.fromUriString(properties.getApiUrl())
                 .queryParam("key", properties.getApiKey())
                 .queryParam("max_results", 50000)
                 .queryParam("include_games", properties.isIncludeGames());
