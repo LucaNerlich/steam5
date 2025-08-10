@@ -5,7 +5,7 @@ plugins {
     id("org.asciidoctor.jvm.convert") version "3.3.2"
 }
 
-group = "org"
+group = "org.steam5"
 version = "0.0.1-SNAPSHOT"
 
 java {
@@ -27,18 +27,24 @@ repositories {
 extra["snippetsDir"] = file("build/generated-snippets")
 
 dependencies {
+    annotationProcessor("org.projectlombok:lombok")
+    annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
+    compileOnly("org.projectlombok:lombok")
+    developmentOnly("org.springframework.boot:spring-boot-devtools")
+    implementation("io.jsonwebtoken:jjwt-api:0.12.6")
+    implementation("org.flywaydb:flyway-core")
+    implementation("org.flywaydb:flyway-database-postgresql")
+    implementation("org.modelmapper:modelmapper:3.2.3")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-data-rest")
     implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
     implementation("org.springframework.boot:spring-boot-starter-quartz")
     implementation("org.springframework.boot:spring-boot-starter-security")
+    implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-web")
-    compileOnly("org.projectlombok:lombok")
-    developmentOnly("org.springframework.boot:spring-boot-devtools")
+    runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.6")
     runtimeOnly("org.postgresql:postgresql")
-    annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
-    annotationProcessor("org.projectlombok:lombok")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.restdocs:spring-restdocs-mockmvc")
     testImplementation("org.springframework.security:spring-security-test")
