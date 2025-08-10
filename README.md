@@ -19,8 +19,7 @@ are revealed after submitting guesses.
 ### Prerequisites
 
 - Java 21 (required)
-- PostgreSQL 14+ (local or Docker)
-- PowerShell or Bash
+- PostgreSQL 16+ (local or Docker)
 
 ### Database setup
 
