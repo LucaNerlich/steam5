@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="DiffGenerationConfig">
+    <option name="snapshotDbValue" value="53cc000d-35a2-4c08-b7f8-41900867e3ec__steam5_db_public" />
+    <option name="sourceModelValue" value="org.steam5.steam5.main:org.steam5.steam5.main" />
+    <option name="targetDbValue" value="53cc000d-35a2-4c08-b7f8-41900867e3ec__steam5_db_public" />
+  </component>
+</project>

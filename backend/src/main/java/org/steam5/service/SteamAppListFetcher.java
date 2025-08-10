@@ -55,7 +55,6 @@ public class SteamAppListFetcher {
         long lastAppId = ingestStateRepository.findById("steam_app_list").map(IngestState::getLastAppId).orElse(0L);
         int page = 0;
         long totalApps = 0;
-        OffsetDateTime now = OffsetDateTime.now();
 
         while (haveMore) {
             page++;
@@ -87,7 +86,7 @@ public class SteamAppListFetcher {
             }
 
             haveMore = response.path("have_more_results").asBoolean(false);
-            lastAppId = response.path("last_appid").asLong(0L);
+            lastAppId = response.path("last_appid").asLong(lastAppId);
 
             // Persist cursor after each page
             ingestStateRepository.upsert("steam_app_list", lastAppId, OffsetDateTime.now());
