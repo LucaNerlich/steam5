@@ -1,5 +1,13 @@
-spring:
-  application:
-    name: steam5
-  jpa:
-    show-sql: true
+name: dev-local
+management:
+  server:
+    port: 8081
+  endpoints:
+    web:
+      exposure:
+        include: "loggers,env,beans,health,prometheus,metrics,quartz" # https://www.baeldung.com/spring-boot-actuators
+  endpoint:
+    health:
+      show-details: always
+    quartz:
+      access: unrestricted

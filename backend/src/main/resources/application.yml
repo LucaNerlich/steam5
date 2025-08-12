@@ -1,10 +1,11 @@
+name: default
 spring:
   application:
     name: steam5
   profiles:
     active: dev # Activate the 'dev' profile by default
   datasource:
-    url: jdbc:postgresql://localhost:5432/steam5_db
+    url: ${JDBC_URL:jdbc:postgresql://localhost:5432/steam5_db}
     username: steam5_user
     password: steam5_password
     driver-class-name: org.postgresql.Driver
@@ -40,20 +41,4 @@ logging:
   file:
     name: ${LOG_FILE:steam5.log}
     path: ${LOG_PATH:./logs}
-management:
-  server:
-    port: 8081
-  endpoints:
-    web:
-      exposure:
-        include: "loggers,env,beans,health,prometheus,metrics,flyway,quartz" # https://www.baeldung.com/spring-boot-actuators
-  endpoint:
-    health:
-      show-details: always
-    quartz:
-      access: read_only
-  info:
-    app:
-      name: ${spring.application.name}
-      description: "Course Management and Booking System"
-      version: "@project.version@" # This will be replaced by the project version during the build
+

@@ -1,8 +1,15 @@
+name: coolify
 spring:
-  application:
-    name: steam5
   cache:
     caffeine:
       spec: maximumSize=500,expireAfterWrite=30m
-server:
-  port: ${SERVER_PORT:8080}
+management:
+  server:
+    port: 8081
+  endpoints:
+    web:
+      exposure:
+        include: "health" # https://www.baeldung.com/spring-boot-actuators
+  endpoint:
+    health:
+      show-details: never
