@@ -16,10 +16,6 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
-  quartz:
-    job-store-type: "jdbc"
-    jdbc:
-      initialize-schema: "always"
 server:
   port: ${SERVER_PORT:8080}
   error:
@@ -38,10 +34,12 @@ management:
   endpoints:
     web:
       exposure:
-        include: "loggers,env,beans,health,prometheus,metrics,flyway" # https://www.baeldung.com/spring-boot-actuators
+        include: "loggers,env,beans,health,prometheus,metrics,flyway,quartz" # https://www.baeldung.com/spring-boot-actuators
   endpoint:
     health:
       show-details: always
+    quartz:
+      access: read_only
   info:
     app:
       name: ${spring.application.name}

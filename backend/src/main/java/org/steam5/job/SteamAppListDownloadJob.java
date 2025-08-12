@@ -1,18 +1,17 @@
 package org.steam5.job;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.scheduling.annotation.Scheduled;
+import lombok.extern.slf4j.Slf4j;
+import org.quartz.*;
+import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
-import org.steam5.config.SteamAppsConfig;
 import org.steam5.service.SteamAppListFetcher;
 
-@Component
-@EnableConfigurationProperties(SteamAppsConfig.class)
-public class SteamAppListDownloadJob {
+import java.io.IOException;
 
-    private static final Logger log = LoggerFactory.getLogger(SteamAppListDownloadJob.class);
+@Component
+@Slf4j
+@DisallowConcurrentExecution
+public class SteamAppListDownloadJob implements Job {
 
     private final SteamAppListFetcher fetcher;
 
@@ -20,15 +19,23 @@ public class SteamAppListDownloadJob {
         this.fetcher = fetcher;
     }
 
-    // Cron can be overridden by property steam.apps.downloadCron
-    @Scheduled(cron = "${steam.apps.downloadCron:0 5 0 * * *}")
-    public void runNightlyDownload() {
+    @Override
+    public void execute(final JobExecutionContext context) throws JobExecutionException {
         try {
-            fetcher.ingestFullListToDatabase();
-            log.info("Steam app list ingestion completed successfully");
-        } catch (Exception ex) {
-            log.error("Steam app list download failed", ex);
+            log.info("SteamAppList ingestion started");
+            fetcher.ingest();
+            log.info("SteamAppList ingestion ended");
+        } catch (IOException e) {
+            log.error("SteamAppList ingestion failed", e);
         }
+    }
+
+    @Bean("SteamAppListDownloadJob")
+    public JobDetail jobDetail() {
+        return JobBuilder.newJob().ofType(SteamAppListDownloadJob.class)
+                .storeDurably()
+                .withIdentity("SteamAppListDownloadJob")
+                .build();
     }
 }
 

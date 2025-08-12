@@ -6,9 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.steam5.config.SteamAppsConfig;
 import org.steam5.domain.IngestState;
@@ -23,11 +21,10 @@ import java.io.IOException;
 import java.time.OffsetDateTime;
 
 @Service
-public class SteamAppReviewsFetcher {
+public class SteamAppReviewsFetcher implements Fetcher {
 
     private static final Logger log = LoggerFactory.getLogger(SteamAppReviewsFetcher.class);
 
-    private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
     private final SteamAppsConfig properties;
     private final SteamHttpClient http;
@@ -47,14 +44,10 @@ public class SteamAppReviewsFetcher {
         this.appIndexRepository = appIndexRepository;
         this.reviewsRepository = reviewsRepository;
         this.ingestStateRepository = ingestStateRepository;
-
-        final SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
-        requestFactory.setConnectTimeout(properties.getHttpTimeoutMs());
-        requestFactory.setReadTimeout(properties.getHttpTimeoutMs());
-        this.restTemplate = new RestTemplate(requestFactory);
     }
 
-    public void fetchAndStoreAllReviewSummaries() throws IOException {
+    @Override
+    public void ingest() {
         if (properties.getApiKey() == null || properties.getApiKey().isBlank()) {
             throw new IllegalStateException("STEAM_API_KEY must be configured");
         }

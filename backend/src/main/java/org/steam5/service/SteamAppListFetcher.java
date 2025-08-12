@@ -17,7 +17,7 @@ import java.io.IOException;
 import java.time.OffsetDateTime;
 
 @Service
-public class SteamAppListFetcher {
+public class SteamAppListFetcher implements Fetcher {
 
     private static final Logger log = LoggerFactory.getLogger(SteamAppListFetcher.class);
 
@@ -39,7 +39,8 @@ public class SteamAppListFetcher {
         this.http = http;
     }
 
-    public void ingestFullListToDatabase() throws IOException {
+    @Override
+    public void ingest() throws IOException {
         if (properties.getApiKey() == null || properties.getApiKey().isBlank()) {
             throw new IllegalStateException("steam.apps.apiKey must be configured");
         }
