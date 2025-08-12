@@ -9,10 +9,22 @@ spring:
     password: steam5_password
     driver-class-name: org.postgresql.Driver
     name: steam5_db
+  cache:
+    caffeine:
+      spec: maximumSize=500,expireAfterWrite=5s
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+      order-map-entries-by-keys: true
+  sql:
+    init:
+      mode: always
+      platform: postgres
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: false
+    defer-datasource-initialization: true
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect

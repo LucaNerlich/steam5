@@ -1,6 +1,5 @@
 spring:
   application:
     name: steam5
-steam:
-  apps:
-    runOnStartup: true
+  jpa:
+    show-sql: true
