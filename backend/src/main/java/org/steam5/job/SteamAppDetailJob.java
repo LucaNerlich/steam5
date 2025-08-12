@@ -11,11 +11,11 @@ import java.io.IOException;
 @Component
 @Slf4j
 @DisallowConcurrentExecution
-public class SteamAppDetailFetchJob implements Job {
+public class SteamAppDetailJob implements Job {
 
     private final SteamAppDetailsFetcher fetcher;
 
-    public SteamAppDetailFetchJob(final SteamAppDetailsFetcher fetcher) {
+    public SteamAppDetailJob(final SteamAppDetailsFetcher fetcher) {
         this.fetcher = fetcher;
     }
 
@@ -31,11 +31,11 @@ public class SteamAppDetailFetchJob implements Job {
         }
     }
 
-    @Bean("SteamAppDetailFetchJob")
+    @Bean("SteamAppDetailJob")
     public JobDetail jobDetail() {
-        return JobBuilder.newJob().ofType(SteamAppDetailFetchJob.class)
+        return JobBuilder.newJob().ofType(SteamAppDetailJob.class)
                 .storeDurably()
-                .withIdentity("SteamAppDetailFetchJob")
+                .withIdentity("SteamAppDetailJob")
                 .build();
     }
 }

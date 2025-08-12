@@ -11,11 +11,11 @@ import java.io.IOException;
 @Component
 @Slf4j
 @DisallowConcurrentExecution
-public class SteamAppListDownloadJob implements Job {
+public class SteamAppListJob implements Job {
 
     private final SteamAppListFetcher fetcher;
 
-    public SteamAppListDownloadJob(SteamAppListFetcher fetcher) {
+    public SteamAppListJob(SteamAppListFetcher fetcher) {
         this.fetcher = fetcher;
     }
 
@@ -27,15 +27,15 @@ public class SteamAppListDownloadJob implements Job {
         } catch (IOException e) {
             log.error("SteamAppList ingestion failed", e);
         } finally {
-            log.info("SteamAppReviews ingestion ended");
+            log.info("SteamAppList ingestion ended");
         }
     }
 
-    @Bean("SteamAppListDownloadJob")
+    @Bean("SteamAppListJob")
     public JobDetail jobDetail() {
-        return JobBuilder.newJob().ofType(SteamAppListDownloadJob.class)
+        return JobBuilder.newJob().ofType(SteamAppListJob.class)
                 .storeDurably()
-                .withIdentity("SteamAppListDownloadJob")
+                .withIdentity("SteamAppListJob")
                 .build();
     }
 }

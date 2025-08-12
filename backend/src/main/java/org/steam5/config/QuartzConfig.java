@@ -13,17 +13,17 @@ import static org.quartz.SimpleScheduleBuilder.simpleSchedule;
 public class QuartzConfig {
 
     @Bean
-    public Trigger triggerSteamAppDetailFetchJob(@Qualifier("SteamAppDetailFetchJob") JobDetail job) {
+    public Trigger triggerSteamAppDetailJob(@Qualifier("SteamAppDetailJob") JobDetail job) {
         return TriggerBuilder.newTrigger().forJob(job)
-                .withIdentity("SteamAppDetailFetchJob_Trigger")
+                .withIdentity("SteamAppDetailJob_Trigger")
                 //.withSchedule(simpleSchedule().repeatForever().withIntervalInSeconds(15))
                 .build();
     }
 
     @Bean
-    public Trigger triggerSteamAppListDownloadJob(@Qualifier("SteamAppListDownloadJob") JobDetail job) {
+    public Trigger triggerSteamAppListJob(@Qualifier("SteamAppListJob") JobDetail job) {
         return TriggerBuilder.newTrigger().forJob(job)
-                .withIdentity("SteamAppListDownloadJob_Trigger")
+                .withIdentity("SteamAppListJob_Trigger")
                 .withSchedule(simpleSchedule().repeatForever().withIntervalInHours(24))
                 .build();
     }
