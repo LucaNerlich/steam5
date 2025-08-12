@@ -1,8 +1,8 @@
 package org.steam5.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
@@ -19,10 +19,9 @@ import org.steam5.repository.SteamAppReviewsRepository;
 import java.io.IOException;
 import java.time.OffsetDateTime;
 
+@Slf4j
 @Service
 public class SteamAppReviewsFetcher implements Fetcher {
-
-    private static final Logger log = LoggerFactory.getLogger(SteamAppReviewsFetcher.class);
 
     private final SteamAppsConfig properties;
     private final JsonHttpClient jsonHttpClient;
@@ -43,20 +42,20 @@ public class SteamAppReviewsFetcher implements Fetcher {
     }
 
     @Override
-    public void ingest() {
+    public void ingest() throws IOException {
         if (properties.getApiKey() == null || properties.getApiKey().isBlank()) {
             throw new IllegalStateException("STEAM_API_KEY must be configured");
         }
 
-        long lastAppId = ingestStateRepository.findById("steam_app_reviews").map(IngestState::getLastAppId).orElse(0L);
+        final long lastAppId = ingestStateRepository.findById("steam_app_reviews").map(IngestState::getLastAppId).orElse(0L);
         log.info("Starting reviews ingestion from appId > {}", lastAppId);
 
         long processed = 0L;
         Long cursor = lastAppId;
-        int pageSize = 5000; // large batches; single HTTP call per app
+        final int pageSize = 1000; // large batches; single HTTP call per app
         boolean more = true;
         while (more) {
-            var page = appIndexRepository.findByAppIdGreaterThan(cursor, PageRequest.of(0, pageSize, Sort.by("appId").ascending()));
+            final Page<SteamAppIndex> page = appIndexRepository.findByAppIdGreaterThan(cursor, PageRequest.of(0, pageSize, Sort.by("appId").ascending()));
             if (page.isEmpty()) {
                 break;
             }
@@ -90,7 +89,8 @@ public class SteamAppReviewsFetcher implements Fetcher {
 
         final JsonNode root = jsonHttpClient.getJson(url);
         if (root.path("success").asInt(0) != 1) {
-            log.debug("Reviews API returned non-success for appId {}", appId);
+            log.error("Reviews API returned non-success for appId {}", appId);
+            return;
         }
 
         final JsonNode summary = root.path("query_summary");

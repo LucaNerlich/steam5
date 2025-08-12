@@ -1,14 +1,96 @@
 package org.steam5.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.web.util.UriComponentsBuilder;
+import org.steam5.config.SteamAppsConfig;
+import org.steam5.domain.IngestState;
+import org.steam5.domain.SteamAppIndex;
+import org.steam5.domain.details.SteamAppDetailService;
+import org.steam5.http.JsonHttpClient;
+import org.steam5.repository.IngestStateRepository;
+import org.steam5.repository.SteamAppIndexRepository;
 
 import java.io.IOException;
+import java.time.OffsetDateTime;
 
+@Slf4j
 @Service
 public class SteamAppDetailsFetcher implements Fetcher {
 
+    private final SteamAppsConfig properties;
+    private final JsonHttpClient jsonHttpClient;
+    private final IngestStateRepository ingestStateRepository;
+    private final SteamAppIndexRepository appIndexRepository;
+    private final SteamAppDetailService service;
+
+    public SteamAppDetailsFetcher(final SteamAppsConfig properties, final JsonHttpClient jsonHttpClient, final IngestStateRepository ingestStateRepository, final SteamAppIndexRepository appIndexRepository, final SteamAppDetailService service) {
+        this.properties = properties;
+        this.jsonHttpClient = jsonHttpClient;
+        this.ingestStateRepository = ingestStateRepository;
+        this.appIndexRepository = appIndexRepository;
+        this.service = service;
+    }
+
     @Override
     public void ingest() throws IOException {
+        if (properties.getApiKey() == null || properties.getApiKey().isBlank()) {
+            throw new IllegalStateException("STEAM_API_KEY must be configured");
+        }
+
+        final long lastAppId = ingestStateRepository.findById("steam_app_details").map(IngestState::getLastAppId).orElse(0L);
+        log.info("Starting details ingestion from appId > {}", lastAppId);
+
+
+        processSingleAppId(  1154030L);
+
+   // long processed = 0L;
+   // Long cursor = lastAppId;
+   // final int pageSize = 1000; // large batches; single HTTP call per app
+   // boolean more = true;
+   // while (more) {
+   //     final Page<SteamAppIndex> page = appIndexRepository.findByAppIdGreaterThan(cursor, PageRequest.of(0, pageSize, Sort.by("appId").ascending()));
+   //     if (page.isEmpty()) {
+   //         break;
+   //     }
+   //     for (SteamAppIndex idx : page) {
+   //         final Long appId = idx.getAppId();
+   //         if (appId == null) continue;
+   //         try {
+   //             processSingleAppId(appId);
+   //             ingestStateRepository.upsert("steam_app_details", appId, OffsetDateTime.now());
+   //         } catch (Exception e) {
+   //             log.warn("Failed to fetch details for appId {}: {}", appId, e.getMessage());
+   //         }
+   //         processed++;
+   //         cursor = appId;
+   //     }
+   //     more = page.hasNext();
+   // }
+
+     //   log.info("Details ingestion finished. processed={} starting_after={}", processed, lastAppId);
+    }
+
+    private void processSingleAppId(final Long appId) throws IOException {
+        final String url = UriComponentsBuilder.fromUriString("https://store.steampowered.com/api/appdetails")
+                .queryParam("appids", appId)
+                .queryParam("key", properties.getApiKey())
+                .build(true)
+                .toUriString();
+
+        final JsonNode root = jsonHttpClient.getJson(url);
+        if (root.path(String.valueOf(appId)).path("success").asInt(0) != 1) {
+            log.error("Details API returned non-success for appId {}", appId);
+            return;
+        }
+
+        final JsonNode data = root.path(String.valueOf(appId)).path("data");
+        System.out.println();
+
 
     }
 }

@@ -6,6 +6,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
 import org.steam5.service.SteamAppReviewsFetcher;
 
+import java.io.IOException;
+
 @Component
 @Slf4j
 @DisallowConcurrentExecution
@@ -20,8 +22,13 @@ public class SteamAppReviewsJob implements Job {
     @Override
     public void execute(final JobExecutionContext context) throws JobExecutionException {
         log.info("SteamAppReviews ingestion started");
-        fetcher.ingest();
-        log.info("SteamAppReviews ingestion ended");
+        try {
+            fetcher.ingest();
+        } catch (IOException e) {
+            log.error("SteamAppReviews ingestion failed", e);
+        } finally {
+            log.info("SteamAppReviews ingestion ended");
+        }
     }
 
     @Bean("SteamAppReviewsJob")

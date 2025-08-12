@@ -1,6 +1,7 @@
 package org.steam5.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -15,10 +16,9 @@ import org.steam5.repository.SteamAppIndexRepository;
 import java.io.IOException;
 import java.time.OffsetDateTime;
 
+@Slf4j
 @Service
 public class SteamAppListFetcher implements Fetcher {
-
-    private static final Logger log = LoggerFactory.getLogger(SteamAppListFetcher.class);
 
     private final SteamAppsConfig properties;
     private final JsonHttpClient jsonHttpClient;

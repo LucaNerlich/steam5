@@ -24,9 +24,10 @@ public class SteamAppDetailFetchJob implements Job {
         log.info("SteamAppDetail ingestion started");
         try {
             fetcher.ingest();
-            log.info("SteamAppDetail ingestion ended");
         } catch (IOException e) {
             log.error("SteamAppDetail ingestion failed", e);
+        } finally {
+            log.info("SteamAppDetail ingestion ended");
         }
     }
 

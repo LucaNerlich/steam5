@@ -21,12 +21,13 @@ public class SteamAppListDownloadJob implements Job {
 
     @Override
     public void execute(final JobExecutionContext context) throws JobExecutionException {
+        log.info("SteamAppList ingestion started");
         try {
-            log.info("SteamAppList ingestion started");
             fetcher.ingest();
-            log.info("SteamAppList ingestion ended");
         } catch (IOException e) {
             log.error("SteamAppList ingestion failed", e);
+        } finally {
+            log.info("SteamAppReviews ingestion ended");
         }
     }
 
