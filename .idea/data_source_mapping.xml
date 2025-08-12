@@ -2,5 +2,6 @@
 <project version="4">
   <component name="DataSourcePerFileMappings">
     <file url="file://$PROJECT_DIR$/backend/src/main/java/org/steam5/repository/IngestStateRepository.java" value="53cc000d-35a2-4c08-b7f8-41900867e3ec" />
+    <file url="file://$PROJECT_DIR$/backend/src/main/resources/db/by-threshold.sql" value="53cc000d-35a2-4c08-b7f8-41900867e3ec" />
   </component>
 </project>
