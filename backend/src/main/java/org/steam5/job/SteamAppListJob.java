@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 import org.steam5.service.SteamAppListFetcher;
 
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 @Component
 @Slf4j
@@ -21,13 +22,17 @@ public class SteamAppListJob implements Job {
 
     @Override
     public void execute(final JobExecutionContext context) throws JobExecutionException {
-        log.info("SteamAppList ingestion started");
+        final long start = System.nanoTime();
+        log.info("Job start SteamAppListJob key={} fireTime={} scheduled={} refireCount={}",
+                context.getJobDetail().getKey(), context.getFireTime(), context.getScheduledFireTime(), context.getRefireCount());
         try {
             fetcher.ingest();
         } catch (IOException e) {
             log.error("SteamAppList ingestion failed", e);
         } finally {
-            log.info("SteamAppList ingestion ended");
+            long durationMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+            log.info("Job end SteamAppListJob durationMs={} nextFireTime={}", durationMs,
+                    context.getTrigger() != null ? context.getTrigger().getNextFireTime() : null);
         }
     }
 

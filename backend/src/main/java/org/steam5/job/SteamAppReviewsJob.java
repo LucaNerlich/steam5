@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 import org.steam5.service.SteamAppReviewsFetcher;
 
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 @Component
 @Slf4j
@@ -21,13 +22,17 @@ public class SteamAppReviewsJob implements Job {
 
     @Override
     public void execute(final JobExecutionContext context) throws JobExecutionException {
-        log.info("SteamAppReviews ingestion started");
+        final long start = System.nanoTime();
+        log.info("Job start SteamAppReviewsJob key={} fireTime={} scheduled={} refireCount={}",
+                context.getJobDetail().getKey(), context.getFireTime(), context.getScheduledFireTime(), context.getRefireCount());
         try {
             fetcher.ingest();
         } catch (IOException e) {
             log.error("SteamAppReviews ingestion failed", e);
         } finally {
-            log.info("SteamAppReviews ingestion ended");
+            long durationMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+            log.info("Job end SteamAppReviewsJob durationMs={} nextFireTime={}", durationMs,
+                    context.getTrigger() != null ? context.getTrigger().getNextFireTime() : null);
         }
     }
 
