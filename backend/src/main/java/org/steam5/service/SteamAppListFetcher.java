@@ -1,7 +1,6 @@
 package org.steam5.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -9,7 +8,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import org.steam5.config.SteamAppsConfig;
 import org.steam5.domain.IngestState;
 import org.steam5.domain.SteamAppIndex;
-import org.steam5.http.SteamHttpClient;
+import org.steam5.http.JsonHttpClient;
 import org.steam5.repository.IngestStateRepository;
 import org.steam5.repository.SteamAppIndexRepository;
 
@@ -22,21 +21,18 @@ public class SteamAppListFetcher implements Fetcher {
     private static final Logger log = LoggerFactory.getLogger(SteamAppListFetcher.class);
 
     private final SteamAppsConfig properties;
-    private final SteamHttpClient http;
-    private final ObjectMapper objectMapper;
+    private final JsonHttpClient jsonHttpClient;
     private final SteamAppIndexRepository appIndexRepository;
     private final IngestStateRepository ingestStateRepository;
 
     public SteamAppListFetcher(SteamAppsConfig properties,
-                               ObjectMapper objectMapper,
                                SteamAppIndexRepository appIndexRepository,
                                IngestStateRepository ingestStateRepository,
-                               SteamHttpClient http) {
+                               JsonHttpClient jsonHttpClient) {
         this.properties = properties;
-        this.objectMapper = objectMapper;
         this.appIndexRepository = appIndexRepository;
         this.ingestStateRepository = ingestStateRepository;
-        this.http = http;
+        this.jsonHttpClient = jsonHttpClient;
     }
 
     @Override
@@ -55,12 +51,7 @@ public class SteamAppListFetcher implements Fetcher {
             final String url = buildUrl(lastAppId);
             log.info("Fetching Steam app list page {} with last_appid={} ...", page, lastAppId);
 
-            final String body = http.get(url);
-            if (body == null) {
-                throw new IOException("Empty response from Steam API");
-            }
-
-            final JsonNode root = objectMapper.readTree(body);
+            final JsonNode root = jsonHttpClient.getJson(url);
             final JsonNode response = root.path("response");
             final JsonNode apps = response.path("apps");
 

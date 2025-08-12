@@ -1,7 +1,6 @@
 package org.steam5.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
@@ -12,7 +11,7 @@ import org.steam5.config.SteamAppsConfig;
 import org.steam5.domain.IngestState;
 import org.steam5.domain.SteamAppIndex;
 import org.steam5.domain.SteamAppReviews;
-import org.steam5.http.SteamHttpClient;
+import org.steam5.http.JsonHttpClient;
 import org.steam5.repository.IngestStateRepository;
 import org.steam5.repository.SteamAppIndexRepository;
 import org.steam5.repository.SteamAppReviewsRepository;
@@ -25,22 +24,19 @@ public class SteamAppReviewsFetcher implements Fetcher {
 
     private static final Logger log = LoggerFactory.getLogger(SteamAppReviewsFetcher.class);
 
-    private final ObjectMapper objectMapper;
     private final SteamAppsConfig properties;
-    private final SteamHttpClient http;
+    private final JsonHttpClient jsonHttpClient;
     private final SteamAppIndexRepository appIndexRepository;
     private final SteamAppReviewsRepository reviewsRepository;
     private final IngestStateRepository ingestStateRepository;
 
     public SteamAppReviewsFetcher(SteamAppsConfig properties,
-                                  ObjectMapper objectMapper,
-                                  SteamHttpClient http,
+                                  JsonHttpClient jsonHttpClient,
                                   SteamAppIndexRepository appIndexRepository,
                                   SteamAppReviewsRepository reviewsRepository,
                                   IngestStateRepository ingestStateRepository) {
         this.properties = properties;
-        this.objectMapper = objectMapper;
-        this.http = http;
+        this.jsonHttpClient = jsonHttpClient;
         this.appIndexRepository = appIndexRepository;
         this.reviewsRepository = reviewsRepository;
         this.ingestStateRepository = ingestStateRepository;
@@ -85,21 +81,16 @@ public class SteamAppReviewsFetcher implements Fetcher {
     private void processSingleAppId(Long appId) throws IOException {
         final String url = UriComponentsBuilder.fromUriString("https://store.steampowered.com/appreviews/" + appId)
                 .queryParam("json", 1)
-                .queryParam("num_per_page", 0) //  don't fetch actual reviews details
+                .queryParam("num_per_page", 0) //  don't fetch actual review details
                 .queryParam("language", "all")
                 .queryParam("purchase_type", "all")
                 .queryParam("key", properties.getApiKey())
                 .build(true)
                 .toUriString();
 
-        final String body = http.get(url);
-        if (body == null) {
-            throw new IOException("Empty response from reviews API for appId=" + appId);
-        }
-
-        final JsonNode root = objectMapper.readTree(body);
+        final JsonNode root = jsonHttpClient.getJson(url);
         if (root.path("success").asInt(0) != 1) {
-            log.debug("Reviews API returned non-success for appId {}: {}", appId, body);
+            log.debug("Reviews API returned non-success for appId {}", appId);
         }
 
         final JsonNode summary = root.path("query_summary");

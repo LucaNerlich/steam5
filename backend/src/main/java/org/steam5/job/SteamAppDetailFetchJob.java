@@ -6,6 +6,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
 import org.steam5.service.SteamAppDetailsFetcher;
 
+import java.io.IOException;
+
 @Component
 @Slf4j
 @DisallowConcurrentExecution
@@ -20,8 +22,12 @@ public class SteamAppDetailFetchJob implements Job {
     @Override
     public void execute(final JobExecutionContext context) throws JobExecutionException {
         log.info("SteamAppDetail ingestion started");
-        fetcher.ingest();
-        log.info("SteamAppDetail ingestion ended");
+        try {
+            fetcher.ingest();
+            log.info("SteamAppDetail ingestion ended");
+        } catch (IOException e) {
+            log.error("SteamAppDetail ingestion failed", e);
+        }
     }
 
     @Bean("SteamAppDetailFetchJob")
