@@ -7,6 +7,8 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import static org.quartz.SimpleScheduleBuilder.simpleSchedule;
+
 @Configuration
 public class QuartzConfig {
 
@@ -22,16 +24,15 @@ public class QuartzConfig {
     public Trigger triggerSteamAppListDownloadJob(@Qualifier("SteamAppListDownloadJob") JobDetail job) {
         return TriggerBuilder.newTrigger().forJob(job)
                 .withIdentity("SteamAppListDownloadJob_Trigger")
-                //.withSchedule(simpleSchedule().repeatForever().withIntervalInSeconds(15))
+                .withSchedule(simpleSchedule().repeatForever().withIntervalInHours(24))
                 .build();
     }
 
     @Bean
-    public Trigger triggerSSteamAppReviewsJob(@Qualifier("SteamAppReviewsJob") JobDetail job) {
+    public Trigger triggerSteamAppReviewsJob(@Qualifier("SteamAppReviewsJob") JobDetail job) {
         return TriggerBuilder.newTrigger().forJob(job)
                 .withIdentity("SteamAppReviewsJob_Trigger")
                 //.withSchedule(simpleSchedule().repeatForever().withIntervalInSeconds(15))
                 .build();
     }
-
 }
