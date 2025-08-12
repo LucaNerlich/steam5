@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.steam5.config.ReviewGameConfig;
 import org.steam5.domain.ReviewGamePick;
 import org.steam5.repository.ReviewGamePickRepository;
 import org.steam5.repository.SteamAppReviewsRepository;
@@ -20,6 +21,7 @@ public class ReviewGameStateService {
 
     private final SteamAppReviewsRepository reviewsRepository;
     private final ReviewGamePickRepository pickRepository;
+    private final ReviewGameConfig config;
 
     @Transactional
     public List<ReviewGamePick> generateDailyPicks() {
@@ -29,9 +31,10 @@ public class ReviewGameStateService {
             return existing;
         }
 
-        // DB-side approach: thresholds + random selections, excluding any previously picked by default
-        final LocalDate excludeSinceAllPast = LocalDate.of(1970, 1, 1); // exclude all past picks
-        final LocalDate includeAll = LocalDate.of(9999, 12, 31); // include previously picked when relaxing
+        // Exclusion window parameterized
+        final int doNotRepeatDays = Math.max(0, config.getDoNotRepeatDays());
+        final LocalDate excludeSince = doNotRepeatDays >= 36500 ? LocalDate.of(1970, 1, 1) : today.minusDays(doNotRepeatDays);
+        final LocalDate includeAll = LocalDate.of(1970, 1, 1); // relax by allowing any past picks
 
         var thresholds = reviewsRepository.findPercentileThresholds();
         int lowThreshold = thresholds == null || thresholds.getLowThreshold() == null ? 100 : thresholds.getLowThreshold();
@@ -41,7 +44,7 @@ public class ReviewGameStateService {
         final Set<Long> chosenIds = new HashSet<>();
 
         // LOW
-        List<Long> lowIds = reviewsRepository.findRandomLowAppIds(excludeSinceAllPast, lowThreshold, PageRequest.of(0, 3));
+        List<Long> lowIds = reviewsRepository.findRandomLowAppIds(excludeSince, lowThreshold, PageRequest.of(0, 3));
         if (!lowIds.isEmpty()) {
             Long id = lowIds.get(0);
             chosenIds.add(id);
@@ -57,7 +60,7 @@ public class ReviewGameStateService {
         }
 
         // HIGH
-        List<Long> highIds = reviewsRepository.findRandomHighAppIds(excludeSinceAllPast, highThreshold, PageRequest.of(0, 5));
+        List<Long> highIds = reviewsRepository.findRandomHighAppIds(excludeSince, highThreshold, PageRequest.of(0, 5));
         Optional<Long> highOpt = highIds.stream().filter(id -> !chosenIds.contains(id)).findFirst();
         if (highOpt.isEmpty()) {
             List<Long> relaxed = reviewsRepository.findRandomHighAppIds(includeAll, highThreshold, PageRequest.of(0, 5));
@@ -70,7 +73,7 @@ public class ReviewGameStateService {
 
         // fill remaining ANY
         while (picks.size() < 5) {
-            List<Long> anyIds = reviewsRepository.findRandomAnyAppIds(excludeSinceAllPast, PageRequest.of(0, 5));
+            List<Long> anyIds = reviewsRepository.findRandomAnyAppIds(excludeSince, PageRequest.of(0, 5));
             Optional<Long> next = anyIds.stream().filter(id -> !chosenIds.contains(id)).findFirst();
             if (next.isEmpty()) {
                 List<Long> relaxed = reviewsRepository.findRandomAnyAppIds(includeAll, PageRequest.of(0, 5));
