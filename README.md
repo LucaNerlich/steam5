@@ -37,9 +37,9 @@ Create database and a least-privileged user:
 
 ```sql
 -- From psql connected as a superuser (e.g. postgres):
-CREATE DATABASE steam5;
+CREATE DATABASE steam5_db;
 CREATE ROLE steam5_user WITH LOGIN PASSWORD 'steam5_password';
-GRANT CONNECT ON DATABASE steam5 TO steam5_user;
+GRANT CONNECT ON DATABASE steam5_db TO steam5_user;
 \c steam5
 GRANT USAGE ON SCHEMA public TO steam5_user;
 GRANT CREATE, USAGE ON SCHEMA public TO steam5_user;
@@ -50,6 +50,18 @@ Alternatively, run Postgres via Docker:
 ```bash
 docker run --name steam5-pg -e POSTGRES_DB=steam5 -e POSTGRES_USER=steam5_user -e POSTGRES_PASSWORD=steam5_password -p 5432:5432 -d postgres:16
 ```
+
+### Export and Import Backup
+
+1. Via IDEA, right click "steam5_db" in database browser
+2. Export via pg_dump
+3. Export as tar and with "copy" statement
+4. Rename generated .sql file to .sql.gz
+5. Upload to coolify "Import Backup"
+6. Add `--clean` to import command
+7. Run import
+
+If first time, login to container and setup database and role, via above sql steps.
 
 ### Configure environment (overrides)
 
