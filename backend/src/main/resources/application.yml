@@ -38,7 +38,4 @@ logging:
     root: INFO
     org.springframework: WARN
     org.hibernate: WARN
-  file:
-    name: ${LOG_FILE:steam5.log}
-    path: ${LOG_PATH:./logs}
 

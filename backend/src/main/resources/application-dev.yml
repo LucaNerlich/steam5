@@ -11,3 +11,7 @@ management:
       show-details: always
     quartz:
       access: unrestricted
+logging:
+  file:
+    name: ${LOG_FILE:steam5.log}
+    path: ${LOG_PATH:./logs}
