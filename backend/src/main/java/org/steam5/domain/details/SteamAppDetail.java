@@ -27,20 +27,22 @@ public class SteamAppDetail {
     private boolean isFree;
 
     // comma separated list of DLC appIds
+    @Column(columnDefinition = "TEXT")
     private String dlc;
 
-    @Column(name = "short_description")
+    @Column(name = "short_description", columnDefinition = "TEXT")
     private String shortDescription;
-    @Column(name = "detailed_description")
+    @Column(name = "detailed_description", columnDefinition = "TEXT")
     private String detailedDescription;
-    @Column(name = "about_the_game")
+    @Column(name = "about_the_game", columnDefinition = "TEXT")
     private String aboutTheGame;
-    @Column(name = "header_image")
+    @Column(name = "header_image", columnDefinition = "TEXT")
     private String headerImage;
-    @Column(name = "capsule_image")
+    @Column(name = "capsule_image", columnDefinition = "TEXT")
     private String capsuleImage;
+    @Column(columnDefinition = "TEXT")
     private String website;
-    @Column(name = "legal_notice")
+    @Column(name = "legal_notice", columnDefinition = "TEXT")
     private String legalNotice;
 
 
@@ -70,7 +72,7 @@ public class SteamAppDetail {
     @Column(name = "release_date")
     private String releaseDate;
 
-    @Column(name = "background_raw")
+    @Column(name = "background_raw", columnDefinition = "TEXT")
     private String backgroundRaw;
 
 }
