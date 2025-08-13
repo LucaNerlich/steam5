@@ -39,3 +39,8 @@ logging:
     org.springframework: WARN
     org.hibernate: WARN
 
+review:
+  game:
+    # days to avoid reusing an appid after it was picked; increase for fewer repeats
+    do-not-repeat-days: 3650
+

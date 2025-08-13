@@ -45,34 +45,33 @@ public class SteamAppDetailsFetcher implements Fetcher {
         final long lastAppId = ingestStateRepository.findById("steam_app_details").map(IngestState::getLastAppId).orElse(0L);
         log.info("Starting details ingestion from appId > {}", lastAppId);
 
+        long processed = 0L;
+        Long cursor = lastAppId;
+        final int pageSize = 500; // single HTTP call per app, moderate batch size
+        boolean more = true;
+        while (more) {
+            final Page<SteamAppIndex> page = appIndexRepository.findByAppIdGreaterThan(cursor, PageRequest.of(0, pageSize, Sort.by("appId").ascending()));
+            if (page.isEmpty()) {
+                break;
+            }
+            for (SteamAppIndex idx : page) {
+                final Long appId = idx.getAppId();
+                if (appId == null) continue;
+                try {
+                    processSingleAppId(appId);
+                } catch (Exception e) {
+                    log.warn("Failed to fetch details for appId {}: {}", appId, e.getMessage());
+                } finally {
+                    // advance cursor regardless of outcome to avoid getting stuck
+                    ingestStateRepository.upsert("steam_app_details", appId, OffsetDateTime.now());
+                }
+                processed++;
+                cursor = appId;
+            }
+            more = page.hasNext();
+        }
 
-        processSingleAppId(  1154030L);
-
-   // long processed = 0L;
-   // Long cursor = lastAppId;
-   // final int pageSize = 1000; // large batches; single HTTP call per app
-   // boolean more = true;
-   // while (more) {
-   //     final Page<SteamAppIndex> page = appIndexRepository.findByAppIdGreaterThan(cursor, PageRequest.of(0, pageSize, Sort.by("appId").ascending()));
-   //     if (page.isEmpty()) {
-   //         break;
-   //     }
-   //     for (SteamAppIndex idx : page) {
-   //         final Long appId = idx.getAppId();
-   //         if (appId == null) continue;
-   //         try {
-   //             processSingleAppId(appId);
-   //             ingestStateRepository.upsert("steam_app_details", appId, OffsetDateTime.now());
-   //         } catch (Exception e) {
-   //             log.warn("Failed to fetch details for appId {}: {}", appId, e.getMessage());
-   //         }
-   //         processed++;
-   //         cursor = appId;
-   //     }
-   //     more = page.hasNext();
-   // }
-
-     //   log.info("Details ingestion finished. processed={} starting_after={}", processed, lastAppId);
+        log.info("Details ingestion finished. processed={} starting_after={}", processed, lastAppId);
     }
 
     private void processSingleAppId(final Long appId) throws IOException {
@@ -83,14 +82,18 @@ public class SteamAppDetailsFetcher implements Fetcher {
                 .toUriString();
 
         final JsonNode root = jsonHttpClient.getJson(url);
-        if (root.path(String.valueOf(appId)).path("success").asInt(0) != 1) {
-            log.error("Details API returned non-success for appId {}", appId);
+        final JsonNode appNode = root.path(String.valueOf(appId));
+        if (appNode.path("success").asInt(0) != 1) {
+            log.debug("Details API returned non-success for appId {}", appId);
             return;
         }
 
-        final JsonNode data = root.path(String.valueOf(appId)).path("data");
-        System.out.println();
+        final JsonNode data = appNode.path("data");
+        if (data == null || data.isMissingNode() || data.isNull()) {
+            log.debug("Details API missing data for appId {}", appId);
+            return;
+        }
 
-
+        service.upsertFromJson(appId, data);
     }
 }

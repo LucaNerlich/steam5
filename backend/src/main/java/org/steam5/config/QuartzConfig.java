@@ -35,4 +35,12 @@ public class QuartzConfig {
                 //.withSchedule(simpleSchedule().repeatForever().withIntervalInSeconds(15))
                 .build();
     }
+
+    @Bean
+    public Trigger triggerReviewGameStateJob(@Qualifier("ReviewGameStateJob") JobDetail job) {
+        return TriggerBuilder.newTrigger().forJob(job)
+                .withIdentity("ReviewGameStateJob_Trigger")
+                .withSchedule(simpleSchedule().repeatForever().withIntervalInHours(24))
+                .build();
+    }
 }
