@@ -17,8 +17,8 @@ public interface IngestStateRepository extends JpaRepository<IngestState, String
             "ON CONFLICT (id) DO UPDATE SET last_app_id = EXCLUDED.last_app_id, updated_at = EXCLUDED.updated_at",
             nativeQuery = true)
     void upsert(@Param("id") String id,
-               @Param("lastAppId") long lastAppId,
-               @Param("updatedAt") OffsetDateTime updatedAt);
+                @Param("lastAppId") long lastAppId,
+                @Param("updatedAt") OffsetDateTime updatedAt);
 }
 
 

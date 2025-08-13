@@ -13,7 +13,7 @@ public class ReviewGameConfig {
      * Number of days during which a previously picked appid should not be picked again.
      * If set very large, it approximates "never repeat". Default: 3650 (10 years).
      */
-    private int doNotRepeatDays = 3650;
+    private final int doNotRepeatDays = 3650;
 }
 
 

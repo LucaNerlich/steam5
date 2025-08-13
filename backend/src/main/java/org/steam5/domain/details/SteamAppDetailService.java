@@ -18,6 +18,34 @@ public class SteamAppDetailService {
         this.repository = repository;
     }
 
+    private static Iterable<JsonNode> safeArray(JsonNode node) {
+        if (node == null || !node.isArray()) {
+            return List.of();
+        }
+        List<JsonNode> list = new ArrayList<>();
+        Iterator<JsonNode> it = node.elements();
+        while (it.hasNext()) list.add(it.next());
+        return list;
+    }
+
+    private static String asTextOrNull(JsonNode node, String field) {
+        JsonNode f = node.path(field);
+        return f.isMissingNode() || f.isNull() ? null : f.asText();
+    }
+
+    private static String joinDlcIds(JsonNode dlcArray) {
+        if (dlcArray == null || !dlcArray.isArray() || dlcArray.isEmpty()) {
+            return null;
+        }
+        StringBuilder sb = new StringBuilder();
+        for (JsonNode n : dlcArray) {
+            if (!n.canConvertToLong()) continue;
+            if (!sb.isEmpty()) sb.append(',');
+            sb.append(n.asLong());
+        }
+        return sb.isEmpty() ? null : sb.toString();
+    }
+
     @Transactional
     public void upsertFromJson(final Long appId, final JsonNode data) {
         SteamAppDetail detail = repository.findById(appId).orElseGet(SteamAppDetail::new);
@@ -101,33 +129,5 @@ public class SteamAppDetailService {
         }
 
         repository.save(detail);
-    }
-
-    private static Iterable<JsonNode> safeArray(JsonNode node) {
-        if (node == null || !node.isArray()) {
-            return List.of();
-        }
-        List<JsonNode> list = new ArrayList<>();
-        Iterator<JsonNode> it = node.elements();
-        while (it.hasNext()) list.add(it.next());
-        return list;
-    }
-
-    private static String asTextOrNull(JsonNode node, String field) {
-        JsonNode f = node.path(field);
-        return f.isMissingNode() || f.isNull() ? null : f.asText();
-    }
-
-    private static String joinDlcIds(JsonNode dlcArray) {
-        if (dlcArray == null || !dlcArray.isArray() || dlcArray.isEmpty()) {
-            return null;
-        }
-        StringBuilder sb = new StringBuilder();
-        for (JsonNode n : dlcArray) {
-            if (!n.canConvertToLong()) continue;
-            if (!sb.isEmpty()) sb.append(',');
-            sb.append(n.asLong());
-        }
-        return sb.isEmpty() ? null : sb.toString();
     }
 }
