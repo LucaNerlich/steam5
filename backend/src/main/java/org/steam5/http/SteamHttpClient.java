@@ -4,7 +4,6 @@ import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 import org.steam5.config.SteamAppsConfig;
-import org.steam5.service.SteamRateLimiter;
 
 @Component
 public class SteamHttpClient {

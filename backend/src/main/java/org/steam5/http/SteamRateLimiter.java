@@ -1,4 +1,4 @@
-package org.steam5.service;
+package org.steam5.http;
 
 import org.springframework.stereotype.Component;
 
@@ -9,7 +9,7 @@ import java.util.concurrent.TimeUnit;
 public class SteamRateLimiter {
 
     private volatile long nextAllowedEpochMs = 0L;
-    private long minIntervalMs = 2000L; // default 2s
+    private long minIntervalMs = 1000L;
 
     public synchronized void setMinInterval(Duration interval) {
         this.minIntervalMs = Math.max(0L, interval.toMillis());
