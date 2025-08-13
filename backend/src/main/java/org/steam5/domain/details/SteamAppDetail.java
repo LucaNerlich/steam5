@@ -60,6 +60,9 @@ public class SteamAppDetail {
     @OneToMany(mappedBy = "appId", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Screenshot> screenshots = new ArrayList<>();
 
+    @OneToMany(mappedBy = "appId", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Movie> movies = new ArrayList<>();
+
     // mapped by field -> "total"
     private Long recommendations;
 

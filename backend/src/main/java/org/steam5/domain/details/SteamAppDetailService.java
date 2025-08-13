@@ -48,6 +48,7 @@ public class SteamAppDetailService {
         detail.getPublisher().clear();
         detail.getGenres().clear();
         detail.getScreenshots().clear();
+        detail.getMovies().clear();
 
         // Developers
         for (JsonNode devNode : safeArray(data.path("developers"))) {
@@ -79,6 +80,23 @@ public class SteamAppDetailService {
             String full = ssNode.path("path_full").asText(null);
             if (thumb != null || full != null) {
                 detail.getScreenshots().add(new Screenshot(null, detail, thumb, full));
+            }
+        }
+
+        // Movies
+        for (JsonNode mvNode : safeArray(data.path("movies"))) {
+            String name = mvNode.path("name").asText(null);
+            String thumbnail = mvNode.path("thumbnail").asText(null);
+            String webm = mvNode.path("webm").path("max").asText(null);
+            if (webm == null || webm.isBlank()) {
+                webm = mvNode.path("webm").path("480").asText(null);
+            }
+            String mp4 = mvNode.path("mp4").path("max").asText(null);
+            if (mp4 == null || mp4.isBlank()) {
+                mp4 = mvNode.path("mp4").path("480").asText(null);
+            }
+            if (name != null || thumbnail != null || webm != null || mp4 != null) {
+                detail.getMovies().add(new Movie(null, name, thumbnail, webm, mp4, detail));
             }
         }
 
