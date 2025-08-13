@@ -12,13 +12,13 @@ import static org.quartz.SimpleScheduleBuilder.simpleSchedule;
 @Configuration
 public class QuartzConfig {
 
-    @Bean
-    public Trigger triggerSteamAppDetailJob(@Qualifier("SteamAppDetailJob") JobDetail job) {
-        return TriggerBuilder.newTrigger().forJob(job)
-                .withIdentity("SteamAppDetailJob_Trigger")
-                //.withSchedule(simpleSchedule().repeatForever().withIntervalInSeconds(15))
-                .build();
-    }
+    //@Bean
+    //public Trigger triggerSteamAppDetailJob(@Qualifier("SteamAppDetailJob") JobDetail job) {
+    //    return TriggerBuilder.newTrigger().forJob(job)
+    //            .withIdentity("SteamAppDetailJob_Trigger")
+    //            //.withSchedule(simpleSchedule().repeatForever().withIntervalInSeconds(15))
+    //            .build();
+    //}
 
     @Bean
     public Trigger triggerSteamAppListJob(@Qualifier("SteamAppListJob") JobDetail job) {
@@ -36,11 +36,11 @@ public class QuartzConfig {
                 .build();
     }
 
-    @Bean
-    public Trigger triggerReviewGameStateJob(@Qualifier("ReviewGameStateJob") JobDetail job) {
-        return TriggerBuilder.newTrigger().forJob(job)
-                .withIdentity("ReviewGameStateJob_Trigger")
-                .withSchedule(simpleSchedule().repeatForever().withIntervalInHours(24))
-                .build();
-    }
+    //@Bean
+    //public Trigger triggerReviewGameStateJob(@Qualifier("ReviewGameStateJob") JobDetail job) {
+    //    return TriggerBuilder.newTrigger().forJob(job)
+    //            .withIdentity("ReviewGameStateJob_Trigger")
+    //            .withSchedule(simpleSchedule().repeatForever().withIntervalInHours(24))
+    //            .build();
+    //}
 }
