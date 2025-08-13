@@ -80,6 +80,7 @@ public class ReviewGameStateController {
     }
 
     @GetMapping("/buckets")
+    @Cacheable(value = "reviewBucketLabels")
     public ResponseEntity<List<String>> buckets() {
         return ResponseEntity.ok(service.getBucketLabels());
     }

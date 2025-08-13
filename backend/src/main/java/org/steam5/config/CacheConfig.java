@@ -43,12 +43,20 @@ public class CacheConfig {
                         .build()
         );
 
+        final CaffeineCache reviewBucketLabels = new CaffeineCache(
+                "reviewBucketLabels",
+                Caffeine.newBuilder()
+                        .expireAfterWrite(24, TimeUnit.HOURS)
+                        .build()
+        );
+
         final SimpleCacheManager cacheManager = new SimpleCacheManager();
         cacheManager.setCaches(List.of(
                 reviewGameStateTodayPicks,
                 reviewGameStateTodayDetails,
                 reviewCountsToday,
-                reviewGuessToday
+                reviewGuessToday,
+                reviewBucketLabels
         ));
         return cacheManager;
     }
