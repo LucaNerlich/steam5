@@ -32,33 +32,34 @@ public class ReviewGameStateController {
     private final Environment environment;
 
     @GetMapping("/today")
-    @Cacheable(value = "reviewGameStateToday", key = "'picks'", unless = "#result == null")
+    @Cacheable(value = "reviewGameStateTodayPicks", key = "'picks'", unless = "#result == null")
     public ResponseEntity<ReviewGameStateDto> getToday() {
         if (!environment.acceptsProfiles(Profiles.of("dev"))) {
             return ResponseEntity.notFound().build();
         }
-        List<ReviewGamePick> picks = service.generateDailyPicks();
-        List<Long> appIds = picks.stream().map(ReviewGamePick::getAppId).toList();
-        Map<Long, SteamAppReviews> idToReviews = reviewsRepository.findAllById(appIds).stream()
+
+        final List<ReviewGamePick> picks = service.generateDailyPicks();
+        final List<Long> appIds = picks.stream().map(ReviewGamePick::getAppId).toList();
+        final Map<Long, SteamAppReviews> idToReviews = reviewsRepository.findAllById(appIds).stream()
                 .collect(Collectors.toMap(SteamAppReviews::getAppId, Function.identity()));
-        List<ReviewGamePickDto> dtoList = picks.stream()
+        final List<ReviewGamePickDto> dtoList = picks.stream()
                 .map(p -> {
                     SteamAppReviews r = idToReviews.get(p.getAppId());
-                    int pos = r != null ? r.getTotalPositive() : 0;
-                    int neg = r != null ? r.getTotalNegative() : 0;
+                    final int pos = r != null ? r.getTotalPositive() : 0;
+                    final int neg = r != null ? r.getTotalNegative() : 0;
                     return new ReviewGamePickDto(p.getAppId(), pos, neg);
                 })
                 .toList();
-        LocalDate date = picks.isEmpty() ? LocalDate.now() : picks.getFirst().getPickDate();
+        final LocalDate date = picks.isEmpty() ? LocalDate.now() : picks.getFirst().getPickDate();
         return ResponseEntity.ok(new ReviewGameStateDto(date, dtoList));
     }
 
     @GetMapping("/today/details")
-    @Cacheable(value = "reviewGameStateToday", key = "'details'", unless = "#result == null")
+    @Cacheable(value = "reviewGameStateTodayDetails", key = "'details'", unless = "#result == null")
     public ResponseEntity<List<SteamAppDetail>> getTodayDetails() {
-        List<ReviewGamePick> picks = service.generateDailyPicks();
-        List<Long> appIds = picks.stream().map(ReviewGamePick::getAppId).toList();
-        List<SteamAppDetail> details = detailRepository.findAllById(appIds);
+        final List<ReviewGamePick> picks = service.generateDailyPicks();
+        final List<Long> appIds = picks.stream().map(ReviewGamePick::getAppId).toList();
+        final List<SteamAppDetail> details = detailRepository.findAllById(appIds);
         return ResponseEntity.ok(details);
     }
 
