@@ -79,6 +79,11 @@ public class ReviewGameStateController {
         return ResponseEntity.ok(new GuessResponse(req.appId, total, actual, ok));
     }
 
+    @GetMapping("/buckets")
+    public ResponseEntity<List<String>> buckets() {
+        return ResponseEntity.ok(service.getBucketLabels());
+    }
+
     public record ReviewGameStateDto(LocalDate date, List<ReviewGamePickDto> picks) {
     }
 

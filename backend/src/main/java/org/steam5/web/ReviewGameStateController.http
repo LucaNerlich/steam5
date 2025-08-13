@@ -1,0 +1,42 @@
+### Get today's review-game picks (requires 'dev' profile)
+GET {{host}}/api/review-game/today
+Accept: application/json
+
+### Get today's review-game picks details (game metadata)
+GET {{host}}/api/review-game/today/details
+Accept: application/json
+
+### Get configured bucket labels (game metadata)
+GET {{host}}/api/review-game/buckets
+Accept: application/json
+
+### Submit a guess for a game's review bucket
+POST {{host}}/api/review-game/guess
+Content-Type: application/json
+Accept: application/json
+
+{
+    "appId": 570,
+    "bucketGuess": "100k+"
+}
+
+### Alternative guess examples
+# Replace values as needed. The service will compute the actual bucket and return whether it's correct.
+POST {{host}}/api/review-game/guess
+Content-Type: application/json
+Accept: application/json
+
+{
+    "appId": 440,
+    "bucketGuess": "50k-100k"
+}
+
+### Minimal invalid body example (should return 400 Bad Request)
+POST {{host}}/api/review-game/guess
+Content-Type: application/json
+Accept: application/json
+
+{
+    "appId": null,
+    "bucketGuess": null
+}

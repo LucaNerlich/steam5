@@ -95,16 +95,37 @@ public class ReviewGameStateService {
 
     @Cacheable(value = "reviewCountsToday", key = "#appId")
     public int getTotalReviewCountForApp(Long appId) {
-        return reviewsRepository.findById(appId)
-                .map(r -> r.getTotalPositive() + r.getTotalNegative())
-                .orElse(0);
+        return reviewsRepository.findById(appId).map(r -> r.getTotalPositive() + r.getTotalNegative()).orElse(0);
     }
 
     public String inferBucket(int totalReviews) {
-        if (totalReviews <= 100) return "0-100";
-        if (totalReviews <= 1000) return "101-1000";
-        if (totalReviews <= 10000) return "1001-10000";
-        return "10000+";
+        final List<Integer> bounds = config.getBucketBoundaries();
+        if (bounds == null || bounds.isEmpty()) {
+            return totalReviews + "+"; // fallback, shouldn't happen with defaults
+        }
+
+        int prev = 0;
+        for (int b : bounds) {
+            if (totalReviews <= b) {
+                return (prev == 0 ? "0-" + b : (prev + 1) + "-" + b);
+            }
+            prev = b;
+        }
+        return bounds.getLast() + "+";
+    }
+
+    public List<String> getBucketLabels() {
+        final List<Integer> bounds = config.getBucketBoundaries();
+        if (bounds == null || bounds.isEmpty()) return List.of();
+
+        final ArrayList<String> labels = new java.util.ArrayList<String>(bounds.size() + 1);
+        int prev = 0;
+        for (Integer b : bounds) {
+            labels.add((prev == 0 ? "0-" + b : (prev + 1) + "-" + b));
+            prev = b;
+        }
+        labels.add(bounds.getLast() + "+");
+        return labels;
     }
 }
 
