@@ -29,10 +29,26 @@ public class CacheConfig {
                         .build()
         );
 
+        final CaffeineCache reviewCountsToday = new CaffeineCache(
+                "reviewCountsToday",
+                Caffeine.newBuilder()
+                        .expireAfterWrite(24, TimeUnit.HOURS)
+                        .build()
+        );
+
+        final CaffeineCache reviewGuessToday = new CaffeineCache(
+                "reviewGuessToday",
+                Caffeine.newBuilder()
+                        .expireAfterWrite(24, TimeUnit.HOURS)
+                        .build()
+        );
+
         final SimpleCacheManager cacheManager = new SimpleCacheManager();
         cacheManager.setCaches(List.of(
                 reviewGameStateTodayPicks,
-                reviewGameStateTodayDetails
+                reviewGameStateTodayDetails,
+                reviewCountsToday,
+                reviewGuessToday
         ));
         return cacheManager;
     }

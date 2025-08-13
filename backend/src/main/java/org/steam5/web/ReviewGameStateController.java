@@ -5,9 +5,8 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.Profiles;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
 import org.steam5.domain.ReviewGamePick;
 import org.steam5.domain.SteamAppReviews;
 import org.steam5.domain.details.SteamAppDetail;
@@ -24,6 +23,7 @@ import java.util.stream.Collectors;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/review-game")
+@Validated
 public class ReviewGameStateController {
 
     private final ReviewGameStateService service;
@@ -66,7 +66,26 @@ public class ReviewGameStateController {
     public record ReviewGamePickDto(Long appId, int totalPositive, int totalNegative) {
     }
 
+    @PostMapping("/guess")
+    @Cacheable(value = "reviewGuessToday", key = "#req.appId + ':' + #req.bucketGuess")
+    public ResponseEntity<GuessResponse> submitGuess(@RequestBody GuessRequest req) {
+        if (req == null || req.appId == null || req.bucketGuess == null) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        final int total = service.getTotalReviewCountForApp(req.appId);
+        final String actual = service.inferBucket(total);
+        final boolean ok = actual.equals(req.bucketGuess);
+        return ResponseEntity.ok(new GuessResponse(req.appId, total, actual, ok));
+    }
+
     public record ReviewGameStateDto(LocalDate date, List<ReviewGamePickDto> picks) {
+    }
+
+    public record GuessRequest(Long appId, String bucketGuess) {
+    }
+
+    public record GuessResponse(Long appId, int totalReviews, String actualBucket, boolean correct) {
     }
 }
 

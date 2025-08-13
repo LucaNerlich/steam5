@@ -2,6 +2,7 @@ package org.steam5.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -91,6 +92,20 @@ public class ReviewGameStateService {
     }
 
     public enum Category {HIGH, LOW, ANY}
+
+    @Cacheable(value = "reviewCountsToday", key = "#appId")
+    public int getTotalReviewCountForApp(Long appId) {
+        return reviewsRepository.findById(appId)
+                .map(r -> r.getTotalPositive() + r.getTotalNegative())
+                .orElse(0);
+    }
+
+    public String inferBucket(int totalReviews) {
+        if (totalReviews <= 100) return "0-100";
+        if (totalReviews <= 1000) return "101-1000";
+        if (totalReviews <= 10000) return "1001-10000";
+        return "10000+";
+    }
 }
 
 
