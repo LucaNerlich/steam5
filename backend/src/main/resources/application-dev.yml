@@ -15,3 +15,6 @@ logging:
   file:
     name: ${LOG_FILE:steam5.log}
     path: ${LOG_PATH:./logs}
+jobs:
+  review-game-state:
+    enabled: true

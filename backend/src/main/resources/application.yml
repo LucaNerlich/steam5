@@ -49,11 +49,11 @@ review:
 # per-job enable/disable toggles
 jobs:
   steam-app-list:
-    enabled: true
+    enabled: ${JOB_INGEST_LIST:false}
   steam-app-reviews:
-    enabled: true
+    enabled: ${JOB_INGEST_REVIEWS:false}
   steam-app-details:
-    enabled: false
+    enabled: ${JOB_INGEST_DETAILS:false}
   review-game-state:
-    enabled: false
+    enabled: ${JOB_GENERATE_REVIEW_STATE:false}
 

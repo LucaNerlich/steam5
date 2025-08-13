@@ -47,16 +47,16 @@ public class ReviewGameStateService {
         // LOW
         final List<Long> lowIds = reviewsRepository.findRandomLowAppIds(excludeSince, lowThreshold, PageRequest.of(0, 3));
         if (!lowIds.isEmpty()) {
-            final Long id = lowIds.get(0);
+            final Long id = lowIds.getFirst();
             chosenIds.add(id);
-            picks.add(new ReviewGamePick(null, today, id, Category.LOW.name(), OffsetDateTime.now()));
+            picks.add(new ReviewGamePick(null, today, id, OffsetDateTime.now()));
         } else {
             // relax: allow from all lows ignoring recent
             final List<Long> relaxed = reviewsRepository.findRandomLowAppIds(includeAll, lowThreshold, PageRequest.of(0, 3));
             if (!relaxed.isEmpty()) {
-                final Long id = relaxed.get(0);
+                final Long id = relaxed.getFirst();
                 chosenIds.add(id);
-                picks.add(new ReviewGamePick(null, today, id, Category.LOW.name(), OffsetDateTime.now()));
+                picks.add(new ReviewGamePick(null, today, id, OffsetDateTime.now()));
             }
         }
 
@@ -69,7 +69,7 @@ public class ReviewGameStateService {
         }
         highOpt.ifPresent(id -> {
             chosenIds.add(id);
-            picks.add(new ReviewGamePick(null, today, id, Category.HIGH.name(), OffsetDateTime.now()));
+            picks.add(new ReviewGamePick(null, today, id, OffsetDateTime.now()));
         });
 
         // fill remaining ANY
@@ -83,7 +83,7 @@ public class ReviewGameStateService {
             if (next.isEmpty()) break;
             final Long id = next.get();
             chosenIds.add(id);
-            picks.add(new ReviewGamePick(null, today, id, Category.ANY.name(), OffsetDateTime.now()));
+            picks.add(new ReviewGamePick(null, today, id, OffsetDateTime.now()));
         }
 
         final List<ReviewGamePick> saved = pickRepository.saveAll(picks);

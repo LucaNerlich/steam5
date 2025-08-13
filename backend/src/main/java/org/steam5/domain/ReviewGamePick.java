@@ -28,9 +28,6 @@ public class ReviewGamePick {
     @Column(name = "app_id", nullable = false)
     private Long appId;
 
-    @Column(name = "category", nullable = false, length = 32)
-    private String category; // e.g., HIGH, LOW, ANY
-
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 }
