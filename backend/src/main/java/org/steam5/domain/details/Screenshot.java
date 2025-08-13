@@ -1,5 +1,6 @@
 package org.steam5.domain.details;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -18,6 +19,7 @@ public class Screenshot {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "app_id")
+    @JsonIgnore
     private SteamAppDetail appId;
 
     @Column(name = "path_thumbnail")
