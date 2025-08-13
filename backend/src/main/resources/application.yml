@@ -46,3 +46,14 @@ review:
     # dynamic bucket boundaries for guessing game (inclusive upper bounds in ascending order)
     bucket-boundaries: [ 100, 1000, 10000 ]
 
+# per-job enable/disable toggles
+jobs:
+  steam-app-list:
+    enabled: true
+  steam-app-reviews:
+    enabled: true
+  steam-app-details:
+    enabled: false
+  review-game-state:
+    enabled: false
+
