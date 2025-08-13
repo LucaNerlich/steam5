@@ -93,7 +93,7 @@ public class ReviewGameStateService {
 
     public enum Category {HIGH, LOW, ANY}
 
-    @Cacheable(value = "reviewCountsToday", key = "#appId")
+    @Cacheable(value = "one-day", key = "#appId + 'review-count'")
     public int getTotalReviewCountForApp(Long appId) {
         return reviewsRepository.findById(appId).map(r -> r.getTotalPositive() + r.getTotalNegative()).orElse(0);
     }
@@ -118,7 +118,7 @@ public class ReviewGameStateService {
         final List<Integer> bounds = config.getBucketBoundaries();
         if (bounds == null || bounds.isEmpty()) return List.of();
 
-        final ArrayList<String> labels = new java.util.ArrayList<String>(bounds.size() + 1);
+        final ArrayList<String> labels = new java.util.ArrayList<>(bounds.size() + 1);
         int prev = 0;
         for (Integer b : bounds) {
             labels.add((prev == 0 ? "0-" + b : (prev + 1) + "-" + b));

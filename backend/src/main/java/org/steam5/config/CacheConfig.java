@@ -15,36 +15,15 @@ public class CacheConfig {
 
     @Bean
     public CacheManager cacheManager() {
-        final CaffeineCache reviewGameStateTodayPicks = new CaffeineCache(
-                "reviewGameStateTodayPicks",
+        final CaffeineCache cacheOneHour = new CaffeineCache(
+                "one-hour",
                 Caffeine.newBuilder()
                         .expireAfterWrite(1, TimeUnit.HOURS)
                         .build()
         );
 
-        final CaffeineCache reviewGameStateTodayDetails = new CaffeineCache(
-                "reviewGameStateTodayDetails",
-                Caffeine.newBuilder()
-                        .expireAfterWrite(24, TimeUnit.HOURS)
-                        .build()
-        );
-
-        final CaffeineCache reviewCountsToday = new CaffeineCache(
-                "reviewCountsToday",
-                Caffeine.newBuilder()
-                        .expireAfterWrite(24, TimeUnit.HOURS)
-                        .build()
-        );
-
-        final CaffeineCache reviewGuessToday = new CaffeineCache(
-                "reviewGuessToday",
-                Caffeine.newBuilder()
-                        .expireAfterWrite(24, TimeUnit.HOURS)
-                        .build()
-        );
-
-        final CaffeineCache reviewBucketLabels = new CaffeineCache(
-                "reviewBucketLabels",
+        final CaffeineCache cacheOneDay = new CaffeineCache(
+                "one-day",
                 Caffeine.newBuilder()
                         .expireAfterWrite(24, TimeUnit.HOURS)
                         .build()
@@ -52,11 +31,8 @@ public class CacheConfig {
 
         final SimpleCacheManager cacheManager = new SimpleCacheManager();
         cacheManager.setCaches(List.of(
-                reviewGameStateTodayPicks,
-                reviewGameStateTodayDetails,
-                reviewCountsToday,
-                reviewGuessToday,
-                reviewBucketLabels
+                cacheOneHour,
+                cacheOneDay
         ));
         return cacheManager;
     }

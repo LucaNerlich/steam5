@@ -15,6 +15,7 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/review-game/**").permitAll()
+                        .requestMatchers("/api/review-game-metadata/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .httpBasic(basic -> {
