@@ -34,7 +34,6 @@ public class MetricsController {
     private final IngestStateRepository ingestStateRepository;
 
     @GetMapping
-    @Cacheable(value = "one-day", key = "'metrics-index'", unless = "#result == null")
     public ResponseEntity<Map<String, String>> index() {
         final Map<String, String> links = new LinkedHashMap<>();
         links.put("self", "/api/metrics");
