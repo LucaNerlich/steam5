@@ -1,5 +1,6 @@
 import ThemeToggle from "@/components/ThemeToggle";
 import FontToggle from "./FontToggle";
+import ResetTodayButton from "./ResetTodayButton";
 import "@/styles/footer.css";
 
 export default function Footer() {
@@ -10,6 +11,7 @@ export default function Footer() {
                 <div className="controls">
                     <ThemeToggle/>
                     <FontToggle/>
+                    <ResetTodayButton/>
                 </div>
             </div>
         </footer>

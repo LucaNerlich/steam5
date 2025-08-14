@@ -56,8 +56,3 @@ button.theme-toggle:hover {
     padding: 0 1rem;
     margin: 0 auto;
 }
-
-footer {
-    border-top: 1px solid var(--color-border);
-    background-color: var(--color-surface);
-}
