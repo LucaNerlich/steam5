@@ -108,3 +108,12 @@
     color: var(--color-muted);
 }
 
+/* Per-round points line */
+.review-round__points {
+    margin-top: 6px;
+}
+
+.review-round__points .points-emoji {
+    font-family: 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', 'Twemoji Mozilla', 'EmojiOne Color', 'Android Emoji', 'Segoe UI Symbol', sans-serif;
+}
+

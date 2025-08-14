@@ -1,6 +1,8 @@
 "use client";
 
 import {useCallback, useState} from "react";
+import {useRouter} from "next/navigation";
+import {Routes} from "../../app/routes";
 
 function getLocalDateYYYYMMDD(): string {
     const now = new Date();
@@ -12,6 +14,7 @@ function getLocalDateYYYYMMDD(): string {
 
 export default function ResetTodayButton() {
     const [done, setDone] = useState(false);
+    const router = useRouter()
 
     const onReset = useCallback(() => {
         try {
@@ -37,7 +40,7 @@ export default function ResetTodayButton() {
         }
         // Optionally refresh the page to reflect cleared progress
         try {
-            location.reload();
+            router.push(Routes.reviewGuesser + '/1')
         } catch { /* noop */
         }
     }, []);

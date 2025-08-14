@@ -147,6 +147,13 @@ export default function ReviewGuesserRound({appId, buckets, roundIndex, totalRou
                         actualBucket: storedThisRound?.actualBucket ?? '',
                         correct: storedThisRound?.correct ?? false,
                     }) as GuessResponse}/>
+                    <RoundPoints
+                        buckets={buckets}
+                        selectedLabel={storedThisRound?.selectedLabel ?? selectedLabel}
+                        actualBucket={(effectiveResponse ?? {
+                            actualBucket: storedThisRound?.actualBucket ?? ''
+                        } as GuessResponse).actualBucket}
+                    />
                     <FinalSummary
                         buckets={buckets}
                         gameDate={gameDate}
@@ -211,6 +218,11 @@ export default function ReviewGuesserRound({appId, buckets, roundIndex, totalRou
             {effectiveResponse && (
                 <div role="dialog" aria-modal="true" className="review-round__result">
                     <ResultView result={effectiveResponse}/>
+                    <RoundPoints
+                        buckets={buckets}
+                        selectedLabel={storedThisRound?.selectedLabel ?? selectedLabel}
+                        actualBucket={effectiveResponse.actualBucket}
+                    />
                     <div className="review-round__actions">
                         <a
                             href={`https://store.steampowered.com/app/${appId}`}
@@ -236,6 +248,38 @@ function ResultView({result}: { result: GuessResponse }) {
         <p>
             {result.correct ? '✅ Correct!' : '❌ Not quite.'} Actual bucket: <strong>{result.actualBucket}</strong> ·
             Reviews: <strong>{result.totalReviews}</strong>
+        </p>
+    );
+}
+
+function scoreForRound(buckets: string[], selectedLabel: string, actual: string): {
+    bar: string;
+    points: number;
+    distance: number
+} {
+    const selectedIndex = buckets.indexOf(selectedLabel);
+    const actualIndex = buckets.indexOf(actual);
+    if (selectedIndex < 0 || actualIndex < 0) return {bar: '⬜', points: 0, distance: 0};
+    const d = Math.abs(selectedIndex - actualIndex);
+    const maxPoints = 5;
+    const step = 2;
+    const points = Math.max(0, maxPoints - step * d);
+    const emojiByDistance = ['🟩', '🟨', '🟧'];
+    const bar = d <= 2 ? emojiByDistance[d] : '🟥';
+    return {bar, points, distance: d};
+}
+
+function RoundPoints({buckets, selectedLabel, actualBucket}: {
+    buckets: string[];
+    selectedLabel: string | null | undefined;
+    actualBucket: string
+}) {
+    if (!selectedLabel) return null;
+    const {bar, points, distance} = scoreForRound(buckets, selectedLabel, actualBucket);
+    return (
+        <p className="review-round__points">
+            <span className="points-emoji" aria-hidden="true">{bar}</span>
+            <strong>{points}</strong> {points === 1 ? 'point' : 'points'} — {distance === 0 ? 'exact match' : `off by ${distance}`}
         </p>
     );
 }
@@ -281,25 +325,12 @@ function FinalSummary(props: {
     const isComplete = indices.size >= totalRounds;
     if (!isComplete) return null;
 
-    function scoreFor(selectedLabel: string, actual: string): { bar: string; points: number; distance: number } {
-        const selectedIndex = buckets.indexOf(selectedLabel);
-        const actualIndex = buckets.indexOf(actual);
-        if (selectedIndex < 0 || actualIndex < 0) return {bar: '⬜', points: 0, distance: 0};
-        const d = Math.abs(selectedIndex - actualIndex);
-        const maxPoints = 5;
-        const step = 2;
-        const points = Math.max(0, maxPoints - step * d);
-        const emojiByDistance = ['🟩', '🟨', '🟧'];
-        const bar = d <= 2 ? emojiByDistance[d] : '🟥';
-        return {bar, points, distance: d};
-    }
-
     let total = 0;
     const bars: string[] = [];
     for (let i = 1; i <= totalRounds; i++) {
         const r = i === latestRound ? latest : data.results[i];
         if (!r) continue;
-        const {bar, points} = scoreFor(r.selectedLabel, r.actualBucket);
+        const {bar, points} = scoreForRound(buckets, r.selectedLabel, r.actualBucket);
         total += points;
         bars.push(bar);
     }
@@ -370,21 +401,6 @@ function ShareControls(props: {
      *   d=0 → 🟩, d=1 → 🟨, d=2 → 🟧, d≥3 → 🟥, invalid → ⬜
      * This keeps visual summaries stable even if the total number of buckets changes.
      */
-    function scoreFor(selectedLabel: string, actual: string): { bar: string; points: number; distance: number } {
-        const selectedIndex = buckets.indexOf(selectedLabel);
-        const actualIndex = buckets.indexOf(actual);
-        if (selectedIndex < 0 || actualIndex < 0) return {bar: '⬜', points: 0, distance: 0};
-
-        const d = Math.abs(selectedIndex - actualIndex);
-        const maxPoints = 5;
-        const step = 2;
-        const points = Math.max(0, maxPoints - step * d);
-
-        const emojiByDistance = ['🟩', '🟨', '🟧'];
-        const bar = d <= 2 ? emojiByDistance[d] : '🟥';
-        return {bar, points, distance: d};
-    }
-
     const lines: string[] = [];
     lines.push(`https://steam5.org/review-guesser - Steam Review Game — ${gameDate}`);
     let total = 0;
@@ -392,7 +408,7 @@ function ShareControls(props: {
     for (let i = 1; i <= totalRounds; i++) {
         const r = i === latestRound ? latest : data.results[i];
         if (!r) continue;
-        const {bar, points, distance} = scoreFor(r.selectedLabel, r.actualBucket);
+        const {bar, points, distance} = scoreForRound(buckets, r.selectedLabel, r.actualBucket);
         total += points;
         bars.push(bar);
         lines.push(`${bar} | Round ${i}: ${r.pickName ?? 'App ' + r.appId} — off by ${distance}`);
