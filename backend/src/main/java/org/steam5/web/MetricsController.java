@@ -48,6 +48,62 @@ public class MetricsController {
         return ResponseEntity.ok(counts);
     }
 
+    @GetMapping("/coverage")
+    @Cacheable(value = "one-hour", key = "'coverage'", unless = "#result == null")
+    public ResponseEntity<Coverage> getCoverage() {
+        final long indexCount = indexRepository.count();
+        final long withReviews = indexRepository.countWithReviews();
+        final long withDetails = indexRepository.countWithDetails();
+        final long missingReviews = Math.max(0, indexCount - withReviews);
+        final long missingDetails = Math.max(0, indexCount - withDetails);
+        final Coverage coverage = new Coverage(
+                indexCount,
+                withReviews,
+                withDetails,
+                missingReviews,
+                missingDetails,
+                indexCount == 0 ? 0.0 : (withReviews * 100.0) / indexCount,
+                indexCount == 0 ? 0.0 : (withDetails * 100.0) / indexCount
+        );
+        return ResponseEntity.ok(coverage);
+    }
+
+    @GetMapping("/reviews/summary")
+    @Cacheable(value = "one-hour", key = "'reviews-summary'", unless = "#result == null")
+    public ResponseEntity<ReviewsSummary> getReviewsSummary() {
+        final long appsWithReviews = reviewsRepository.count();
+        final long totalReviews = reviewsRepository.sumTotalReviews();
+        final var minUpdated = reviewsRepository.minUpdatedAt();
+        final var maxUpdated = reviewsRepository.maxUpdatedAt();
+        final double avgReviewsPerApp = appsWithReviews == 0 ? 0.0 : (double) totalReviews / appsWithReviews;
+        final ReviewsSummary summary = new ReviewsSummary(appsWithReviews, totalReviews, avgReviewsPerApp, minUpdated, maxUpdated);
+        return ResponseEntity.ok(summary);
+    }
+
+    @GetMapping("/details/breakdown")
+    @Cacheable(value = "one-hour", key = "'details-breakdown'", unless = "#result == null")
+    public ResponseEntity<DetailsBreakdown> getDetailsBreakdown() {
+        final long detailsCount = detailRepository.count();
+        final DetailsBreakdown breakdown = new DetailsBreakdown(
+                detailsCount,
+                detailRepository.countByIsFreeTrue(),
+                detailRepository.countByIsFreeFalse(),
+                detailRepository.countByIsWindowsTrue(),
+                detailRepository.countByIsMacTrue(),
+                detailRepository.countByIsLinuxTrue()
+        );
+        return ResponseEntity.ok(breakdown);
+    }
+
+    @GetMapping("/picks/summary")
+    @Cacheable(value = "one-hour", key = "'picks-summary'", unless = "#result == null")
+    public ResponseEntity<PicksSummary> getPicksSummary() {
+        final long totalPicks = pickRepository.count();
+        final long distinctDays = pickRepository.countDistinctPickDates();
+        final var latestDay = pickRepository.findLatestPickDate();
+        return ResponseEntity.ok(new PicksSummary(totalPicks, distinctDays, latestDay));
+    }
+
     public record EntityCounts(
             long steamAppIndexCount,
             long steamAppReviewsCount,
@@ -61,6 +117,42 @@ public class MetricsController {
             long ingestStateCount
     ) {
     }
-}
 
+    public record Coverage(
+            long steamAppIndexCount,
+            long indexWithReviewsCount,
+            long indexWithDetailsCount,
+            long indexMissingReviewsCount,
+            long indexMissingDetailsCount,
+            double reviewsCoveragePercent,
+            double detailsCoveragePercent
+    ) {
+    }
+
+    public record ReviewsSummary(
+            long appsWithReviewsCount,
+            long totalReviewsCount,
+            double averageReviewsPerApp,
+            java.time.OffsetDateTime oldestReviewUpdate,
+            java.time.OffsetDateTime newestReviewUpdate
+    ) {
+    }
+
+    public record DetailsBreakdown(
+            long steamAppDetailCount,
+            long freeCount,
+            long paidCount,
+            long windowsCount,
+            long macCount,
+            long linuxCount
+    ) {
+    }
+
+    public record PicksSummary(
+            long totalPicks,
+            long distinctPickDays,
+            java.time.LocalDate latestPickDate
+    ) {
+    }
+}
 

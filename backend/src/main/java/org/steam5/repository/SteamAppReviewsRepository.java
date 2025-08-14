@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository;
 import org.steam5.domain.SteamAppReviews;
 
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.List;
 
 @Repository
@@ -43,6 +44,15 @@ public interface SteamAppReviewsRepository extends JpaRepository<SteamAppReviews
             nativeQuery = true)
     List<Long> findRandomAnyAppIds(@Param("sinceDate") LocalDate sinceDate,
                                    Pageable pageable);
+
+    @Query(value = "SELECT COALESCE(SUM(total_positive + total_negative), 0) FROM steam_app_reviews", nativeQuery = true)
+    long sumTotalReviews();
+
+    @Query(value = "SELECT COALESCE(MIN(updated_at), now()) FROM steam_app_reviews", nativeQuery = true)
+    OffsetDateTime minUpdatedAt();
+
+    @Query(value = "SELECT COALESCE(MAX(updated_at), now()) FROM steam_app_reviews", nativeQuery = true)
+    OffsetDateTime maxUpdatedAt();
 
     interface ReviewThresholds {
         Integer getLowThreshold();

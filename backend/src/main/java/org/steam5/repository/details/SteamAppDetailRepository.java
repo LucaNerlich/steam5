@@ -6,6 +6,15 @@ import org.steam5.domain.details.SteamAppDetail;
 
 @Repository
 public interface SteamAppDetailRepository extends JpaRepository<SteamAppDetail, Long> {
+    long countByIsFreeTrue();
+
+    long countByIsFreeFalse();
+
+    long countByIsWindowsTrue();
+
+    long countByIsMacTrue();
+
+    long countByIsLinuxTrue();
 }
 
 

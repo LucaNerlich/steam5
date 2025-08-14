@@ -16,6 +16,12 @@ public interface ReviewGamePickRepository extends JpaRepository<ReviewGamePick, 
 
     @Query(value = "SELECT app_id FROM review_game_pick WHERE pick_date >= :sinceDate", nativeQuery = true)
     List<Long> findAppIdsPickedSince(@Param("sinceDate") LocalDate sinceDate);
+
+    @Query(value = "SELECT COUNT(DISTINCT pick_date) FROM review_game_pick", nativeQuery = true)
+    long countDistinctPickDates();
+
+    @Query(value = "SELECT COALESCE(MAX(pick_date), DATE '1970-01-01') FROM review_game_pick", nativeQuery = true)
+    LocalDate findLatestPickDate();
 }
 
 
