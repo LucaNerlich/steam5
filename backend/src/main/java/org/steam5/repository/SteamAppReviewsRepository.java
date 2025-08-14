@@ -14,10 +14,10 @@ import java.util.List;
 @Repository
 public interface SteamAppReviewsRepository extends JpaRepository<SteamAppReviews, Long> {
 
-    @Query(value = "SELECT CAST(percentile_disc(0.25) WITHIN GROUP (ORDER BY (total_positive + total_negative)) AS INTEGER) AS lowThreshold, " +
-            "CAST(percentile_disc(0.90) WITHIN GROUP (ORDER BY (total_positive + total_negative)) AS INTEGER) AS highThreshold " +
+    @Query(value = "SELECT CAST(percentile_disc(:low) WITHIN GROUP (ORDER BY (total_positive + total_negative)) AS INTEGER) AS lowThreshold, " +
+            "CAST(percentile_disc(:high) WITHIN GROUP (ORDER BY (total_positive + total_negative)) AS INTEGER) AS highThreshold " +
             "FROM steam_app_reviews", nativeQuery = true)
-    ReviewThresholds findPercentileThresholds();
+    ReviewThresholds findPercentileThresholds(@Param("low") double low, @Param("high") double high);
 
     @Query(value = "SELECT r.app_id FROM steam_app_reviews r " +
             "LEFT JOIN review_game_pick p ON p.app_id = r.app_id AND p.pick_date >= :sinceDate " +

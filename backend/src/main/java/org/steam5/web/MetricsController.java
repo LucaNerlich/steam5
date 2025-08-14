@@ -8,6 +8,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.steam5.config.ReviewGameConfig;
 import org.steam5.repository.IngestStateRepository;
 import org.steam5.repository.ReviewGamePickRepository;
 import org.steam5.repository.SteamAppIndexRepository;
@@ -33,6 +34,7 @@ public class MetricsController {
     private final ScreenshotRepository screenshotRepository;
     private final ReviewGamePickRepository pickRepository;
     private final IngestStateRepository ingestStateRepository;
+    private final ReviewGameConfig reviewGameConfig;
 
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Map<String, String>> indexJson() {
@@ -81,7 +83,8 @@ public class MetricsController {
     @GetMapping("/thresholds")
     @Cacheable(value = "one-day", key = "'thresholds'", unless = "#result == null")
     public ResponseEntity<SteamAppReviewsRepository.ReviewThresholds> getThresholds() {
-        final SteamAppReviewsRepository.ReviewThresholds thresholds = reviewsRepository.findPercentileThresholds();
+        final SteamAppReviewsRepository.ReviewThresholds thresholds = reviewsRepository.findPercentileThresholds(
+                reviewGameConfig.getLowPercentile(), reviewGameConfig.getHighPercentile());
         return ResponseEntity.ok(thresholds);
     }
 

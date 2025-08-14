@@ -24,6 +24,13 @@ public class ReviewGameConfig {
      * Example: [100, 1000, 10000] yields buckets: 0-100, 101-1000, 1001-10000, 10000+
      */
     private List<Integer> bucketBoundaries = List.of(100, 1000, 10000);
+
+    /**
+     * Percentile for low/high thresholds when partitioning by total reviews.
+     * Must be in range [0.0, 1.0]. Defaults: low=0.25, high=0.90
+     */
+    private double lowPercentile = 0.25;
+    private double highPercentile = 0.90;
 }
 
 

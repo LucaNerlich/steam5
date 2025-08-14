@@ -40,7 +40,9 @@ public class ReviewGameStateService {
         final LocalDate excludeSince = doNotRepeatDays >= 36500 ? LocalDate.of(1970, 1, 1) : today.minusDays(doNotRepeatDays);
         final LocalDate includeAll = LocalDate.of(1970, 1, 1); // relax by allowing any past picks
 
-        final SteamAppReviewsRepository.ReviewThresholds thresholds = reviewsRepository.findPercentileThresholds();
+        final double lowPct = Math.max(0.0, Math.min(1.0, config.getLowPercentile()));
+        final double highPct = Math.max(0.0, Math.min(1.0, config.getHighPercentile()));
+        final SteamAppReviewsRepository.ReviewThresholds thresholds = reviewsRepository.findPercentileThresholds(lowPct, highPct);
         final int lowThreshold = thresholds == null || thresholds.getLowThreshold() == null ? 100 : thresholds.getLowThreshold();
         final int highThreshold = thresholds == null || thresholds.getHighThreshold() == null ? 10000 : thresholds.getHighThreshold();
 
