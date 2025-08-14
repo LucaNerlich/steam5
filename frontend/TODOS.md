@@ -13,7 +13,7 @@
 - [x] dummy show the appid and name for now
 - [x] create a simple header that allows users to jump back to the homepage as well as a single button to get to the
   review-guesser page
-- [ ] implement the "game" flow
+- [x] implement the "game" flow
     - we've loaded the daily picks
     - we present one pick at a time to the user and present buttons for each bucket label
     - the user can then click one button to send his guess to the backend
@@ -23,14 +23,14 @@
     - we need to decide, how we want to handle these indiviual rounds. maybe one separate route for each?
         - /review-guesser/1, /review-guesser/2 etc?
         - these routes should also be server-side rendered and ideally use a cached result of the /today
-- [ ] use next/form and FormState to send each users 'guess' for that game/appid and bucket-guess to
+- [x] use next/form and FormState to send each users 'guess' for that game/appid and bucket-guess to
   `{{host}}/api/review-game/guess`
-- [ ] display response (correct true/false and actual review count)
+- [x] display response (correct true/false and actual review count)
 - [ ] allow users to login via steam
     - use the given jwt / token / whatever to save the users picks to the backend database
     - if logged in, load a users pick / show, if the person has already picked a bucket for todays game.
 
 ## Do later
 
-- [ ] use custom fonts (github monaspace)
+- [x] use custom fonts (github monaspace)
 
