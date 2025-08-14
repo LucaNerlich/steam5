@@ -160,7 +160,8 @@ export default function ReviewGuesserRound({appId, buckets, roundIndex, totalRou
     }
 
     return (
-        <div>
+        <>
+            <h3>Review Count Guess</h3>
             <Form action={formAction} className="review-round__buttons">
                 <input type="hidden" name="appId" value={appId}/>
                 {buckets.map(label => (
@@ -181,7 +182,7 @@ export default function ReviewGuesserRound({appId, buckets, roundIndex, totalRou
                     </div>
                 </div>
             )}
-        </div>
+        </>
     );
 }
 

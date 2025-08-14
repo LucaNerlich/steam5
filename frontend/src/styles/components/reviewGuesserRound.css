@@ -24,6 +24,13 @@
     outline: 2px solid var(--color-primary);
 }
 
+/* Light hover effect for guess buttons */
+.review-round__buttons .review-round__button:hover {
+    filter: brightness(1.04);
+    transform: translateY(-1px);
+    transition: transform 120ms ease, filter 120ms ease;
+}
+
 .review-round__share {
     margin-top: 8px;
 }
