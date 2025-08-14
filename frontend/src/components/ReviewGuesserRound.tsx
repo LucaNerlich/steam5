@@ -136,24 +136,44 @@ export default function ReviewGuesserRound({appId, buckets, roundIndex, totalRou
     // Submitted flag: either current state submitted or we restored a previous submission
     const submittedFlag = Boolean(state && (state.ok || state.error)) || Boolean(storedThisRound);
 
-    if (isComplete) {
+    if (isComplete && roundIndex >= totalRounds) {
         // Only show share when the day is complete
         return (
             <div>
-                <ShareControls
-                    buckets={buckets}
-                    gameDate={gameDate}
-                    totalRounds={totalRounds}
-                    latestRound={storedThisRound ? roundIndex : roundIndex}
-                    latest={storedThisRound ? storedThisRound : {
+                <div role="dialog" aria-modal="true" className="review-round__result">
+                    <ResultView result={(effectiveResponse ?? {
                         appId,
-                        pickName,
-                        selectedLabel: selectedLabel ?? '',
-                        actualBucket: effectiveResponse ? effectiveResponse.actualBucket : '',
-                        totalReviews: effectiveResponse ? effectiveResponse.totalReviews : 0,
-                        correct: effectiveResponse ? effectiveResponse.correct : false,
-                    }}
-                />
+                        totalReviews: storedThisRound?.totalReviews ?? 0,
+                        actualBucket: storedThisRound?.actualBucket ?? '',
+                        correct: storedThisRound?.correct ?? false,
+                    }) as GuessResponse}/>
+                    <div className="review-round__actions">
+                        <a
+                            href={`https://store.steampowered.com/app/${appId}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn-ghost"
+                            aria-label="Open this game on Steam"
+                        >
+                            Open on Steam ↗
+                        </a>
+                        <ShareControls
+                            inline
+                            buckets={buckets}
+                            gameDate={gameDate}
+                            totalRounds={totalRounds}
+                            latestRound={storedThisRound ? roundIndex : roundIndex}
+                            latest={storedThisRound ? storedThisRound : {
+                                appId,
+                                pickName,
+                                selectedLabel: selectedLabel ?? '',
+                                actualBucket: effectiveResponse ? effectiveResponse.actualBucket : '',
+                                totalReviews: effectiveResponse ? effectiveResponse.totalReviews : 0,
+                                correct: effectiveResponse ? effectiveResponse.correct : false,
+                            }}
+                        />
+                    </div>
+                </div>
                 <p className="review-round__complete text-muted">You have completed all rounds for today.</p>
             </div>
         );
@@ -187,7 +207,9 @@ export default function ReviewGuesserRound({appId, buckets, roundIndex, totalRou
                         >
                             Open on Steam ↗
                         </a>
-                        <Link href={nextHref} className="btn-cta" aria-label="Go to next round">Next round →</Link>
+                        {roundIndex < totalRounds && (
+                            <Link href={nextHref} className="btn-cta" aria-label="Go to next round">Next round →</Link>
+                        )}
                     </div>
                 </div>
             )}
@@ -216,9 +238,10 @@ function ShareControls(props: {
         actualBucket: string;
         totalReviews: number;
         correct: boolean
-    }
+    },
+    inline?: boolean
 }) {
-    const {buckets, gameDate, totalRounds, latestRound, latest} = props;
+    const {buckets, gameDate, totalRounds, latestRound, latest, inline} = props;
     const [copied, setCopied] = useState(false);
 
     if (!gameDate) return null;
@@ -276,7 +299,7 @@ function ShareControls(props: {
     }
 
     const lines: string[] = [];
-    lines.push(`Steam5.org/review-guesser - Steam Review Game — ${gameDate}`);
+    lines.push(`https://steam5.org/review-guesser - Steam Review Game — ${gameDate}`);
     let total = 0;
     const bars: string[] = [];
     for (let i = 1; i <= totalRounds; i++) {
@@ -304,12 +327,18 @@ function ShareControls(props: {
         }
     }
 
+    if (inline) {
+        return (
+            <div>
+                <button className="btn-success" onClick={copyToClipboard}>Share Results</button>
+                {copied ? <small className="text-muted" style={{marginLeft: '8px'}}>Copied</small> : null}
+            </div>
+        );
+    }
     return (
         <div className="review-round__share">
-            <button onClick={copyToClipboard}>Share overview</button>
+            <button className="btn-success" onClick={copyToClipboard}>Share Results</button>
             {copied ? <small className="text-muted" style={{marginLeft: '8px'}}>Copied</small> : null}
         </div>
     );
 }
-
-

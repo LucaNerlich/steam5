@@ -44,7 +44,7 @@ export default function ResetTodayButton() {
 
     return (
         <button className="theme-toggle" onClick={onReset} aria-label="Reset today's progress">
-            {done ? 'Reset ✓' : 'Reset today 🤡'}
+            {done ? 'Reset ✓' : 'Reset Today 🤡'}
         </button>
     );
 }
