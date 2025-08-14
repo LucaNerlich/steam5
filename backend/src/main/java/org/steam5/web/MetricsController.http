@@ -14,10 +14,6 @@ Accept: application/json
 GET {{host}}/api/metrics/coverage
 Accept: application/json
 
-### Get reviews summary (aggregates and freshness)
-GET {{host}}/api/metrics/reviews/summary
-Accept: application/json
-
 ### Get details breakdown (free/paid, platforms)
 GET {{host}}/api/metrics/details/breakdown
 Accept: application/json

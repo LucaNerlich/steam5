@@ -41,7 +41,6 @@ public class MetricsController {
         links.put("counts", "/api/metrics/counts");
         links.put("coverage", "/api/metrics/coverage");
         links.put("thresholds", "/api/metrics/thresholds");
-        links.put("reviewsSummary", "/api/metrics/reviews/summary");
         links.put("detailsBreakdown", "/api/metrics/details/breakdown");
         links.put("picksSummary", "/api/metrics/picks/summary");
         return ResponseEntity.ok(links);
