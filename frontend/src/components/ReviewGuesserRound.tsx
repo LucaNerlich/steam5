@@ -308,7 +308,7 @@ function FinalSummary(props: {
     return (
         <div className="review-round__summary" aria-live="polite">
             <div className="summary-bar">{bars.join('')}</div>
-            <div className="summary-points">{`${total}/${maxTotal} points`}</div>
+            <div className="summary-points"><strong>Score:</strong> {total}/{maxTotal}</div>
         </div>
     );
 }

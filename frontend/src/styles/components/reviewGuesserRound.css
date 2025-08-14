@@ -100,6 +100,8 @@
 .review-round__summary .summary-bar {
     font-size: 1.1rem;
     letter-spacing: 1px;
+    /* Force an emoji-capable font to avoid tofu boxes on custom fonts */
+    font-family: 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', 'Twemoji Mozilla', 'EmojiOne Color', 'Android Emoji', 'Segoe UI Symbol', sans-serif;
 }
 
 .review-round__summary .summary-points {
