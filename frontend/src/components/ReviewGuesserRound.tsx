@@ -7,6 +7,7 @@ import Form from "next/form";
 import {useFormStatus} from "react-dom";
 import type {GuessActionState} from "../../app/review-guesser/[round]/actions";
 import {submitGuessAction} from "../../app/review-guesser/[round]/actions";
+import "@/styles/reviewGuesserRound.css";
 
 interface Props {
     appId: number;
@@ -35,7 +36,7 @@ export default function ReviewGuesserRound({appId, buckets, roundIndex, totalRou
 
     return (
         <div>
-            <Form action={formAction} style={{display: 'flex', gap: '8px', flexWrap: 'wrap'}}>
+            <Form action={formAction} className="review-round__buttons">
                 <input type="hidden" name="appId" value={appId}/>
                 {buckets.map(label => (
                     <BucketButton key={label} label={label}/>
@@ -43,18 +44,13 @@ export default function ReviewGuesserRound({appId, buckets, roundIndex, totalRou
             </Form>
 
             {state && !state.ok && state.error && (
-                <p className="text-muted" style={{marginTop: '8px'}}>Error: {state.error}</p>
+                <p className="text-muted review-round__error">Error: {state.error}</p>
             )}
 
             {state && state.ok && state.response && (
-                <div role="dialog" aria-modal="true" style={{
-                    marginTop: '16px',
-                    border: '1px solid var(--color-border)',
-                    padding: '12px',
-                    background: 'var(--color-surface)'
-                }}>
+                <div role="dialog" aria-modal="true" className="review-round__result">
                     <ResultView result={state.response}/>
-                    <div style={{marginTop: '8px'}}>
+                    <div className="review-round__next">
                         <Link href={nextHref}>Next round</Link>
                     </div>
                 </div>

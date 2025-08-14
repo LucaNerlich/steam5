@@ -1,0 +1,22 @@
+.review-round__buttons {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.review-round__error {
+    margin-top: 8px;
+}
+
+.review-round__result {
+    margin-top: 16px;
+    border: 1px solid var(--color-border);
+    padding: 12px;
+    background: var(--color-surface);
+}
+
+.review-round__next {
+    margin-top: 8px;
+}
+
+
