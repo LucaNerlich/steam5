@@ -43,13 +43,16 @@ button:disabled {
 
 /* CTA button style usable on <a> or <button> */
 .btn-cta {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
     padding: 0.5rem 0.8rem;
     background: var(--color-primary);
     color: #fff;
     border: 1px solid var(--color-primary);
     border-radius: 0.5rem;
     text-decoration: none;
+    white-space: nowrap;
 }
 
 .btn-cta:hover {
@@ -57,26 +60,32 @@ button:disabled {
 }
 
 .btn-success {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
     padding: 0.5rem 0.8rem;
     background: #16a34a; /* green-600 */
     color: #fff;
     border: 1px solid #16a34a;
     border-radius: 0.5rem;
     text-decoration: none;
+    white-space: nowrap;
 }
 
 .btn-success:hover {
     filter: brightness(1.05);
 }
 .btn-ghost {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
     padding: 0.5rem 0.6rem;
     background: transparent;
     color: var(--color-text);
     border: 1px solid var(--color-border);
     border-radius: 0.5rem;
     text-decoration: none;
+    white-space: nowrap;
 }
 
 .btn-ghost:hover {

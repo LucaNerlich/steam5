@@ -36,6 +36,7 @@
 - [x] add link to steam next to title `https://store.steampowered.com/app/<appId>`
 - [x] after round submission, no button should be clickable again, not even the "chosen" one
 - [x] show open in steam button after user has made the guess
+- [ ] add opengraph images
 
 ### Backend
 

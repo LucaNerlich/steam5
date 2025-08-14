@@ -24,6 +24,7 @@
     justify-content: space-between;
     align-items: center;
     gap: 8px;
+    flex-wrap: wrap;
 }
 
 /* Share button inline indicator (prevents layout shift on mobile) */
@@ -71,6 +72,12 @@
 
 .review-round__complete {
     margin-top: 12px;
+}
+
+@media only screen and (max-width: 768px) {
+    .review-round__actions {
+        justify-content: flex-end;
+    }
 }
 
 .review-rules {
