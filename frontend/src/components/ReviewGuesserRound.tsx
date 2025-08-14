@@ -266,7 +266,7 @@ function ShareControls(props: {
     }
 
     const lines: string[] = [];
-    lines.push(`https://Steam5.org/review-guesser - Steam Review Game — ${gameDate}`);
+    lines.push(`Steam5.org/review-guesser - Steam Review Game — ${gameDate}`);
     let total = 0;
     const bars: string[] = [];
     for (let i = 1; i <= totalRounds; i++) {
