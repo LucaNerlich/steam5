@@ -26,6 +26,9 @@
 - [ ] use next/form and FormState to send each users 'guess' for that game/appid and bucket-guess to
   `{{host}}/api/review-game/guess`
 - [ ] display response (correct true/false and actual review count)
+- [ ] allow users to login via steam
+    - use the given jwt / token / whatever to save the users picks to the backend database
+    - if logged in, load a users pick / show, if the person has already picked a bucket for todays game.
 
 ## Do later
 
