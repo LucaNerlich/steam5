@@ -12,6 +12,7 @@ export async function GET() {
         const data: BucketsResponse = await res.json();
         return NextResponse.json(data, {status: res.status});
     } catch (e) {
+        console.error(e);
         return NextResponse.json({error: "Failed to fetch buckets"}, {status: 502});
     }
 }

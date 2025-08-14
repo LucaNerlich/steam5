@@ -11,7 +11,7 @@
 - [x] the review guesser route should server side render and load the daily picks from our api route
   `{{host}}/api/review-game/today`
 - [x] dummy show the appid and name for now
-- [ ] create a simple header that allows users to jump back to the homepage as well as a single button to get to the
+- [x] create a simple header that allows users to jump back to the homepage as well as a single button to get to the
   review-guesser page
 - [ ] implement the "game" flow
     - we've loaded the daily picks

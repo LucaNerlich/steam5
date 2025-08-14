@@ -14,6 +14,7 @@ export async function POST(req: NextRequest) {
         const data: GuessResponse = await res.json();
         return NextResponse.json(data, {status: res.status});
     } catch (e) {
+        console.error(e);
         return NextResponse.json({error: "Failed to submit guess"}, {status: 502});
     }
 }
