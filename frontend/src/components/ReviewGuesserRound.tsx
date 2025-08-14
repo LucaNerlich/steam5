@@ -215,18 +215,17 @@ function ShareControls(props: {
     lines.push(`https://Steam5.org/review-guesser - Steam Review Game — ${gameDate}`);
     let total = 0;
     const bars: string[] = [];
-    let correctCount = 0;
     for (let i = 1; i <= totalRounds; i++) {
         const r = i === latestRound ? latest : data.results[i];
         if (!r) continue;
         const {bar, points} = scoreFor(r.selectedLabel, r.actualBucket);
         total += points;
         bars.push(bar);
-        if (bar === '🟩') correctCount += 1;
         lines.push(`Round ${i}: ${r.pickName ?? 'App ' + r.appId} — ${r.selectedLabel} → ${r.actualBucket} ${bar} (+${points})`);
     }
     if (bars.length > 0) {
-        lines.splice(1, 0, `${bars.join('')} ${correctCount}/${totalRounds}`, '');
+        const maxTotal = 5 * totalRounds;
+        lines.splice(1, 0, `${bars.join('')} ${total}/${maxTotal}`, '');
     }
     lines.push(`Total points: ${total}`);
     const text = lines.join('\n');
