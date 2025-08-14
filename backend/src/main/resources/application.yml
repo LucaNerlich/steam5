@@ -5,7 +5,7 @@ spring:
   profiles:
     active: ${SPRING_PROFILE:dev} # Default to 'dev', allow override via env (e.g., coolify in Docker)
   datasource:
-    url: ${JDBC_URL:jdbc:postgresql://localhost:5432/steam5_db}
+    url: ${JDBC_URL:jdbc:postgresql://localhost:5432/postgres}
     username: steam5_user
     password: steam5_password
     driver-class-name: org.postgresql.Driver
