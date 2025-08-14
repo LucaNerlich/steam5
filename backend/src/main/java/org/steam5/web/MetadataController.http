@@ -1,3 +1,0 @@
-### Get configured bucket labels (game metadata)
-GET {{host}}/api/review-game-metadata/thresholds
-Accept: application/json

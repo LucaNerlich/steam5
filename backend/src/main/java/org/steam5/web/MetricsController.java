@@ -30,6 +30,13 @@ public class MetricsController {
     private final ReviewGamePickRepository pickRepository;
     private final IngestStateRepository ingestStateRepository;
 
+    @GetMapping("/thresholds")
+    @Cacheable(value = "one-day", key = "'thresholds'", unless = "#result == null")
+    public ResponseEntity<SteamAppReviewsRepository.ReviewThresholds> getThresholds() {
+        final SteamAppReviewsRepository.ReviewThresholds thresholds = reviewsRepository.findPercentileThresholds();
+        return ResponseEntity.ok(thresholds);
+    }
+
     @GetMapping("/counts")
     @Cacheable(value = "one-hour", key = "'counts'", unless = "#result == null")
     public ResponseEntity<EntityCounts> getEntityCounts() {

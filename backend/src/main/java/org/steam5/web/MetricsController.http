@@ -18,4 +18,8 @@ Accept: application/json
 GET {{host}}/api/metrics/picks/summary
 Accept: application/json
 
+### Get configured bucket labels (game metadata)
+GET {{host}}/api/metrics/thresholds
+Accept: application/json
+
 
