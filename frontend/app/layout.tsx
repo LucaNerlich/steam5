@@ -1,7 +1,8 @@
 import type {Metadata} from "next";
 import "@/styles/globals.css";
 import UmamiAnalytics from "@/components/UmamiAnalytics";
-import ThemeToggle from "@/components/ThemeToggle";
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 
 
 const description = 'Steam Review Guessing Game';
@@ -44,7 +45,7 @@ export const metadata: Metadata = {
         description: description,
         images: ['/images/todo.jpeg'],
     },
-    applicationName: 'Melanie Nerlich',
+    applicationName: 'Steam5',
     abstract: description,
     category: 'Games, Technology',
     referrer: 'same-origin',
@@ -70,17 +71,11 @@ export default function RootLayout({
     return (
         <html lang="en">
         <body>
-        <header className="container"></header>
+        <Header/>
         <main>
             {children}
         </main>
-        <footer>
-            <div className="container"
-                 style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 0'}}>
-                <small className="text-muted">Imprint: Steam5.org · Luca Nerlich</small>
-                <ThemeToggle/>
-            </div>
-        </footer>
+        <Footer/>
         <UmamiAnalytics/>
         </body>
         </html>

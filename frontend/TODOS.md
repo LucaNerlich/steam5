@@ -4,13 +4,25 @@
 
 - [x] create color themes
 - [x] come up with api route schema to request and post the daily picks from our backend api
-- [ ] come up with route schema for our game
+- [x] come up with route schema for our game
     - the index page should always load fast
     - we want one "main" entry route for each game
         - starting with the only one we have, the review-guesser game
 - [x] the review guesser route should server side render and load the daily picks from our api route
   `{{host}}/api/review-game/today`
 - [x] dummy show the appid and name for now
+- [ ] create a simple header that allows users to jump back to the homepage as well as a single button to get to the
+  review-guesser page
+- [ ] implement the "game" flow
+    - we've loaded the daily picks
+    - we present one pick at a time to the user and present buttons for each bucket label
+    - the user can then click one button to send his guess to the backend
+    - the backend responds and we show the result in a modal / popover / something similar
+    - that modal also has a 'next round' button, which sends the user to the next game pick - and so forth until the
+      user has submitted a bucket choice for each game
+    - we need to decide, how we want to handle these indiviual rounds. maybe one separate route for each?
+        - /review-guesser/1, /review-guesser/2 etc?
+        - these routes should also be server-side rendered and ideally use a cached result of the /today
 - [ ] use next/form and FormState to send each users 'guess' for that game/appid and bucket-guess to
   `{{host}}/api/review-game/guess`
 - [ ] display response (correct true/false and actual review count)
