@@ -147,6 +147,20 @@ export default function ReviewGuesserRound({appId, buckets, roundIndex, totalRou
                         actualBucket: storedThisRound?.actualBucket ?? '',
                         correct: storedThisRound?.correct ?? false,
                     }) as GuessResponse}/>
+                    <FinalSummary
+                        buckets={buckets}
+                        gameDate={gameDate}
+                        totalRounds={totalRounds}
+                        latestRound={storedThisRound ? roundIndex : roundIndex}
+                        latest={storedThisRound ? storedThisRound : {
+                            appId,
+                            pickName,
+                            selectedLabel: selectedLabel ?? '',
+                            actualBucket: effectiveResponse ? effectiveResponse.actualBucket : '',
+                            totalReviews: effectiveResponse ? effectiveResponse.totalReviews : 0,
+                            correct: effectiveResponse ? effectiveResponse.correct : false,
+                        }}
+                    />
                     <div className="review-round__actions">
                         <a
                             href={`https://store.steampowered.com/app/${appId}`}
@@ -223,6 +237,79 @@ function ResultView({result}: { result: GuessResponse }) {
             {result.correct ? '✅ Correct!' : '❌ Not quite.'} Actual bucket: <strong>{result.actualBucket}</strong> ·
             Reviews: <strong>{result.totalReviews}</strong>
         </p>
+    );
+}
+
+function FinalSummary(props: {
+    buckets: string[];
+    gameDate?: string;
+    totalRounds: number;
+    latestRound: number;
+    latest: {
+        appId: number;
+        pickName?: string;
+        selectedLabel: string;
+        actualBucket: string;
+        totalReviews: number;
+        correct: boolean
+    }
+}) {
+    const {buckets, gameDate, totalRounds, latestRound, latest} = props;
+    if (!gameDate) return null;
+
+    type RoundResult = {
+        pickName?: string;
+        appId: number;
+        selectedLabel: string;
+        actualBucket: string;
+        totalReviews: number;
+        correct: boolean
+    };
+    type Stored = { totalRounds: number; results: Record<number, RoundResult> };
+
+    let data: Stored | null = null;
+    try {
+        const raw = typeof window !== 'undefined' ? window.localStorage.getItem(`review-guesser:${gameDate}`) : null;
+        data = raw ? JSON.parse(raw) as Stored : null;
+    } catch {
+        data = null;
+    }
+    if (!data || !data.results) return null;
+
+    const indices = new Set(Object.keys(data.results).map(n => parseInt(n, 10)));
+    indices.add(latestRound);
+    const isComplete = indices.size >= totalRounds;
+    if (!isComplete) return null;
+
+    function scoreFor(selectedLabel: string, actual: string): { bar: string; points: number; distance: number } {
+        const selectedIndex = buckets.indexOf(selectedLabel);
+        const actualIndex = buckets.indexOf(actual);
+        if (selectedIndex < 0 || actualIndex < 0) return {bar: '⬜', points: 0, distance: 0};
+        const d = Math.abs(selectedIndex - actualIndex);
+        const maxPoints = 5;
+        const step = 2;
+        const points = Math.max(0, maxPoints - step * d);
+        const emojiByDistance = ['🟩', '🟨', '🟧'];
+        const bar = d <= 2 ? emojiByDistance[d] : '🟥';
+        return {bar, points, distance: d};
+    }
+
+    let total = 0;
+    const bars: string[] = [];
+    for (let i = 1; i <= totalRounds; i++) {
+        const r = i === latestRound ? latest : data.results[i];
+        if (!r) continue;
+        const {bar, points} = scoreFor(r.selectedLabel, r.actualBucket);
+        total += points;
+        bars.push(bar);
+    }
+    const maxTotal = 5 * totalRounds;
+
+    return (
+        <div className="review-round__summary" aria-live="polite">
+            <div className="summary-bar">{bars.join('')}</div>
+            <div className="summary-points">{`${total}/${maxTotal} points`}</div>
+        </div>
     );
 }
 

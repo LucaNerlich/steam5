@@ -40,6 +40,8 @@
 ### Backend
 
 - [x] do not pick games that are not released yet, or have been released in the last seven days.
+- [ ] can we generate a blurhash on the backend, for each screenshot that we get?
+    - https://github.com/hsch/blurhash-java/blob/master/src/main/java/io/trbl/blurhash/BlurHash.java
 
 ## Do later
 

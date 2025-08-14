@@ -88,3 +88,21 @@
 }
 
 
+/* Final summary shown above share controls on completion */
+.review-round__summary {
+    margin-top: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+}
+
+.review-round__summary .summary-bar {
+    font-size: 1.1rem;
+    letter-spacing: 1px;
+}
+
+.review-round__summary .summary-points {
+    color: var(--color-muted);
+}
+
