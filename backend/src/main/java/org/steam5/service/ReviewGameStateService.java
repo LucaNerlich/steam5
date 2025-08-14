@@ -125,7 +125,7 @@ public class ReviewGameStateService {
 
         // fill remaining ANY
         while (picks.size() < 5) {
-            final List<Long> anyIds = reviewsRepository.findRandomAnyAppIds(excludeSince, PageRequest.of(0, 10));
+            final List<Long> anyIds = reviewsRepository.findRandomAnyAppIds(excludeSince, 25, PageRequest.of(0, 10));
             boolean added = false;
             for (Long id : anyIds) {
                 if (!chosenIds.contains(id) && validateApp.test(id)) {

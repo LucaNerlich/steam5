@@ -283,10 +283,10 @@ function ShareControls(props: {
      *   d=0 → 🟩, d=1 → 🟨, d=2 → 🟧, d≥3 → 🟥, invalid → ⬜
      * This keeps visual summaries stable even if the total number of buckets changes.
      */
-    function scoreFor(selectedLabel: string, actual: string): { bar: string; points: number } {
+    function scoreFor(selectedLabel: string, actual: string): { bar: string; points: number; distance: number } {
         const selectedIndex = buckets.indexOf(selectedLabel);
         const actualIndex = buckets.indexOf(actual);
-        if (selectedIndex < 0 || actualIndex < 0) return {bar: '⬜', points: 0};
+        if (selectedIndex < 0 || actualIndex < 0) return {bar: '⬜', points: 0, distance: 0};
 
         const d = Math.abs(selectedIndex - actualIndex);
         const maxPoints = 5;
@@ -295,7 +295,7 @@ function ShareControls(props: {
 
         const emojiByDistance = ['🟩', '🟨', '🟧'];
         const bar = d <= 2 ? emojiByDistance[d] : '🟥';
-        return {bar, points};
+        return {bar, points, distance: d};
     }
 
     const lines: string[] = [];
@@ -305,10 +305,10 @@ function ShareControls(props: {
     for (let i = 1; i <= totalRounds; i++) {
         const r = i === latestRound ? latest : data.results[i];
         if (!r) continue;
-        const {bar, points} = scoreFor(r.selectedLabel, r.actualBucket);
+        const {bar, points, distance} = scoreFor(r.selectedLabel, r.actualBucket);
         total += points;
         bars.push(bar);
-        lines.push(`Round ${i}: ${r.pickName ?? 'App ' + r.appId} — ${r.selectedLabel} → ${r.actualBucket} ${bar} (+${points})`);
+        lines.push(`${bar} | Round ${i}: ${r.pickName ?? 'App ' + r.appId} — off by ${distance}`);
     }
     if (bars.length > 0) {
         const maxTotal = 5 * totalRounds;
@@ -329,16 +329,18 @@ function ShareControls(props: {
 
     if (inline) {
         return (
-            <div>
+            <div className="share-inline">
                 <button className="btn-success" onClick={copyToClipboard}>Share Results</button>
-                {copied ? <small className="text-muted" style={{marginLeft: '8px'}}>Copied</small> : null}
+                <span className={`share-copied ${copied ? 'is-visible' : ''}`}>Copied</span>
             </div>
         );
     }
     return (
         <div className="review-round__share">
-            <button className="btn-success" onClick={copyToClipboard}>Share Results</button>
-            {copied ? <small className="text-muted" style={{marginLeft: '8px'}}>Copied</small> : null}
+            <div className="share-inline">
+                <button className="btn-success" onClick={copyToClipboard}>Share Results</button>
+                <span className={`share-copied ${copied ? 'is-visible' : ''}`}>Copied</span>
+            </div>
         </div>
     );
 }
