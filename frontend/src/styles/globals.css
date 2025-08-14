@@ -11,13 +11,18 @@ html {
 
 html,
 body {
-    font-family: 'PT-Sans', sans-serif;
+    font-family: var(--font-krypton), system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif;
     max-width: 100vw;
     overflow-x: hidden;
     line-height: 1.6;
     font-size: 16px;
     background-color: var(--color-background);
     color: var(--color-text);
+}
+
+html[data-font='neon'],
+html[data-font='neon'] body {
+    font-family: var(--font-neon), system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif;
 }
 
 main {
