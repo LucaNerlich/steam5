@@ -1,7 +1,10 @@
 package org.steam5.http;
 
+import lombok.Getter;
+
 import java.io.IOException;
 
+@Getter
 public class SteamApiException extends IOException {
 
     private final int statusCode;
@@ -11,14 +14,6 @@ public class SteamApiException extends IOException {
         super(message);
         this.statusCode = statusCode;
         this.url = url;
-    }
-
-    public int getStatusCode() {
-        return statusCode;
-    }
-
-    public String getUrl() {
-        return url;
     }
 }
 

@@ -24,6 +24,7 @@ public class ReviewGameStateService {
 
     private final SteamAppReviewsRepository reviewsRepository;
     private final SteamAppReviewsFetcher reviewsFetcher;
+    private final SteamAppDetailsFetcher detailsFetcher;
     private final ReviewGamePickRepository pickRepository;
     private final ReviewGameConfig config;
     private final CacheManager cacheManager;
@@ -97,12 +98,17 @@ public class ReviewGameStateService {
 
         // Evict review-game cache only when new picks were created
         if (!saved.isEmpty()) {
-            // Update reviews for the selected appIds
+            // Update reviews and details for the selected appIds
             for (ReviewGamePick p : saved) {
                 try {
                     reviewsFetcher.fetchForAppId(p.getAppId());
                 } catch (Exception e) {
                     log.warn("Failed to refresh reviews for picked appId {}: {}", p.getAppId(), e.getMessage());
+                }
+                try {
+                    detailsFetcher.fetchForAppId(p.getAppId());
+                } catch (Exception e) {
+                    log.warn("Failed to refresh details for picked appId {}: {}", p.getAppId(), e.getMessage());
                 }
             }
 
@@ -114,8 +120,6 @@ public class ReviewGameStateService {
         }
         return saved;
     }
-
-    public enum Category {HIGH, LOW, ANY}
 
     @Cacheable(value = "review-game", key = "#appId + 'review-count'")
     public int getTotalReviewCountForApp(Long appId) {

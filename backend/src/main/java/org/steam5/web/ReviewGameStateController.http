@@ -1,4 +1,4 @@
-### Get today's review-game picks (requires 'dev' profile)
+### Get today's review-game picks
 GET {{host}}/api/review-game/today
 Accept: application/json
 

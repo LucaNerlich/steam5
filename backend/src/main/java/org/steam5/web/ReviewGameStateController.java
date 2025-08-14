@@ -2,23 +2,17 @@ package org.steam5.web;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.core.env.Environment;
-import org.springframework.core.env.Profiles;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.steam5.domain.ReviewGamePick;
-import org.steam5.domain.SteamAppReviews;
 import org.steam5.domain.details.SteamAppDetail;
-import org.steam5.repository.SteamAppReviewsRepository;
+import org.steam5.http.ReviewGameException;
 import org.steam5.repository.details.SteamAppDetailRepository;
 import org.steam5.service.ReviewGameStateService;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 @RestController
 @RequiredArgsConstructor
@@ -27,31 +21,21 @@ import java.util.stream.Collectors;
 public class ReviewGameStateController {
 
     private final ReviewGameStateService service;
-    private final SteamAppReviewsRepository reviewsRepository;
     private final SteamAppDetailRepository detailRepository;
-    private final Environment environment;
 
     @GetMapping("/today")
     @Cacheable(value = "review-game", key = "'picks'", unless = "#result == null")
     public ResponseEntity<ReviewGameStateDto> getToday() {
-        if (!environment.acceptsProfiles(Profiles.of("dev"))) {
-            return ResponseEntity.notFound().build();
-        }
-
         final List<ReviewGamePick> picks = service.generateDailyPicks();
         final List<Long> appIds = picks.stream().map(ReviewGamePick::getAppId).toList();
-        final Map<Long, SteamAppReviews> idToReviews = reviewsRepository.findAllById(appIds).stream()
-                .collect(Collectors.toMap(SteamAppReviews::getAppId, Function.identity()));
-        final List<ReviewGamePickDto> dtoList = picks.stream()
-                .map(p -> {
-                    SteamAppReviews r = idToReviews.get(p.getAppId());
-                    final int pos = r != null ? r.getTotalPositive() : 0;
-                    final int neg = r != null ? r.getTotalNegative() : 0;
-                    return new ReviewGamePickDto(p.getAppId(), pos, neg);
-                })
-                .toList();
+        final List<SteamAppDetail> details = detailRepository.findAllById(appIds).stream().toList();
+
+        if (appIds.size() != details.size()) {
+            throw new ReviewGameException(500, "Number of appIds and details don't match");
+        }
+
         final LocalDate date = picks.isEmpty() ? LocalDate.now() : picks.getFirst().getPickDate();
-        return ResponseEntity.ok(new ReviewGameStateDto(date, dtoList));
+        return ResponseEntity.ok(new ReviewGameStateDto(date, details));
     }
 
     @GetMapping("/today/details")
@@ -61,9 +45,6 @@ public class ReviewGameStateController {
         final List<Long> appIds = picks.stream().map(ReviewGamePick::getAppId).toList();
         final List<SteamAppDetail> details = detailRepository.findAllById(appIds);
         return ResponseEntity.ok(details);
-    }
-
-    public record ReviewGamePickDto(Long appId, int totalPositive, int totalNegative) {
     }
 
     @PostMapping("/guess")
@@ -85,7 +66,7 @@ public class ReviewGameStateController {
         return ResponseEntity.ok(service.getBucketLabels());
     }
 
-    public record ReviewGameStateDto(LocalDate date, List<ReviewGamePickDto> picks) {
+    public record ReviewGameStateDto(LocalDate date, List<SteamAppDetail> picks) {
     }
 
     public record GuessRequest(Long appId, String bucketGuess) {

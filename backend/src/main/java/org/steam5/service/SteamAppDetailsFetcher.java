@@ -58,7 +58,7 @@ public class SteamAppDetailsFetcher implements Fetcher {
                 final Long appId = idx.getAppId();
                 if (appId == null) continue;
                 try {
-                    processSingleAppId(appId);
+                    fetchForAppId(appId);
                 } catch (Exception e) {
                     // bail immediately on any HTTP error such as 429
                     throw e;
@@ -75,7 +75,7 @@ public class SteamAppDetailsFetcher implements Fetcher {
         log.info("Details ingestion finished. processed={} starting_after={}", processed, lastAppId);
     }
 
-    private void processSingleAppId(final Long appId) throws IOException {
+    public void fetchForAppId(final Long appId) throws IOException {
         final String url = UriComponentsBuilder.fromUriString("https://store.steampowered.com/api/appdetails")
                 .queryParam("appids", appId)
                 .queryParam("key", properties.getApiKey())
