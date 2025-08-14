@@ -1,5 +1,6 @@
 package org.steam5.config;
 
+import org.quartz.CronScheduleBuilder;
 import org.quartz.JobDetail;
 import org.quartz.Trigger;
 import org.quartz.TriggerBuilder;
@@ -45,7 +46,8 @@ public class QuartzConfig {
     public Trigger triggerReviewGameStateJob(@Qualifier("ReviewGameStateJob") JobDetail job) {
         return TriggerBuilder.newTrigger().forJob(job)
                 .withIdentity("ReviewGameStateJob_Trigger")
-                .withSchedule(simpleSchedule().repeatForever().withIntervalInHours(24))
+                // every day at 00:01am
+                .withSchedule(CronScheduleBuilder.cronSchedule("0 1 0 * * ?"))
                 .build();
     }
 }
