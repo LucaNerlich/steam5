@@ -24,6 +24,9 @@ public class SteamAppDetail {
     private String type;
     private String name;
 
+    @Column(name = "controller_support")
+    private String controllerSupport;
+
     @Column(name = "is_free")
     private boolean isFree;
 
@@ -46,6 +49,8 @@ public class SteamAppDetail {
     @Column(name = "legal_notice", columnDefinition = "TEXT")
     private String legalNotice;
 
+    @OneToOne(mappedBy = "app", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Price priceOverview;
 
     @ManyToMany
     @JoinTable(
@@ -62,6 +67,14 @@ public class SteamAppDetail {
             inverseJoinColumns = @JoinColumn(name = "publisher_id")
     )
     private List<Publisher> publisher = new ArrayList<>();
+
+    @ManyToMany
+    @JoinTable(
+            name = "steam_app_category",
+            joinColumns = @JoinColumn(name = "app_id"),
+            inverseJoinColumns = @JoinColumn(name = "category_id")
+    )
+    private List<Category> categories = new ArrayList<>();
 
     private boolean isWindows;
     private boolean isMac;

@@ -3,14 +3,9 @@ package org.steam5.domain.details;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.steam5.repository.details.DeveloperRepository;
-import org.steam5.repository.details.GenreRepository;
-import org.steam5.repository.details.PublisherRepository;
-import org.steam5.repository.details.SteamAppDetailRepository;
+import org.steam5.repository.details.*;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 @Service
 public class SteamAppDetailService {
@@ -19,15 +14,17 @@ public class SteamAppDetailService {
     private final DeveloperRepository developerRepository;
     private final PublisherRepository publisherRepository;
     private final GenreRepository genreRepository;
+    private final CategoryRepository categoryRepository;
 
     public SteamAppDetailService(final SteamAppDetailRepository repository,
                                  final DeveloperRepository developerRepository,
                                  final PublisherRepository publisherRepository,
-                                 final GenreRepository genreRepository) {
+                                 final GenreRepository genreRepository, final CategoryRepository categoryRepository) {
         this.repository = repository;
         this.developerRepository = developerRepository;
         this.publisherRepository = publisherRepository;
         this.genreRepository = genreRepository;
+        this.categoryRepository = categoryRepository;
     }
 
     private static Iterable<JsonNode> safeArray(JsonNode node) {
@@ -65,6 +62,7 @@ public class SteamAppDetailService {
 
         detail.setType(asTextOrNull(data, "type"));
         detail.setName(asTextOrNull(data, "name"));
+        detail.setControllerSupport(asTextOrNull(data, "controller_support"));
         detail.setFree(data.path("is_free").asBoolean(false));
         detail.setDlc(joinDlcIds(data.path("dlc")));
         detail.setShortDescription(asTextOrNull(data, "short_description"));
@@ -84,6 +82,25 @@ public class SteamAppDetailService {
         detail.setReleaseDate(data.path("release_date").path("date").asText(null));
         detail.setBackgroundRaw(asTextOrNull(data, "background_raw"));
 
+        // Price overview (one-to-one, shared primary key)
+        JsonNode priceNode = data.path("price_overview");
+        if (priceNode != null && priceNode.isObject()) {
+            Price price = detail.getPriceOverview();
+            if (price == null) {
+                price = new Price();
+            }
+            price.setApp(detail);
+            price.setCurrency(asTextOrNull(priceNode, "currency"));
+            price.setInitial(priceNode.path("initial").asLong(0));
+            price.setFinalAmount(priceNode.path("final").asLong(0));
+            price.setDiscountPercent(priceNode.path("discount_percent").asInt(0));
+            price.setInitialFormatted(asTextOrNull(priceNode, "initial_formatted"));
+            price.setFinalFormatted(asTextOrNull(priceNode, "final_formatted"));
+            detail.setPriceOverview(price);
+        } else {
+            detail.setPriceOverview(null);
+        }
+
         // Clear children for a full refresh
         detail.getDevelopers().clear();
         detail.getPublisher().clear();
@@ -92,54 +109,65 @@ public class SteamAppDetailService {
         detail.getMovies().clear();
 
         // Developers (lookup-or-create by name)
-        java.util.Set<String> seenDevelopers = new java.util.HashSet<>();
+        Set<String> seenDevelopers = new HashSet<>();
         for (JsonNode devNode : safeArray(data.path("developers"))) {
             final String rawName = devNode.asText(null);
             final String trimmedName = rawName == null ? null : rawName.trim();
             if (trimmedName == null || trimmedName.isBlank()) continue;
             final String normalizedKey = trimmedName.toLowerCase();
             if (!seenDevelopers.add(normalizedKey)) continue;
-            final String finalName = trimmedName;
-            Developer dev = developerRepository
-                    .findByNameIgnoreCase(finalName)
-                    .orElseGet(() -> developerRepository.save(new Developer(null, finalName)));
+            final Developer dev = developerRepository
+                    .findByNameIgnoreCase(trimmedName)
+                    .orElseGet(() -> developerRepository.save(new Developer(null, trimmedName)));
             detail.getDevelopers().add(dev);
         }
 
         // Publishers (lookup-or-create by name)
-        java.util.Set<String> seenPublishers = new java.util.HashSet<>();
+        Set<String> seenPublishers = new HashSet<>();
         for (JsonNode pubNode : safeArray(data.path("publishers"))) {
             final String rawName = pubNode.asText(null);
             final String trimmedName = rawName == null ? null : rawName.trim();
             if (trimmedName == null || trimmedName.isBlank()) continue;
             final String normalizedKey = trimmedName.toLowerCase();
             if (!seenPublishers.add(normalizedKey)) continue;
-            final String finalName = trimmedName;
-            Publisher pub = publisherRepository
-                    .findByNameIgnoreCase(finalName)
-                    .orElseGet(() -> publisherRepository.save(new Publisher(null, finalName)));
+            final Publisher pub = publisherRepository
+                    .findByNameIgnoreCase(trimmedName)
+                    .orElseGet(() -> publisherRepository.save(new Publisher(null, trimmedName)));
             detail.getPublisher().add(pub);
         }
 
+        // Categories (lookup-or-create by description)
+        Set<String> seenCategories = new HashSet<>();
+        for (JsonNode genreNode : safeArray(data.path("categories"))) {
+            final String rawDesc = genreNode.path("description").asText(null);
+            final String trimmedDesc = rawDesc == null ? null : rawDesc.trim();
+            if (trimmedDesc == null || trimmedDesc.isBlank()) continue;
+            final String normalizedKey = trimmedDesc.toLowerCase();
+            if (!seenCategories.add(normalizedKey)) continue;
+            final Category g = categoryRepository
+                    .findByDescriptionIgnoreCase(trimmedDesc)
+                    .orElseGet(() -> categoryRepository.save(new Category(null, trimmedDesc)));
+            detail.getCategories().add(g);
+        }
+
         // Genres (lookup-or-create by description)
-        java.util.Set<String> seenGenres = new java.util.HashSet<>();
+        Set<String> seenGenres = new HashSet<>();
         for (JsonNode genreNode : safeArray(data.path("genres"))) {
             final String rawDesc = genreNode.path("description").asText(null);
             final String trimmedDesc = rawDesc == null ? null : rawDesc.trim();
             if (trimmedDesc == null || trimmedDesc.isBlank()) continue;
             final String normalizedKey = trimmedDesc.toLowerCase();
             if (!seenGenres.add(normalizedKey)) continue;
-            final String finalDesc = trimmedDesc;
-            Genre g = genreRepository
-                    .findByDescriptionIgnoreCase(finalDesc)
-                    .orElseGet(() -> genreRepository.save(new Genre(null, finalDesc)));
+            final Genre g = genreRepository
+                    .findByDescriptionIgnoreCase(trimmedDesc)
+                    .orElseGet(() -> genreRepository.save(new Genre(null, trimmedDesc)));
             detail.getGenres().add(g);
         }
 
         // Screenshots
         for (JsonNode ssNode : safeArray(data.path("screenshots"))) {
-            String thumb = ssNode.path("path_thumbnail").asText(null);
-            String full = ssNode.path("path_full").asText(null);
+            final String thumb = ssNode.path("path_thumbnail").asText(null);
+            final String full = ssNode.path("path_full").asText(null);
             if (thumb != null || full != null) {
                 detail.getScreenshots().add(new Screenshot(null, detail, thumb, full));
             }
@@ -147,8 +175,8 @@ public class SteamAppDetailService {
 
         // Movies
         for (JsonNode mvNode : safeArray(data.path("movies"))) {
-            String name = mvNode.path("name").asText(null);
-            String thumbnail = mvNode.path("thumbnail").asText(null);
+            final String name = mvNode.path("name").asText(null);
+            final String thumbnail = mvNode.path("thumbnail").asText(null);
             String webm = mvNode.path("webm").path("max").asText(null);
             if (webm == null || webm.isBlank()) {
                 webm = mvNode.path("webm").path("480").asText(null);
