@@ -32,7 +32,7 @@ public class ReviewGameStateController {
     private final Environment environment;
 
     @GetMapping("/today")
-    @Cacheable(value = "one-day", key = "'picks'", unless = "#result == null")
+    @Cacheable(value = "review-game", key = "'picks'", unless = "#result == null")
     public ResponseEntity<ReviewGameStateDto> getToday() {
         if (!environment.acceptsProfiles(Profiles.of("dev"))) {
             return ResponseEntity.notFound().build();
@@ -55,7 +55,7 @@ public class ReviewGameStateController {
     }
 
     @GetMapping("/today/details")
-    @Cacheable(value = "one-day", key = "'details'", unless = "#result == null")
+    @Cacheable(value = "review-game", key = "'details'", unless = "#result == null")
     public ResponseEntity<List<SteamAppDetail>> getTodayDetails() {
         final List<ReviewGamePick> picks = service.generateDailyPicks();
         final List<Long> appIds = picks.stream().map(ReviewGamePick::getAppId).toList();
@@ -67,7 +67,7 @@ public class ReviewGameStateController {
     }
 
     @PostMapping("/guess")
-    @Cacheable(value = "one-day", key = "#req.appId + ':' + #req.bucketGuess")
+    @Cacheable(value = "review-game", key = "#req.appId + ':' + #req.bucketGuess")
     public ResponseEntity<GuessResponse> submitGuess(@RequestBody GuessRequest req) {
         if (req == null || req.appId == null || req.bucketGuess == null) {
             return ResponseEntity.badRequest().build();

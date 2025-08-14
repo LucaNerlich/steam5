@@ -29,10 +29,18 @@ public class CacheConfig {
                         .build()
         );
 
+        final CaffeineCache cacheReviewGame = new CaffeineCache(
+                "review-game",
+                Caffeine.newBuilder()
+                        .expireAfterWrite(24, TimeUnit.HOURS)
+                        .build()
+        );
+
         final SimpleCacheManager cacheManager = new SimpleCacheManager();
         cacheManager.setCaches(List.of(
                 cacheOneHour,
-                cacheOneDay
+                cacheOneDay,
+                cacheReviewGame
         ));
         return cacheManager;
     }

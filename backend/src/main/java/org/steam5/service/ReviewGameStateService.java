@@ -2,6 +2,8 @@ package org.steam5.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -23,6 +25,7 @@ public class ReviewGameStateService {
     private final SteamAppReviewsRepository reviewsRepository;
     private final ReviewGamePickRepository pickRepository;
     private final ReviewGameConfig config;
+    private final CacheManager cacheManager;
 
     @Transactional
     public List<ReviewGamePick> generateDailyPicks() {
@@ -88,12 +91,20 @@ public class ReviewGameStateService {
 
         final List<ReviewGamePick> saved = pickRepository.saveAll(picks);
         log.info("Generated {} review-game picks for {} (low<= {}, high>= {})", saved.size(), today, lowThreshold, highThreshold);
+
+        // Evict review-game cache only when new picks were created
+        if (!saved.isEmpty()) {
+            final Cache cache = cacheManager.getCache("review-game");
+            if (cache != null) {
+                cache.clear();
+            }
+        }
         return saved;
     }
 
     public enum Category {HIGH, LOW, ANY}
 
-    @Cacheable(value = "one-day", key = "#appId + 'review-count'")
+    @Cacheable(value = "review-game", key = "#appId + 'review-count'")
     public int getTotalReviewCountForApp(Long appId) {
         return reviewsRepository.findById(appId).map(r -> r.getTotalPositive() + r.getTotalNegative()).orElse(0);
     }
