@@ -39,7 +39,7 @@
 
 ### Backend
 
-- [ ] do not pick games that are not released yet, or have been released in the last seven days.
+- [x] do not pick games that are not released yet, or have been released in the last seven days.
 
 ## Do later
 
