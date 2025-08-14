@@ -23,4 +23,8 @@
     outline: 2px solid var(--color-primary);
 }
 
+.review-round__share {
+    margin-top: 8px;
+}
+
 

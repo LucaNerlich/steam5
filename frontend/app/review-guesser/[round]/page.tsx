@@ -52,8 +52,14 @@ export default async function ReviewGuesserRoundPage({params}: { params: Promise
                     ))}
                 </div>
             )}
-            <ReviewGuesserRound appId={pick.appId} buckets={today.buckets} roundIndex={roundIndex}
-                                totalRounds={totalRounds}/>
+            <ReviewGuesserRound
+                appId={pick.appId}
+                buckets={today.buckets}
+                roundIndex={roundIndex}
+                totalRounds={totalRounds}
+                pickName={pick.name}
+                gameDate={today.date}
+            />
         </section>
     );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import {useActionState, useMemo, useState} from "react";
+import {useActionState, useEffect, useMemo, useState} from "react";
 import type {GuessResponse} from "@/types/review-game";
 import Link from "next/link";
 import Form from "next/form";
@@ -14,6 +14,8 @@ interface Props {
     buckets: string[];
     roundIndex: number;
     totalRounds: number;
+    pickName?: string;
+    gameDate?: string;
 }
 
 function BucketButton({label, selectedLabel, onSelect, submitted}: {
@@ -39,7 +41,7 @@ function BucketButton({label, selectedLabel, onSelect, submitted}: {
     );
 }
 
-export default function ReviewGuesserRound({appId, buckets, roundIndex, totalRounds}: Props) {
+export default function ReviewGuesserRound({appId, buckets, roundIndex, totalRounds, pickName, gameDate}: Props) {
     const initial: GuessActionState = {ok: false};
     const [state, formAction] = useActionState<GuessActionState, FormData>(submitGuessAction, initial);
     const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
@@ -48,6 +50,46 @@ export default function ReviewGuesserRound({appId, buckets, roundIndex, totalRou
         const next = roundIndex + 1;
         return next <= totalRounds ? `/review-guesser/${next}` : `/review-guesser/1`;
     }, [roundIndex, totalRounds]);
+
+    // Persist this round's result for the current game date
+    useEffect(() => {
+        if (!state || !state.ok || !state.response || !selectedLabel || !gameDate) return;
+        const key = `review-guesser:${gameDate}`;
+        try {
+            const prevRaw = window.localStorage.getItem(key);
+            type RoundResult = {
+                appId: number;
+                pickName?: string;
+                selectedLabel: string;
+                actualBucket: string;
+                totalReviews: number;
+                correct: boolean;
+            };
+            type Stored = { totalRounds: number; results: Record<number, RoundResult> };
+            let data: Stored = {totalRounds, results: {}};
+            if (prevRaw) {
+                const parsed = JSON.parse(prevRaw) as unknown;
+                if (
+                    typeof parsed === 'object' && parsed !== null &&
+                    'results' in (parsed as any)
+                ) {
+                    data = parsed as Stored;
+                }
+            }
+            data.totalRounds = totalRounds;
+            data.results[roundIndex] = {
+                appId,
+                pickName,
+                selectedLabel,
+                actualBucket: state.response.actualBucket,
+                totalReviews: state.response.totalReviews,
+                correct: state.response.correct,
+            };
+            window.localStorage.setItem(key, JSON.stringify(data));
+        } catch {
+            // ignore storage errors
+        }
+    }, [state, selectedLabel, gameDate, totalRounds, roundIndex, appId, pickName]);
 
     return (
         <div>
@@ -66,6 +108,20 @@ export default function ReviewGuesserRound({appId, buckets, roundIndex, totalRou
             {state && state.ok && state.response && (
                 <div role="dialog" aria-modal="true" className="review-round__result">
                     <ResultView result={state.response}/>
+                    <ShareControls
+                        buckets={buckets}
+                        gameDate={gameDate}
+                        totalRounds={totalRounds}
+                        latestRound={roundIndex}
+                        latest={{
+                            appId,
+                            pickName,
+                            selectedLabel: selectedLabel ?? '',
+                            actualBucket: state.response.actualBucket,
+                            totalReviews: state.response.totalReviews,
+                            correct: state.response.correct,
+                        }}
+                    />
                     <div className="review-round__next">
                         <Link href={nextHref}>Next round</Link>
                     </div>
@@ -81,6 +137,92 @@ function ResultView({result}: { result: GuessResponse }) {
             {result.correct ? '✅ Correct!' : '❌ Not quite.'} Actual bucket: <strong>{result.actualBucket}</strong> ·
             Reviews: <strong>{result.totalReviews}</strong>
         </p>
+    );
+}
+
+function ShareControls(props: {
+    buckets: string[];
+    gameDate?: string;
+    totalRounds: number;
+    latestRound: number;
+    latest: {
+        appId: number;
+        pickName?: string;
+        selectedLabel: string;
+        actualBucket: string;
+        totalReviews: number;
+        correct: boolean
+    }
+}) {
+    const {buckets, gameDate, totalRounds, latestRound, latest} = props;
+    const [copied, setCopied] = useState(false);
+
+    if (!gameDate) return null;
+
+    type RoundResult = {
+        pickName?: string;
+        appId: number;
+        selectedLabel: string;
+        actualBucket: string;
+        totalReviews: number;
+        correct: boolean
+    };
+    type Stored = { totalRounds: number; results: Record<number, RoundResult> };
+
+    let data: Stored | null = null;
+    try {
+        const raw = typeof window !== 'undefined' ? window.localStorage.getItem(`review-guesser:${gameDate}`) : null;
+        data = raw ? JSON.parse(raw) as Stored : null;
+    } catch {
+        data = null;
+    }
+
+    if (!data || !data.results) return null;
+    // Account for the just-submitted final round which may not yet be in storage
+    const indices = new Set(Object.keys(data.results).map(n => parseInt(n, 10)));
+    indices.add(latestRound);
+    const isComplete = indices.size >= totalRounds;
+    if (!isComplete) return null;
+
+    function scoreFor(selectedLabel: string, actual: string): { bar: string; points: number } {
+        if (selectedLabel === actual) return {bar: '🟩', points: 3};
+        const selectedIndex = buckets.indexOf(selectedLabel);
+        const actualIndex = buckets.indexOf(actual);
+        if (selectedIndex < 0 || actualIndex < 0) return {bar: '⬜', points: 0};
+        const delta = Math.abs(selectedIndex - actualIndex);
+        if (delta === 1) return {bar: '🟨', points: 2};
+        if (delta === 2) return {bar: '🟧', points: 1};
+        return {bar: '🟥', points: 0};
+    }
+
+    const lines: string[] = [];
+    lines.push(`https://Steam5.org/review-guesser - Steam Review Game — ${gameDate}`);
+    let total = 0;
+    for (let i = 1; i <= totalRounds; i++) {
+        const r = i === latestRound ? latest : data.results[i];
+        if (!r) continue;
+        const {bar, points} = scoreFor(r.selectedLabel, r.actualBucket);
+        total += points;
+        lines.push(`Round ${i}: ${r.pickName ?? 'App ' + r.appId} — ${r.selectedLabel} → ${r.actualBucket} ${bar} (+${points})`);
+    }
+    lines.push(`Total points: ${total}`);
+    const text = lines.join('\n');
+
+    async function copyToClipboard() {
+        try {
+            await navigator.clipboard.writeText(text);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 1500);
+        } catch {
+            /* no-op */
+        }
+    }
+
+    return (
+        <div className="review-round__share">
+            <button onClick={copyToClipboard}>Share overview</button>
+            {copied ? <small className="text-muted" style={{marginLeft: '8px'}}>Copied</small> : null}
+        </div>
     );
 }
 
