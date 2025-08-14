@@ -46,9 +46,18 @@ export default function ReviewGuesserHero(props: Readonly<ReviewGuesserHeroProps
     return (
         <section className='review-guesser-hero'>
             <h1>Review Guesser</h1>
-            <p>Game Date: {today.date}</p>
-            <p>Round {props.roundIndex} of {totalRounds}</p>
-            <h2>{pick.name}</h2>
+            <p>Round <strong>{props.roundIndex}</strong> of <strong>{totalRounds}</strong> | Game Date: {today.date}</p>
+            <div className='title-row'>
+                <h2>{pick.name}</h2>
+                <a
+                    className='steam-link'
+                    href={`https://store.steampowered.com/app/${pick.appId}`}
+                    target='_blank'
+                    rel='noopener noreferrer'
+                >
+                    Open on Steam ↗
+                </a>
+            </div>
             <p>
                 <span title='Developer' style={{marginRight: '1em'}}>
                 🧑‍💻
