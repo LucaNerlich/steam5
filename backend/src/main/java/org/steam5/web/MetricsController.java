@@ -69,7 +69,6 @@ public class MetricsController {
                     <li><a href=\"/api/metrics/counts\">counts</a> <code>GET /api/metrics/counts</code></li>
                     <li><a href=\"/api/metrics/coverage\">coverage</a> <code>GET /api/metrics/coverage</code></li>
                     <li><a href=\"/api/metrics/thresholds\">thresholds</a> <code>GET /api/metrics/thresholds</code></li>
-                    <li><a href=\"/api/metrics/reviews/summary\">reviewsSummary</a> <code>GET /api/metrics/reviews/summary</code></li>
                     <li><a href=\"/api/metrics/details/breakdown\">detailsBreakdown</a> <code>GET /api/metrics/details/breakdown</code></li>
                     <li><a href=\"/api/metrics/picks/summary\">picksSummary</a> <code>GET /api/metrics/picks/summary</code></li>
                   </ul>
