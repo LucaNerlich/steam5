@@ -15,7 +15,8 @@ export default function ReviewGuesserHero(props: Readonly<ReviewGuesserHeroProps
     const today = props.today;
     const pick = props.pick;
     const totalRounds = today.picks.length;
-    const shots = (pick.screenshots ?? []).slice(0, 8);
+    const allShots = (pick.screenshots ?? []);
+    const thumbShots = allShots.slice(0, 4);
 
     const [isOpen, setIsOpen] = useState(false);
     const [index, setIndex] = useState(0);
@@ -26,8 +27,8 @@ export default function ReviewGuesserHero(props: Readonly<ReviewGuesserHeroProps
     }, []);
 
     const close = useCallback(() => setIsOpen(false), []);
-    const prev = useCallback(() => setIndex((i) => (i - 1 + shots.length) % shots.length), [shots.length]);
-    const next = useCallback(() => setIndex((i) => (i + 1) % shots.length), [shots.length]);
+    const prev = useCallback(() => setIndex((i) => (i - 1 + allShots.length) % allShots.length), [allShots.length]);
+    const next = useCallback(() => setIndex((i) => (i + 1) % allShots.length), [allShots.length]);
 
     useEffect(() => {
         if (!isOpen) return;
@@ -62,9 +63,9 @@ export default function ReviewGuesserHero(props: Readonly<ReviewGuesserHeroProps
                     })}
                 </span>
             </p>
-            {shots.length > 0 && (
+            {thumbShots.length > 0 && (
                 <div className='screenshots'>
-                    {shots.slice(0, 4).map((s, i) => (
+                    {thumbShots.map((s, i) => (
                         <button className='shot' key={s.id} onClick={() => openAt(i)} aria-label="Open screenshot">
                             <Image src={s.pathThumbnail || s.pathFull} alt={pick.name} width={400} height={225}
                                    style={{width: '100%', height: 'auto'}}/>
@@ -73,13 +74,13 @@ export default function ReviewGuesserHero(props: Readonly<ReviewGuesserHeroProps
                 </div>
             )}
 
-            {isOpen && shots[index] && (
+            {isOpen && allShots[index] && (
                 <div className="lightbox-overlay" role="dialog" aria-modal="true" onClick={close}>
                     <div className="lightbox-content" onClick={(e) => e.stopPropagation()}>
                         <button className="lightbox-close" aria-label="Close" onClick={close}>✕</button>
                         <div className="lightbox-img">
                             <Image
-                                src={shots[index].pathFull || shots[index].pathThumbnail}
+                                src={allShots[index].pathFull || allShots[index].pathThumbnail}
                                 alt={pick.name}
                                 width={1280}
                                 height={720}
@@ -87,10 +88,10 @@ export default function ReviewGuesserHero(props: Readonly<ReviewGuesserHeroProps
                                 priority
                             />
                         </div>
-                        {shots.length > 1 && (
+                        {allShots.length > 1 && (
                             <div className="lightbox-nav">
                                 <button onClick={prev} aria-label="Previous">←</button>
-                                <span>{index + 1}/{shots.length}</span>
+                                <span>{index + 1}/{allShots.length}</span>
                                 <button onClick={next} aria-label="Next">→</button>
                             </div>
                         )}
