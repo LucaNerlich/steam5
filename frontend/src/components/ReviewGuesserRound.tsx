@@ -113,7 +113,6 @@ export default function ReviewGuesserRound({appId, buckets, roundIndex, totalRou
         } catch {
             setStored(null);
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [gameDate, roundIndex]);
 
     // Determine completion and existing result for this round
