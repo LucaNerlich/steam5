@@ -184,15 +184,31 @@ function ShareControls(props: {
     const isComplete = indices.size >= totalRounds;
     if (!isComplete) return null;
 
+    /**
+     * Points formula and emoji mapping
+     *
+     * Let distance d be the absolute index distance between the user's guess and the actual bucket.
+     * Points are computed by the linear decay formula:
+     *   points = max(0, maxPoints - step * d)
+     * With maxPoints = 5 and step = 2, this yields: d=0 → 5, d=1 → 3, d=2 → 1, d≥3 → 0.
+     *
+     * Emoji encoding uses the first four symbols for distance buckets, plus a fallback for invalid inputs:
+     *   d=0 → 🟩, d=1 → 🟨, d=2 → 🟧, d≥3 → 🟥, invalid → ⬜
+     * This keeps visual summaries stable even if the total number of buckets changes.
+     */
     function scoreFor(selectedLabel: string, actual: string): { bar: string; points: number } {
-        if (selectedLabel === actual) return {bar: '🟩', points: 3};
         const selectedIndex = buckets.indexOf(selectedLabel);
         const actualIndex = buckets.indexOf(actual);
         if (selectedIndex < 0 || actualIndex < 0) return {bar: '⬜', points: 0};
-        const delta = Math.abs(selectedIndex - actualIndex);
-        if (delta === 1) return {bar: '🟨', points: 2};
-        if (delta === 2) return {bar: '🟧', points: 1};
-        return {bar: '🟥', points: 0};
+
+        const d = Math.abs(selectedIndex - actualIndex);
+        const maxPoints = 5;
+        const step = 2;
+        const points = Math.max(0, maxPoints - step * d);
+
+        const emojiByDistance = ['🟩', '🟨', '🟧'];
+        const bar = d <= 2 ? emojiByDistance[d] : '🟥';
+        return {bar, points};
     }
 
     const lines: string[] = [];
