@@ -21,15 +21,12 @@ export default function ReviewGuesserHero(props: Readonly<ReviewGuesserHeroProps
             <p>Round {props.roundIndex} of {totalRounds}</p>
             <h2>{pick.name} ({pick.appId})</h2>
             {pick.screenshots && pick.screenshots.length > 0 && (
-                <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
-                    gap: '8px',
-                    margin: '12px 0'
-                }}>
+                <div className='screenshots'>
                     {pick.screenshots.slice(0, 4).map(s => (
-                        <Image key={s.id} src={s.pathThumbnail || s.pathFull} alt={pick.name} width={400} height={225}
-                               style={{width: '100%', height: 'auto'}}/>
+                        <div className='shot' key={s.id}>
+                            <Image src={s.pathThumbnail || s.pathFull} alt={pick.name} width={400} height={225}
+                                   style={{width: '100%', height: 'auto'}}/>
+                        </div>
                     ))}
                 </div>
             )}
