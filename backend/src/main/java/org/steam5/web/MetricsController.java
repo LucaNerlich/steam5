@@ -2,6 +2,7 @@ package org.steam5.web;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -33,8 +34,8 @@ public class MetricsController {
     private final ReviewGamePickRepository pickRepository;
     private final IngestStateRepository ingestStateRepository;
 
-    @GetMapping
-    public ResponseEntity<Map<String, String>> index() {
+    @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Map<String, String>> indexJson() {
         final Map<String, String> links = new LinkedHashMap<>();
         links.put("self", "/api/metrics");
         links.put("counts", "/api/metrics/counts");
@@ -44,6 +45,39 @@ public class MetricsController {
         links.put("detailsBreakdown", "/api/metrics/details/breakdown");
         links.put("picksSummary", "/api/metrics/picks/summary");
         return ResponseEntity.ok(links);
+    }
+
+    @GetMapping(produces = MediaType.TEXT_HTML_VALUE)
+    public ResponseEntity<String> indexHtml() {
+        final String html = """
+                <!doctype html>
+                <html lang=\"en\">
+                <head>
+                  <meta charset=\"utf-8\" />
+                  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />
+                  <title>Metrics Index</title>
+                  <style>
+                    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif;padding:20px;line-height:1.5}
+                    h1{margin-top:0}
+                    ul{padding-left:18px}
+                    code{background:#f4f4f4;padding:2px 6px;border-radius:4px}
+                  </style>
+                </head>
+                <body>
+                  <h1>Metrics Index</h1>
+                  <ul>
+                    <li><a href=\"/api/metrics\">self</a> <code>GET /api/metrics</code></li>
+                    <li><a href=\"/api/metrics/counts\">counts</a> <code>GET /api/metrics/counts</code></li>
+                    <li><a href=\"/api/metrics/coverage\">coverage</a> <code>GET /api/metrics/coverage</code></li>
+                    <li><a href=\"/api/metrics/thresholds\">thresholds</a> <code>GET /api/metrics/thresholds</code></li>
+                    <li><a href=\"/api/metrics/reviews/summary\">reviewsSummary</a> <code>GET /api/metrics/reviews/summary</code></li>
+                    <li><a href=\"/api/metrics/details/breakdown\">detailsBreakdown</a> <code>GET /api/metrics/details/breakdown</code></li>
+                    <li><a href=\"/api/metrics/picks/summary\">picksSummary</a> <code>GET /api/metrics/picks/summary</code></li>
+                  </ul>
+                </body>
+                </html>
+                """;
+        return ResponseEntity.ok().contentType(MediaType.TEXT_HTML).body(html);
     }
 
     @GetMapping("/thresholds")

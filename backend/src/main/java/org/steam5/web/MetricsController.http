@@ -1,6 +1,10 @@
-### Index of metrics endpoints
+### Index of metrics endpoints (JSON)
 GET {{host}}/api/metrics
 Accept: application/json
+
+### Index of metrics endpoints (HTML)
+GET {{host}}/api/metrics
+Accept: text/html
 
 ### Get entity counts
 GET {{host}}/api/metrics/counts
