@@ -9,6 +9,10 @@
     .screenshots .shot {
         flex: 1 1 220px; /* min width 220px, grow to fill row on desktop */
         max-width: 400px;
+        background: transparent;
+        border: 0;
+        padding: 0;
+        cursor: zoom-in;
     }
 
     .screenshots .shot img {
@@ -16,4 +20,48 @@
         height: auto;
         display: block;
     }
+}
+
+.lightbox-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.lightbox-content {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    max-width: min(95vw, 1280px);
+    max-height: 90vh;
+    padding: 0.75rem;
+    border-radius: 8px;
+}
+
+.lightbox-close {
+    position: absolute;
+    margin: 0.25rem;
+    right: 1rem;
+    top: 1rem;
+    background: transparent;
+    border: 0;
+    color: var(--color-text);
+    font-size: 1.25rem;
+    cursor: pointer;
+}
+
+.lightbox-img {
+    width: min(90vw, 1280px);
+    max-height: 70vh;
+}
+
+.lightbox-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 0.5rem;
 }
