@@ -9,3 +9,7 @@
         display: none;
     }
 }
+
+.text-muted {
+    color: var(--color-muted);
+}

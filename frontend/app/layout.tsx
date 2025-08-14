@@ -1,6 +1,7 @@
 import type {Metadata} from "next";
 import "@/styles/globals.css";
 import UmamiAnalytics from "@/components/UmamiAnalytics";
+import ThemeToggle from "@/components/ThemeToggle";
 
 
 const description = 'Steam Review Guessing Game';
@@ -69,11 +70,17 @@ export default function RootLayout({
     return (
         <html lang="en">
         <body>
-        <header></header>
+        <header className="container"></header>
         <main>
             {children}
         </main>
-        <footer></footer>
+        <footer>
+            <div className="container"
+                 style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 0'}}>
+                <small className="text-muted">Imprint: Steam5.org · Luca Nerlich</small>
+                <ThemeToggle/>
+            </div>
+        </footer>
         <UmamiAnalytics/>
         </body>
         </html>

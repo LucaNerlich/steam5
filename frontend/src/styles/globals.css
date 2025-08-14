@@ -5,7 +5,7 @@
 html {
     scroll-behavior: smooth;
     -webkit-text-size-adjust: 100%;
-    color-scheme: light;
+    color-scheme: light dark;
     box-sizing: border-box;
 }
 
@@ -17,16 +17,36 @@ body {
     line-height: 1.6;
     font-size: 16px;
     background-color: var(--color-background);
+    color: var(--color-text);
 }
 
 main {
-    min-height: 100dvh;
     width: 100%;
     overflow-x: hidden;
+}
+
+button.theme-toggle {
+    appearance: none;
+    border: none;
+    background: transparent;
+    color: var(--color-muted);
+    padding: 0;
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+button.theme-toggle:hover {
+    color: var(--color-text);
 }
 
 .container {
     max-width: 1200px;
     padding: 0 1rem;
     margin: auto 0;
+}
+
+footer {
+    border-top: 1px solid var(--color-border);
+    background-color: var(--color-surface);
 }
