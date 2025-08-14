@@ -13,6 +13,9 @@ import org.steam5.repository.SteamAppIndexRepository;
 import org.steam5.repository.SteamAppReviewsRepository;
 import org.steam5.repository.details.*;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/metrics")
@@ -29,6 +32,20 @@ public class MetricsController {
     private final ScreenshotRepository screenshotRepository;
     private final ReviewGamePickRepository pickRepository;
     private final IngestStateRepository ingestStateRepository;
+
+    @GetMapping
+    @Cacheable(value = "one-day", key = "'metrics-index'", unless = "#result == null")
+    public ResponseEntity<Map<String, String>> index() {
+        final Map<String, String> links = new LinkedHashMap<>();
+        links.put("self", "/api/metrics");
+        links.put("counts", "/api/metrics/counts");
+        links.put("coverage", "/api/metrics/coverage");
+        links.put("thresholds", "/api/metrics/thresholds");
+        links.put("reviewsSummary", "/api/metrics/reviews/summary");
+        links.put("detailsBreakdown", "/api/metrics/details/breakdown");
+        links.put("picksSummary", "/api/metrics/picks/summary");
+        return ResponseEntity.ok(links);
+    }
 
     @GetMapping("/thresholds")
     @Cacheable(value = "one-day", key = "'thresholds'", unless = "#result == null")
