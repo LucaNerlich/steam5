@@ -203,9 +203,9 @@ public class ReviewGameStateService {
         if (bounds == null || bounds.isEmpty()) return List.of();
 
         final ArrayList<String> labels = new java.util.ArrayList<>(bounds.size() + 1);
-        int prev = 0;
+        int prev = 1;
         for (Integer b : bounds) {
-            labels.add((prev == 0 ? "0-" + b : (prev + 1) + "-" + b));
+            labels.add((prev == 1 ? "1-" + b : (prev + 1) + "-" + b));
             prev = b;
         }
         labels.add(bounds.getLast() + "+");

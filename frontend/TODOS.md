@@ -37,6 +37,10 @@
 - [x] after round submission, no button should be clickable again, not even the "chosen" one
 - [x] show open in steam button after user has made the guess
 
+### Backend
+
+- [ ] do not pick games that are not released yet, or have been released in the last seven days.
+
 ## Do later
 
 - [x] use custom fonts (github monaspace)

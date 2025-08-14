@@ -46,8 +46,8 @@ review:
     do-not-repeat-days: 3650
     # dynamic bucket boundaries for guessing game (inclusive upper bounds in ascending order)
     bucket-boundaries: [ 100, 1000, 10000 ]
-    low-percentile: 0.35
-    high-percentile: 0.95
+    low-percentile: ${LOW_PERCENTILE:0.5}
+    high-percentile: ${HIGH_PERCENTILE:0.95}
 
 # per-job enable/disable toggles
 jobs:
