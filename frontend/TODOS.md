@@ -3,7 +3,7 @@
 ## Required
 
 - [x] create color themes
-- [ ] come up with api route schema to request and post the daily picks from our backend api
+- [x] come up with api route schema to request and post the daily picks from our backend api
 - [ ] come up with route schema for our game
     - the index page should always load fast
     - we want one "main" entry route for each game
