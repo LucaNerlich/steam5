@@ -1,7 +1,7 @@
 import type {ReviewGameState} from "@/types/review-game";
 import ReviewGuesserRound from "../../../src/components/ReviewGuesserRound";
-import Image from "next/image";
 import Link from "next/link";
+import ReviewGuesserHero from "@/components/ReviewGuesserHero";
 
 async function loadToday(): Promise<ReviewGameState> {
     const base = process.env.NEXT_PUBLIC_DOMAIN || 'http://localhost:3000';
@@ -35,23 +35,10 @@ export default async function ReviewGuesserRoundPage({params}: { params: Promise
 
     return (
         <section className="container">
-            <h1>Review Guesser</h1>
-            <p>Game date: {today.date}</p>
-            <p>Round {roundIndex} of {totalRounds}</p>
-            <h2>{pick.name} ({pick.appId})</h2>
-            {pick.screenshots && pick.screenshots.length > 0 && (
-                <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
-                    gap: '8px',
-                    margin: '12px 0'
-                }}>
-                    {pick.screenshots.slice(0, 4).map(s => (
-                        <Image key={s.id} src={s.pathThumbnail || s.pathFull} alt={pick.name} width={400} height={225}
-                               style={{width: '100%', height: 'auto'}}/>
-                    ))}
-                </div>
-            )}
+            <ReviewGuesserHero today={today}
+                               pick={pick}
+                               roundIndex={roundIndex}/>
+
             <ReviewGuesserRound
                 appId={pick.appId}
                 buckets={today.buckets}

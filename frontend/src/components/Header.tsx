@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import {Routes} from "../../app/routes";
-import "@/styles/header.css";
+import "@/styles/components/header.css";
 
 export default function Header() {
     return (

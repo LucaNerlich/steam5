@@ -7,7 +7,7 @@ import Form from "next/form";
 import {useFormStatus} from "react-dom";
 import type {GuessActionState} from "../../app/review-guesser/[round]/actions";
 import {submitGuessAction} from "../../app/review-guesser/[round]/actions";
-import "@/styles/reviewGuesserRound.css";
+import "@/styles/components/reviewGuesserRound.css";
 
 interface Props {
     appId: number;

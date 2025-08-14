@@ -1,7 +1,7 @@
 import ThemeToggle from "@/components/ThemeToggle";
 import FontToggle from "./FontToggle";
 import ResetTodayButton from "./ResetTodayButton";
-import "@/styles/footer.css";
+import "@/styles/components/footer.css";
 
 export default function Footer() {
     return (
