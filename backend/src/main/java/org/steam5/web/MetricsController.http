@@ -1,0 +1,5 @@
+### Get entity counts
+GET {{host}}/api/metrics/counts
+Accept: application/json
+
+
