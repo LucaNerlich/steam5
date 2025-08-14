@@ -59,18 +59,22 @@ export default function ReviewGuesserHero(props: Readonly<ReviewGuesserHeroProps
                 </a>
             </div>
             <p>
-                <span title='Developer' style={{marginRight: '1em'}}>
+                {pick.developers && pick.developers.length > 0 &&
+                  <span title='Developer' style={{marginRight: '1em'}}>
                 🧑‍💻
-                    {pick.developers?.map((d) => {
-                        return <span key={d.id}>{d.name}</span>
-                    })}
+                      {pick.developers?.map((d) => {
+                          return <span key={d.id}>{d.name}</span>
+                      })}
                 </span>
-                <span title='Publisher'>
+                }
+                {pick.publisher && pick.publisher.length > 0 &&
+                  <span title='Publisher'>
                 🌍
-                    {pick.publisher?.map((p) => {
-                        return <span key={p.id}>{p.name}</span>
-                    })}
+                      {pick.publisher?.map((p) => {
+                          return <span key={p.id}>{p.name}</span>
+                      })}
                 </span>
+                }
             </p>
             {thumbShots.length > 0 && (
                 <div className='screenshots'>
