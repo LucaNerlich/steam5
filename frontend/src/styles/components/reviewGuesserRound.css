@@ -18,10 +18,12 @@
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
-.review-round__next {
+.review-round__actions {
     margin-top: 12px;
     display: flex;
-    justify-content: flex-end;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
 }
 
 .review-round__button.is-selected {

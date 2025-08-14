@@ -26,7 +26,7 @@ function BucketButton({label, selectedLabel, onSelect, submitted}: {
 }) {
     const {pending} = useFormStatus();
     const isSelected = selectedLabel === label;
-    const disabled = (pending || submitted) && !isSelected;
+    const disabled = (pending || submitted);
     return (
         <button
             name="bucketGuess"
@@ -177,7 +177,16 @@ export default function ReviewGuesserRound({appId, buckets, roundIndex, totalRou
             {effectiveResponse && (
                 <div role="dialog" aria-modal="true" className="review-round__result">
                     <ResultView result={effectiveResponse}/>
-                    <div className="review-round__next">
+                    <div className="review-round__actions">
+                        <a
+                            href={`https://store.steampowered.com/app/${appId}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn-ghost"
+                            aria-label="Open this game on Steam"
+                        >
+                            Open on Steam ↗
+                        </a>
                         <Link href={nextHref} className="btn-cta" aria-label="Go to next round">Next round →</Link>
                     </div>
                 </div>

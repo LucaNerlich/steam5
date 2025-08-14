@@ -1,11 +1,4 @@
 .review-guesser-hero {
-    .title-row {
-        display: flex;
-        align-items: baseline;
-        gap: 0.75rem;
-        flex-wrap: wrap;
-    }
-
     .steam-link {
         color: var(--color-text);
         text-decoration: underline;
