@@ -26,9 +26,13 @@
 - [x] use next/form and FormState to send each users 'guess' for that game/appid and bucket-guess to
   `{{host}}/api/review-game/guess`
 - [x] display response (correct true/false and actual review count)
+- [ ] on guess bucket submit, lock the other buttons, to indicate, which one the user clicked
 - [ ] allow users to login via steam
     - use the given jwt / token / whatever to save the users picks to the backend database
     - if logged in, load a users pick / show, if the person has already picked a bucket for todays game.
+- [ ] add 'Share' Button, that adds a copy/paste message to the users clickboard - 'wordle' style, using emojis to
+  represent the users success or failure. We should also track how 'far' away a users guess was from the result (1,2,3
+  off, or exact hit - and award points based on this precision.)
 
 ## Do later
 

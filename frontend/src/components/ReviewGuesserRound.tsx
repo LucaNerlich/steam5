@@ -1,10 +1,10 @@
 "use client";
 
-import {useMemo} from "react";
+import {useActionState, useMemo} from "react";
 import type {GuessResponse} from "@/types/review-game";
 import Link from "next/link";
 import Form from "next/form";
-import {useFormState, useFormStatus} from "react-dom";
+import {useFormStatus} from "react-dom";
 import type {GuessActionState} from "../../app/review-guesser/[round]/actions";
 import {submitGuessAction} from "../../app/review-guesser/[round]/actions";
 
@@ -26,7 +26,7 @@ function BucketButton({label}: { label: string }) {
 
 export default function ReviewGuesserRound({appId, buckets, roundIndex, totalRounds}: Props) {
     const initial: GuessActionState = {ok: false};
-    const [state, formAction] = useFormState<GuessActionState, FormData>(submitGuessAction, initial);
+    const [state, formAction] = useActionState<GuessActionState, FormData>(submitGuessAction, initial);
 
     const nextHref = useMemo(() => {
         const next = roundIndex + 1;

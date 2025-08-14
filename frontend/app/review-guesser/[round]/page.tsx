@@ -1,5 +1,6 @@
 import type {ReviewGameState} from "@/types/review-game";
-import ReviewGuesserRound from "@/components/ReviewGuesserRound";
+import ReviewGuesserRound from "../../../src/components/ReviewGuesserRound";
+import Image from "next/image";
 import Link from "next/link";
 
 async function loadToday(): Promise<ReviewGameState> {
@@ -38,6 +39,19 @@ export default async function ReviewGuesserRoundPage({params}: { params: Promise
             <p>Game date: {today.date}</p>
             <p>Round {roundIndex} of {totalRounds}</p>
             <h2>{pick.name} ({pick.appId})</h2>
+            {pick.screenshots && pick.screenshots.length > 0 && (
+                <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+                    gap: '8px',
+                    margin: '12px 0'
+                }}>
+                    {pick.screenshots.slice(0, 4).map(s => (
+                        <Image key={s.id} src={s.pathThumbnail || s.pathFull} alt={pick.name} width={400} height={225}
+                               style={{width: '100%', height: 'auto'}}/>
+                    ))}
+                </div>
+            )}
             <ReviewGuesserRound appId={pick.appId} buckets={today.buckets} roundIndex={roundIndex}
                                 totalRounds={totalRounds}/>
         </section>
