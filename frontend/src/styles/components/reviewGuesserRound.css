@@ -14,10 +14,14 @@
     border: 1px solid var(--color-border);
     padding: 12px;
     background: var(--color-surface);
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
 .review-round__next {
-    margin-top: 8px;
+    margin-top: 12px;
+    display: flex;
+    justify-content: flex-end;
 }
 
 .review-round__button.is-selected {

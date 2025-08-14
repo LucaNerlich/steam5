@@ -178,7 +178,7 @@ export default function ReviewGuesserRound({appId, buckets, roundIndex, totalRou
                 <div role="dialog" aria-modal="true" className="review-round__result">
                     <ResultView result={effectiveResponse}/>
                     <div className="review-round__next">
-                        <Link href={nextHref}>Next round</Link>
+                        <Link href={nextHref} className="btn-cta" aria-label="Go to next round">Next round →</Link>
                     </div>
                 </div>
             )}

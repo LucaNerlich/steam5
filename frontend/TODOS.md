@@ -34,6 +34,7 @@
   represent the users success or failure. We should also track how 'far' away a users guess was from the result (1,2,3
   off, or exact hit - and award points based on this precision.)
 - [x] add link to steam next to title `https://store.steampowered.com/app/<appId>`
+- [ ] after round submission, no button should be clickable again, not even the "chosen" one
 
 ## Do later
 
