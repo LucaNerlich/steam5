@@ -4,8 +4,11 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import org.steam5.domain.details.Developer;
 
+import java.util.Optional;
+
 @Repository
 public interface DeveloperRepository extends JpaRepository<Developer, Long> {
+    Optional<Developer> findByNameIgnoreCase(String name);
 }
 
 

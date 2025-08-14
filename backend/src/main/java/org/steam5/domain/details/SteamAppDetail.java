@@ -46,17 +46,32 @@ public class SteamAppDetail {
     private String legalNotice;
 
 
-    @OneToMany(mappedBy = "appId", cascade = CascadeType.ALL, orphanRemoval = true)
+    @ManyToMany
+    @JoinTable(
+            name = "steam_app_developer",
+            joinColumns = @JoinColumn(name = "app_id"),
+            inverseJoinColumns = @JoinColumn(name = "developer_id")
+    )
     private List<Developer> developers = new ArrayList<>();
 
-    @OneToMany(mappedBy = "appId", cascade = CascadeType.ALL, orphanRemoval = true)
+    @ManyToMany
+    @JoinTable(
+            name = "steam_app_publisher",
+            joinColumns = @JoinColumn(name = "app_id"),
+            inverseJoinColumns = @JoinColumn(name = "publisher_id")
+    )
     private List<Publisher> publisher = new ArrayList<>();
 
     private boolean isWindows;
     private boolean isMac;
     private boolean isLinux;
 
-    @OneToMany(mappedBy = "appId", cascade = CascadeType.ALL, orphanRemoval = true)
+    @ManyToMany
+    @JoinTable(
+            name = "steam_app_genre",
+            joinColumns = @JoinColumn(name = "app_id"),
+            inverseJoinColumns = @JoinColumn(name = "genre_id")
+    )
     private List<Genre> genres = new ArrayList<>();
 
     @OneToMany(mappedBy = "appId", cascade = CascadeType.ALL, orphanRemoval = true)

@@ -16,5 +16,11 @@ logging:
     name: ${LOG_FILE:steam5.log}
     path: ${LOG_PATH:./logs}
 jobs:
+  steam-app-list:
+    enabled: true
+  steam-app-reviews:
+    enabled: true
+  steam-app-details:
+    enabled: true
   review-game-state:
     enabled: true

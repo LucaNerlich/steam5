@@ -1,0 +1,6 @@
+DROP TABLE IF EXISTS developer;
+DROP TABLE IF EXISTS genre;
+DROP TABLE IF EXISTS publisher;
+DROP TABLE IF EXISTS movie;
+DROP TABLE IF EXISTS screenshots;
+DROP TABLE IF EXISTS steam_app_details;

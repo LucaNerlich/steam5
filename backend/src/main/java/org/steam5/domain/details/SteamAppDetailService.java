@@ -3,6 +3,9 @@ package org.steam5.domain.details;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.steam5.repository.details.DeveloperRepository;
+import org.steam5.repository.details.GenreRepository;
+import org.steam5.repository.details.PublisherRepository;
 import org.steam5.repository.details.SteamAppDetailRepository;
 
 import java.util.ArrayList;
@@ -13,9 +16,18 @@ import java.util.List;
 public class SteamAppDetailService {
 
     private final SteamAppDetailRepository repository;
+    private final DeveloperRepository developerRepository;
+    private final PublisherRepository publisherRepository;
+    private final GenreRepository genreRepository;
 
-    public SteamAppDetailService(final SteamAppDetailRepository repository) {
+    public SteamAppDetailService(final SteamAppDetailRepository repository,
+                                 final DeveloperRepository developerRepository,
+                                 final PublisherRepository publisherRepository,
+                                 final GenreRepository genreRepository) {
         this.repository = repository;
+        this.developerRepository = developerRepository;
+        this.publisherRepository = publisherRepository;
+        this.genreRepository = genreRepository;
     }
 
     private static Iterable<JsonNode> safeArray(JsonNode node) {
@@ -78,28 +90,49 @@ public class SteamAppDetailService {
         detail.getScreenshots().clear();
         detail.getMovies().clear();
 
-        // Developers
+        // Developers (lookup-or-create by name)
+        java.util.Set<String> seenDevelopers = new java.util.HashSet<>();
         for (JsonNode devNode : safeArray(data.path("developers"))) {
-            String name = devNode.asText(null);
-            if (name != null && !name.isBlank()) {
-                detail.getDevelopers().add(new Developer(null, name, detail));
-            }
+            final String rawName = devNode.asText(null);
+            final String trimmedName = rawName == null ? null : rawName.trim();
+            if (trimmedName == null || trimmedName.isBlank()) continue;
+            final String normalizedKey = trimmedName.toLowerCase();
+            if (!seenDevelopers.add(normalizedKey)) continue;
+            final String finalName = trimmedName;
+            Developer dev = developerRepository
+                    .findByNameIgnoreCase(finalName)
+                    .orElseGet(() -> developerRepository.save(new Developer(null, finalName)));
+            detail.getDevelopers().add(dev);
         }
 
-        // Publishers
+        // Publishers (lookup-or-create by name)
+        java.util.Set<String> seenPublishers = new java.util.HashSet<>();
         for (JsonNode pubNode : safeArray(data.path("publishers"))) {
-            String name = pubNode.asText(null);
-            if (name != null && !name.isBlank()) {
-                detail.getPublisher().add(new Publisher(null, name, detail));
-            }
+            final String rawName = pubNode.asText(null);
+            final String trimmedName = rawName == null ? null : rawName.trim();
+            if (trimmedName == null || trimmedName.isBlank()) continue;
+            final String normalizedKey = trimmedName.toLowerCase();
+            if (!seenPublishers.add(normalizedKey)) continue;
+            final String finalName = trimmedName;
+            Publisher pub = publisherRepository
+                    .findByNameIgnoreCase(finalName)
+                    .orElseGet(() -> publisherRepository.save(new Publisher(null, finalName)));
+            detail.getPublisher().add(pub);
         }
 
-        // Genres
+        // Genres (lookup-or-create by description)
+        java.util.Set<String> seenGenres = new java.util.HashSet<>();
         for (JsonNode genreNode : safeArray(data.path("genres"))) {
-            String description = genreNode.path("description").asText(null);
-            if (description != null && !description.isBlank()) {
-                detail.getGenres().add(new Genre(null, description, detail));
-            }
+            final String rawDesc = genreNode.path("description").asText(null);
+            final String trimmedDesc = rawDesc == null ? null : rawDesc.trim();
+            if (trimmedDesc == null || trimmedDesc.isBlank()) continue;
+            final String normalizedKey = trimmedDesc.toLowerCase();
+            if (!seenGenres.add(normalizedKey)) continue;
+            final String finalDesc = trimmedDesc;
+            Genre g = genreRepository
+                    .findByDescriptionIgnoreCase(finalDesc)
+                    .orElseGet(() -> genreRepository.save(new Genre(null, finalDesc)));
+            detail.getGenres().add(g);
         }
 
         // Screenshots
