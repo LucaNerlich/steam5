@@ -37,7 +37,7 @@ public class ReviewGameStateController {
         }
 
         final LocalDate date = picks.isEmpty() ? LocalDate.now() : picks.getFirst().getPickDate();
-        return ResponseEntity.ok(new ReviewGameStateDto(date, details));
+        return ResponseEntity.ok(new ReviewGameStateDto(date, service.getBucketLabels(), details));
     }
 
     @GetMapping("/today/details")
@@ -68,7 +68,7 @@ public class ReviewGameStateController {
         return ResponseEntity.ok(service.getBucketLabels());
     }
 
-    public record ReviewGameStateDto(LocalDate date, List<SteamAppDetail> picks) {
+    public record ReviewGameStateDto(LocalDate date, List<String> buckets, List<SteamAppDetail> picks) {
     }
 
     public record GuessRequest(Long appId, String bucketGuess) {
