@@ -17,9 +17,23 @@ export default function ReviewGuesserHero(props: Readonly<ReviewGuesserHeroProps
     return (
         <section className='review-guesser-hero'>
             <h1>Review Guesser</h1>
-            <p>Game date: {today.date}</p>
+            <p>Game Date: {today.date}</p>
             <p>Round {props.roundIndex} of {totalRounds}</p>
-            <h2>{pick.name} ({pick.appId})</h2>
+            <h2>{pick.name}</h2>
+            <p>
+                <span title='Developer' style={{marginRight: '1em'}}>
+                🧑‍💻
+                    {pick.developers?.map((d, i) => {
+                        return <span>{d.name}</span>
+                    })}
+                </span>
+                <span title='Publisher'>
+                🌍
+                    {pick.publisher?.map((p, i) => {
+                        return <span>{p.name}</span>
+                    })}
+                </span>
+            </p>
             {pick.screenshots && pick.screenshots.length > 0 && (
                 <div className='screenshots'>
                     {pick.screenshots.slice(0, 4).map(s => (
