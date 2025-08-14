@@ -15,6 +15,7 @@ spring:
       spec: maximumSize=500,expireAfterWrite=5s
   jackson:
     serialization:
+      indent-output: true
       write-dates-as-timestamps: false
       order-map-entries-by-keys: true
   sql:
