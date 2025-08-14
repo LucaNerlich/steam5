@@ -1,0 +1,3 @@
+### Get Steam App Details by appId
+GET {{host}}/api/details/{{appId}}
+Accept: application/json

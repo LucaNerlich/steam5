@@ -64,6 +64,7 @@ public class SteamAppDetailService {
         detail.setAppId(appId);
 
         detail.setType(asTextOrNull(data, "type"));
+        detail.setName(asTextOrNull(data, "name"));
         detail.setFree(data.path("is_free").asBoolean(false));
         detail.setDlc(joinDlcIds(data.path("dlc")));
         detail.setShortDescription(asTextOrNull(data, "short_description"));

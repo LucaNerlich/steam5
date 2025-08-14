@@ -22,6 +22,7 @@ public class SteamAppDetail {
     private Long appId;
 
     private String type;
+    private String name;
 
     @Column(name = "is_free")
     private boolean isFree;
