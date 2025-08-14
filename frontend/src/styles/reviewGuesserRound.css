@@ -19,4 +19,8 @@
     margin-top: 8px;
 }
 
+.review-round__button.is-selected {
+    outline: 2px solid var(--color-primary);
+}
+
 

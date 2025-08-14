@@ -26,7 +26,7 @@
 - [x] use next/form and FormState to send each users 'guess' for that game/appid and bucket-guess to
   `{{host}}/api/review-game/guess`
 - [x] display response (correct true/false and actual review count)
-- [ ] on guess bucket submit, lock the other buttons, to indicate, which one the user clicked
+- [x] on guess bucket submit, lock the other buttons, to indicate, which one the user clicked
 - [ ] allow users to login via steam
     - use the given jwt / token / whatever to save the users picks to the backend database
     - if logged in, load a users pick / show, if the person has already picked a bucket for todays game.
@@ -37,4 +37,5 @@
 ## Do later
 
 - [x] use custom fonts (github monaspace)
+- [ ] hide link to 'review game' when on that page
 

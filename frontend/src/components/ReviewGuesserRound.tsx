@@ -1,6 +1,6 @@
 "use client";
 
-import {useActionState, useMemo} from "react";
+import {useActionState, useMemo, useState} from "react";
 import type {GuessResponse} from "@/types/review-game";
 import Link from "next/link";
 import Form from "next/form";
@@ -16,10 +16,24 @@ interface Props {
     totalRounds: number;
 }
 
-function BucketButton({label}: { label: string }) {
+function BucketButton({label, selectedLabel, onSelect, submitted}: {
+    label: string;
+    selectedLabel: string | null;
+    onSelect: (label: string) => void;
+    submitted: boolean
+}) {
     const {pending} = useFormStatus();
+    const isSelected = selectedLabel === label;
+    const disabled = (pending || submitted) && !isSelected;
     return (
-        <button name="bucketGuess" value={label} disabled={pending} type="submit">
+        <button
+            name="bucketGuess"
+            value={label}
+            disabled={disabled}
+            type="submit"
+            className={`review-round__button${isSelected ? ' is-selected' : ''}`}
+            onClick={() => onSelect(label)}
+        >
             {label}
         </button>
     );
@@ -28,6 +42,7 @@ function BucketButton({label}: { label: string }) {
 export default function ReviewGuesserRound({appId, buckets, roundIndex, totalRounds}: Props) {
     const initial: GuessActionState = {ok: false};
     const [state, formAction] = useActionState<GuessActionState, FormData>(submitGuessAction, initial);
+    const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
 
     const nextHref = useMemo(() => {
         const next = roundIndex + 1;
@@ -39,7 +54,8 @@ export default function ReviewGuesserRound({appId, buckets, roundIndex, totalRou
             <Form action={formAction} className="review-round__buttons">
                 <input type="hidden" name="appId" value={appId}/>
                 {buckets.map(label => (
-                    <BucketButton key={label} label={label}/>
+                    <BucketButton key={label} label={label} selectedLabel={selectedLabel} onSelect={setSelectedLabel}
+                                  submitted={Boolean(state && (state.ok || state.error))}/>
                 ))}
             </Form>
 
