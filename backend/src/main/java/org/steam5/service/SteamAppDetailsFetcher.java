@@ -75,7 +75,7 @@ public class SteamAppDetailsFetcher implements Fetcher {
         log.info("Details ingestion finished. processed={} starting_after={}", processed, lastAppId);
     }
 
-    public void fetchForAppId(final Long appId) throws IOException {
+    public boolean fetchForAppId(final Long appId) throws IOException {
         final String url = UriComponentsBuilder.fromUriString("https://store.steampowered.com/api/appdetails")
                 .queryParam("appids", appId)
                 .queryParam("key", properties.getApiKey())
@@ -86,15 +86,16 @@ public class SteamAppDetailsFetcher implements Fetcher {
         final JsonNode appNode = root.path(String.valueOf(appId));
         if (appNode.path("success").asInt(0) != 1) {
             log.debug("Details API returned non-success for appId {}", appId);
-            return;
+            return false;
         }
 
         final JsonNode data = appNode.path("data");
         if (data == null || data.isMissingNode() || data.isNull()) {
             log.debug("Details API missing data for appId {}", appId);
-            return;
+            return false;
         }
 
         service.upsertFromJson(appId, data);
+        return true;
     }
 }

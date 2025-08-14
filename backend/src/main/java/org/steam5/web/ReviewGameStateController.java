@@ -10,6 +10,7 @@ import org.steam5.domain.details.SteamAppDetail;
 import org.steam5.http.ReviewGameException;
 import org.steam5.repository.details.SteamAppDetailRepository;
 import org.steam5.service.ReviewGameStateService;
+import org.steam5.service.SteamAppDetailsFetcher;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -22,6 +23,7 @@ public class ReviewGameStateController {
 
     private final ReviewGameStateService service;
     private final SteamAppDetailRepository detailRepository;
+    private final SteamAppDetailsFetcher detailsFetcher;
 
     @GetMapping("/today")
     @Cacheable(value = "review-game", key = "'picks'", unless = "#result == null")

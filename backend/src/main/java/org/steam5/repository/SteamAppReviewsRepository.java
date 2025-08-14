@@ -21,7 +21,8 @@ public interface SteamAppReviewsRepository extends JpaRepository<SteamAppReviews
 
     @Query(value = "SELECT r.app_id FROM steam_app_reviews r " +
             "LEFT JOIN review_game_pick p ON p.app_id = r.app_id AND p.pick_date >= :sinceDate " +
-            "WHERE p.app_id IS NULL AND (r.total_positive + r.total_negative) <= :threshold " +
+            "LEFT JOIN excluded_app x ON x.app_id = r.app_id " +
+            "WHERE p.app_id IS NULL AND x.app_id IS NULL AND (r.total_positive + r.total_negative) <= :threshold " +
             "ORDER BY random()",
             nativeQuery = true)
     List<Long> findRandomLowAppIds(@Param("sinceDate") LocalDate sinceDate,
@@ -30,7 +31,8 @@ public interface SteamAppReviewsRepository extends JpaRepository<SteamAppReviews
 
     @Query(value = "SELECT r.app_id FROM steam_app_reviews r " +
             "LEFT JOIN review_game_pick p ON p.app_id = r.app_id AND p.pick_date >= :sinceDate " +
-            "WHERE p.app_id IS NULL AND (r.total_positive + r.total_negative) >= :threshold " +
+            "LEFT JOIN excluded_app x ON x.app_id = r.app_id " +
+            "WHERE p.app_id IS NULL AND x.app_id IS NULL AND (r.total_positive + r.total_negative) >= :threshold " +
             "ORDER BY random()",
             nativeQuery = true)
     List<Long> findRandomHighAppIds(@Param("sinceDate") LocalDate sinceDate,
@@ -39,7 +41,8 @@ public interface SteamAppReviewsRepository extends JpaRepository<SteamAppReviews
 
     @Query(value = "SELECT r.app_id FROM steam_app_reviews r " +
             "LEFT JOIN review_game_pick p ON p.app_id = r.app_id AND p.pick_date >= :sinceDate " +
-            "WHERE p.app_id IS NULL " +
+            "LEFT JOIN excluded_app x ON x.app_id = r.app_id " +
+            "WHERE p.app_id IS NULL AND x.app_id IS NULL " +
             "ORDER BY random()",
             nativeQuery = true)
     List<Long> findRandomAnyAppIds(@Param("sinceDate") LocalDate sinceDate,

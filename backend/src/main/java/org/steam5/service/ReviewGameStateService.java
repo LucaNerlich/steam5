@@ -10,12 +10,18 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.steam5.config.ReviewGameConfig;
 import org.steam5.domain.ReviewGamePick;
+import org.steam5.repository.DailyPickLockRepository;
+import org.steam5.repository.ExcludedAppRepository;
 import org.steam5.repository.ReviewGamePickRepository;
 import org.steam5.repository.SteamAppReviewsRepository;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.function.Predicate;
 
 @Service
 @Slf4j
@@ -26,6 +32,8 @@ public class ReviewGameStateService {
     private final SteamAppReviewsFetcher reviewsFetcher;
     private final SteamAppDetailsFetcher detailsFetcher;
     private final ReviewGamePickRepository pickRepository;
+    private final DailyPickLockRepository pickLockRepository;
+    private final ExcludedAppRepository excludedAppRepository;
     private final ReviewGameConfig config;
     private final CacheManager cacheManager;
 
@@ -35,6 +43,14 @@ public class ReviewGameStateService {
         final List<ReviewGamePick> existing = pickRepository.findByPickDate(today);
         if (!existing.isEmpty()) {
             return existing;
+        }
+
+        // Try to acquire a per-day lock to prevent concurrent generation (job vs endpoint)
+        final int acquired = pickLockRepository.tryAcquire(today);
+        if (acquired == 0) {
+            // Another generator is running/just ran; re-read and return existing
+            final List<ReviewGamePick> concurrent = pickRepository.findByPickDate(today);
+            if (!concurrent.isEmpty()) return concurrent;
         }
 
         // Exclusion window parameterized
@@ -51,46 +67,86 @@ public class ReviewGameStateService {
         final List<ReviewGamePick> picks = new ArrayList<>(5);
         final Set<Long> chosenIds = new HashSet<>();
 
+        // Helper to validate an appId by fetching details; returns true if usable, otherwise records exclusion
+        final Predicate<Long> validateApp = appId -> {
+            try {
+                boolean ok = detailsFetcher.fetchForAppId(appId);
+                if (!ok) {
+                    excludedAppRepository.save(new org.steam5.domain.ExcludedApp(appId, "details fetch failed or success=false", OffsetDateTime.now()));
+                }
+                return ok;
+            } catch (Exception e) {
+                excludedAppRepository.save(new org.steam5.domain.ExcludedApp(appId, "details fetch error: " + e.getMessage(), OffsetDateTime.now()));
+                return false;
+            }
+        };
+
         // LOW
-        final List<Long> lowIds = reviewsRepository.findRandomLowAppIds(excludeSince, lowThreshold, PageRequest.of(0, 3));
-        if (!lowIds.isEmpty()) {
-            final Long id = lowIds.getFirst();
-            chosenIds.add(id);
-            picks.add(new ReviewGamePick(null, today, id, OffsetDateTime.now()));
-        } else {
-            // relax: allow from all lows ignoring recent
-            final List<Long> relaxed = reviewsRepository.findRandomLowAppIds(includeAll, lowThreshold, PageRequest.of(0, 3));
-            if (!relaxed.isEmpty()) {
-                final Long id = relaxed.getFirst();
+        final List<Long> lowIds = reviewsRepository.findRandomLowAppIds(excludeSince, lowThreshold, PageRequest.of(0, 5));
+        for (Long id : lowIds) {
+            if (validateApp.test(id)) {
                 chosenIds.add(id);
                 picks.add(new ReviewGamePick(null, today, id, OffsetDateTime.now()));
+                break;
+            }
+        }
+        if (picks.stream().noneMatch(p -> true)) {
+            final List<Long> relaxed = reviewsRepository.findRandomLowAppIds(includeAll, lowThreshold, PageRequest.of(0, 10));
+            for (Long id : relaxed) {
+                if (validateApp.test(id)) {
+                    chosenIds.add(id);
+                    picks.add(new ReviewGamePick(null, today, id, OffsetDateTime.now()));
+                    break;
+                }
             }
         }
 
         // HIGH
         final List<Long> highIds = reviewsRepository.findRandomHighAppIds(excludeSince, highThreshold, PageRequest.of(0, 5));
-        Optional<Long> highOpt = highIds.stream().filter(id -> !chosenIds.contains(id)).findFirst();
-        if (highOpt.isEmpty()) {
-            final List<Long> relaxed = reviewsRepository.findRandomHighAppIds(includeAll, highThreshold, PageRequest.of(0, 5));
-            highOpt = relaxed.stream().filter(id -> !chosenIds.contains(id)).findFirst();
+        boolean pickedHigh = false;
+        for (Long id : highIds) {
+            if (!chosenIds.contains(id) && validateApp.test(id)) {
+                chosenIds.add(id);
+                picks.add(new ReviewGamePick(null, today, id, OffsetDateTime.now()));
+                pickedHigh = true;
+                break;
+            }
         }
-        highOpt.ifPresent(id -> {
-            chosenIds.add(id);
-            picks.add(new ReviewGamePick(null, today, id, OffsetDateTime.now()));
-        });
+        if (!pickedHigh) {
+            final List<Long> relaxed = reviewsRepository.findRandomHighAppIds(includeAll, highThreshold, PageRequest.of(0, 10));
+            for (Long id : relaxed) {
+                if (!chosenIds.contains(id) && validateApp.test(id)) {
+                    chosenIds.add(id);
+                    picks.add(new ReviewGamePick(null, today, id, OffsetDateTime.now()));
+                    break;
+                }
+            }
+        }
 
         // fill remaining ANY
         while (picks.size() < 5) {
-            final List<Long> anyIds = reviewsRepository.findRandomAnyAppIds(excludeSince, PageRequest.of(0, 5));
-            Optional<Long> next = anyIds.stream().filter(id -> !chosenIds.contains(id)).findFirst();
-            if (next.isEmpty()) {
-                List<Long> relaxed = reviewsRepository.findRandomAnyAppIds(includeAll, PageRequest.of(0, 5));
-                next = relaxed.stream().filter(id -> !chosenIds.contains(id)).findFirst();
+            final List<Long> anyIds = reviewsRepository.findRandomAnyAppIds(excludeSince, PageRequest.of(0, 10));
+            boolean added = false;
+            for (Long id : anyIds) {
+                if (!chosenIds.contains(id) && validateApp.test(id)) {
+                    chosenIds.add(id);
+                    picks.add(new ReviewGamePick(null, today, id, OffsetDateTime.now()));
+                    added = true;
+                    break;
+                }
             }
-            if (next.isEmpty()) break;
-            final Long id = next.get();
-            chosenIds.add(id);
-            picks.add(new ReviewGamePick(null, today, id, OffsetDateTime.now()));
+            if (!added) {
+                final List<Long> relaxed = reviewsRepository.findRandomAnyAppIds(includeAll, PageRequest.of(0, 10));
+                for (Long id : relaxed) {
+                    if (!chosenIds.contains(id) && validateApp.test(id)) {
+                        chosenIds.add(id);
+                        picks.add(new ReviewGamePick(null, today, id, OffsetDateTime.now()));
+                        added = true;
+                        break;
+                    }
+                }
+            }
+            if (!added) break;
         }
 
         final List<ReviewGamePick> saved = pickRepository.saveAll(picks);
