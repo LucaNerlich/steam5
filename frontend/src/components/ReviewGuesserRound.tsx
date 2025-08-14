@@ -71,7 +71,7 @@ export default function ReviewGuesserRound({appId, buckets, roundIndex, totalRou
                 const parsed = JSON.parse(prevRaw) as unknown;
                 if (
                     typeof parsed === 'object' && parsed !== null &&
-                    'results' in (parsed as any)
+                    'results' in (parsed as Record<string, unknown>)
                 ) {
                     data = parsed as Stored;
                 }
