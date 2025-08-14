@@ -23,6 +23,7 @@ import java.util.*;
 public class ReviewGameStateService {
 
     private final SteamAppReviewsRepository reviewsRepository;
+    private final SteamAppReviewsFetcher reviewsFetcher;
     private final ReviewGamePickRepository pickRepository;
     private final ReviewGameConfig config;
     private final CacheManager cacheManager;
@@ -96,6 +97,16 @@ public class ReviewGameStateService {
 
         // Evict review-game cache only when new picks were created
         if (!saved.isEmpty()) {
+            // Update reviews for the selected appIds
+            for (ReviewGamePick p : saved) {
+                try {
+                    reviewsFetcher.fetchForAppId(p.getAppId());
+                } catch (Exception e) {
+                    log.warn("Failed to refresh reviews for picked appId {}: {}", p.getAppId(), e.getMessage());
+                }
+            }
+
+            // Clear game cache
             final Cache cache = cacheManager.getCache("review-game");
             if (cache != null) {
                 cache.clear();

@@ -62,7 +62,7 @@ public class SteamAppReviewsFetcher implements Fetcher {
             for (SteamAppIndex idx : page) {
                 final Long appId = idx.getAppId();
                 if (appId == null) continue;
-                processSingleAppId(appId);
+                fetchForAppId(appId);
                 ingestStateRepository.upsert("steam_app_reviews", appId, OffsetDateTime.now());
                 processed++;
                 cursor = appId;
@@ -73,7 +73,7 @@ public class SteamAppReviewsFetcher implements Fetcher {
         log.info("Reviews ingestion finished. processed={} starting_after={}", processed, lastAppId);
     }
 
-    private void processSingleAppId(Long appId) throws IOException {
+    public void fetchForAppId(Long appId) throws IOException {
         final String url = UriComponentsBuilder.fromUriString("https://store.steampowered.com/appreviews/" + appId)
                 .queryParam("json", 1)
                 .queryParam("num_per_page", 0) //  don't fetch actual review details
