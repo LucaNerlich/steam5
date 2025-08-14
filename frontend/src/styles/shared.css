@@ -40,3 +40,7 @@ button:disabled {
     opacity: 0.6;
     cursor: not-allowed;
 }
+
+:not(header) > .container img {
+    border-radius: 0.5rem;
+}

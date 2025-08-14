@@ -41,10 +41,22 @@ function BucketButton({label, selectedLabel, onSelect, submitted}: {
     );
 }
 
+type StoredRoundResult = {
+    appId: number;
+    pickName?: string;
+    selectedLabel: string;
+    actualBucket: string;
+    totalReviews: number;
+    correct: boolean;
+};
+
+type StoredDay = { totalRounds: number; results: Record<number, StoredRoundResult> };
+
 export default function ReviewGuesserRound({appId, buckets, roundIndex, totalRounds, pickName, gameDate}: Props) {
     const initial: GuessActionState = {ok: false};
     const [state, formAction] = useActionState<GuessActionState, FormData>(submitGuessAction, initial);
     const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
+    const [stored, setStored] = useState<StoredDay | null>(null);
 
     const nextHref = useMemo(() => {
         const next = roundIndex + 1;
@@ -57,23 +69,14 @@ export default function ReviewGuesserRound({appId, buckets, roundIndex, totalRou
         const key = `review-guesser:${gameDate}`;
         try {
             const prevRaw = window.localStorage.getItem(key);
-            type RoundResult = {
-                appId: number;
-                pickName?: string;
-                selectedLabel: string;
-                actualBucket: string;
-                totalReviews: number;
-                correct: boolean;
-            };
-            type Stored = { totalRounds: number; results: Record<number, RoundResult> };
-            let data: Stored = {totalRounds, results: {}};
+            let data: StoredDay = {totalRounds, results: {}};
             if (prevRaw) {
                 const parsed = JSON.parse(prevRaw) as unknown;
                 if (
                     typeof parsed === 'object' && parsed !== null &&
                     'results' in (parsed as Record<string, unknown>)
                 ) {
-                    data = parsed as Stored;
+                    data = parsed as StoredDay;
                 }
             }
             data.totalRounds = totalRounds;
@@ -86,10 +89,76 @@ export default function ReviewGuesserRound({appId, buckets, roundIndex, totalRou
                 correct: state.response.correct,
             };
             window.localStorage.setItem(key, JSON.stringify(data));
+            setStored(data);
         } catch {
             // ignore storage errors
         }
     }, [state, selectedLabel, gameDate, totalRounds, roundIndex, appId, pickName]);
+
+    // Restore previously submitted guess for this round and load stored day once on mount/date change
+    useEffect(() => {
+        if (!gameDate) return;
+        try {
+            const raw = window.localStorage.getItem(`review-guesser:${gameDate}`);
+            if (!raw) {
+                setStored(null);
+                return;
+            }
+            const data = JSON.parse(raw) as StoredDay;
+            setStored(data);
+            const existing = data.results?.[roundIndex];
+            if (existing && existing.selectedLabel) {
+                setSelectedLabel(existing.selectedLabel);
+            }
+        } catch {
+            setStored(null);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [gameDate, roundIndex]);
+
+    // Determine completion and existing result for this round
+    const storedResults = stored?.results || {};
+    const storedThisRound = storedResults[roundIndex];
+    const completedCount = Object.keys(storedResults).length;
+    const isComplete = completedCount >= totalRounds;
+
+    // Prefer server response; fallback to stored round result for showing the dialog
+    const effectiveResponse: GuessResponse | null = state && state.ok && state.response
+        ? state.response
+        : storedThisRound
+            ? {
+                appId: storedThisRound.appId,
+                totalReviews: storedThisRound.totalReviews,
+                actualBucket: storedThisRound.actualBucket,
+                correct: storedThisRound.correct
+            }
+            : null;
+
+    // Submitted flag: either current state submitted or we restored a previous submission
+    const submittedFlag = Boolean(state && (state.ok || state.error)) || Boolean(storedThisRound);
+
+    if (isComplete) {
+        // Only show share when the day is complete
+        return (
+            <div>
+                <ShareControls
+                    buckets={buckets}
+                    gameDate={gameDate}
+                    totalRounds={totalRounds}
+                    latestRound={storedThisRound ? roundIndex : roundIndex}
+                    latest={storedThisRound ? storedThisRound : {
+                        appId,
+                        pickName,
+                        selectedLabel: selectedLabel ?? '',
+                        actualBucket: effectiveResponse ? effectiveResponse.actualBucket : '',
+                        totalReviews: effectiveResponse ? effectiveResponse.totalReviews : 0,
+                        correct: effectiveResponse ? effectiveResponse.correct : false,
+                    }}
+                />
+                <p className="review-round__complete text-muted">You have completed all rounds for today.</p>
+            </div>
+        );
+    }
 
     return (
         <div>
@@ -97,7 +166,7 @@ export default function ReviewGuesserRound({appId, buckets, roundIndex, totalRou
                 <input type="hidden" name="appId" value={appId}/>
                 {buckets.map(label => (
                     <BucketButton key={label} label={label} selectedLabel={selectedLabel} onSelect={setSelectedLabel}
-                                  submitted={Boolean(state && (state.ok || state.error))}/>
+                                  submitted={submittedFlag}/>
                 ))}
             </Form>
 
@@ -105,23 +174,9 @@ export default function ReviewGuesserRound({appId, buckets, roundIndex, totalRou
                 <p className="text-muted review-round__error">Error: {state.error}</p>
             )}
 
-            {state && state.ok && state.response && (
+            {effectiveResponse && (
                 <div role="dialog" aria-modal="true" className="review-round__result">
-                    <ResultView result={state.response}/>
-                    <ShareControls
-                        buckets={buckets}
-                        gameDate={gameDate}
-                        totalRounds={totalRounds}
-                        latestRound={roundIndex}
-                        latest={{
-                            appId,
-                            pickName,
-                            selectedLabel: selectedLabel ?? '',
-                            actualBucket: state.response.actualBucket,
-                            totalReviews: state.response.totalReviews,
-                            correct: state.response.correct,
-                        }}
-                    />
+                    <ResultView result={effectiveResponse}/>
                     <div className="review-round__next">
                         <Link href={nextHref}>Next round</Link>
                     </div>
