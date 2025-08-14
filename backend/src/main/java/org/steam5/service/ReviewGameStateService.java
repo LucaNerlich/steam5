@@ -28,6 +28,7 @@ import java.util.function.Predicate;
 @RequiredArgsConstructor
 public class ReviewGameStateService {
 
+    public static final int MIN_BUCKET_BOUND = 1;
     private final SteamAppReviewsRepository reviewsRepository;
     private final SteamAppReviewsFetcher reviewsFetcher;
     private final SteamAppDetailsFetcher detailsFetcher;
@@ -55,8 +56,8 @@ public class ReviewGameStateService {
 
         // Exclusion window parameterized
         final int doNotRepeatDays = Math.max(0, config.getDoNotRepeatDays());
-        final LocalDate excludeSince = doNotRepeatDays >= 36500 ? LocalDate.of(1970, 1, 1) : today.minusDays(doNotRepeatDays);
-        final LocalDate includeAll = LocalDate.of(1970, 1, 1); // relax by allowing any past picks
+        final LocalDate excludeSince = doNotRepeatDays >= 36500 ? LocalDate.of(1970, MIN_BUCKET_BOUND, MIN_BUCKET_BOUND) : today.minusDays(doNotRepeatDays);
+        final LocalDate includeAll = LocalDate.of(1970, MIN_BUCKET_BOUND, MIN_BUCKET_BOUND); // relax by allowing any past picks
 
         final double lowPct = Math.max(0.0, Math.min(1.0, config.getLowPercentile()));
         final double highPct = Math.max(0.0, Math.min(1.0, config.getHighPercentile()));
@@ -188,10 +189,10 @@ public class ReviewGameStateService {
             return totalReviews + "+"; // fallback, shouldn't happen with defaults
         }
 
-        int prev = 0;
+        int prev = MIN_BUCKET_BOUND;
         for (int b : bounds) {
             if (totalReviews <= b) {
-                return (prev == 0 ? "0-" + b : (prev + 1) + "-" + b);
+                return (prev == MIN_BUCKET_BOUND ? "1-" + b : (prev + MIN_BUCKET_BOUND) + "-" + b);
             }
             prev = b;
         }
@@ -202,10 +203,10 @@ public class ReviewGameStateService {
         final List<Integer> bounds = config.getBucketBoundaries();
         if (bounds == null || bounds.isEmpty()) return List.of();
 
-        final ArrayList<String> labels = new java.util.ArrayList<>(bounds.size() + 1);
-        int prev = 1;
+        final ArrayList<String> labels = new java.util.ArrayList<>(bounds.size() + MIN_BUCKET_BOUND);
+        int prev = MIN_BUCKET_BOUND;
         for (Integer b : bounds) {
-            labels.add((prev == 1 ? "1-" + b : (prev + 1) + "-" + b));
+            labels.add((prev == MIN_BUCKET_BOUND ? "1-" + b : (prev + MIN_BUCKET_BOUND) + "-" + b));
             prev = b;
         }
         labels.add(bounds.getLast() + "+");

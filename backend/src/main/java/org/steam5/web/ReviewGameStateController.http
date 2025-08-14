@@ -16,8 +16,8 @@ Content-Type: application/json
 Accept: application/json
 
 {
-    "appId": 1000700,
-    "bucketGuess": "101-1000"
+    "appId": 1040370,
+    "bucketGuess": "1-100"
 }
 
 ### Alternative guess examples
