@@ -60,7 +60,8 @@ public class SteamAppDetailsFetcher implements Fetcher {
                 try {
                     processSingleAppId(appId);
                 } catch (Exception e) {
-                    log.warn("Failed to fetch details for appId {}: {}", appId, e.getMessage());
+                    // bail immediately on any HTTP error such as 429
+                    throw e;
                 } finally {
                     // advance cursor regardless of outcome to avoid getting stuck
                     ingestStateRepository.upsert("steam_app_details", appId, OffsetDateTime.now());

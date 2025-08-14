@@ -62,12 +62,8 @@ public class SteamAppReviewsFetcher implements Fetcher {
             for (SteamAppIndex idx : page) {
                 final Long appId = idx.getAppId();
                 if (appId == null) continue;
-                try {
-                    processSingleAppId(appId);
-                    ingestStateRepository.upsert("steam_app_reviews", appId, OffsetDateTime.now());
-                } catch (Exception e) {
-                    log.warn("Failed to fetch reviews for appId {}: {}", appId, e.getMessage());
-                }
+                processSingleAppId(appId);
+                ingestStateRepository.upsert("steam_app_reviews", appId, OffsetDateTime.now());
                 processed++;
                 cursor = appId;
             }
