@@ -7,7 +7,7 @@ export default function Footer() {
         <footer>
             <div className="container">
                 <small className="text-muted">Imprint: Steam5.org · Luca Nerlich</small>
-                <div style={{display: 'flex', gap: '12px', alignItems: 'center'}}>
+                <div className="controls">
                     <ThemeToggle/>
                     <FontToggle/>
                 </div>
