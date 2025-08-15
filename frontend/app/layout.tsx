@@ -59,20 +59,11 @@ export const metadata: Metadata = {
         siteName: 'Steam5.org',
         locale: 'de_DE',
         type: 'website',
-        images: [
-            {
-                url: '/images/todo.jpeg',
-                width: 1600,
-                height: 1066,
-                alt: 'Steam5',
-            },
-        ],
     },
     twitter: {
         card: 'summary_large_image',
         title: 'Steam5',
         description: description,
-        images: ['/images/todo.jpeg'],
     },
     applicationName: 'Steam5',
     abstract: description,
