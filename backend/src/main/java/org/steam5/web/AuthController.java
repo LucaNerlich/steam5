@@ -138,7 +138,7 @@ public class AuthController {
             final String steamId = m.group(1);
 
             // Enrich user profile (persona name) best-effort
-            steamUserService.ensurePersonaName(steamId);
+            steamUserService.updateUserProfile(steamId);
 
             // Issue signed token
             String token = tokenService.generateToken(steamId);

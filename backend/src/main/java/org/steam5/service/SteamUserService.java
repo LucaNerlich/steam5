@@ -21,10 +21,9 @@ public class SteamUserService {
     private final SteamAppsConfig steamAppsConfig;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public void ensurePersonaName(String steamId) {
+    public void updateUserProfile(String steamId) {
         try {
             final User existing = userRepository.findById(steamId).orElse(null);
-            if (existing != null && existing.getPersonaName() != null && !existing.getPersonaName().isBlank()) return;
 
             final String apiKey = getApiKeySafe();
             if (apiKey == null || apiKey.isBlank()) {
