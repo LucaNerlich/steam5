@@ -1,0 +1,19 @@
+.review-round__summary {
+    margin-top: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+}
+
+.review-round__summary .summary-bar {
+    font-size: 1.1rem;
+    letter-spacing: 1px;
+    font-family: 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', 'Twemoji Mozilla', 'EmojiOne Color', 'Android Emoji', 'Segoe UI Symbol', sans-serif;
+}
+
+.review-round__summary .summary-points {
+    color: var(--color-muted);
+}
+
+

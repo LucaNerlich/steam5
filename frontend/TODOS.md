@@ -38,6 +38,8 @@
 - [x] show open in steam button after user has made the guess
 - [ ] add opengraph images
 - [x] show genres as 'pills'
+- [ ] display the release date
+- [ ] info section below, which displays the other "meta" info we've got in the SteamAppDetail object
 
 ### Backend
 

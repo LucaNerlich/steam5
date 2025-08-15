@@ -3,11 +3,16 @@
 import {useActionState, useEffect, useMemo, useState} from "react";
 import type {GuessResponse} from "@/types/review-game";
 import Link from "next/link";
-import Form from "next/form";
-import {useFormStatus} from "react-dom";
 import type {GuessActionState} from "../../app/review-guesser/[round]/actions";
 import {submitGuessAction} from "../../app/review-guesser/[round]/actions";
-import "@/styles/components/reviewGuesserRound.css";
+import GuessButtons from "@/components/GuessButtons";
+import RoundResult from "@/components/RoundResult";
+import RoundPoints from "@/components/RoundPoints";
+import RoundSummary from "@/components/RoundSummary";
+import ShareControls from "@/components/ShareControls";
+import ReviewRules from "@/components/ReviewRules";
+import "@/styles/components/reviewRoundResult.css";
+import "@/styles/components/reviewShareControls.css";
 
 interface Props {
     appId: number;
@@ -16,29 +21,6 @@ interface Props {
     totalRounds: number;
     pickName?: string;
     gameDate?: string;
-}
-
-function BucketButton({label, selectedLabel, onSelect, submitted}: {
-    label: string;
-    selectedLabel: string | null;
-    onSelect: (label: string) => void;
-    submitted: boolean
-}) {
-    const {pending} = useFormStatus();
-    const isSelected = selectedLabel === label;
-    const disabled = (pending || submitted);
-    return (
-        <button
-            name="bucketGuess"
-            value={label}
-            disabled={disabled}
-            type="submit"
-            className={`review-round__button${isSelected ? ' is-selected' : ''}`}
-            onClick={() => onSelect(label)}
-        >
-            {label}
-        </button>
-    );
 }
 
 type StoredRoundResult = {
@@ -120,6 +102,12 @@ export default function ReviewGuesserRound({appId, buckets, roundIndex, totalRou
     const storedThisRound = storedResults[roundIndex];
     const completedCount = Object.keys(storedResults).length;
     const isComplete = completedCount >= totalRounds;
+    const latestStoredRoundIndex = (() => {
+        const keys = Object.keys(storedResults).map(n => parseInt(n, 10)).filter(Number.isFinite);
+        if (keys.length === 0) return roundIndex;
+        return Math.max(...keys);
+    })();
+    const latestStored = storedResults[latestStoredRoundIndex];
 
     // Prefer server response; fallback to stored round result for showing the dialog
     const effectiveResponse: GuessResponse | null = state && state.ok && state.response
@@ -141,7 +129,7 @@ export default function ReviewGuesserRound({appId, buckets, roundIndex, totalRou
         return (
             <div>
                 <div role="dialog" aria-modal="true" className="review-round__result">
-                    <ResultView result={(effectiveResponse ?? {
+                    <RoundResult result={(effectiveResponse ?? {
                         appId,
                         totalReviews: storedThisRound?.totalReviews ?? 0,
                         actualBucket: storedThisRound?.actualBucket ?? '',
@@ -154,12 +142,12 @@ export default function ReviewGuesserRound({appId, buckets, roundIndex, totalRou
                             actualBucket: storedThisRound?.actualBucket ?? ''
                         } as GuessResponse).actualBucket}
                     />
-                    <FinalSummary
+                    <RoundSummary
                         buckets={buckets}
                         gameDate={gameDate}
                         totalRounds={totalRounds}
-                        latestRound={storedThisRound ? roundIndex : roundIndex}
-                        latest={storedThisRound ? storedThisRound : {
+                        latestRound={latestStoredRoundIndex}
+                        latest={latestStored ? latestStored : {
                             appId,
                             pickName,
                             selectedLabel: selectedLabel ?? '',
@@ -183,8 +171,8 @@ export default function ReviewGuesserRound({appId, buckets, roundIndex, totalRou
                             buckets={buckets}
                             gameDate={gameDate}
                             totalRounds={totalRounds}
-                            latestRound={storedThisRound ? roundIndex : roundIndex}
-                            latest={storedThisRound ? storedThisRound : {
+                            latestRound={latestStoredRoundIndex}
+                            latest={latestStored ? latestStored : {
                                 appId,
                                 pickName,
                                 selectedLabel: selectedLabel ?? '',
@@ -203,13 +191,14 @@ export default function ReviewGuesserRound({appId, buckets, roundIndex, totalRou
     return (
         <>
             <h3>Review Count Guess</h3>
-            <Form action={formAction} className="review-round__buttons">
-                <input type="hidden" name="appId" value={appId}/>
-                {buckets.map(label => (
-                    <BucketButton key={label} label={label} selectedLabel={selectedLabel} onSelect={setSelectedLabel}
-                                  submitted={submittedFlag}/>
-                ))}
-            </Form>
+            <GuessButtons
+                appId={appId}
+                buckets={buckets}
+                selectedLabel={selectedLabel}
+                onSelect={setSelectedLabel}
+                submitted={submittedFlag}
+                formAction={formAction as unknown as (formData: FormData) => void}
+            />
 
             {state && !state.ok && state.error && (
                 <p className="text-muted review-round__error">Error: {state.error}</p>
@@ -217,7 +206,7 @@ export default function ReviewGuesserRound({appId, buckets, roundIndex, totalRou
 
             {effectiveResponse && (
                 <div role="dialog" aria-modal="true" className="review-round__result">
-                    <ResultView result={effectiveResponse}/>
+                    <RoundResult result={effectiveResponse}/>
                     <RoundPoints
                         buckets={buckets}
                         selectedLabel={storedThisRound?.selectedLabel ?? selectedLabel}
@@ -239,212 +228,26 @@ export default function ReviewGuesserRound({appId, buckets, roundIndex, totalRou
                     </div>
                 </div>
             )}
+            {isComplete && (
+                <div className="review-round__share">
+                    <ShareControls
+                        inline
+                        buckets={buckets}
+                        gameDate={gameDate}
+                        totalRounds={totalRounds}
+                        latestRound={latestStoredRoundIndex}
+                        latest={latestStored ? latestStored : {
+                            appId,
+                            pickName,
+                            selectedLabel: selectedLabel ?? '',
+                            actualBucket: effectiveResponse ? effectiveResponse.actualBucket : '',
+                            totalReviews: effectiveResponse ? effectiveResponse.totalReviews : 0,
+                            correct: effectiveResponse ? effectiveResponse.correct : false,
+                        }}
+                    />
+                </div>
+            )}
+            {!isComplete && <ReviewRules/>}
         </>
-    );
-}
-
-function ResultView({result}: { result: GuessResponse }) {
-    return (
-        <p>
-            {result.correct ? '✅ Correct!' : '❌ Not quite.'} Actual bucket: <strong>{result.actualBucket}</strong> ·
-            Reviews: <strong>{result.totalReviews}</strong>
-        </p>
-    );
-}
-
-function scoreForRound(buckets: string[], selectedLabel: string, actual: string): {
-    bar: string;
-    points: number;
-    distance: number
-} {
-    const selectedIndex = buckets.indexOf(selectedLabel);
-    const actualIndex = buckets.indexOf(actual);
-    if (selectedIndex < 0 || actualIndex < 0) return {bar: '⬜', points: 0, distance: 0};
-    const d = Math.abs(selectedIndex - actualIndex);
-    const maxPoints = 5;
-    const step = 2;
-    const points = Math.max(0, maxPoints - step * d);
-    const emojiByDistance = ['🟩', '🟨', '🟧'];
-    const bar = d <= 2 ? emojiByDistance[d] : '🟥';
-    return {bar, points, distance: d};
-}
-
-function RoundPoints({buckets, selectedLabel, actualBucket}: {
-    buckets: string[];
-    selectedLabel: string | null | undefined;
-    actualBucket: string
-}) {
-    if (!selectedLabel) return null;
-    const {bar, points, distance} = scoreForRound(buckets, selectedLabel, actualBucket);
-    return (
-        <p className="review-round__points">
-            <span className="points-emoji" aria-hidden="true">{bar}</span>
-            <strong>{points}</strong> {points === 1 ? 'point' : 'points'} — {distance === 0 ? 'exact match' : `off by ${distance}`}
-        </p>
-    );
-}
-
-function FinalSummary(props: {
-    buckets: string[];
-    gameDate?: string;
-    totalRounds: number;
-    latestRound: number;
-    latest: {
-        appId: number;
-        pickName?: string;
-        selectedLabel: string;
-        actualBucket: string;
-        totalReviews: number;
-        correct: boolean
-    }
-}) {
-    const {buckets, gameDate, totalRounds, latestRound, latest} = props;
-    if (!gameDate) return null;
-
-    type RoundResult = {
-        pickName?: string;
-        appId: number;
-        selectedLabel: string;
-        actualBucket: string;
-        totalReviews: number;
-        correct: boolean
-    };
-    type Stored = { totalRounds: number; results: Record<number, RoundResult> };
-
-    let data: Stored | null = null;
-    try {
-        const raw = typeof window !== 'undefined' ? window.localStorage.getItem(`review-guesser:${gameDate}`) : null;
-        data = raw ? JSON.parse(raw) as Stored : null;
-    } catch {
-        data = null;
-    }
-    if (!data || !data.results) return null;
-
-    const indices = new Set(Object.keys(data.results).map(n => parseInt(n, 10)));
-    indices.add(latestRound);
-    const isComplete = indices.size >= totalRounds;
-    if (!isComplete) return null;
-
-    let total = 0;
-    const bars: string[] = [];
-    for (let i = 1; i <= totalRounds; i++) {
-        const r = i === latestRound ? latest : data.results[i];
-        if (!r) continue;
-        const {bar, points} = scoreForRound(buckets, r.selectedLabel, r.actualBucket);
-        total += points;
-        bars.push(bar);
-    }
-    const maxTotal = 5 * totalRounds;
-
-    return (
-        <div className="review-round__summary" aria-live="polite">
-            <div className="summary-bar">{bars.join('')}</div>
-            <div className="summary-points"><strong>Score:</strong> {total}/{maxTotal}</div>
-        </div>
-    );
-}
-
-function ShareControls(props: {
-    buckets: string[];
-    gameDate?: string;
-    totalRounds: number;
-    latestRound: number;
-    latest: {
-        appId: number;
-        pickName?: string;
-        selectedLabel: string;
-        actualBucket: string;
-        totalReviews: number;
-        correct: boolean
-    },
-    inline?: boolean
-}) {
-    const {buckets, gameDate, totalRounds, latestRound, latest, inline} = props;
-    const [copied, setCopied] = useState(false);
-
-    if (!gameDate) return null;
-
-    type RoundResult = {
-        pickName?: string;
-        appId: number;
-        selectedLabel: string;
-        actualBucket: string;
-        totalReviews: number;
-        correct: boolean
-    };
-    type Stored = { totalRounds: number; results: Record<number, RoundResult> };
-
-    let data: Stored | null = null;
-    try {
-        const raw = typeof window !== 'undefined' ? window.localStorage.getItem(`review-guesser:${gameDate}`) : null;
-        data = raw ? JSON.parse(raw) as Stored : null;
-    } catch {
-        data = null;
-    }
-
-    if (!data || !data.results) return null;
-    // Account for the just-submitted final round which may not yet be in storage
-    const indices = new Set(Object.keys(data.results).map(n => parseInt(n, 10)));
-    indices.add(latestRound);
-    const isComplete = indices.size >= totalRounds;
-    if (!isComplete) return null;
-
-    /**
-     * Points formula and emoji mapping
-     *
-     * Let distance d be the absolute index distance between the user's guess and the actual bucket.
-     * Points are computed by the linear decay formula:
-     *   points = max(0, maxPoints - step * d)
-     * With maxPoints = 5 and step = 2, this yields: d=0 → 5, d=1 → 3, d=2 → 1, d≥3 → 0.
-     *
-     * Emoji encoding uses the first four symbols for distance buckets, plus a fallback for invalid inputs:
-     *   d=0 → 🟩, d=1 → 🟨, d=2 → 🟧, d≥3 → 🟥, invalid → ⬜
-     * This keeps visual summaries stable even if the total number of buckets changes.
-     */
-    const lines: string[] = [];
-    lines.push(`https://steam5.org/review-guesser - Steam Review Game — ${gameDate}`);
-    let total = 0;
-    const bars: string[] = [];
-    for (let i = 1; i <= totalRounds; i++) {
-        const r = i === latestRound ? latest : data.results[i];
-        if (!r) continue;
-        const {bar, points, distance} = scoreForRound(buckets, r.selectedLabel, r.actualBucket);
-        total += points;
-        bars.push(bar);
-        lines.push(`${bar} | Round ${i}: ${r.pickName ?? 'App ' + r.appId} — off by ${distance}`);
-    }
-    if (bars.length > 0) {
-        const maxTotal = 5 * totalRounds;
-        lines.splice(1, 0, `${bars.join('')} ${total}/${maxTotal}`, '');
-    }
-    lines.push('');
-    lines.push(`Total points: ${total}`);
-    const text = lines.join('\n');
-
-    async function copyToClipboard() {
-        try {
-            await navigator.clipboard.writeText(text);
-            setCopied(true);
-            setTimeout(() => setCopied(false), 1500);
-        } catch {
-            /* no-op */
-        }
-    }
-
-    if (inline) {
-        return (
-            <div className="share-inline">
-                <button className="btn-success" onClick={copyToClipboard}>Share Results</button>
-                <span className={`share-copied ${copied ? 'is-visible' : ''}`}>Copied</span>
-            </div>
-        );
-    }
-    return (
-        <div className="review-round__share">
-            <div className="share-inline">
-                <button className="btn-success" onClick={copyToClipboard}>Share Results</button>
-                <span className={`share-copied ${copied ? 'is-visible' : ''}`}>Copied</span>
-            </div>
-        </div>
     );
 }
