@@ -51,11 +51,11 @@
   - [x] if logged out, do not show logout button in footer
   - [x] if logged in, hide the 'reset today' button
 - [x] add favicon
-- [ ] on page load and if a round has been submitted, the games reviews are always shown as 0 - not correctly being
+- [x] on page load and if a round has been submitted, the games reviews are always shown as 0 - not correctly being
   displayed
 - leaderboard todos:
     - [x] create a new route /review-guesser/leaderboard
-    - [ ] createa reusable leaderboard component (should be able to show stats for any game), display gamename, and rows
+  - [x] create a reusable leaderboard component (should be able to show stats for any game), display gamename, and rows
       of users and their points in this game, sorted by highest points first, no pagination for now
     - [x] fetch leaderboard data from backendd and display it
   - [ ] leaderboard should not show 'todays' points, it should the overall sum / achieved points of every player over
@@ -73,7 +73,7 @@
 ## Do later
 
 - [x] use custom fonts (github monaspace)
-- [ ] hide link to 'review guesser' when on that page
+- [x] hide link to 'review guesser' when on that page
 - [x] add lightbox for screenshots
 - [ ] use provided image as steam login button from /public
 
