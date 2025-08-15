@@ -1,18 +1,9 @@
 export const dynamic = 'force-dynamic';
 
-import "@/styles/components/leaderboard.css";
 import Link from "next/link";
+import LeaderboardTable, {LeaderEntry} from "@/components/LeaderboardTable";
 
-type LeaderEntry = {
-    steamId: string;
-    personaName: string;
-    totalPoints: number;
-    rounds: number;
-    hits: number;
-    tooHigh: number;
-    tooLow: number;
-    avgPoints: number;
-};
+// use LeaderEntry type from LeaderboardTable
 
 async function loadLeaderboardToday(): Promise<LeaderEntry[]> {
     const backend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
@@ -35,36 +26,7 @@ export default async function LeaderboardTodayPage() {
             </nav>
             <h2>Today</h2>
             <p className="text-muted">Today&apos;s total points by player (sorted highest first)</p>
-            <div className="leaderboard">
-                <table className="leaderboard__table" aria-label="Today Leaderboard">
-                    <thead>
-                    <tr>
-                        <th scope="col" className="num">#</th>
-                        <th scope="col">Player</th>
-                        <th scope="col" className="num">Points</th>
-                        <th scope="col" className="num">Rounds</th>
-                        <th scope="col" className="num">Hits</th>
-                        <th scope="col" className="num">Too High</th>
-                        <th scope="col" className="num">Too Low</th>
-                        <th scope="col" className="num">Avg</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    {today.map((e, i) => (
-                        <tr key={`today-${e.steamId}`}>
-                            <td>{i + 1}</td>
-                            <td><strong>{e.personaName || e.steamId}</strong></td>
-                            <td className="num">{e.totalPoints}</td>
-                            <td className="num">{e.rounds}</td>
-                            <td className="num">{e.hits}</td>
-                            <td className="num">{e.tooHigh}</td>
-                            <td className="num">{e.tooLow}</td>
-                            <td className="num">{e.avgPoints.toFixed(2)}</td>
-                        </tr>
-                    ))}
-                    </tbody>
-                </table>
-            </div>
+            <LeaderboardTable entries={today} ariaLabel="Today Leaderboard"/>
         </section>
     );
 }

@@ -46,7 +46,10 @@ public class BlurhashJob implements Job {
 
     @Override
     public void execute(JobExecutionContext context) throws JobExecutionException {
-        long startNs = System.nanoTime();
+        log.info("Job start BlurhashJob key={} fireTime={} scheduled={} refireCount={}",
+                context.getJobDetail().getKey(), context.getFireTime(), context.getScheduledFireTime(), context.getRefireCount());
+
+        long start = System.nanoTime();
         int scanned = 0, encoded = 0, failed = 0;
         try {
             final int pageSize = 10; // small batch to limit memory
@@ -107,7 +110,7 @@ public class BlurhashJob implements Job {
             log.error("BlurhashJob execution error", e);
             throw new JobExecutionException(e, false);
         } finally {
-            long ms = (System.nanoTime() - startNs) / 1_000_000L;
+            long ms = (System.nanoTime() - start) / 1_000_000L;
             log.info("BlurhashJob finished scanned={} encoded={} failed={} durationMs={}", scanned, encoded, failed, ms);
         }
     }
