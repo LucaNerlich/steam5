@@ -62,9 +62,9 @@
     - [ ] add leaderboard link to share result, similar to the "play: <steam5url>" part
   - [x] add leaderboard link to header, when under /review-guesser route
 - [x] pass locale derived from browser to `new Intl.NumberFormat(undefined, {`
-- [ ] show more values on leaderboard:
+- [x] show more values on leaderboard:
   `| gesamte punkte | gespielte spiele | anzahl volltreffer | anzahl zu hoch | anzahl zu niedrig | durchschittliche punkte pro guess |`
-- [ ] info section below, which displays the other "meta" info we've got in the SteamAppDetail object
+- [x] info section below, which displays the other "meta" info we've got in the SteamAppDetail object
 
 ### Backend
 
