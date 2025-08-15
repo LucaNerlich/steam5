@@ -17,6 +17,9 @@ import org.steam5.service.AuthTokenService;
 
 import java.net.URI;
 import java.net.URLEncoder;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -63,9 +66,20 @@ public class AuthController {
 
     @GetMapping("/steam/login")
     public ResponseEntity<Void> startLogin(@RequestParam(value = "redirect", required = false) String redirect) {
-        // Build OpenID authentication request
-        String realm = defaultRedirectBase;
+        // Compute return_to and realm. Realm MUST be the origin (scheme://host[:port]) of return_to
         String returnTo = (redirect == null || redirect.isBlank()) ? defaultRedirectBase + "/api/auth/steam/callback" : redirect;
+        String realm = defaultRedirectBase;
+        try {
+            URI r = URI.create(returnTo);
+            StringBuilder origin = new StringBuilder();
+            origin.append(r.getScheme()).append("://").append(r.getHost());
+            if (r.getPort() != -1) {
+                origin.append(":" + r.getPort());
+            }
+            realm = origin.toString();
+        } catch (Exception ignored) {
+            // fallback to configured base
+        }
 
         String url = OPENID_ENDPOINT + "?openid.ns=" + enc("http://specs.openid.net/auth/2.0")
                 + "&openid.mode=checkid_setup"
@@ -80,30 +94,32 @@ public class AuthController {
     public ResponseEntity<?> callback(@RequestParam Map<String, String> params) {
         try {
             // Verify assertion with Steam via check_authentication
-            String body = buildCheckAuthBody(params);
-            java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
-            java.net.http.HttpRequest req = java.net.http.HttpRequest.newBuilder()
-                    .uri(URI.create(OPENID_ENDPOINT))
-                    .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-                    .POST(java.net.http.HttpRequest.BodyPublishers.ofString(body))
-                    .build();
-            java.net.http.HttpResponse<String> res = client.send(req, java.net.http.HttpResponse.BodyHandlers.ofString());
-            String resBody = res.body();
+            final String body = buildCheckAuthBody(params);
+            HttpResponse<String> res;
+            try (HttpClient client = HttpClient.newHttpClient()) {
+                HttpRequest req = HttpRequest.newBuilder()
+                        .uri(URI.create(OPENID_ENDPOINT))
+                        .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                        .POST(HttpRequest.BodyPublishers.ofString(body))
+                        .build();
+                res = client.send(req, HttpResponse.BodyHandlers.ofString());
+            }
+            final String resBody = res.body();
             if (resBody == null || !resBody.contains("is_valid:true")) {
                 log.warn("Steam OpenID verification failed: status={} body={} params={}", res.statusCode(), resBody, params.keySet());
                 return ResponseEntity.status(401).body(Map.of("error", "invalid_openid"));
             }
 
             // Extract SteamID64 from claimed_id
-            String claimed = params.get("openid.claimed_id");
+            final String claimed = params.get("openid.claimed_id");
             if (claimed == null) {
                 return ResponseEntity.badRequest().body(Map.of("error", "missing_claimed_id"));
             }
-            Matcher m = STEAM_ID_PATTERN.matcher(claimed);
+            final Matcher m = STEAM_ID_PATTERN.matcher(claimed);
             if (!m.find()) {
                 return ResponseEntity.badRequest().body(Map.of("error", "invalid_claimed_id"));
             }
-            String steamId = m.group(1);
+            final String steamId = m.group(1);
 
             // Issue signed token
             String token = tokenService.generateToken(steamId);
