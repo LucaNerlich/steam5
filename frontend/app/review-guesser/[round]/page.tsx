@@ -3,11 +3,13 @@ import ReviewGuesserRound from "../../../src/components/ReviewGuesserRound";
 import Link from "next/link";
 import ReviewGuesserHero from "@/components/ReviewGuesserHero";
 
+export const dynamic = "force-dynamic";
+
 async function loadToday(): Promise<ReviewGameState> {
     const base = process.env.NEXT_PUBLIC_DOMAIN || 'http://localhost:3000';
     const res = await fetch(`${base}/api/review-game/today`, {
         headers: {"accept": "application/json"},
-        next: {revalidate: 60},
+        cache: "no-store",
     });
     if (!res.ok) {
         throw new Error(`Failed to load daily picks: ${res.status}`);
