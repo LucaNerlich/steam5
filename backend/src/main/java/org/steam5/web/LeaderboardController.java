@@ -48,7 +48,8 @@ public class LeaderboardController {
             final var user = userRepository.findById(steamId).orElse(null);
             final String personaName = user != null && user.getPersonaName() != null && !user.getPersonaName().isBlank() ? user.getPersonaName() : steamId;
             final String avatar = user != null && user.getAvatar() != null && !user.getAvatar().isBlank() ? user.getAvatar() : null;
-            return new LeaderEntry(steamId, personaName, totalPoints, rounds, hits, tooHigh, tooLow, avgPoints, avatar);
+            final String profileUrl = user != null && user.getProfileUrl() != null && !user.getProfileUrl().isBlank() ? user.getProfileUrl() : null;
+            return new LeaderEntry(steamId, personaName, totalPoints, rounds, hits, tooHigh, tooLow, avgPoints, avatar, profileUrl);
         }).sorted((a, b) -> Long.compare(b.totalPoints, a.totalPoints)).toList();
         return ResponseEntity.ok(out);
     }
@@ -75,7 +76,8 @@ public class LeaderboardController {
             final var user = userRepository.findById(steamId).orElse(null);
             final String personaName = user != null && user.getPersonaName() != null && !user.getPersonaName().isBlank() ? user.getPersonaName() : steamId;
             final String avatar = user != null && user.getAvatar() != null && !user.getAvatar().isBlank() ? user.getAvatar() : null;
-            return new LeaderEntry(steamId, personaName, totalPoints, rounds, hits, tooHigh, tooLow, avgPoints, avatar);
+            final String profileUrl = user != null && user.getProfileUrl() != null && !user.getProfileUrl().isBlank() ? user.getProfileUrl() : null;
+            return new LeaderEntry(steamId, personaName, totalPoints, rounds, hits, tooHigh, tooLow, avgPoints, avatar, profileUrl);
         }).sorted((a, b) -> Long.compare(b.totalPoints, a.totalPoints)).toList();
         return ResponseEntity.ok(out);
     }
@@ -84,7 +86,8 @@ public class LeaderboardController {
                               long totalPoints, long rounds,
                               long hits, long tooHigh, long tooLow,
                               double avgPoints,
-                              String avatar) {
+                              String avatar,
+                              String profileUrl) {
     }
 }
 

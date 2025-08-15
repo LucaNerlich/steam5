@@ -51,6 +51,30 @@
     object-fit: cover;
 }
 
+.leaderboard__profile {
+    color: var(--color-muted);
+    text-decoration: none;
+}
+
+.leaderboard__profile:hover {
+    text-decoration: underline;
+}
+
+.leaderboard__profile-link {
+    color: var(--color-text);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    font-weight: 600;
+}
+
+.leaderboard__profile-link:hover {
+    opacity: 0.9;
+}
+
+.leaderboard__profile-link:visited {
+    color: var(--color-text);
+}
+
 @media (max-width: 640px) {
     .leaderboard__table th:nth-child(4),
     .leaderboard__table td:nth-child(4) {
