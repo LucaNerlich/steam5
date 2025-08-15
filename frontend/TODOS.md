@@ -45,22 +45,23 @@
 - [ ] auth todos:
     - [x] add logout to footer
     - [x] if logged in, hide steam login button
-    - [ ] use provided image as steam login button from /public
-    - [ ] if logged in, load a users guess for each round, instead of letting them guess again (which will be declined
+  - [x] if logged in, load a users guess for each round, instead of letting them guess again (which will be declined
       in the backend anyways)
-    - [ ] on user login, get the profile / account name as well, so that we can create a readable leaderboard
-    - [ ] if logged out, do not show logout button in footer
+  - [x] on user login, get the profile / account name as well, so that we can create a readable leaderboard
+  - [x] if logged out, do not show logout button in footer
+  - [ ] if logged in, hide the 'reset today' button
 
 ### Backend
 
 - [x] do not pick games that are not released yet, or have been released in the last seven days.
 - [ ] can we generate a blurhash on the backend, for each screenshot that we get?
     - https://github.com/hsch/blurhash-java/blob/master/src/main/java/io/trbl/blurhash/BlurHash.java
-- [ ] do not ad 429 error to excluded_app tables
+- [ ] do not add 429 error to excluded_app tables
 
 ## Do later
 
 - [x] use custom fonts (github monaspace)
 - [ ] hide link to 'review guesser' when on that page
 - [x] add lightbox for screenshots
+- [ ] use provided image as steam login button from /public
 

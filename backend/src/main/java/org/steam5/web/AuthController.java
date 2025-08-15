@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.steam5.service.AuthTokenService;
+import org.steam5.service.SteamUserService;
 
 import java.net.URI;
 import java.net.URLEncoder;
@@ -36,6 +37,7 @@ public class AuthController {
     private static final Pattern STEAM_ID_PATTERN = Pattern.compile("https://steamcommunity.com/openid/id/([0-9]{17})");
 
     private final AuthTokenService tokenService;
+    private final SteamUserService steamUserService;
 
     @Value("${auth.redirectBase:https://steam5.org}")
     private String defaultRedirectBase;
@@ -134,6 +136,9 @@ public class AuthController {
                 return ResponseEntity.badRequest().body(Map.of("error", "invalid_claimed_id"));
             }
             final String steamId = m.group(1);
+
+            // Enrich user profile (persona name) best-effort
+            steamUserService.ensurePersonaName(steamId);
 
             // Issue signed token
             String token = tokenService.generateToken(steamId);

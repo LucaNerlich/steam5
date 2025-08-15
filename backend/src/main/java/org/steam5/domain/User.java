@@ -18,6 +18,9 @@ public class User {
     @Column(name = "steam_id", nullable = false, length = 32)
     private String steamId;
 
+    @Column(name = "persona_name")
+    private String personaName;
+
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt = OffsetDateTime.now();
 }

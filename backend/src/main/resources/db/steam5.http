@@ -14,3 +14,6 @@ GET https://api.steampowered.com/IStoreService/GetAppList/v1/?include_games=true
 ### GET game reviews, skip details
 GET https://store.steampowered.com/appreviews/{{appId}}?json=1&num_per_page=0&language=all&purchase_type=all&
     key={{apikey}}
+
+### Get player summaries
+GET https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key={{appId}}&steamids={{steamId}}

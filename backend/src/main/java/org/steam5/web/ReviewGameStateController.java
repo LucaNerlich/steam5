@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.steam5.domain.ReviewGamePick;
+import org.steam5.domain.User;
 import org.steam5.domain.details.SteamAppDetail;
 import org.steam5.http.ReviewGameException;
 import org.steam5.repository.GuessRepository;
@@ -18,6 +19,7 @@ import org.steam5.service.ReviewGameStateService;
 import org.steam5.service.SteamAppDetailsFetcher;
 
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.List;
 
 @RestController
@@ -102,7 +104,7 @@ public class ReviewGameStateController {
         // ensure user exists (id is primary key; handle race with duplicate insert)
         if (!userRepository.existsById(steamId)) {
             try {
-                userRepository.save(new org.steam5.domain.User(steamId, java.time.OffsetDateTime.now()));
+                userRepository.save(new User(steamId, null, OffsetDateTime.now()));
             } catch (DataIntegrityViolationException ignored) {
                 // another request created it concurrently; proceed
             }
