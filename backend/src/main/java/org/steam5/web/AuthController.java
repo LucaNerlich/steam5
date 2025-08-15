@@ -69,22 +69,23 @@ public class AuthController {
         return sb.toString();
     }
 
+    private static String deriveOriginSafe(String url, String fallback) {
+        try {
+            URI r = URI.create(url);
+            StringBuilder origin = new StringBuilder();
+            origin.append(r.getScheme()).append("://").append(r.getHost());
+            if (r.getPort() != -1) origin.append(":" + r.getPort());
+            return origin.toString();
+        } catch (Exception e) {
+            return fallback;
+        }
+    }
+
     @GetMapping("/steam/login")
     public ResponseEntity<Void> startLogin(@RequestParam(value = "redirect", required = false) String redirect) {
         // Compute return_to and realm. Realm MUST be the origin (scheme://host[:port]) of return_to
         String returnTo = (redirect == null || redirect.isBlank()) ? defaultRedirectBase + "/api/auth/steam/callback" : redirect;
-        String realm = defaultRedirectBase;
-        try {
-            URI r = URI.create(returnTo);
-            StringBuilder origin = new StringBuilder();
-            origin.append(r.getScheme()).append("://").append(r.getHost());
-            if (r.getPort() != -1) {
-                origin.append(":" + r.getPort());
-            }
-            realm = origin.toString();
-        } catch (Exception ignored) {
-            // fallback to configured base
-        }
+        String realm = deriveOriginSafe(returnTo, defaultRedirectBase);
 
         String url = OPENID_ENDPOINT + "?openid.ns=" + enc("http://specs.openid.net/auth/2.0")
                 + "&openid.mode=checkid_setup"
