@@ -50,6 +50,12 @@
   - [x] on user login, get the profile / account name as well, so that we can create a readable leaderboard
   - [x] if logged out, do not show logout button in footer
   - [x] if logged in, hide the 'reset today' button
+- leaderboard todos:
+    - [ ] create a new route /review-guesser/leaderboard
+    - [ ] createa reusable leaderboard component (should be able to show stats for any game), display gamename, and rows
+      of users and their points in this game, sorted by highest points first, no pagination for now
+    - [ ] fetch leaderboard data from backendd and display it
+    - [ ] add leaderboard link to share result, similar to the "play: <steam5url>" part
 
 ### Backend
 
