@@ -57,6 +57,7 @@
       of users and their points in this game, sorted by highest points first, no pagination for now
     - [ ] fetch leaderboard data from backendd and display it
     - [ ] add leaderboard link to share result, similar to the "play: <steam5url>" part
+  - [x] add leaderboard link to header, when under /review-guesser route
 
 ### Backend
 
