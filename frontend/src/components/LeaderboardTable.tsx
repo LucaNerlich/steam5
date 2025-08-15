@@ -9,6 +9,7 @@ export type LeaderEntry = {
     tooHigh: number;
     tooLow: number;
     avgPoints: number;
+    avatar?: string | null;
 };
 
 export default function LeaderboardTable({entries, ariaLabel}: { entries: LeaderEntry[]; ariaLabel: string }) {
@@ -31,7 +32,13 @@ export default function LeaderboardTable({entries, ariaLabel}: { entries: Leader
                 {entries.map((e, i) => (
                     <tr key={e.steamId}>
                         <td>{i + 1}</td>
-                        <td><strong>{e.personaName || e.steamId}</strong></td>
+                        <td>
+                            <div className="leaderboard__player">
+                                {e.avatar && (<img className="leaderboard__avatar" src={e.avatar} alt="" width={20}
+                                                   height={20}/>)}
+                                <strong>{e.personaName || e.steamId}</strong>
+                            </div>
+                        </td>
                         <td className="num">{e.totalPoints}</td>
                         <td className="num">{e.rounds}</td>
                         <td className="num">{e.hits}</td>

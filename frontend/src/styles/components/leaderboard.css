@@ -38,6 +38,19 @@
     text-align: right;
 }
 
+.leaderboard__player {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.leaderboard__avatar {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
 @media (max-width: 640px) {
     .leaderboard__table th:nth-child(4),
     .leaderboard__table td:nth-child(4) {

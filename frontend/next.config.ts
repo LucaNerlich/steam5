@@ -14,6 +14,14 @@ const nextConfig: NextConfig = {
                 protocol: 'https',
                 hostname: 'store.akamai.steamstatic.com',
             },
+            {
+                protocol: 'https',
+                hostname: 'avatars.fastly.steamstatic.com',
+            },
+            {
+                protocol: 'https',
+                hostname: 'steamcdn-a.akamaihd.net',
+            },
         ],
     },
     async redirects(): Promise<{ source: string; destination: string; permanent: boolean }[]> {
