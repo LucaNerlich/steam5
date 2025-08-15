@@ -104,7 +104,7 @@ public class ReviewGameStateController {
         // ensure user exists (id is primary key; handle race with duplicate insert)
         if (!userRepository.existsById(steamId)) {
             try {
-                userRepository.save(new User(steamId, null, OffsetDateTime.now()));
+                userRepository.save(new User(steamId, null, null, null, null, null, null, null, null, null, null, null, null, OffsetDateTime.now()));
             } catch (DataIntegrityViolationException ignored) {
                 // another request created it concurrently; proceed
             }
