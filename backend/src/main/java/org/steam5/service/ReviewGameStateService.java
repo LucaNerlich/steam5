@@ -38,6 +38,7 @@ public class ReviewGameStateService {
     private final ExcludedAppRepository excludedAppRepository;
     private final ReviewGameConfig config;
     private final CacheManager cacheManager;
+    private final org.steam5.job.BlurhashJob blurhashJob;
 
     @Transactional
     public List<ReviewGamePick> generateDailyPicks() {
@@ -175,6 +176,12 @@ public class ReviewGameStateService {
                     detailsFetcher.fetchForAppId(p.getAppId());
                 } catch (Exception e) {
                     log.warn("Failed to refresh details for picked appId {}: {}", p.getAppId(), e.getMessage());
+                }
+                // Immediately compute blurhash/blurdata for screenshots to ensure same-day placeholders
+                try {
+                    blurhashJob.encodeForApp(p.getAppId());
+                } catch (Throwable t) {
+                    log.warn("Blurhash immediate compute failed for appId {}: {}", p.getAppId(), t.getMessage());
                 }
             }
 

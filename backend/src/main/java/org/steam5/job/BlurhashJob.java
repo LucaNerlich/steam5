@@ -29,6 +29,22 @@ public class BlurhashJob implements Job {
         this.screenshotRepository = screenshotRepository;
     }
 
+    public void encodeForApp(Long appId) {
+        int scanned = 0, encoded = 0, failed = 0;
+        try {
+            var list = screenshotRepository.findMissingForApp(appId);
+            for (var s : list) {
+                scanned++;
+                final Counters c = encodeAndStore(s);
+                encoded += c.encoded;
+                failed += c.failed;
+            }
+            log.info("Blurhash immediate finished for appId={} scanned={} encoded={} failed={}", appId, scanned, encoded, failed);
+        } catch (Exception e) {
+            log.warn("Blurhash immediate failed for appId={} err={}", appId, e.toString());
+        }
+    }
+
     private static String toPngDataUrl(BufferedImage src, int w, int h) {
         try {
             final BufferedImage scaled = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
@@ -46,8 +62,7 @@ public class BlurhashJob implements Job {
 
     @Override
     public void execute(JobExecutionContext context) throws JobExecutionException {
-        log.info("Job start BlurhashJob key={} fireTime={} scheduled={} refireCount={}",
-                context.getJobDetail().getKey(), context.getFireTime(), context.getScheduledFireTime(), context.getRefireCount());
+        log.info("Job start BlurhashJob key={} fireTime={} scheduled={} refireCount={}", context.getJobDetail().getKey(), context.getFireTime(), context.getScheduledFireTime(), context.getRefireCount());
 
         long start = System.nanoTime();
         int scanned = 0, encoded = 0, failed = 0;
@@ -60,44 +75,9 @@ public class BlurhashJob implements Job {
                 if (batch.isEmpty()) break;
                 for (Screenshot s : batch.getContent()) {
                     scanned++;
-                    // thumbnail
-                    if ((s.getBlurhashThumb() == null || s.getBlurhashThumb().isBlank()) && s.getPathThumbnail() != null && !s.getPathThumbnail().isBlank()) {
-                        try (InputStream in = URI.create(s.getPathThumbnail()).toURL().openStream()) {
-                            final BufferedImage img = ImageIO.read(in);
-                            if (img == null) {
-                                failed++;
-                            } else {
-                                final String hash = BlurHash.encode(img, 4, 4);
-                                s.setBlurhashThumb(hash);
-                                // also compute small PNG data URL for Next/Image
-                                final String data = toPngDataUrl(img, 32, 20);
-                                if (data != null) s.setBlurdataThumb(data);
-                                encoded++;
-                            }
-                        } catch (Exception e) {
-                            failed++;
-                            log.warn("Blurhash encode failed (thumb) for screenshot id={} src={} err={}", s.getId(), s.getPathThumbnail(), e.toString());
-                        }
-                    }
-                    // full
-                    if ((s.getBlurhashFull() == null || s.getBlurhashFull().isBlank()) && s.getPathFull() != null && !s.getPathFull().isBlank()) {
-                        try (InputStream in = URI.create(s.getPathFull()).toURL().openStream()) {
-                            final BufferedImage img = ImageIO.read(in);
-                            if (img == null) {
-                                failed++;
-                            } else {
-                                final String hash = BlurHash.encode(img, 4, 4);
-                                s.setBlurhashFull(hash);
-                                final String data = toPngDataUrl(img, 64, 36);
-                                if (data != null) s.setBlurdataFull(data);
-                                encoded++;
-                            }
-                        } catch (Exception e) {
-                            failed++;
-                            log.warn("Blurhash encode failed (full) for screenshot id={} src={} err={}", s.getId(), s.getPathFull(), e.toString());
-                        }
-                    }
-                    screenshotRepository.save(s);
+                    Counters c = encodeAndStore(s);
+                    encoded += c.encoded;
+                    failed += c.failed;
                 }
                 page++;
                 more = batch.hasNext();
@@ -117,10 +97,63 @@ public class BlurhashJob implements Job {
 
     @Bean("BlurhashJob")
     public JobDetail jobDetail() {
-        return JobBuilder.newJob().ofType(BlurhashJob.class)
-                .storeDurably()
-                .withIdentity("BlurhashJob")
-                .build();
+        return JobBuilder.newJob().ofType(BlurhashJob.class).storeDurably().withIdentity("BlurhashJob").build();
+    }
+
+    private Encoded readAndEncode(String url, int w, int h) {
+        try (InputStream in = URI.create(url).toURL().openStream()) {
+            final BufferedImage img = ImageIO.read(in);
+            if (img == null) return null;
+            final String hash = BlurHash.encode(img, 4, 4);
+            final String data = toPngDataUrl(img, w, h);
+            return new Encoded(hash, data);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private Counters encodeAndStore(Screenshot s) {
+        Counters c = new Counters();
+        boolean changed = false;
+        // thumb
+        if ((s.getBlurhashThumb() == null || s.getBlurhashThumb().isBlank()) && s.getPathThumbnail() != null && !s.getPathThumbnail().isBlank()) {
+            Encoded enc = readAndEncode(s.getPathThumbnail(), 32, 20);
+            if (enc == null) {
+                c.failed++;
+            } else {
+                s.setBlurhashThumb(enc.hash());
+                if (enc.dataUrl() != null) s.setBlurdataThumb(enc.dataUrl());
+                c.encoded++;
+                changed = true;
+            }
+        }
+        // full
+        if ((s.getBlurhashFull() == null || s.getBlurhashFull().isBlank()) && s.getPathFull() != null && !s.getPathFull().isBlank()) {
+            Encoded enc = readAndEncode(s.getPathFull(), 64, 36);
+            if (enc == null) {
+                c.failed++;
+            } else {
+                s.setBlurhashFull(enc.hash());
+                if (enc.dataUrl() != null) s.setBlurdataFull(enc.dataUrl());
+                c.encoded++;
+                changed = true;
+            }
+        }
+        if (changed) {
+            try {
+                screenshotRepository.save(s);
+            } catch (Exception ignored) {
+            }
+        }
+        return c;
+    }
+
+    private record Encoded(String hash, String dataUrl) {
+    }
+
+    private static class Counters {
+        int encoded;
+        int failed;
     }
 }
 
