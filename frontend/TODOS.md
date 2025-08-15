@@ -40,7 +40,8 @@
 - [x] show genres as 'pills'
 - [x] display the release date
 - [ ] info section below, which displays the other "meta" info we've got in the SteamAppDetail object
-- [ ] display the price?
+- [x] display the price?
+- [ ] display price in local format (comma vs dot, currency symbol positioning.) use locale from browser
 
 ### Backend
 

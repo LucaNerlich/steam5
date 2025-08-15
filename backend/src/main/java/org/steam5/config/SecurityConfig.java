@@ -17,6 +17,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/review-game/**").permitAll()
                         .requestMatchers("/api/details/**").permitAll()
                         .requestMatchers("/api/metrics/**").permitAll()
+                        .requestMatchers("/api/auth/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .httpBasic(basic -> {
