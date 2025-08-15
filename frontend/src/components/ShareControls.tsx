@@ -65,7 +65,8 @@ export default function ShareControls(props: {
     if (!isComplete) return null;
 
     const lines: string[] = [];
-    lines.push(`https://steam5.org/review-guesser - Steam Review Game — ${gameDate}`);
+    const title = `Steam5 | Review Game — ${gameDate}`;
+    lines.push(title);
     let total = 0;
     const bars: string[] = [];
     for (let i = 1; i <= totalRounds; i++) {
@@ -81,6 +82,8 @@ export default function ShareControls(props: {
         lines.splice(1, 0, `${bars.join('')} ${total}/${maxTotal}`, '');
     }
     lines.push(`Total points: ${total}`);
+    lines.push('');
+    lines.push('Play: https://steam5.org/review-guesser');
     const text = lines.join('\n');
 
     async function copyToClipboard() {
