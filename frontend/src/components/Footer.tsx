@@ -12,6 +12,7 @@ export default function Footer() {
                     <ThemeToggle/>
                     <FontToggle/>
                     <ResetTodayButton/>
+                    <a href="/api/auth/logout" className="btn">Logout</a>
                 </div>
             </div>
         </footer>

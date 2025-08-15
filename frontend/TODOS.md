@@ -27,7 +27,7 @@
   `{{host}}/api/review-game/guess`
 - [x] display response (correct true/false and actual review count)
 - [x] on guess bucket submit, lock the other buttons, to indicate, which one the user clicked
-- [ ] allow users to login via steam
+- [x] allow users to login via steam
     - use the given jwt / token / whatever to save the users picks to the backend database
     - if logged in, load a users pick / show, if the person has already picked a bucket for todays game.
 - [x] add 'Share' Button, that adds a copy/paste message to the users clickboard - 'wordle' style, using emojis to
@@ -42,6 +42,14 @@
 - [ ] info section below, which displays the other "meta" info we've got in the SteamAppDetail object
 - [x] display the price?
 - [ ] display price in local format (comma vs dot, currency symbol positioning.) use locale from browser
+- [ ] auth todos:
+    - [x] add logout to footer
+    - [x] if logged in, hide steam login button
+    - [ ] use provided image as steam login button from /public
+    - [ ] if logged in, load a users guess for each round, instead of letting them guess again (which will be declined
+      in the backend anyways)
+    - [ ] on user login, get the profile / account name as well, so that we can create a readable leaderboard
+    - [ ] if logged out, do not show logout button in footer
 
 ### Backend
 
