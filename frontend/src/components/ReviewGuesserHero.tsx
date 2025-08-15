@@ -107,7 +107,6 @@ export default function ReviewGuesserHero(props: Readonly<ReviewGuesserHeroProps
                                 height={225}
                                 placeholder={s.blurdataThumb ? 'blur' : 'empty'}
                                 blurDataURL={s.blurdataThumb || undefined}
-                                style={{width: '100%', height: 'auto'}}
                             />
                         </button>
                     ))}
@@ -120,14 +119,13 @@ export default function ReviewGuesserHero(props: Readonly<ReviewGuesserHeroProps
                         <button className="lightbox-close" aria-label="Close" onClick={close}>✕</button>
                         <div className="lightbox-img">
                             <Image
+                                key={allShots[index].id}
                                 src={allShots[index].pathFull || allShots[index].pathThumbnail}
                                 alt={pick.name}
                                 width={1280}
                                 height={720}
                                 placeholder={allShots[index].blurdataFull ? 'blur' : 'empty'}
                                 blurDataURL={allShots[index].blurdataFull || undefined}
-                                style={{width: '100%', height: 'auto'}}
-                                priority
                             />
                         </div>
                         {allShots.length > 1 && (

@@ -96,6 +96,12 @@
     max-height: 70vh;
 }
 
+.lightbox-img img {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
 .lightbox-nav {
     display: flex;
     align-items: center;
