@@ -10,6 +10,7 @@ interface ReviewGuesserHeroProps {
     today: ReviewGameState;
     pick: SteamAppDetail;
     roundIndex: number;
+    locale?: string;
 }
 
 export default function ReviewGuesserHero(props: Readonly<ReviewGuesserHeroProps>): React.ReactElement {
@@ -66,7 +67,7 @@ export default function ReviewGuesserHero(props: Readonly<ReviewGuesserHeroProps
                 )}
                 {pick.releaseDate && (
                     <span title='Release date' className="meta-item">
-                        📅 {formatDate(pick.releaseDate)}
+                        📅 {formatDate(pick.releaseDate, props.locale)}
                     </span>
                 )}
                 {(() => {
@@ -78,7 +79,7 @@ export default function ReviewGuesserHero(props: Readonly<ReviewGuesserHeroProps
                         const amountCents = typeof price.finalAmount === 'number' ? price.finalAmount : null;
                         const currencyCode = price.currency || 'USD';
                         if (amountCents !== null) {
-                            priceText = formatPrice(amountCents, currencyCode);
+                            priceText = formatPrice(amountCents, currencyCode, props.locale);
                         } else if (price.finalFormatted) {
                             priceText = price.finalFormatted; // fallback if amount missing
                         }
