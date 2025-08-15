@@ -26,7 +26,9 @@ export default function SteamLoginButton(): React.ReactElement {
     }, []);
 
     const onClick = () => {
-        const callback = `${window.location.origin}/api/auth/steam/callback`;
+        const envBase = process.env.NEXT_PUBLIC_DOMAIN;
+        const callbackBase = envBase && !envBase.includes('localhost') ? envBase : window.location.origin;
+        const callback = `${callbackBase}/api/auth/steam/callback`;
         window.location.href = `${backend}/api/auth/steam/login?redirect=${encodeURIComponent(callback)}`;
     };
 
