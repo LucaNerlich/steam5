@@ -37,9 +37,10 @@ server:
 logging:
   level:
     root: INFO
-    org.springframework: WARN
+    org.springframework: INFO
     org.hibernate: WARN
-
+auth:
+  redirectBase: ${REDIRECT_BASE:http://localhost:3000}
 review:
   game:
     # days to avoid reusing an appid after it was picked; increase for fewer repeats

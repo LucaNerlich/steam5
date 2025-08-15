@@ -82,10 +82,17 @@ public class AuthController {
     }
 
     @GetMapping("/steam/login")
-    public ResponseEntity<Void> startLogin(@RequestParam(value = "redirect", required = false) String redirect) {
+    public ResponseEntity<Void> startLogin(@RequestParam(value = "redirect", required = false) String redirect,
+                                           jakarta.servlet.http.HttpServletRequest request) {
         // Compute return_to and realm. Realm MUST be the origin (scheme://host[:port]) of return_to
         String returnTo = (redirect == null || redirect.isBlank()) ? defaultRedirectBase + "/api/auth/steam/callback" : redirect;
         String realm = deriveOriginSafe(returnTo, defaultRedirectBase);
+
+        final String xfp = request.getHeader("X-Forwarded-Proto");
+        final String xfh = request.getHeader("X-Forwarded-Host");
+        final String host = request.getHeader("Host");
+        log.info("Auth startLogin: redirect={} returnTo={} realm={} host={} xfp={} xfh={} remoteAddr={}",
+                redirect, returnTo, realm, host, xfp, xfh, request.getRemoteAddr());
 
         String url = OPENID_ENDPOINT + "?openid.ns=" + enc("http://specs.openid.net/auth/2.0")
                 + "&openid.mode=checkid_setup"
@@ -93,12 +100,20 @@ public class AuthController {
                 + "&openid.realm=" + enc(realm)
                 + "&openid.identity=" + enc("http://specs.openid.net/auth/2.0/identifier_select")
                 + "&openid.claimed_id=" + enc("http://specs.openid.net/auth/2.0/identifier_select");
+        log.info("Auth startLogin: redirecting to Steam OpenID url={}", url);
         return ResponseEntity.status(302).location(URI.create(url)).build();
     }
 
     @GetMapping("/steam/callback")
     public ResponseEntity<?> callback(@RequestParam Map<String, String> params) {
         try {
+            final String returnToParam = params.get("openid.return_to");
+            final String claimedId = params.get("openid.claimed_id");
+            log.info("Auth callback: return_to={} claimed_id={} mode={} op_endpoint={}",
+                    returnToParam, claimedId, params.get("openid.mode"), params.get("openid.op_endpoint"));
+            if (returnToParam != null && returnToParam.contains("localhost")) {
+                log.warn("Auth callback return_to points to localhost; check frontend NEXT_PUBLIC_DOMAIN and backend auth.redirectBase");
+            }
             // Verify assertion with Steam via check_authentication
             final String body = buildCheckAuthBody(params);
             final String opEndpoint = params.getOrDefault("openid.op_endpoint", OPENID_ENDPOINT);
