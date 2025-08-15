@@ -1,5 +1,16 @@
 # TODOS
 
+<!-- TOC -->
+
+* [TODOS](#todos)
+    * [Required](#required)
+        * [Archiv](#archiv)
+        * [Profiles](#profiles)
+        * [Backend](#backend)
+    * [Do later](#do-later)
+
+<!-- TOC -->
+
 ## Required
 
 - [x] create color themes
@@ -54,22 +65,35 @@
   displayed
 - leaderboard todos:
     - [x] create a new route /review-guesser/leaderboard
-  - [x] create a reusable leaderboard component (should be able to show stats for any game), display gamename, and rows
+  - [x] create a reusable leaderboard component (should be able to show stats for any game), display gamename, and
+    rows
       of users and their points in this game, sorted by highest points first, no pagination for now
-    - [x] fetch leaderboard data from backendd and display it
+      - [x] fetch leaderboard data from backendd and display it
   - [x] leaderboard should not show 'todays' points, it should the overall sum / achieved points of every player over
     all days
-    - [ ] add leaderboard link to share result, similar to the "play: <steam5url>" part
+      - [ ] add leaderboard link to share result, similar to the "play: <steam5url>" part
   - [x] add leaderboard link to header, when under /review-guesser route
 - [x] pass locale derived from browser to `new Intl.NumberFormat(undefined, {`
 - [x] show more values on leaderboard:
   `| gesamte punkte | gespielte spiele | anzahl volltreffer | anzahl zu hoch | anzahl zu niedrig | durchschittliche punkte pro guess |`
 - [x] info section below, which displays the other "meta" info we've got in the SteamAppDetail object
+- [ ] more frontend cleanup
+
+#### Archiv
+
+- [ ] display list of prior 'daily challenges' and show their games and 'results'
+- [ ] also display user scores for each day
+
+#### Profiles
+
+- [ ] create route for steamid and display user profile
+- [ ] show aggreagte score
+- [ ] show all round guesses
 
 ### Backend
 
 - [x] do not pick games that are not released yet, or have been released in the last seven days.
-- [ ] can we generate a blurhash on the backend, for each screenshot that we get?
+- [x] can we generate a blurhash on the backend, for each screenshot that we get?
     - https://github.com/hsch/blurhash-java/blob/master/src/main/java/io/trbl/blurhash/BlurHash.java
 - [x] do not add 429 error to excluded_app tables
 
