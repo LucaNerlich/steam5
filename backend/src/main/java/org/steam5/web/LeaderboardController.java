@@ -21,6 +21,9 @@ public class LeaderboardController {
     private final GuessRepository guessRepository;
     private final ReviewGameStateService reviewGameStateService;
 
+    public record LeaderEntry(String steamId, String personaName, long totalPoints, long rounds) {
+    }
+
     @GetMapping("/today")
     public ResponseEntity<List<LeaderEntry>> today() {
         final var picks = reviewGameStateService.generateDailyPicks();
@@ -30,9 +33,6 @@ public class LeaderboardController {
                 .map(r -> new LeaderEntry(r.getSteamId(), r.getPersonaName(), r.getTotalPoints() == null ? 0 : r.getTotalPoints(), r.getRounds() == null ? 0 : r.getRounds()))
                 .toList();
         return ResponseEntity.ok(out);
-    }
-
-    public record LeaderEntry(String steamId, String personaName, long totalPoints, long rounds) {
     }
 }
 
