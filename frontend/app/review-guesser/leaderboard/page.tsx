@@ -15,7 +15,6 @@ async function loadLeaderboardAll(): Promise<LeaderEntry[]> {
 
 export default async function LeaderboardPage() {
     const all = await loadLeaderboardAll();
-    console.log("all", all);
     return (
         <section className="container">
             <h1>Review Guesser — Leaderboard</h1>
