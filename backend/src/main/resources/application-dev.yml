@@ -21,6 +21,6 @@ jobs:
   steam-app-reviews:
     enabled: true
   steam-app-details:
-    enabled: true
+    enabled: false
   review-game-state:
     enabled: true

@@ -11,7 +11,7 @@ export default function Header() {
                     <Image src="/logo.svg" alt="Steam5" width={20} height={20} priority/>
                     <span>Steam5</span>
                 </Link>
-                <Link href={Routes.reviewGuesser} className="btn">Play Review Guesser</Link>
+                {/*<Link href={Routes.reviewGuesser} className="btn">Play Review Guesser</Link>*/}
             </div>
         </header>
     );
