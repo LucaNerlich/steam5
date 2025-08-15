@@ -84,19 +84,43 @@ export default function ShareControls(props: {
     const text = lines.join('\n');
 
     async function copyToClipboard() {
+        const copyWithTextarea = () => {
+            try {
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                textarea.setAttribute('readonly', '');
+                textarea.style.position = 'fixed';
+                textarea.style.left = '-9999px';
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                return true;
+            } catch {
+                return false;
+            }
+        };
+
         try {
-            await navigator.clipboard.writeText(text);
+            if (typeof navigator !== 'undefined' && navigator.clipboard && window.isSecureContext) {
+                await navigator.clipboard.writeText(text);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 1500);
+                return;
+            }
+        } catch {
+            // fall through to textarea fallback
+        }
+        if (copyWithTextarea()) {
             setCopied(true);
             setTimeout(() => setCopied(false), 1500);
-        } catch {
-            /* no-op */
         }
     }
 
     if (inline) {
         return (
             <div className="share-inline">
-                <button className="btn-success" onClick={copyToClipboard}>Share Results</button>
+                <button type="button" className="btn-success" onClick={copyToClipboard}>Share Results</button>
                 <span className={`share-copied ${copied ? 'is-visible' : ''}`}>Copied</span>
             </div>
         );
@@ -104,7 +128,7 @@ export default function ShareControls(props: {
     return (
         <div className="review-round__share">
             <div className="share-inline">
-                <button className="btn-success" onClick={copyToClipboard}>Share Results</button>
+                <button type="button" className="btn-success" onClick={copyToClipboard}>Share Results</button>
                 <span className={`share-copied ${copied ? 'is-visible' : ''}`}>Copied</span>
             </div>
         </div>
