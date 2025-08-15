@@ -22,7 +22,8 @@ async function loadMyGuesses(date: string): Promise<Record<number, {
     roundIndex: number;
     appId: number;
     selectedBucket: string;
-    actualBucket?: string
+    actualBucket?: string,
+    totalReviews?: number
 }>> {
     const token = (await cookies()).get('s5_token')?.value;
     if (!token) return {};
@@ -36,13 +37,15 @@ async function loadMyGuesses(date: string): Promise<Record<number, {
         roundIndex: number;
         appId: number;
         selectedBucket: string;
-        actualBucket?: string
+        actualBucket?: string,
+        totalReviews?: number
     }>;
     const map: Record<number, {
         roundIndex: number;
         appId: number;
         selectedBucket: string;
-        actualBucket?: string
+        actualBucket?: string,
+        totalReviews?: number
     }> = {};
     for (const g of data) map[g.roundIndex] = g;
     return map;
@@ -59,7 +62,7 @@ export default async function ReviewGuesserRoundPage({params}: { params: Promise
     const prefill = my[roundIndex] ? {
         selectedLabel: my[roundIndex].selectedBucket,
         actualBucket: my[roundIndex].actualBucket ?? '',
-        totalReviews: 0,
+        totalReviews: my[roundIndex].totalReviews ?? 0,
     } : undefined;
 
     if (!pick) {
@@ -92,7 +95,7 @@ export default async function ReviewGuesserRoundPage({params}: { params: Promise
                     pickName: today.picks[(Number(k) - 1)]?.name,
                     selectedLabel: v.selectedBucket,
                     actualBucket: v.actualBucket ?? '',
-                    totalReviews: 0,
+                    totalReviews: v.totalReviews ?? 0,
                     correct: v.actualBucket ? (v.actualBucket === v.selectedBucket) : false,
                 }]))}
             />

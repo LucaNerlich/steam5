@@ -164,7 +164,14 @@ public class ReviewGameStateController {
         final List<ReviewGamePick> picks = service.generateDailyPicks();
         final LocalDate date = picks.isEmpty() ? LocalDate.now() : picks.getFirst().getPickDate();
         final var guesses = guessRepository.findAllForDay(steamId, date);
-        return ResponseEntity.ok(guesses);
+        final var dtos = guesses.stream().map(g -> new MyGuessDto(
+                g.getRoundIndex(),
+                g.getAppId(),
+                g.getSelectedBucket(),
+                g.getActualBucket(),
+                service.getTotalReviewCountForApp(g.getAppId())
+        )).toList();
+        return ResponseEntity.ok(dtos);
     }
 
     @GetMapping("/buckets")
@@ -180,6 +187,9 @@ public class ReviewGameStateController {
     }
 
     public record GuessResponse(Long appId, int totalReviews, String actualBucket, boolean correct) {
+    }
+
+    public record MyGuessDto(int roundIndex, Long appId, String selectedBucket, String actualBucket, int totalReviews) {
     }
 }
 
