@@ -63,6 +63,15 @@ export default function ReviewGuesserHero(props: Readonly<ReviewGuesserHeroProps
                     ))}
                     </span>
                 )}
+                {pick.releaseDate && (
+                    <span title='Release date' className="meta-item">
+                        📅 {new Date(pick.releaseDate).toLocaleDateString(undefined, {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                    })}
+                    </span>
+                )}
             </p>
             {pick.genres && pick.genres.length > 0 && (
                 <ul className="genre-pills" aria-label="Genres">
