@@ -1,6 +1,7 @@
 'use server';
 
 import type {GuessResponse} from "@/types/review-game";
+import {cookies} from 'next/headers';
 
 export type GuessActionState = {
     ok: boolean;
@@ -19,9 +20,13 @@ export async function submitGuessAction(_prev: GuessActionState | undefined, for
 
     try {
         const backend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
-        const res = await fetch(`${backend}/api/review-game/guess`, {
+        const token = (await cookies()).get('s5_token')?.value;
+        const url = token ? `${backend}/api/review-game/guess-auth` : `${backend}/api/review-game/guess`;
+        const headers: Record<string, string> = {'content-type': 'application/json', 'accept': 'application/json'};
+        if (token) headers['authorization'] = `Bearer ${token}`;
+        const res = await fetch(url, {
             method: 'POST',
-            headers: {'content-type': 'application/json', 'accept': 'application/json'},
+            headers,
             body: JSON.stringify({appId, bucketGuess}),
             // Avoid caching mutations
             cache: 'no-store',
