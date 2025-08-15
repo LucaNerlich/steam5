@@ -76,7 +76,7 @@ export default function ReviewGuesserHero(props: Readonly<ReviewGuesserHeroProps
                     if (pick.isFree || (price && price.finalAmount === 0)) {
                         priceText = 'Free';
                     } else if (price) {
-                        const amountCents = typeof price.finalAmount === 'number' ? price.finalAmount : null;
+                        const amountCents = price.finalAmount;
                         const currencyCode = price.currency || 'USD';
                         if (amountCents !== null) {
                             priceText = formatPrice(amountCents, currencyCode, props.locale);
@@ -100,8 +100,15 @@ export default function ReviewGuesserHero(props: Readonly<ReviewGuesserHeroProps
                 <div className='screenshots'>
                     {thumbShots.map((s, i) => (
                         <button className='shot' key={s.id} onClick={() => openAt(i)} aria-label="Open screenshot">
-                            <Image src={s.pathThumbnail || s.pathFull} alt={pick.name} width={400} height={225}
-                                   style={{width: '100%', height: 'auto'}}/>
+                            <Image
+                                src={s.pathThumbnail || s.pathFull}
+                                alt={pick.name}
+                                width={400}
+                                height={225}
+                                placeholder={s.blurdataThumb ? 'blur' : 'empty'}
+                                blurDataURL={s.blurdataThumb || undefined}
+                                style={{width: '100%', height: 'auto'}}
+                            />
                         </button>
                     ))}
                 </div>
@@ -117,6 +124,8 @@ export default function ReviewGuesserHero(props: Readonly<ReviewGuesserHeroProps
                                 alt={pick.name}
                                 width={1280}
                                 height={720}
+                                placeholder={allShots[index].blurdataFull ? 'blur' : 'empty'}
+                                blurDataURL={allShots[index].blurdataFull || undefined}
                                 style={{width: '100%', height: 'auto'}}
                                 priority
                             />

@@ -50,4 +50,13 @@ public class QuartzConfig {
                 .withSchedule(CronScheduleBuilder.cronSchedule("0 1 0 * * ?"))
                 .build();
     }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "jobs.blurhash", name = "enabled", havingValue = "true", matchIfMissing = false)
+    public Trigger triggerBlurhashJob(@Qualifier("BlurhashJob") JobDetail job) {
+        return TriggerBuilder.newTrigger().forJob(job)
+                .withIdentity("BlurhashJob_Trigger")
+                .withSchedule(simpleSchedule().repeatForever().withIntervalInHours(24))
+                .build();
+    }
 }

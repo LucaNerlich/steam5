@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Getter
 @Entity
@@ -27,5 +28,21 @@ public class Screenshot {
 
     @Column(name = "path_full")
     private String pathFull;
+
+    @Setter
+    @Column(name = "blurhash_thumb", length = 200)
+    private String blurhashThumb;
+
+    @Setter
+    @Column(name = "blurhash_full", length = 200)
+    private String blurhashFull;
+
+    @Setter
+    @Column(name = "blurdata_thumb", columnDefinition = "TEXT")
+    private String blurdataThumb;
+
+    @Setter
+    @Column(name = "blurdata_full", columnDefinition = "TEXT")
+    private String blurdataFull;
 
 }

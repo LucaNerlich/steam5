@@ -169,7 +169,7 @@ public class SteamAppDetailService {
             final String thumb = ssNode.path("path_thumbnail").asText(null);
             final String full = ssNode.path("path_full").asText(null);
             if (thumb != null || full != null) {
-                detail.getScreenshots().add(new Screenshot(null, detail, thumb, full));
+                detail.getScreenshots().add(new Screenshot(null, detail, thumb, full, null, null, null, null));
             }
         }
 
