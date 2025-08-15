@@ -1,4 +1,16 @@
 .review-guesser-hero {
+    .meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem 1rem;
+        color: var(--color-muted);
+        margin: 0.25rem 0 0.75rem 0;
+    }
+
+    .meta .meta-item span + span {
+        margin-left: 0.35rem;
+    }
+
     .steam-link {
         color: var(--color-text);
         text-decoration: underline;
@@ -25,6 +37,26 @@
         width: 100%;
         height: auto;
         display: block;
+    }
+
+    .genre-pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        list-style: none;
+        padding: 0;
+        margin: 0.25rem 0 1rem 0;
+    }
+
+    .genre-pill {
+        border: 1px solid var(--color-border);
+        background: var(--color-surface);
+        color: var(--color-text);
+        border-radius: 999px;
+        font-size: 0.8rem;
+        padding: 0.15rem 0.55rem;
+        line-height: 1.6;
+        white-space: nowrap;
     }
 }
 

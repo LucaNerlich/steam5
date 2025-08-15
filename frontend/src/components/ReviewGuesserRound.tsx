@@ -417,6 +417,7 @@ function ShareControls(props: {
         const maxTotal = 5 * totalRounds;
         lines.splice(1, 0, `${bars.join('')} ${total}/${maxTotal}`, '');
     }
+    lines.push('');
     lines.push(`Total points: ${total}`);
     const text = lines.join('\n');
 

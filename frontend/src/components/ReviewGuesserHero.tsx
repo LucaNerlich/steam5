@@ -48,24 +48,29 @@ export default function ReviewGuesserHero(props: Readonly<ReviewGuesserHeroProps
             <h1>Review Guesser</h1>
             <p>Round <strong>{props.roundIndex}</strong> of <strong>{totalRounds}</strong> | Game Date: {today.date}</p>
             <h2>{pick.name}</h2>
-            <p>
-                {pick.developers && pick.developers.length > 0 &&
-                  <span title='Developer' style={{marginRight: '1em'}}>
-                🧑‍💻
-                      {pick.developers?.map((d) => {
-                          return <span key={d.id}>{d.name}</span>
-                      })}
-                </span>
-                }
-                {pick.publisher && pick.publisher.length > 0 &&
-                  <span title='Publisher'>
-                🌍
-                      {pick.publisher?.map((p) => {
-                          return <span key={p.id}>{p.name}</span>
-                      })}
-                </span>
-                }
+            <p className="meta">
+                {pick.developers && pick.developers.length > 0 && (
+                    <span title='Developer' className="meta-item">
+                        🧑‍💻 {pick.developers.map((d) => (
+                        <span key={d.id}>{d.name}</span>
+                    ))}
+                    </span>
+                )}
+                {pick.publisher && pick.publisher.length > 0 && (
+                    <span title='Publisher' className="meta-item">
+                        🌍 {pick.publisher.map((p) => (
+                        <span key={p.id}>{p.name}</span>
+                    ))}
+                    </span>
+                )}
             </p>
+            {pick.genres && pick.genres.length > 0 && (
+                <ul className="genre-pills" aria-label="Genres">
+                    {pick.genres.map((g) => (
+                        <li key={g.id} className="genre-pill">{g.description}</li>
+                    ))}
+                </ul>
+            )}
             {thumbShots.length > 0 && (
                 <div className='screenshots'>
                     {thumbShots.map((s, i) => (
