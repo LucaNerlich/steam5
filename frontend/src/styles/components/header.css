@@ -11,4 +11,34 @@ header .brand {
     align-items: center;
 }
 
+header .header-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Make header less cramped on small screens */
+@media (max-width: 480px) {
+    header .container {
+        gap: 0.5rem;
+    }
+
+    header .brand span {
+        display: none; /* hide brand text, keep logo */
+    }
+
+    header .leaderboard-link {
+        padding: 0.3rem 0.5rem;
+        font-size: 0.9rem;
+    }
+
+    header .header-actions {
+        gap: 0.25rem;
+    }
+
+    header img[alt="Sign in through Steam"] {
+        height: 24px;
+        width: auto;
+    }
+}
 

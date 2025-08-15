@@ -17,12 +17,15 @@ export default function Header() {
                     <Image src="/logo.svg" alt="Steam5" width={20} height={20} priority/>
                     <span>Steam5</span>
                 </Link>
-                {underReviewGuesser && (
-                    <Link href="/review-guesser/leaderboard" className="btn" aria-label="Open leaderboard">
-                        Leaderboard
-                    </Link>
-                )}
-                <SteamLoginButton/>
+                <div className="header-actions">
+                    {underReviewGuesser && (
+                        <Link href="/review-guesser/leaderboard" className="btn leaderboard-link"
+                              aria-label="Open leaderboard">
+                            Leaderboard
+                        </Link>
+                    )}
+                    <SteamLoginButton/>
+                </div>
             </div>
         </header>
     );

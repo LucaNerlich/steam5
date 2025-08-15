@@ -58,9 +58,9 @@ export default function SteamLoginButton(): React.ReactElement {
     }
 
     return (
-        <button className="btn-ghost" onClick={onClick} aria-label="Sign in with Steam"
+        <button className="btn-ghost" onClick={onClick} aria-label="Sign in through Steam"
                 style={{padding: 0, border: 0, background: 'transparent'}}>
-            <img src="/steam-login.svg" alt="Sign in with Steam" width={180} height={40}/>
+            <img src="/sign-in-through-steam.png" alt="Sign in through Steam"/>
         </button>
     );
 }
