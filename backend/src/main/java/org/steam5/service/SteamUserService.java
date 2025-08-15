@@ -34,25 +34,25 @@ public class SteamUserService {
                     + apiKey + "&steamids=" + steamId;
             final String body = steamHttpClient.get(url);
             if (body == null || body.isBlank()) return;
-            JsonNode root = objectMapper.readTree(body);
-            JsonNode players = root.path("response").path("players");
+            final JsonNode root = objectMapper.readTree(body);
+            final JsonNode players = root.path("response").path("players");
             if (players.isArray() && !players.isEmpty()) {
-                JsonNode p = players.get(0);
-                User u = existing != null ? existing : new User();
-                u.setSteamId(steamId);
-                u.setPersonaName(p.path("personaname").asText(null));
-                u.setProfileUrl(p.path("profileurl").asText(null));
-                u.setAvatar(p.path("avatar").asText(null));
-                u.setAvatarMedium(p.path("avatarmedium").asText(null));
-                u.setAvatarFull(p.path("avatarfull").asText(null));
-                u.setAvatarHash(p.path("avatarhash").asText(null));
-                u.setLastLogoffSec(p.path("lastlogoff").isNumber() ? p.path("lastlogoff").asLong() : null);
-                u.setPersonaState(p.path("personastate").isNumber() ? p.path("personastate").asInt() : null);
-                u.setPrimaryClanId(p.path("primaryclanid").asText(null));
-                u.setTimeCreatedSec(p.path("timecreated").isNumber() ? p.path("timecreated").asLong() : null);
-                u.setCountryCode(p.path("loccountrycode").asText(null));
-                if (u.getCreatedAt() == null) u.setCreatedAt(java.time.OffsetDateTime.now());
-                userRepository.save(u);
+                final JsonNode player = players.get(0);
+                final User user = existing != null ? existing : new User();
+                user.setSteamId(steamId);
+                user.setPersonaName(player.path("personaname").asText(null));
+                user.setProfileUrl(player.path("profileurl").asText(null));
+                user.setAvatar(player.path("avatar").asText(null));
+                user.setAvatarMedium(player.path("avatarmedium").asText(null));
+                user.setAvatarFull(player.path("avatarfull").asText(null));
+                user.setAvatarHash(player.path("avatarhash").asText(null));
+                user.setLastLogoffSec(player.path("lastlogoff").isNumber() ? player.path("lastlogoff").asLong() : null);
+                user.setPersonaState(player.path("personastate").isNumber() ? player.path("personastate").asInt() : null);
+                user.setPrimaryClanId(player.path("primaryclanid").asText(null));
+                user.setTimeCreatedSec(player.path("timecreated").isNumber() ? player.path("timecreated").asLong() : null);
+                user.setCountryCode(player.path("loccountrycode").asText(null));
+                if (user.getCreatedAt() == null) user.setCreatedAt(java.time.OffsetDateTime.now());
+                userRepository.save(user);
             }
         } catch (Exception e) {
             log.warn("Failed to fetch persona name for {}: {}", steamId, e.toString());
