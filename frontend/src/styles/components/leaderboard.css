@@ -1,0 +1,37 @@
+.leaderboard {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin-top: 0.5rem;
+}
+
+.leaderboard__table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 320px;
+}
+
+.leaderboard__table th,
+.leaderboard__table td {
+    border-bottom: 1px solid var(--color-border);
+    padding: 0.5rem 0.6rem;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.leaderboard__table th:first-child,
+.leaderboard__table td:first-child {
+    width: 0;
+}
+
+.leaderboard__table .num {
+    text-align: right;
+}
+
+@media (max-width: 640px) {
+    .leaderboard__table th:nth-child(4),
+    .leaderboard__table td:nth-child(4) {
+        display: none; /* hide rounds column on small screens */
+    }
+}
+
+
