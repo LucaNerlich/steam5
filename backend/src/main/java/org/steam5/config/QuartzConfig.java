@@ -49,8 +49,8 @@ public class QuartzConfig {
     public Trigger triggerReviewGameStateJob(@Qualifier("ReviewGameStateJob") JobDetail job) {
         return TriggerBuilder.newTrigger().forJob(job)
                 .withIdentity("ReviewGameStateJob_Trigger")
-                // every day at 00:01am
-                .withSchedule(CronScheduleBuilder.cronSchedule("0 1 0 * * ?"))
+                // every day at 22:01am, since server is two hours "behind"
+                .withSchedule(CronScheduleBuilder.cronSchedule("0 1 22 1/1 * ? * "))
                 .build();
     }
 
