@@ -4,6 +4,17 @@
     margin-top: 0.5rem;
 }
 
+.leaderboard__toggle {
+    display: flex;
+    gap: 0.5rem;
+    margin: 0.5rem 0 1rem;
+}
+
+.leaderboard__toggle .btn-ghost.is-active {
+    font-weight: 700;
+    text-decoration: underline;
+}
+
 .leaderboard__table {
     width: 100%;
     border-collapse: collapse;

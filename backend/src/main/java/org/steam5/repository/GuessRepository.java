@@ -20,6 +20,11 @@ public interface GuessRepository extends JpaRepository<Guess, Long> {
             "where g.gameDate = :date group by u.steamId, u.personaName order by sum(g.points) desc")
     List<LeaderboardRow> leaderboardForDay(@Param("date") LocalDate date);
 
+    @Query("select u.steamId as steamId, coalesce(u.personaName, u.steamId) as personaName, sum(g.points) as totalPoints, count(g) as rounds " +
+            "from Guess g join User u on u.steamId = g.steamId " +
+            "group by u.steamId, u.personaName order by sum(g.points) desc")
+    List<LeaderboardRow> leaderboardAllTime();
+
     interface LeaderboardRow {
         String getSteamId();
 

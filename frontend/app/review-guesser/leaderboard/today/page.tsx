@@ -1,12 +1,12 @@
 export const dynamic = 'force-dynamic';
 
-type LeaderEntry = { steamId: string; personaName: string; totalPoints: number; rounds: number };
-
 import "@/styles/components/leaderboard.css";
 
-async function loadLeaderboardAll(): Promise<LeaderEntry[]> {
+type LeaderEntry = { steamId: string; personaName: string; totalPoints: number; rounds: number };
+
+async function loadLeaderboardToday(): Promise<LeaderEntry[]> {
     const backend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
-    const res = await fetch(`${backend}/api/leaderboard/all`, {
+    const res = await fetch(`${backend}/api/leaderboard/today`, {
         cache: 'no-store',
         headers: {accept: 'application/json'}
     });
@@ -14,19 +14,19 @@ async function loadLeaderboardAll(): Promise<LeaderEntry[]> {
     return res.json();
 }
 
-export default async function LeaderboardPage() {
-    const all = await loadLeaderboardAll();
+export default async function LeaderboardTodayPage() {
+    const today = await loadLeaderboardToday();
     return (
         <section className="container">
             <h1>Review Guesser — Leaderboard</h1>
             <nav className="leaderboard__toggle" aria-label="Leaderboard view">
-                <a href="/review-guesser/leaderboard" className="btn-ghost is-active">All-time</a>
-                <a href="/review-guesser/leaderboard/today" className="btn-ghost">Today</a>
+                <a href="/review-guesser/leaderboard" className="btn-ghost">All-time</a>
+                <a href="/review-guesser/leaderboard/today" className="btn-ghost is-active">Today</a>
             </nav>
-            <h2>All-time</h2>
-            <p className="text-muted">Overall points summed across all days (sorted highest first)</p>
+            <h2>Today</h2>
+            <p className="text-muted">Today's total points by player (sorted highest first)</p>
             <div className="leaderboard">
-                <table className="leaderboard__table" aria-label="All-time Leaderboard">
+                <table className="leaderboard__table" aria-label="Today Leaderboard">
                     <thead>
                     <tr>
                         <th scope="col" className="num">#</th>
@@ -36,8 +36,8 @@ export default async function LeaderboardPage() {
                     </tr>
                     </thead>
                     <tbody>
-                    {all.map((e, i) => (
-                        <tr key={`all-${e.steamId}`}>
+                    {today.map((e, i) => (
+                        <tr key={`today-${e.steamId}`}>
                             <td>{i + 1}</td>
                             <td><strong>{e.personaName || e.steamId}</strong></td>
                             <td className="num">{e.totalPoints}</td>
@@ -50,5 +50,3 @@ export default async function LeaderboardPage() {
         </section>
     );
 }
-
-

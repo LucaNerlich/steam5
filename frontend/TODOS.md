@@ -58,7 +58,7 @@
   - [x] create a reusable leaderboard component (should be able to show stats for any game), display gamename, and rows
       of users and their points in this game, sorted by highest points first, no pagination for now
     - [x] fetch leaderboard data from backendd and display it
-  - [ ] leaderboard should not show 'todays' points, it should the overall sum / achieved points of every player over
+  - [x] leaderboard should not show 'todays' points, it should the overall sum / achieved points of every player over
     all days
     - [ ] add leaderboard link to share result, similar to the "play: <steam5url>" part
   - [x] add leaderboard link to header, when under /review-guesser route

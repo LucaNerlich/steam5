@@ -34,6 +34,15 @@ public class LeaderboardController {
                 .toList();
         return ResponseEntity.ok(out);
     }
+
+    @GetMapping(value = {"", "/", "/all"})
+    public ResponseEntity<List<LeaderEntry>> allTime() {
+        final List<GuessRepository.LeaderboardRow> rows = guessRepository.leaderboardAllTime();
+        final List<LeaderEntry> out = rows.stream()
+                .map(r -> new LeaderEntry(r.getSteamId(), r.getPersonaName(), r.getTotalPoints() == null ? 0 : r.getTotalPoints(), r.getRounds() == null ? 0 : r.getRounds()))
+                .toList();
+        return ResponseEntity.ok(out);
+    }
 }
 
 
