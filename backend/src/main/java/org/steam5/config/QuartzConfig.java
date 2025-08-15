@@ -19,6 +19,7 @@ public class QuartzConfig {
     public Trigger triggerSteamAppDetailJob(@Qualifier("SteamAppDetailJob") JobDetail job) {
         return TriggerBuilder.newTrigger().forJob(job)
                 .withIdentity("SteamAppDetailJob_Trigger")
+                .startNow()
                 .withSchedule(simpleSchedule().repeatForever().withIntervalInHours(48))
                 .build();
     }
@@ -28,6 +29,7 @@ public class QuartzConfig {
     public Trigger triggerSteamAppListJob(@Qualifier("SteamAppListJob") JobDetail job) {
         return TriggerBuilder.newTrigger().forJob(job)
                 .withIdentity("SteamAppListJob_Trigger")
+                .startNow()
                 .withSchedule(simpleSchedule().repeatForever().withIntervalInHours(24))
                 .build();
     }
@@ -37,6 +39,7 @@ public class QuartzConfig {
     public Trigger triggerSteamAppReviewsJob(@Qualifier("SteamAppReviewsJob") JobDetail job) {
         return TriggerBuilder.newTrigger().forJob(job)
                 .withIdentity("SteamAppReviewsJob_Trigger")
+                .startNow()
                 .withSchedule(simpleSchedule().repeatForever().withIntervalInHours(48))
                 .build();
     }
@@ -56,6 +59,7 @@ public class QuartzConfig {
     public Trigger triggerBlurhashJob(@Qualifier("BlurhashJob") JobDetail job) {
         return TriggerBuilder.newTrigger().forJob(job)
                 .withIdentity("BlurhashJob_Trigger")
+                .startNow()
                 .withSchedule(simpleSchedule().repeatForever().withIntervalInHours(24))
                 .build();
     }
