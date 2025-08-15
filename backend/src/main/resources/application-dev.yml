@@ -24,3 +24,5 @@ jobs:
     enabled: false
   review-game-state:
     enabled: true
+  blurhash:
+    enabled: true
