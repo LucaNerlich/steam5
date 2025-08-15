@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="40" viewBox="0 0 200 40" fill="none">
+    <rect width="200" height="40" rx="8" fill="#111827"/>
+    <text x="56" y="24" fill="#ffffff" font-family="Verdana, Arial, sans-serif" font-size="14">Sign in with Steam</text>
+    <circle cx="20" cy="20" r="10" fill="#2563eb"/>
+    <circle cx="30" cy="22" r="8" fill="#fbbf24"/>
+</svg>
+
+

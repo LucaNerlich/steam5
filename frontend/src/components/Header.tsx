@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import {Routes} from "../../app/routes";
 import "@/styles/components/header.css";
+import SteamLoginButton from "@/components/SteamLoginButton";
 
 export default function Header() {
     return (
@@ -11,7 +12,7 @@ export default function Header() {
                     <Image src="/logo.svg" alt="Steam5" width={20} height={20} priority/>
                     <span>Steam5</span>
                 </Link>
-                {/*<Link href={Routes.reviewGuesser} className="btn">Play Review Guesser</Link>*/}
+                <SteamLoginButton/>
             </div>
         </header>
     );

@@ -27,7 +27,7 @@
   `{{host}}/api/review-game/guess`
 - [x] display response (correct true/false and actual review count)
 - [x] on guess bucket submit, lock the other buttons, to indicate, which one the user clicked
-- [ ] allow users to login via steam
+- [x] allow users to login via steam
     - use the given jwt / token / whatever to save the users picks to the backend database
     - if logged in, load a users pick / show, if the person has already picked a bucket for todays game.
 - [x] add 'Share' Button, that adds a copy/paste message to the users clickboard - 'wordle' style, using emojis to
@@ -40,17 +40,28 @@
 - [x] show genres as 'pills'
 - [x] display the release date
 - [ ] info section below, which displays the other "meta" info we've got in the SteamAppDetail object
-- [ ] display the price?
+- [x] display the price?
+- [ ] display price in local format (comma vs dot, currency symbol positioning.) use locale from browser
+- [x] auth todos:
+    - [x] add logout to footer
+    - [x] if logged in, hide steam login button
+  - [x] if logged in, load a users guess for each round, instead of letting them guess again (which will be declined
+      in the backend anyways)
+  - [x] on user login, get the profile / account name as well, so that we can create a readable leaderboard
+  - [x] if logged out, do not show logout button in footer
+  - [x] if logged in, hide the 'reset today' button
 
 ### Backend
 
 - [x] do not pick games that are not released yet, or have been released in the last seven days.
 - [ ] can we generate a blurhash on the backend, for each screenshot that we get?
     - https://github.com/hsch/blurhash-java/blob/master/src/main/java/io/trbl/blurhash/BlurHash.java
+- [ ] do not add 429 error to excluded_app tables
 
 ## Do later
 
 - [x] use custom fonts (github monaspace)
 - [ ] hide link to 'review guesser' when on that page
 - [x] add lightbox for screenshots
+- [ ] use provided image as steam login button from /public
 

@@ -21,6 +21,7 @@ interface Props {
     totalRounds: number;
     pickName?: string;
     gameDate?: string;
+    prefilled?: { selectedLabel: string; actualBucket?: string; totalReviews?: number };
 }
 
 type StoredRoundResult = {
@@ -34,7 +35,15 @@ type StoredRoundResult = {
 
 type StoredDay = { totalRounds: number; results: Record<number, StoredRoundResult> };
 
-export default function ReviewGuesserRound({appId, buckets, roundIndex, totalRounds, pickName, gameDate}: Props) {
+export default function ReviewGuesserRound({
+                                               appId,
+                                               buckets,
+                                               roundIndex,
+                                               totalRounds,
+                                               pickName,
+                                               gameDate,
+                                               prefilled
+                                           }: Props) {
     const initial: GuessActionState = {ok: false};
     const [state, formAction] = useActionState<GuessActionState, FormData>(submitGuessAction, initial);
     const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
@@ -79,6 +88,34 @@ export default function ReviewGuesserRound({appId, buckets, roundIndex, totalRou
 
     // Restore previously submitted guess for this round and load stored day once on mount/date change
     useEffect(() => {
+        // Initialize from server-provided prefilled guess if present
+        if (prefilled && prefilled.selectedLabel && !selectedLabel) {
+            setSelectedLabel(prefilled.selectedLabel);
+            // Seed stored state so UI shows as submitted
+            try {
+                if (gameDate) {
+                    const key = `review-guesser:${gameDate}`;
+                    const prevRaw = window.localStorage.getItem(key);
+                    let data: StoredDay = {totalRounds, results: {}};
+                    if (prevRaw) {
+                        const parsed = JSON.parse(prevRaw) as StoredDay;
+                        if (parsed && typeof parsed === 'object' && 'results' in parsed) data = parsed;
+                    }
+                    data.totalRounds = totalRounds;
+                    data.results[roundIndex] = {
+                        appId,
+                        pickName,
+                        selectedLabel: prefilled.selectedLabel,
+                        actualBucket: prefilled.actualBucket ?? '',
+                        totalReviews: prefilled.totalReviews ?? 0,
+                        correct: prefilled.actualBucket ? (prefilled.actualBucket === prefilled.selectedLabel) : false,
+                    };
+                    window.localStorage.setItem(key, JSON.stringify(data));
+                    setStored(data);
+                }
+            } catch {
+            }
+        }
         if (!gameDate) return;
         try {
             const raw = window.localStorage.getItem(`review-guesser:${gameDate}`);
@@ -95,7 +132,7 @@ export default function ReviewGuesserRound({appId, buckets, roundIndex, totalRou
         } catch {
             setStored(null);
         }
-    }, [gameDate, roundIndex]);
+    }, [gameDate, roundIndex, prefilled, totalRounds, appId, pickName, selectedLabel]);
 
     // Determine completion and existing result for this round
     const storedResults = stored?.results || {};

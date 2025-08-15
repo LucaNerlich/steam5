@@ -1,6 +1,6 @@
 "use client";
 
-import {useCallback, useState} from "react";
+import {useCallback, useEffect, useState} from "react";
 import {useRouter} from "next/navigation";
 import {Routes} from "../../app/routes";
 
@@ -14,6 +14,7 @@ function getLocalDateYYYYMMDD(): string {
 
 export default function ResetTodayButton() {
     const [done, setDone] = useState(false);
+    const [signedIn, setSignedIn] = useState<boolean>(false);
     const router = useRouter()
 
     const onReset = useCallback(() => {
@@ -44,6 +45,27 @@ export default function ResetTodayButton() {
         } catch { /* noop */
         }
     }, []);
+
+    useEffect(() => {
+        let active = true;
+
+        async function load() {
+            try {
+                const res = await fetch('/api/auth/me', {cache: 'no-store'});
+                if (!res.ok) return;
+                const data = await res.json();
+                if (active) setSignedIn(Boolean(data?.signedIn));
+            } catch {
+            }
+        }
+
+        load();
+        return () => {
+            active = false
+        };
+    }, []);
+
+    if (signedIn) return null;
 
     return (
         <button className="theme-toggle" onClick={onReset} aria-label="Reset today's progress">

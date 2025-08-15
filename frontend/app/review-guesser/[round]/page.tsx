@@ -2,6 +2,7 @@ import type {ReviewGameState} from "@/types/review-game";
 import ReviewGuesserRound from "../../../src/components/ReviewGuesserRound";
 import Link from "next/link";
 import ReviewGuesserHero from "@/components/ReviewGuesserHero";
+import {cookies} from 'next/headers';
 
 export const dynamic = "force-dynamic";
 
@@ -17,13 +18,49 @@ async function loadToday(): Promise<ReviewGameState> {
     return res.json();
 }
 
+async function loadMyGuesses(date: string): Promise<Record<number, {
+    roundIndex: number;
+    appId: number;
+    selectedBucket: string;
+    actualBucket?: string
+}>> {
+    const token = (await cookies()).get('s5_token')?.value;
+    if (!token) return {};
+    const backend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
+    const res = await fetch(`${backend}/api/review-game/my/today`, {
+        headers: {'accept': 'application/json', 'authorization': `Bearer ${token}`},
+        cache: 'no-store'
+    });
+    if (!res.ok) return {};
+    const data = await res.json() as Array<{
+        roundIndex: number;
+        appId: number;
+        selectedBucket: string;
+        actualBucket?: string
+    }>;
+    const map: Record<number, {
+        roundIndex: number;
+        appId: number;
+        selectedBucket: string;
+        actualBucket?: string
+    }> = {};
+    for (const g of data) map[g.roundIndex] = g;
+    return map;
+}
+
 export default async function ReviewGuesserRoundPage({params}: { params: Promise<{ round: string }> }) {
     const {round} = await params;
     const roundIndex = Math.max(1, Number.parseInt(round || '1', 10));
     const today = await loadToday();
+    const my = await loadMyGuesses(today.date);
 
     const totalRounds = today.picks.length;
     const pick = today.picks[roundIndex - 1];
+    const prefill = my[roundIndex] ? {
+        selectedLabel: my[roundIndex].selectedBucket,
+        actualBucket: my[roundIndex].actualBucket ?? '',
+        totalReviews: 0,
+    } : undefined;
 
     if (!pick) {
         return (
@@ -48,6 +85,7 @@ export default async function ReviewGuesserRoundPage({params}: { params: Promise
                 totalRounds={totalRounds}
                 pickName={pick.name}
                 gameDate={today.date}
+                prefilled={prefill}
             />
         </section>
     );

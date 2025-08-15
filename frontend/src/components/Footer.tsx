@@ -1,6 +1,7 @@
 import ThemeToggle from "@/components/ThemeToggle";
 import FontToggle from "./FontToggle";
 import ResetTodayButton from "./ResetTodayButton";
+import AuthLogoutLink from "@/components/AuthLogoutLink";
 import "@/styles/components/footer.css";
 
 export default function Footer() {
@@ -12,6 +13,7 @@ export default function Footer() {
                     <ThemeToggle/>
                     <FontToggle/>
                     <ResetTodayButton/>
+                    <AuthLogoutLink/>
                 </div>
             </div>
         </footer>
