@@ -46,12 +46,15 @@ public class AuthController {
 
     private static String buildCheckAuthBody(Map<String, String> params) {
         MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
-        form.add("openid.mode", "check_authentication");
+        // Copy back all openid.* assertion params EXCEPT mode
         for (Map.Entry<String, String> e : params.entrySet()) {
-            if (e.getKey().startsWith("openid.")) {
-                form.add(e.getKey(), e.getValue());
+            final String key = e.getKey();
+            if (key.startsWith("openid.") && !"openid.mode".equals(key)) {
+                form.add(key, e.getValue());
             }
         }
+        // Replace mode with check_authentication as required by OpenID spec
+        form.add("openid.mode", "check_authentication");
         StringBuilder sb = new StringBuilder();
         boolean first = true;
         for (Map.Entry<String, java.util.List<String>> e : form.entrySet()) {
@@ -95,18 +98,29 @@ public class AuthController {
         try {
             // Verify assertion with Steam via check_authentication
             final String body = buildCheckAuthBody(params);
-            HttpResponse<String> res;
-            try (HttpClient client = HttpClient.newHttpClient()) {
-                HttpRequest req = HttpRequest.newBuilder()
-                        .uri(URI.create(OPENID_ENDPOINT))
-                        .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-                        .POST(HttpRequest.BodyPublishers.ofString(body))
-                        .build();
-                res = client.send(req, HttpResponse.BodyHandlers.ofString());
+            final String opEndpoint = params.getOrDefault("openid.op_endpoint", OPENID_ENDPOINT);
+            HttpClient client = HttpClient.newBuilder()
+                    .followRedirects(HttpClient.Redirect.NEVER)
+                    .build();
+            HttpRequest req = HttpRequest.newBuilder()
+                    .uri(URI.create(opEndpoint))
+                    .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                    .header(HttpHeaders.ACCEPT, "text/plain")
+                    .header(HttpHeaders.ACCEPT_ENCODING, "identity")
+                    .header(HttpHeaders.USER_AGENT, "steam5-auth/1.0")
+                    .POST(HttpRequest.BodyPublishers.ofString(body))
+                    .build();
+            HttpResponse<String> res = client.send(req, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+            String resBody = res.body();
+            if (res.statusCode() / 100 == 3) {
+                String loc = res.headers().firstValue("Location").orElse("<none>");
+                log.warn("Steam OpenID verification redirected: status={} location={}", res.statusCode(), loc);
             }
-            final String resBody = res.body();
-            if (resBody == null || !resBody.contains("is_valid:true")) {
-                log.warn("Steam OpenID verification failed: status={} body={} params={}", res.statusCode(), resBody, params.keySet());
+
+            // Hard verify Steam response: must contain is_valid:true
+            if (res.statusCode() != 200 || resBody == null || !resBody.contains("is_valid:true")) {
+                log.warn("Steam OpenID verification failed: status={} sample=\n{}", res.statusCode(),
+                        resBody == null ? "<null>" : resBody.substring(0, Math.min(resBody.length(), 200)));
                 return ResponseEntity.status(401).body(Map.of("error", "invalid_openid"));
             }
 
