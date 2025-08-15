@@ -88,33 +88,9 @@ export default function ReviewGuesserRound({
 
     // Restore previously submitted guess for this round and load stored day once on mount/date change
     useEffect(() => {
-        // Initialize from server-provided prefilled guess if present
+        // Initialize from server-provided prefilled guess if present (without writing to localStorage)
         if (prefilled && prefilled.selectedLabel && !selectedLabel) {
             setSelectedLabel(prefilled.selectedLabel);
-            // Seed stored state so UI shows as submitted
-            try {
-                if (gameDate) {
-                    const key = `review-guesser:${gameDate}`;
-                    const prevRaw = window.localStorage.getItem(key);
-                    let data: StoredDay = {totalRounds, results: {}};
-                    if (prevRaw) {
-                        const parsed = JSON.parse(prevRaw) as StoredDay;
-                        if (parsed && typeof parsed === 'object' && 'results' in parsed) data = parsed;
-                    }
-                    data.totalRounds = totalRounds;
-                    data.results[roundIndex] = {
-                        appId,
-                        pickName,
-                        selectedLabel: prefilled.selectedLabel,
-                        actualBucket: prefilled.actualBucket ?? '',
-                        totalReviews: prefilled.totalReviews ?? 0,
-                        correct: prefilled.actualBucket ? (prefilled.actualBucket === prefilled.selectedLabel) : false,
-                    };
-                    window.localStorage.setItem(key, JSON.stringify(data));
-                    setStored(data);
-                }
-            } catch {
-            }
         }
         if (!gameDate) return;
         try {
@@ -146,7 +122,7 @@ export default function ReviewGuesserRound({
     })();
     const latestStored = storedResults[latestStoredRoundIndex];
 
-    // Prefer server response; fallback to stored round result for showing the dialog
+    // Prefer server response; fallback to stored round result; if none, do not fabricate from prefilled
     const effectiveResponse: GuessResponse | null = state && state.ok && state.response
         ? state.response
         : storedThisRound
@@ -158,7 +134,7 @@ export default function ReviewGuesserRound({
             }
             : null;
 
-    // Submitted flag: either current state submitted or we restored a previous submission
+    // Submitted flag: either current state submitted or we restored a previous submission; prefilled alone should not mark submitted
     const submittedFlag = Boolean(state && (state.ok || state.error)) || Boolean(storedThisRound);
 
     if (isComplete && roundIndex >= totalRounds) {
