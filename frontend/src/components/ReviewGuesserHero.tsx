@@ -72,6 +72,28 @@ export default function ReviewGuesserHero(props: Readonly<ReviewGuesserHeroProps
                     })}
                     </span>
                 )}
+                {(() => {
+                    const price = pick.priceOverview;
+                    let priceText: string | null = null;
+                    if (pick.isFree || (price && price.finalAmount === 0)) {
+                        priceText = 'Free';
+                    } else if (price && price.finalFormatted) {
+                        priceText = price.finalFormatted;
+                    } else if (price && price.currency) {
+                        const amount = typeof price.finalAmount === 'number' ? price.finalAmount / 100 : 0;
+                        try {
+                            priceText = new Intl.NumberFormat(undefined, {
+                                style: 'currency',
+                                currency: price.currency
+                            }).format(amount);
+                        } catch {
+                            priceText = `${amount.toFixed(2)} ${price.currency}`;
+                        }
+                    }
+                    return priceText ? (
+                        <span title='Price' className="meta-item">💲 {priceText}</span>
+                    ) : null;
+                })()}
             </p>
             {pick.genres && pick.genres.length > 0 && (
                 <ul className="genre-pills" aria-label="Genres">
