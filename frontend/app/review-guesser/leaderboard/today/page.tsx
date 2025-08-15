@@ -3,7 +3,16 @@ export const dynamic = 'force-dynamic';
 import "@/styles/components/leaderboard.css";
 import Link from "next/link";
 
-type LeaderEntry = { steamId: string; personaName: string; totalPoints: number; rounds: number };
+type LeaderEntry = {
+    steamId: string;
+    personaName: string;
+    totalPoints: number;
+    rounds: number;
+    hits: number;
+    tooHigh: number;
+    tooLow: number;
+    avgPoints: number;
+};
 
 async function loadLeaderboardToday(): Promise<LeaderEntry[]> {
     const backend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
@@ -34,6 +43,10 @@ export default async function LeaderboardTodayPage() {
                         <th scope="col">Player</th>
                         <th scope="col" className="num">Points</th>
                         <th scope="col" className="num">Rounds</th>
+                        <th scope="col" className="num">Hits</th>
+                        <th scope="col" className="num">Too High</th>
+                        <th scope="col" className="num">Too Low</th>
+                        <th scope="col" className="num">Avg</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -43,6 +56,10 @@ export default async function LeaderboardTodayPage() {
                             <td><strong>{e.personaName || e.steamId}</strong></td>
                             <td className="num">{e.totalPoints}</td>
                             <td className="num">{e.rounds}</td>
+                            <td className="num">{e.hits}</td>
+                            <td className="num">{e.tooHigh}</td>
+                            <td className="num">{e.tooLow}</td>
+                            <td className="num">{e.avgPoints.toFixed(2)}</td>
                         </tr>
                     ))}
                     </tbody>
