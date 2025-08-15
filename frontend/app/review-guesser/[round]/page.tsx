@@ -2,7 +2,7 @@ import type {ReviewGameState} from "@/types/review-game";
 import ReviewGuesserRound from "../../../src/components/ReviewGuesserRound";
 import Link from "next/link";
 import ReviewGuesserHero from "@/components/ReviewGuesserHero";
-import {cookies} from 'next/headers';
+import {cookies, headers} from 'next/headers';
 
 export const dynamic = "force-dynamic";
 
@@ -56,6 +56,7 @@ export default async function ReviewGuesserRoundPage({params}: { params: Promise
     const roundIndex = Math.max(1, Number.parseInt(round || '1', 10));
     const today = await loadToday();
     const my = await loadMyGuesses(today.date);
+    const acceptLanguage = (await headers()).get('accept-language') || undefined;
 
     const totalRounds = today.picks.length;
     const pick = today.picks[roundIndex - 1];
@@ -79,7 +80,8 @@ export default async function ReviewGuesserRoundPage({params}: { params: Promise
         <section className="container">
             <ReviewGuesserHero today={today}
                                pick={pick}
-                               roundIndex={roundIndex}/>
+                               roundIndex={roundIndex}
+                               locale={acceptLanguage?.split(',')[0]}/>
 
             <ReviewGuesserRound
                 appId={pick.appId}

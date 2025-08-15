@@ -1,6 +1,7 @@
 "use client";
 
 import React, {useEffect, useState} from "react";
+import {clearAll} from "@/lib/storage";
 
 export default function SteamLoginButton(): React.ReactElement {
     const backend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
@@ -17,14 +18,7 @@ export default function SteamLoginButton(): React.ReactElement {
                 if (active) setSteamId(data?.signedIn ? data.steamId : null);
                 // If just logged in, clear any local storage progress to avoid conflicts
                 try {
-                    if (data?.signedIn) {
-                        const keys: string[] = [];
-                        for (let i = 0; i < localStorage.length; i++) {
-                            const k = localStorage.key(i);
-                            if (k && k.startsWith('review-guesser:')) keys.push(k);
-                        }
-                        keys.forEach(k => localStorage.removeItem(k));
-                    }
+                    if (data?.signedIn) clearAll();
                 } catch {
                 }
             } catch {
