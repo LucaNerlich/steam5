@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import "@/styles/components/leaderboard.css";
+import Link from "next/link";
 
 type LeaderEntry = { steamId: string; personaName: string; totalPoints: number; rounds: number };
 
@@ -20,11 +21,11 @@ export default async function LeaderboardTodayPage() {
         <section className="container">
             <h1>Review Guesser — Leaderboard</h1>
             <nav className="leaderboard__toggle" aria-label="Leaderboard view">
-                <a href="/review-guesser/leaderboard" className="btn-ghost">All-time</a>
-                <a href="/review-guesser/leaderboard/today" className="btn-ghost is-active">Today</a>
+                <Link href="/review-guesser/leaderboard" className="btn-ghost">All-time</Link>
+                <Link href="/review-guesser/leaderboard/today" className="btn-ghost is-active">Today</Link>
             </nav>
             <h2>Today</h2>
-            <p className="text-muted">Today's total points by player (sorted highest first)</p>
+            <p className="text-muted">Today&apos;s total points by player (sorted highest first)</p>
             <div className="leaderboard">
                 <table className="leaderboard__table" aria-label="Today Leaderboard">
                     <thead>
