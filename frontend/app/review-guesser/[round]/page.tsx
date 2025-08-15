@@ -86,6 +86,15 @@ export default async function ReviewGuesserRoundPage({params}: { params: Promise
                 pickName={pick.name}
                 gameDate={today.date}
                 prefilled={prefill}
+                // pass all authenticated results to enable share button display without localStorage
+                allResults={Object.fromEntries(Object.entries(my).map(([k, v]) => [Number(k), {
+                    appId: v.appId,
+                    pickName: today.picks[(Number(k) - 1)]?.name,
+                    selectedLabel: v.selectedBucket,
+                    actualBucket: v.actualBucket ?? '',
+                    totalReviews: 0,
+                    correct: v.actualBucket ? (v.actualBucket === v.selectedBucket) : false,
+                }]))}
             />
         </section>
     );

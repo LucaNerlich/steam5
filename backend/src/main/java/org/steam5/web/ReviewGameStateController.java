@@ -40,7 +40,16 @@ public class ReviewGameStateController {
     public ResponseEntity<ReviewGameStateDto> getToday() {
         final List<ReviewGamePick> picks = service.generateDailyPicks();
         final List<Long> appIds = picks.stream().map(ReviewGamePick::getAppId).toList();
-        final List<SteamAppDetail> details = detailRepository.findAllById(appIds).stream().toList();
+        final List<SteamAppDetail> fetched = detailRepository.findAllById(appIds).stream().toList();
+        // Ensure details preserve the appIds order so round indices match what the user sees
+        final java.util.Map<Long, SteamAppDetail> byId = new java.util.HashMap<>();
+        for (SteamAppDetail d : fetched) {
+            byId.put(d.getAppId(), d);
+        }
+        final List<SteamAppDetail> details = appIds.stream()
+                .map(byId::get)
+                .filter(java.util.Objects::nonNull)
+                .toList();
 
         if (appIds.size() != details.size()) {
             throw new ReviewGameException(500, "Number of appIds and details don't match");
@@ -111,26 +120,32 @@ public class ReviewGameStateController {
         }
 
         final int total = service.getTotalReviewCountForApp(req.appId);
-        final String actual = service.inferBucket(total);
-        final boolean ok = actual.equals(req.bucketGuess);
+        final String computedActual = service.inferBucket(total);
 
         // date = today’s picks date
         final java.util.List<ReviewGamePick> picks = service.generateDailyPicks();
         final java.time.LocalDate date = picks.isEmpty() ? java.time.LocalDate.now() : picks.getFirst().getPickDate();
-        final int roundIndex = Math.max(1, picks.stream().map(ReviewGamePick::getAppId).toList().indexOf(req.appId) + 1);
-        final int points = scorePoints(service.getBucketLabels(), req.bucketGuess, actual);
+        // Compute roundIndex strictly from ordered picks; default to -1 if not found
+        final java.util.List<Long> pickOrder = picks.stream().map(ReviewGamePick::getAppId).toList();
+        final int foundIdx = pickOrder.indexOf(req.appId);
+        if (foundIdx < 0) {
+            return ResponseEntity.badRequest().body(new GuessResponse(req.appId, total, computedActual, false));
+        }
+        final int roundIndex = foundIdx + 1;
+        final int points = scorePoints(service.getBucketLabels(), req.bucketGuess, computedActual);
 
-        // upsert by (steamId, date, roundIndex)
-        guessRepository.findBySteamIdAndGameDateAndRoundIndex(steamId, date, roundIndex).ifPresentOrElse(g -> {
-            g.setSelectedBucket(req.bucketGuess);
-            g.setActualBucket(actual);
-            g.setPoints(points);
-            guessRepository.save(g);
-        }, () -> {
-            guessRepository.save(new org.steam5.domain.Guess(null, steamId, date, roundIndex, req.appId, req.bucketGuess, actual, points, java.time.OffsetDateTime.now()));
-        });
+        // If exists, return existing without overwriting
+        final var existingOpt = guessRepository.findBySteamIdAndGameDateAndRoundIndex(steamId, date, roundIndex);
+        if (existingOpt.isPresent()) {
+            final var g = existingOpt.get();
+            final boolean alreadyOk = g.getActualBucket() != null && g.getActualBucket().equals(g.getSelectedBucket());
+            return ResponseEntity.ok(new GuessResponse(g.getAppId(), total, g.getActualBucket(), alreadyOk));
+        }
 
-        return ResponseEntity.ok(new GuessResponse(req.appId, total, actual, ok));
+        // create new
+        guessRepository.save(new org.steam5.domain.Guess(null, steamId, date, roundIndex, req.appId, req.bucketGuess, computedActual, points, java.time.OffsetDateTime.now()));
+        final boolean ok = computedActual.equals(req.bucketGuess);
+        return ResponseEntity.ok(new GuessResponse(req.appId, total, computedActual, ok));
     }
 
     @GetMapping("/my/today")
