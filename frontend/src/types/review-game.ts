@@ -84,6 +84,8 @@ export interface Screenshot {
     id: number;
     pathThumbnail: string;
     pathFull: string;
+    blurhashThumb?: string | null;
+    blurhashFull?: string | null;
 }
 
 export interface Movie {

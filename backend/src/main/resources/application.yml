@@ -61,4 +61,6 @@ jobs:
     enabled: ${JOB_INGEST_DETAILS:false}
   review-game-state:
     enabled: ${JOB_GENERATE_REVIEW_STATE:false}
+  blurhash:
+    enabled: ${JOB_BLURHASH:false}
 

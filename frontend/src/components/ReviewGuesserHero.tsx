@@ -100,8 +100,15 @@ export default function ReviewGuesserHero(props: Readonly<ReviewGuesserHeroProps
                 <div className='screenshots'>
                     {thumbShots.map((s, i) => (
                         <button className='shot' key={s.id} onClick={() => openAt(i)} aria-label="Open screenshot">
-                            <Image src={s.pathThumbnail || s.pathFull} alt={pick.name} width={400} height={225}
-                                   style={{width: '100%', height: 'auto'}}/>
+                            <Image
+                                src={s.pathThumbnail || s.pathFull}
+                                alt={pick.name}
+                                width={400}
+                                height={225}
+                                placeholder={s.blurhashThumb ? 'blur' : 'empty'}
+                                blurDataURL={s.blurhashThumb || undefined}
+                                style={{width: '100%', height: 'auto'}}
+                            />
                         </button>
                     ))}
                 </div>
@@ -117,6 +124,8 @@ export default function ReviewGuesserHero(props: Readonly<ReviewGuesserHeroProps
                                 alt={pick.name}
                                 width={1280}
                                 height={720}
+                                placeholder={allShots[index].blurhashFull ? 'blur' : 'empty'}
+                                blurDataURL={allShots[index].blurhashFull || undefined}
                                 style={{width: '100%', height: 'auto'}}
                                 priority
                             />
