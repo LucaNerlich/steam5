@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.steam5.config.ReviewGameConfig;
 import org.steam5.domain.ReviewGamePick;
+import org.steam5.http.SteamApiException;
 import org.steam5.repository.DailyPickLockRepository;
 import org.steam5.repository.ExcludedAppRepository;
 import org.steam5.repository.ReviewGamePickRepository;
@@ -76,6 +77,14 @@ public class ReviewGameStateService {
                     excludedAppRepository.save(new org.steam5.domain.ExcludedApp(appId, "details fetch failed or success=false", OffsetDateTime.now()));
                 }
                 return ok;
+            } catch (SteamApiException sae) {
+                // Do not permanently exclude apps on rate limiting; abort generation instead to respect Steam API
+                if (sae.getStatusCode() == 429) {
+                    log.warn("Steam API rate limited (429) while validating appId {}. Aborting pick generation without exclusion.", appId);
+                    throw new RuntimeException(sae); // propagate to stop execution per policy
+                }
+                excludedAppRepository.save(new org.steam5.domain.ExcludedApp(appId, "details fetch error: HTTP " + sae.getStatusCode(), OffsetDateTime.now()));
+                return false;
             } catch (Exception e) {
                 excludedAppRepository.save(new org.steam5.domain.ExcludedApp(appId, "details fetch error: " + e.getMessage(), OffsetDateTime.now()));
                 return false;

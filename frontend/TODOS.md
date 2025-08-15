@@ -75,5 +75,5 @@
 - [x] use custom fonts (github monaspace)
 - [x] hide link to 'review guesser' when on that page
 - [x] add lightbox for screenshots
-- [ ] use provided image as steam login button from /public
+- [x] use provided image as steam login button from /public
 
