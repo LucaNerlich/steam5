@@ -34,7 +34,6 @@ export default function SteamLoginButton(): React.ReactElement {
         return (
             <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
                 <span className="text-muted">Signed in</span>
-                <a href="/api/auth/logout" className="btn-ghost">Logout</a>
             </div>
         );
     }

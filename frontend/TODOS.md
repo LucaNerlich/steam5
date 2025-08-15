@@ -42,14 +42,14 @@
 - [ ] info section below, which displays the other "meta" info we've got in the SteamAppDetail object
 - [x] display the price?
 - [ ] display price in local format (comma vs dot, currency symbol positioning.) use locale from browser
-- [ ] auth todos:
+- [x] auth todos:
     - [x] add logout to footer
     - [x] if logged in, hide steam login button
   - [x] if logged in, load a users guess for each round, instead of letting them guess again (which will be declined
       in the backend anyways)
   - [x] on user login, get the profile / account name as well, so that we can create a readable leaderboard
   - [x] if logged out, do not show logout button in footer
-  - [ ] if logged in, hide the 'reset today' button
+  - [x] if logged in, hide the 'reset today' button
 
 ### Backend
 
