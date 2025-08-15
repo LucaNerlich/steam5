@@ -77,17 +77,21 @@ export default function ReviewGuesserHero(props: Readonly<ReviewGuesserHeroProps
                     let priceText: string | null = null;
                     if (pick.isFree || (price && price.finalAmount === 0)) {
                         priceText = 'Free';
-                    } else if (price && price.finalFormatted) {
-                        priceText = price.finalFormatted;
-                    } else if (price && price.currency) {
-                        const amount = typeof price.finalAmount === 'number' ? price.finalAmount / 100 : 0;
-                        try {
-                            priceText = new Intl.NumberFormat(undefined, {
-                                style: 'currency',
-                                currency: price.currency
-                            }).format(amount);
-                        } catch {
-                            priceText = `${amount.toFixed(2)} ${price.currency}`;
+                    } else if (price) {
+                        const amount = typeof price.finalAmount === 'number' ? price.finalAmount / 100 : null;
+                        const currencyCode = price.currency || 'USD';
+                        if (amount !== null) {
+                            try {
+                                priceText = new Intl.NumberFormat(undefined, {
+                                    style: 'currency',
+                                    currency: currencyCode,
+                                    currencyDisplay: 'symbol'
+                                }).format(amount);
+                            } catch {
+                                priceText = `${amount.toFixed(2)} ${currencyCode}`;
+                            }
+                        } else if (price.finalFormatted) {
+                            priceText = price.finalFormatted; // fallback if amount missing
                         }
                     }
                     return priceText ? (

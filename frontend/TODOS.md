@@ -41,7 +41,7 @@
 - [x] display the release date
 - [ ] info section below, which displays the other "meta" info we've got in the SteamAppDetail object
 - [x] display the price?
-- [ ] display price in local format (comma vs dot, currency symbol positioning.) use locale from browser
+- [x] display price in local format (comma vs dot, currency symbol positioning.) use locale from browser
 - [x] auth todos:
     - [x] add logout to footer
     - [x] if logged in, hide steam login button
@@ -68,7 +68,7 @@
 - [x] do not pick games that are not released yet, or have been released in the last seven days.
 - [ ] can we generate a blurhash on the backend, for each screenshot that we get?
     - https://github.com/hsch/blurhash-java/blob/master/src/main/java/io/trbl/blurhash/BlurHash.java
-- [ ] do not add 429 error to excluded_app tables
+- [x] do not add 429 error to excluded_app tables
 
 ## Do later
 
