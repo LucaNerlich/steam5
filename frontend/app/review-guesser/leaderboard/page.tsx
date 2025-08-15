@@ -2,6 +2,8 @@ export const dynamic = 'force-dynamic';
 
 type LeaderEntry = { steamId: string; personaName: string; totalPoints: number; rounds: number };
 
+import "@/styles/components/leaderboard.css";
+
 async function loadLeaderboard(): Promise<LeaderEntry[]> {
     const backend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
     const res = await fetch(`${backend}/api/leaderboard/today`, {
@@ -18,13 +20,28 @@ export default async function LeaderboardPage() {
         <section className="container">
             <h1>Review Guesser — Leaderboard</h1>
             <p className="text-muted">Today&apos;s total points by player (sorted highest first)</p>
-            <ol style={{paddingLeft: '1.25rem'}}>
-                {data.map((e) => (
-                    <li key={e.steamId} style={{marginBottom: '0.5rem'}}>
-                        <strong>{e.personaName || e.steamId}</strong> — {e.totalPoints} pts ({e.rounds} rounds)
-                    </li>
-                ))}
-            </ol>
+            <div className="leaderboard">
+                <table className="leaderboard__table" aria-label="Leaderboard">
+                    <thead>
+                    <tr>
+                        <th scope="col" className="num">#</th>
+                        <th scope="col">Player</th>
+                        <th scope="col" className="num">Points</th>
+                        <th scope="col" className="num">Rounds</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {data.map((e, i) => (
+                        <tr key={e.steamId}>
+                            <td>{i + 1}</td>
+                            <td><strong>{e.personaName || e.steamId}</strong></td>
+                            <td className="num">{e.totalPoints}</td>
+                            <td className="num">{e.rounds}</td>
+                        </tr>
+                    ))}
+                    </tbody>
+                </table>
+            </div>
         </section>
     );
 }
