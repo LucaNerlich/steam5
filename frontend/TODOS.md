@@ -50,6 +50,7 @@
   - [x] on user login, get the profile / account name as well, so that we can create a readable leaderboard
   - [x] if logged out, do not show logout button in footer
   - [x] if logged in, hide the 'reset today' button
+- [x] add favicon
 - leaderboard todos:
     - [ ] create a new route /review-guesser/leaderboard
     - [ ] createa reusable leaderboard component (should be able to show stats for any game), display gamename, and rows
