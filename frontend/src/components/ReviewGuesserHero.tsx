@@ -4,6 +4,7 @@ import React, {useCallback, useEffect, useState} from 'react';
 import Image from "next/image";
 import {ReviewGameState, SteamAppDetail} from "@/types/review-game";
 import {formatDate, formatPrice} from "@/lib/format";
+import {useBlurhashDataURL} from "@/lib/blurhash";
 import "@/styles/components/reviewGuesserHero.css";
 
 interface ReviewGuesserHeroProps {
@@ -98,19 +99,22 @@ export default function ReviewGuesserHero(props: Readonly<ReviewGuesserHeroProps
             )}
             {thumbShots.length > 0 && (
                 <div className='screenshots'>
-                    {thumbShots.map((s, i) => (
-                        <button className='shot' key={s.id} onClick={() => openAt(i)} aria-label="Open screenshot">
-                            <Image
-                                src={s.pathThumbnail || s.pathFull}
-                                alt={pick.name}
-                                width={400}
-                                height={225}
-                                placeholder={s.blurhashThumb ? 'blur' : 'empty'}
-                                blurDataURL={s.blurhashThumb || undefined}
-                                style={{width: '100%', height: 'auto'}}
-                            />
-                        </button>
-                    ))}
+                    {thumbShots.map((s, i) => {
+                        const blur = s.blurdataThumb ?? useBlurhashDataURL(s.blurhashThumb ?? undefined);
+                        return (
+                            <button className='shot' key={s.id} onClick={() => openAt(i)} aria-label="Open screenshot">
+                                <Image
+                                    src={s.pathThumbnail || s.pathFull}
+                                    alt={pick.name}
+                                    width={400}
+                                    height={225}
+                                    placeholder={blur ? 'blur' : 'empty'}
+                                    blurDataURL={blur}
+                                    style={{width: '100%', height: 'auto'}}
+                                />
+                            </button>
+                        );
+                    })}
                 </div>
             )}
 
@@ -119,16 +123,21 @@ export default function ReviewGuesserHero(props: Readonly<ReviewGuesserHeroProps
                     <div className="lightbox-content" onClick={(e) => e.stopPropagation()}>
                         <button className="lightbox-close" aria-label="Close" onClick={close}>✕</button>
                         <div className="lightbox-img">
-                            <Image
-                                src={allShots[index].pathFull || allShots[index].pathThumbnail}
-                                alt={pick.name}
-                                width={1280}
-                                height={720}
-                                placeholder={allShots[index].blurhashFull ? 'blur' : 'empty'}
-                                blurDataURL={allShots[index].blurhashFull || undefined}
-                                style={{width: '100%', height: 'auto'}}
-                                priority
-                            />
+                            {(() => {
+                                const blur = allShots[index].blurdataFull ?? useBlurhashDataURL(allShots[index].blurhashFull ?? undefined, 64, 36);
+                                return (
+                                    <Image
+                                        src={allShots[index].pathFull || allShots[index].pathThumbnail}
+                                        alt={pick.name}
+                                        width={1280}
+                                        height={720}
+                                        placeholder={blur ? 'blur' : 'empty'}
+                                        blurDataURL={blur}
+                                        style={{width: '100%', height: 'auto'}}
+                                        priority
+                                    />
+                                );
+                            })()}
                         </div>
                         {allShots.length > 1 && (
                             <div className="lightbox-nav">

@@ -3,15 +3,20 @@ package org.steam5.job;
 import lombok.extern.slf4j.Slf4j;
 import org.quartz.*;
 import org.springframework.context.annotation.Bean;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 import org.steam5.domain.details.Screenshot;
 import org.steam5.job.blurhash.BlurHash;
 import org.steam5.repository.details.ScreenshotRepository;
 
 import javax.imageio.ImageIO;
+import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.net.URI;
+import java.util.Base64;
 
 @Component
 @Slf4j
@@ -24,6 +29,21 @@ public class BlurhashJob implements Job {
         this.screenshotRepository = screenshotRepository;
     }
 
+    private static String toPngDataUrl(BufferedImage src, int w, int h) {
+        try {
+            final BufferedImage scaled = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
+            final Graphics2D g2 = scaled.createGraphics();
+            g2.drawImage(src, 0, 0, w, h, null);
+            g2.dispose();
+            ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+            ImageIO.write(scaled, "png", baos);
+            final String b64 = Base64.getEncoder().encodeToString(baos.toByteArray());
+            return "data:image/png;base64," + b64;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     @Override
     public void execute(JobExecutionContext context) throws JobExecutionException {
         long startNs = System.nanoTime();
@@ -33,19 +53,22 @@ public class BlurhashJob implements Job {
             int page = 0;
             boolean more = true;
             while (more) {
-                var batch = screenshotRepository.findPageWithoutBlurhash(org.springframework.data.domain.PageRequest.of(page, pageSize));
+                final Page<Screenshot> batch = screenshotRepository.findPageWithoutBlurhash(PageRequest.of(page, pageSize));
                 if (batch.isEmpty()) break;
                 for (Screenshot s : batch.getContent()) {
                     scanned++;
                     // thumbnail
                     if ((s.getBlurhashThumb() == null || s.getBlurhashThumb().isBlank()) && s.getPathThumbnail() != null && !s.getPathThumbnail().isBlank()) {
                         try (InputStream in = URI.create(s.getPathThumbnail()).toURL().openStream()) {
-                            BufferedImage img = ImageIO.read(in);
+                            final BufferedImage img = ImageIO.read(in);
                             if (img == null) {
                                 failed++;
                             } else {
-                                String hash = BlurHash.encode(img, 4, 4);
+                                final String hash = BlurHash.encode(img, 4, 4);
                                 s.setBlurhashThumb(hash);
+                                // also compute small PNG data URL for Next/Image
+                                final String data = toPngDataUrl(img, 32, 20);
+                                if (data != null) s.setBlurdataThumb(data);
                                 encoded++;
                             }
                         } catch (Exception e) {
@@ -56,12 +79,14 @@ public class BlurhashJob implements Job {
                     // full
                     if ((s.getBlurhashFull() == null || s.getBlurhashFull().isBlank()) && s.getPathFull() != null && !s.getPathFull().isBlank()) {
                         try (InputStream in = URI.create(s.getPathFull()).toURL().openStream()) {
-                            BufferedImage img = ImageIO.read(in);
+                            final BufferedImage img = ImageIO.read(in);
                             if (img == null) {
                                 failed++;
                             } else {
-                                String hash = BlurHash.encode(img, 4, 4);
+                                final String hash = BlurHash.encode(img, 4, 4);
                                 s.setBlurhashFull(hash);
+                                final String data = toPngDataUrl(img, 64, 36);
+                                if (data != null) s.setBlurdataFull(data);
                                 encoded++;
                             }
                         } catch (Exception e) {

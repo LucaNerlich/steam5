@@ -86,6 +86,8 @@ export interface Screenshot {
     pathFull: string;
     blurhashThumb?: string | null;
     blurhashFull?: string | null;
+    blurdataThumb?: string | null;
+    blurdataFull?: string | null;
 }
 
 export interface Movie {

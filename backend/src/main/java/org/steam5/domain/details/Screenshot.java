@@ -37,4 +37,12 @@ public class Screenshot {
     @Column(name = "blurhash_full", length = 200)
     private String blurhashFull;
 
+    @Setter
+    @Column(name = "blurdata_thumb", columnDefinition = "TEXT")
+    private String blurdataThumb;
+
+    @Setter
+    @Column(name = "blurdata_full", columnDefinition = "TEXT")
+    private String blurdataFull;
+
 }
