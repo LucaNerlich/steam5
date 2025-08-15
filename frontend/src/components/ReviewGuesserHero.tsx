@@ -3,6 +3,7 @@
 import React, {useCallback, useEffect, useState} from 'react';
 import Image from "next/image";
 import {ReviewGameState, SteamAppDetail} from "@/types/review-game";
+import {formatDate, formatPrice} from "@/lib/format";
 import "@/styles/components/reviewGuesserHero.css";
 
 interface ReviewGuesserHeroProps {
@@ -65,11 +66,7 @@ export default function ReviewGuesserHero(props: Readonly<ReviewGuesserHeroProps
                 )}
                 {pick.releaseDate && (
                     <span title='Release date' className="meta-item">
-                        📅 {new Date(pick.releaseDate).toLocaleDateString(undefined, {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric'
-                    })}
+                        📅 {formatDate(pick.releaseDate)}
                     </span>
                 )}
                 {(() => {
@@ -78,18 +75,10 @@ export default function ReviewGuesserHero(props: Readonly<ReviewGuesserHeroProps
                     if (pick.isFree || (price && price.finalAmount === 0)) {
                         priceText = 'Free';
                     } else if (price) {
-                        const amount = typeof price.finalAmount === 'number' ? price.finalAmount / 100 : null;
+                        const amountCents = typeof price.finalAmount === 'number' ? price.finalAmount : null;
                         const currencyCode = price.currency || 'USD';
-                        if (amount !== null) {
-                            try {
-                                priceText = new Intl.NumberFormat(undefined, {
-                                    style: 'currency',
-                                    currency: currencyCode,
-                                    currencyDisplay: 'symbol'
-                                }).format(amount);
-                            } catch {
-                                priceText = `${amount.toFixed(2)} ${currencyCode}`;
-                            }
+                        if (amountCents !== null) {
+                            priceText = formatPrice(amountCents, currencyCode);
                         } else if (price.finalFormatted) {
                             priceText = price.finalFormatted; // fallback if amount missing
                         }

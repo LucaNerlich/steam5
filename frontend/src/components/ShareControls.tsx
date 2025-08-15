@@ -2,23 +2,7 @@
 
 import React, {useState} from "react";
 import "@/styles/components/reviewShareControls.css";
-
-function scoreForRound(buckets: string[], selectedLabel: string, actual: string): {
-    bar: string;
-    points: number;
-    distance: number
-} {
-    const selectedIndex = buckets.indexOf(selectedLabel);
-    const actualIndex = buckets.indexOf(actual);
-    if (selectedIndex < 0 || actualIndex < 0) return {bar: '⬜', points: 0, distance: 0};
-    const d = Math.abs(selectedIndex - actualIndex);
-    const maxPoints = 5;
-    const step = 2;
-    const points = Math.max(0, maxPoints - step * d);
-    const emojiByDistance = ['🟩', '🟨', '🟧'];
-    const bar = d <= 2 ? emojiByDistance[d] : '🟥';
-    return {bar, points, distance: d};
-}
+import {scoreForRound} from "@/lib/scoring";
 
 type RoundResult = {
     pickName?: string;
