@@ -3,6 +3,7 @@ import ReviewGuesserRound from "../../../src/components/ReviewGuesserRound";
 import Link from "next/link";
 import ReviewGuesserHero from "@/components/ReviewGuesserHero";
 import {cookies, headers} from 'next/headers';
+import GameInfoSection from "@/components/GameInfoSection";
 
 export const dynamic = "force-dynamic";
 
@@ -101,6 +102,8 @@ export default async function ReviewGuesserRoundPage({params}: { params: Promise
                     correct: v.actualBucket ? (v.actualBucket === v.selectedBucket) : false,
                 }]))}
             />
+
+            <GameInfoSection pick={pick}/>
         </section>
     );
 }

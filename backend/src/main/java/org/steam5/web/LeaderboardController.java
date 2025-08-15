@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.steam5.domain.Guess;
 import org.steam5.repository.GuessRepository;
+import org.steam5.repository.UserRepository;
 import org.steam5.service.ReviewGameStateService;
 
 import java.time.LocalDate;
@@ -21,6 +22,7 @@ public class LeaderboardController {
 
     private final GuessRepository guessRepository;
     private final ReviewGameStateService reviewGameStateService;
+    private final UserRepository userRepository;
 
     @GetMapping("/today")
     public ResponseEntity<List<LeaderEntry>> today() {
@@ -43,9 +45,9 @@ public class LeaderboardController {
                 return buckets.indexOf(g.getSelectedBucket()) < buckets.indexOf(g.getActualBucket());
             }).count();
             double avgPoints = rounds > 0 ? ((double) totalPoints) / rounds : 0.0;
-            final String personaName = list.stream().findFirst()
-                    .map(g -> (String) null)
-                    .orElse(null);
+            final String personaName = userRepository.findById(steamId)
+                    .map(u -> u.getPersonaName() != null && !u.getPersonaName().isBlank() ? u.getPersonaName() : u.getSteamId())
+                    .orElse(steamId);
             return new LeaderEntry(steamId, personaName, totalPoints, rounds, hits, tooHigh, tooLow, avgPoints);
         }).sorted((a, b) -> Long.compare(b.totalPoints, a.totalPoints)).toList();
         return ResponseEntity.ok(out);
@@ -70,7 +72,9 @@ public class LeaderboardController {
                 return buckets.indexOf(g.getSelectedBucket()) < buckets.indexOf(g.getActualBucket());
             }).count();
             double avgPoints = rounds > 0 ? ((double) totalPoints) / rounds : 0.0;
-            String personaName = steamId;
+            final String personaName = userRepository.findById(steamId)
+                    .map(u -> u.getPersonaName() != null && !u.getPersonaName().isBlank() ? u.getPersonaName() : u.getSteamId())
+                    .orElse(steamId);
             return new LeaderEntry(steamId, personaName, totalPoints, rounds, hits, tooHigh, tooLow, avgPoints);
         }).sorted((a, b) -> Long.compare(b.totalPoints, a.totalPoints)).toList();
         return ResponseEntity.ok(out);
