@@ -72,6 +72,11 @@ export default function ReviewGuesserRound({
         return next <= totalRounds ? `/review-guesser/${next}` : `/review-guesser/1`;
     }, [roundIndex, totalRounds]);
 
+    const prevHref = useMemo(() => {
+        const prev = roundIndex - 1;
+        return prev >= 1 ? `/review-guesser/${prev}` : null;
+    }, [roundIndex]);
+
     // Persist this round's result for the current game date
     useEffect(() => {
         // If user is authenticated (token cookie present on server), SSR passes prefilled; we choose not to persist
@@ -216,6 +221,10 @@ export default function ReviewGuesserRound({
                         >
                             Open on Steam ↗
                         </a>
+                        {prevHref && (
+                            <Link href={prevHref} className="btn-ghost" aria-label="Go to previous round">← Previous
+                                round</Link>
+                        )}
                         <ShareControls
                             inline
                             buckets={buckets}
@@ -278,32 +287,40 @@ export default function ReviewGuesserRound({
                         >
                             Open on Steam ↗
                         </a>
+                        {prevHref && (
+                            <Link href={prevHref} className="btn-ghost" aria-label="Go to previous round">← Previous
+                                round</Link>
+                        )}
                         {roundIndex < totalRounds && (
                             <Link href={nextHref} className="btn-cta" aria-label="Go to next round">Next round →</Link>
                         )}
                     </div>
+                    {isComplete && (
+                        <div>
+                            <hr style={{margin: '1rem 0'}}/>
+                            <div className="review-round__share">
+                                <ShareControls
+                                    inline
+                                    buckets={buckets}
+                                    gameDate={gameDate}
+                                    totalRounds={totalRounds}
+                                    latestRound={latestStoredRoundIndex}
+                                    latest={latestStored ? latestStored : {
+                                        appId,
+                                        pickName,
+                                        selectedLabel: selectedLabel ?? '',
+                                        actualBucket: effectiveResponse ? effectiveResponse.actualBucket : '',
+                                        totalReviews: effectiveResponse ? effectiveResponse.totalReviews : 0,
+                                        correct: effectiveResponse ? effectiveResponse.correct : false,
+                                    }}
+                                    results={Object.keys(serverResults).length > 0 ? serverResults : undefined}
+                                />
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
-            {isComplete && (
-                <div className="review-round__share">
-                    <ShareControls
-                        inline
-                        buckets={buckets}
-                        gameDate={gameDate}
-                        totalRounds={totalRounds}
-                        latestRound={latestStoredRoundIndex}
-                        latest={latestStored ? latestStored : {
-                            appId,
-                            pickName,
-                            selectedLabel: selectedLabel ?? '',
-                            actualBucket: effectiveResponse ? effectiveResponse.actualBucket : '',
-                            totalReviews: effectiveResponse ? effectiveResponse.totalReviews : 0,
-                            correct: effectiveResponse ? effectiveResponse.correct : false,
-                        }}
-                        results={Object.keys(serverResults).length > 0 ? serverResults : undefined}
-                    />
-                </div>
-            )}
+
             {!isComplete && <ReviewRules/>}
         </>
     );
