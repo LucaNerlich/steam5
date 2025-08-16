@@ -36,11 +36,11 @@ export default function GameInfoSection({pick}: Props): React.ReactElement | nul
 
     return (
         <section className="game-info" aria-labelledby="game-info-title">
-            <h3 id="game-info-title" className="game-info__title">More about this game</h3>
+            <h2 id="game-info-title" className="game-info__title">More about this game</h2>
 
             {hasPlatforms && (
                 <div className="game-info__section">
-                    <h4>Platforms</h4>
+                    <h3>Platforms</h3>
                     <ul className="game-info__badges" aria-label="Supported platforms">
                         {pick.isWindows && <li className="badge">Windows</li>}
                         {pick.isMac && <li className="badge">macOS</li>}
@@ -51,14 +51,14 @@ export default function GameInfoSection({pick}: Props): React.ReactElement | nul
 
             {hasController && (
                 <div className="game-info__section">
-                    <h4>Controller</h4>
+                    <h3>Controller</h3>
                     <p className="text-muted">{pick.controllerSupport}</p>
                 </div>
             )}
 
             {hasCategories && (
                 <div className="game-info__section">
-                    <h4>Categories</h4>
+                    <h3>Categories</h3>
                     <ul className="game-info__pills" aria-label="Categories">
                         {uniqueCategories.map((c) => (
                             <li key={`cat-${c.id ?? c.description?.toLowerCase().trim()}`} className="pill">
@@ -71,21 +71,21 @@ export default function GameInfoSection({pick}: Props): React.ReactElement | nul
 
             {hasShort && (
                 <div className="game-info__section">
-                    <h4>Short description</h4>
+                    <h3>Short description</h3>
                     <p>{pick.shortDescription}</p>
                 </div>
             )}
 
             {hasAbout && (
                 <div className="game-info__section">
-                    <h4>About the game</h4>
+                    <h3>About the game</h3>
                     <div className="game-info__about" dangerouslySetInnerHTML={{__html: pick.aboutTheGame || ""}}/>
                 </div>
             )}
 
             {hasMovies && (
                 <div className="game-info__section">
-                    <h4>Videos</h4>
+                    <h3>Videos</h3>
                     <div className="game-info__videos">
                         {pick.movies.map((m, i) => (
                             <div key={`mov-${m.id}-${i}`} className="game-info__video">

@@ -241,7 +241,7 @@ export default function ReviewGuesserRound({
 
     return (
         <>
-            <h3>Review Count Guess</h3>
+            <h2>Review Count Guess</h2>
             <GuessButtons
                 appId={appId}
                 buckets={buckets}
