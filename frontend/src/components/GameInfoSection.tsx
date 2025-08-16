@@ -9,31 +9,30 @@ interface Props {
 }
 
 export default function GameInfoSection({pick}: Props): React.ReactElement | null {
-    if (!pick) return null;
-
-    const hasMovies = Array.isArray(pick.movies) && pick.movies.length > 0;
-    const hasShort = Boolean(pick.shortDescription);
-    const hasAbout = Boolean(pick.aboutTheGame);
-    const hasController = Boolean(pick.controllerSupport);
-    const hasPlatforms = pick.isWindows || pick.isMac || pick.isLinux;
-
-    // De-duplicate categories by id (fallback to normalized description)
+    // Hooks must be called unconditionally
     const uniqueCategories = React.useMemo(() => {
-        if (!Array.isArray(pick.categories)) return [];
+        const list = Array.isArray(pick?.categories) ? pick!.categories : [];
         const seen = new Set<string>();
-        return pick.categories.filter((c) => {
-            const key =
-                (c && (c.id != null ? String(c.id) : c.description?.toLowerCase().trim())) || "";
+        return list.filter((c) => {
+            const key = c?.id != null ? String(c.id) : c?.description?.toLowerCase().trim() || "";
             if (!key || seen.has(key)) return false;
             seen.add(key);
             return true;
         });
-    }, [pick.categories]);
+    }, [pick?.categories]);
 
+    const hasMovies = Array.isArray(pick?.movies) && pick!.movies.length > 0;
     const hasCategories = uniqueCategories.length > 0;
+    const hasShort = Boolean(pick?.shortDescription);
+    const hasAbout = Boolean(pick?.aboutTheGame);
+    const hasController = Boolean(pick?.controllerSupport);
+    const hasPlatforms = Boolean(pick?.isWindows || pick?.isMac || pick?.isLinux);
+    const hasAny = Boolean(
+        pick &&
+        (hasMovies || hasCategories || hasShort || hasAbout || hasController || hasPlatforms)
+    );
 
-    const hasAny = hasMovies || hasCategories || hasShort || hasAbout || hasController || hasPlatforms;
-    if (!hasAny) return null;
+    if (!pick || !hasAny) return null;
 
     return (
         <section className="game-info" aria-labelledby="game-info-title">
@@ -62,7 +61,7 @@ export default function GameInfoSection({pick}: Props): React.ReactElement | nul
                     <h4>Categories</h4>
                     <ul className="game-info__pills" aria-label="Categories">
                         {uniqueCategories.map((c) => (
-                            <li key={`cat-${c.id ?? c.description}`} className="pill">
+                            <li key={`cat-${c.id ?? c.description?.toLowerCase().trim()}`} className="pill">
                                 {c.description}
                             </li>
                         ))}
