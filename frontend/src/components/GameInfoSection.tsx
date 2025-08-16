@@ -19,7 +19,7 @@ export default function GameInfoSection({pick}: Props): React.ReactElement | nul
             seen.add(key);
             return true;
         });
-    }, [pick?.categories]);
+    }, [pick]);
 
     const hasMovies = Array.isArray(pick?.movies) && pick!.movies.length > 0;
     const hasCategories = uniqueCategories.length > 0;

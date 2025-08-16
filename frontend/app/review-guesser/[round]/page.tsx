@@ -19,7 +19,7 @@ async function loadToday(): Promise<ReviewGameState> {
     return res.json();
 }
 
-async function loadMyGuesses(date: string): Promise<Record<number, {
+async function loadMyGuesses(): Promise<Record<number, {
     roundIndex: number;
     appId: number;
     selectedBucket: string;
@@ -56,7 +56,7 @@ export default async function ReviewGuesserRoundPage({params}: { params: Promise
     const {round} = await params;
     const roundIndex = Math.max(1, Number.parseInt(round || '1', 10));
     const today = await loadToday();
-    const my = await loadMyGuesses(today.date);
+    const my = await loadMyGuesses();
     const acceptLanguage = (await headers()).get('accept-language') || undefined;
 
     const totalRounds = today.picks.length;

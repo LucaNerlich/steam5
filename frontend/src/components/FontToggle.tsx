@@ -34,7 +34,7 @@ export default function FontToggle() {
                      focusable="false">
                     <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="1.5"/>
                     <text x="12" y="12" fill="currentColor" fontSize="11" textAnchor="middle"
-                          dominant-baseline="central">K
+                          dominantBaseline="central">K
                     </text>
                 </svg>
             ) : (
@@ -43,7 +43,7 @@ export default function FontToggle() {
                      focusable="false">
                     <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="1.5"/>
                     <text x="12" y="12" fill="currentColor" fontSize="11" textAnchor="middle"
-                          dominant-baseline="central">N
+                          dominantBaseline="central">N
                     </text>
                 </svg>
             )}

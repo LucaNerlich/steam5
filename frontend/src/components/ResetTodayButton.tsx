@@ -13,7 +13,6 @@ function getLocalDateYYYYMMDD(): string {
 }
 
 export default function ResetTodayButton() {
-    const [done, setDone] = useState(false);
     const [signedIn, setSignedIn] = useState<boolean>(false);
     const router = useRouter()
 
@@ -34,8 +33,6 @@ export default function ResetTodayButton() {
                 }
             }
             candidates.forEach((k) => localStorage.removeItem(k));
-            setDone(true);
-            setTimeout(() => setDone(false), 1500);
         } catch {
             // ignore
         }
@@ -44,7 +41,7 @@ export default function ResetTodayButton() {
             router.push(Routes.reviewGuesser + '/1')
         } catch { /* noop */
         }
-    }, []);
+    }, [router]);
 
     useEffect(() => {
         let active = true;
@@ -68,8 +65,11 @@ export default function ResetTodayButton() {
     if (signedIn) return null;
 
     return (
-        <button className="theme-toggle" onClick={onReset} aria-label="Reset today's progress">
-            {done ? 'Reset ✓' : 'Reset Today 🤡'}
+        <button title='Reset Today (Cheat)'
+                className="theme-toggle"
+                onClick={onReset}
+                aria-label="Reset today's progress">
+            🤡
         </button>
     );
 }
