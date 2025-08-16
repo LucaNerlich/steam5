@@ -17,6 +17,20 @@ header .header-actions {
     gap: 0.5rem;
 }
 
+/* Steam login image should appear without default button styling */
+header .steam-login-btn {
+    background: transparent;
+    border: 0;
+    padding: 0;
+    line-height: 0;
+    display: inline-flex;
+    align-items: center;
+}
+
+header .steam-login-btn:hover {
+    opacity: 0.95;
+}
+
 /* Make header less cramped on small screens */
 @media (max-width: 480px) {
     header .container {

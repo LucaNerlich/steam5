@@ -1,4 +1,5 @@
 import "@/styles/components/leaderboard.css";
+import Image from "next/image";
 
 export type LeaderEntry = {
     steamId: string;
@@ -36,7 +37,8 @@ export default function LeaderboardTable({entries, ariaLabel}: { entries: Leader
                         <td>
                             <div className="leaderboard__player">
                                 {e.avatar && (
-                                    <img className="leaderboard__avatar" src={e.avatar} alt="" width={20} height={20}/>
+                                    <Image className="leaderboard__avatar" src={e.avatar} alt="" width={20}
+                                           height={20}/>
                                 )}
                                 {e.profileUrl ? (
                                     <a href={e.profileUrl} target="_blank" rel="noopener noreferrer"

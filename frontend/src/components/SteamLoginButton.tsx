@@ -2,6 +2,7 @@
 
 import React, {useEffect, useState} from "react";
 import {clearAll} from "@/lib/storage";
+import Image from "next/image";
 
 export default function SteamLoginButton(): React.ReactElement {
     const backend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
@@ -52,9 +53,14 @@ export default function SteamLoginButton(): React.ReactElement {
     }
 
     return (
-        <button className="btn-ghost" onClick={onClick} aria-label="Sign in through Steam"
-                style={{padding: 0, border: 0, background: 'transparent'}}>
-            <img src="/sign-in-through-steam.png" alt="Sign in through Steam"/>
+        <button className="steam-login-btn" onClick={onClick} aria-label="Sign in through Steam">
+            <Image
+                src="/sign-in-through-steam.png"
+                alt="Sign in through Steam"
+                width={184}
+                height={44}
+                priority={false}
+            />
         </button>
     );
 }
