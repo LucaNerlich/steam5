@@ -5,8 +5,25 @@
     justify-content: center;
 }
 
+.review-round__button {
+    background: var(--color-surface);
+    color: var(--color-text);
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    padding: 0.75rem 1.1rem;
+    font-size: 1.05rem;
+    line-height: 1.4;
+    font-weight: 600;
+    cursor: pointer;
+    min-width: 140px;
+    text-align: center;
+    transition: transform 120ms ease, filter 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.02);
+}
+
 .review-round__button.is-selected {
-    outline: 2px solid var(--color-primary);
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 30%, transparent);
 }
 
 /* Light hover effect for guess buttons */
@@ -14,6 +31,28 @@
     filter: brightness(1.04);
     transform: translateY(-1px);
     transition: transform 120ms ease, filter 120ms ease;
+}
+
+.review-round__button:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 45%, transparent);
+}
+
+.review-round__button:disabled {
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+@media (max-width: 640px) {
+    .review-round__buttons {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+
+    .review-round__button {
+        width: 100%;
+    }
 }
 
 
