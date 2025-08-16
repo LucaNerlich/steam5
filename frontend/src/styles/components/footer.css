@@ -18,4 +18,14 @@ footer .controls {
     align-items: center;
 }
 
+.footer__icon-link {
+    color: var(--color-text);
+    display: inline-flex;
+    align-items: center;
+}
+
+.footer__icon-link:hover {
+    opacity: 0.85;
+}
+
 
