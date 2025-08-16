@@ -23,6 +23,7 @@ export default function FontToggle() {
 
     return (
         <button
+            title='Font Toggle'
             className="theme-toggle"
             aria-label="Toggle font family"
             onClick={() => setFont(prev => prev === 'krypton' ? 'neon' : 'krypton')}
@@ -32,7 +33,7 @@ export default function FontToggle() {
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"
                      focusable="false">
                     <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="1.5"/>
-                    <text x="12" y="12" fill="currentColor" font-size="11" text-anchor="middle"
+                    <text x="12" y="12" fill="currentColor" fontSize="11" textAnchor="middle"
                           dominant-baseline="central">K
                     </text>
                 </svg>
@@ -41,7 +42,7 @@ export default function FontToggle() {
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"
                      focusable="false">
                     <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="1.5"/>
-                    <text x="12" y="12" fill="currentColor" font-size="11" text-anchor="middle"
+                    <text x="12" y="12" fill="currentColor" fontSize="11" textAnchor="middle"
                           dominant-baseline="central">N
                     </text>
                 </svg>

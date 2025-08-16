@@ -38,6 +38,7 @@ export default function ThemeToggle() {
 
     return (
         <button
+            title='Theme Toggle'
             className="theme-toggle"
             aria-label="Toggle color theme"
             onClick={() => setTheme(prev => prev === "dark" ? "light" : "dark")}
