@@ -45,7 +45,7 @@ export const metadata: Metadata = {
     formatDetection: {
         email: true,
         address: true,
-        telephone: true,
+        telephone: false,
     },
     alternates: {
         canonical: `/`,
