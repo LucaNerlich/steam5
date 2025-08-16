@@ -76,6 +76,7 @@ export default function ShareControls(props: {
     lines.push(`Total points: ${total}`);
     lines.push('');
     lines.push('Play: https://steam5.org/review-guesser');
+    lines.push('Leaderboard: https://steam5.org/review-guesser/leaderboard');
     const text = lines.join('\n');
 
     async function copyToClipboard() {
