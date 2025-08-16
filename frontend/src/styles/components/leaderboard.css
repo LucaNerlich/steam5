@@ -76,9 +76,13 @@
 }
 
 @media (max-width: 640px) {
-    .leaderboard__table th:nth-child(4),
-    .leaderboard__table td:nth-child(4) {
-        display: none; /* hide rounds column on small screens */
+    /* Show rounds on mobile; hide less critical columns to save space */
+    .leaderboard__table th:nth-child(6),
+    .leaderboard__table td:nth-child(6), /* Too High */
+    .leaderboard__table th:nth-child(7),
+    .leaderboard__table td:nth-child(7) /* Too Low */
+    {
+        display: none;
     }
 }
 
