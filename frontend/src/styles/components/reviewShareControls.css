@@ -1,10 +1,19 @@
 .review-round__actions {
     margin-top: 12px;
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-end;
     align-items: center;
     gap: 8px;
     flex-wrap: wrap;
+}
+
+/* Desktop: keep buttons inline */
+.review-round__actions .btn-cta {
+    text-align: center;
+}
+
+.review-round__actions .share-inline {
+    display: inline-flex;
 }
 
 /* Share button inline indicator (prevents layout shift on mobile) */
@@ -39,10 +48,43 @@
     justify-content: flex-end;
 }
 
-@media only screen and (max-width: 768px) {
-    .review-round__actions {
+/* Mobile: stack and full width for primary + share */
+@media (max-width: 768px) {
+    .review-round__actions .btn-cta {
+        flex: 1 1 100%;
+        width: 100%;
+        justify-content: flex-end;
+        text-align: right;
+    }
+
+    .review-round__actions .share-inline {
+        flex: 1 1 100%;
+        width: 100%;
+        display: flex;
         justify-content: flex-end;
     }
-}
 
+    .review-round__actions .share-inline .btn-success {
+        width: 100%;
+        justify-content: flex-end;
+        text-align: right;
+    }
+
+    .review-round__share {
+        display: block;
+        width: 100%;
+    }
+
+    .review-round__share .share-inline {
+        width: 100%;
+        display: flex;
+        justify-content: flex-end;
+    }
+
+    .review-round__share .share-inline .btn-success {
+        width: 100%;
+        justify-content: flex-end;
+        text-align: right;
+    }
+}
 

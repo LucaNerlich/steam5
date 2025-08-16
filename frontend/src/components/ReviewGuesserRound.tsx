@@ -294,30 +294,23 @@ export default function ReviewGuesserRound({
                         {roundIndex < totalRounds && (
                             <Link href={nextHref} className="btn-cta" aria-label="Go to next round">Next round →</Link>
                         )}
+                        <ShareControls
+                            inline
+                            buckets={buckets}
+                            gameDate={gameDate}
+                            totalRounds={totalRounds}
+                            latestRound={latestStoredRoundIndex}
+                            latest={latestStored ? latestStored : {
+                                appId,
+                                pickName,
+                                selectedLabel: selectedLabel ?? '',
+                                actualBucket: effectiveResponse ? effectiveResponse.actualBucket : '',
+                                totalReviews: effectiveResponse ? effectiveResponse.totalReviews : 0,
+                                correct: effectiveResponse ? effectiveResponse.correct : false,
+                            }}
+                            results={Object.keys(serverResults).length > 0 ? serverResults : undefined}
+                        />
                     </div>
-                    {isComplete && (
-                        <div>
-                            <hr style={{margin: '1rem 0'}}/>
-                            <div className="review-round__share">
-                                <ShareControls
-                                    inline
-                                    buckets={buckets}
-                                    gameDate={gameDate}
-                                    totalRounds={totalRounds}
-                                    latestRound={latestStoredRoundIndex}
-                                    latest={latestStored ? latestStored : {
-                                        appId,
-                                        pickName,
-                                        selectedLabel: selectedLabel ?? '',
-                                        actualBucket: effectiveResponse ? effectiveResponse.actualBucket : '',
-                                        totalReviews: effectiveResponse ? effectiveResponse.totalReviews : 0,
-                                        correct: effectiveResponse ? effectiveResponse.correct : false,
-                                    }}
-                                    results={Object.keys(serverResults).length > 0 ? serverResults : undefined}
-                                />
-                            </div>
-                        </div>
-                    )}
                 </div>
             )}
 
