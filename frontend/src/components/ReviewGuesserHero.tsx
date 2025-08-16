@@ -72,21 +72,23 @@ export default function ReviewGuesserHero(props: Readonly<ReviewGuesserHeroProps
                 )}
                 {(() => {
                     const price = pick.priceOverview;
-                    let priceText: string | null = null;
-                    if (pick.isFree || (price && price.finalAmount === 0)) {
-                        priceText = 'Free';
-                    } else if (price) {
+                    const isFree = price === null || Boolean(pick.isFree || (price && price.finalAmount === 0));
+                    if (isFree) {
+                        return (
+                            <span title='Free to play' className="meta-item">🆓 Free to play</span>
+                        );
+                    }
+                    if (price) {
                         const amountCents = price.finalAmount;
                         const currencyCode = price.currency || 'USD';
-                        if (amountCents !== null) {
-                            priceText = formatPrice(amountCents, currencyCode, props.locale);
-                        } else if (price.finalFormatted) {
-                            priceText = price.finalFormatted; // fallback if amount missing
-                        }
+                        const formatted = amountCents !== null
+                            ? formatPrice(amountCents, currencyCode, props.locale)
+                            : (price.finalFormatted || null);
+                        return formatted ? (
+                            <span title='Price' className="meta-item">💲 {formatted}</span>
+                        ) : null;
                     }
-                    return priceText ? (
-                        <span title='Price' className="meta-item">💲 {priceText}</span>
-                    ) : null;
+                    return null;
                 })()}
             </p>
             {pick.genres && pick.genres.length > 0 && (
