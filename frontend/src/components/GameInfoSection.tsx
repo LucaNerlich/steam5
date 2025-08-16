@@ -47,8 +47,8 @@ export default function GameInfoSection({pick}: Props): React.ReactElement | nul
                 <div className="game-info__section">
                     <h4>Categories</h4>
                     <ul className="game-info__pills" aria-label="Categories">
-                        {pick.categories.map((c, i) => (
-                            <li key={`cat-${c.id}-${i}`} className="pill">{c.description}</li>
+                        {pick.categories.map((c) => (
+                            <li key={`cat-${c.id}`} className="pill">{c.description}</li>
                         ))}
                     </ul>
                 </div>
@@ -87,5 +87,3 @@ export default function GameInfoSection({pick}: Props): React.ReactElement | nul
         </section>
     );
 }
-
-

@@ -14,6 +14,9 @@
     <bytecodeTargetLevel>
       <module name="org.steam5" target="21" />
       <module name="org.steam5.main" target="21" />
+      <module name="org.steam5.steam5" target="21" />
+      <module name="org.steam5.steam5.main" target="21" />
+      <module name="org.steam5.steam5.test" target="21" />
       <module name="org.steam5.test" target="21" />
     </bytecodeTargetLevel>
   </component>
