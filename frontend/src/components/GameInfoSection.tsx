@@ -12,11 +12,25 @@ export default function GameInfoSection({pick}: Props): React.ReactElement | nul
     if (!pick) return null;
 
     const hasMovies = Array.isArray(pick.movies) && pick.movies.length > 0;
-    const hasCategories = Array.isArray(pick.categories) && pick.categories.length > 0;
     const hasShort = Boolean(pick.shortDescription);
     const hasAbout = Boolean(pick.aboutTheGame);
     const hasController = Boolean(pick.controllerSupport);
     const hasPlatforms = pick.isWindows || pick.isMac || pick.isLinux;
+
+    // De-duplicate categories by id (fallback to normalized description)
+    const uniqueCategories = React.useMemo(() => {
+        if (!Array.isArray(pick.categories)) return [];
+        const seen = new Set<string>();
+        return pick.categories.filter((c) => {
+            const key =
+                (c && (c.id != null ? String(c.id) : c.description?.toLowerCase().trim())) || "";
+            if (!key || seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        });
+    }, [pick.categories]);
+
+    const hasCategories = uniqueCategories.length > 0;
 
     const hasAny = hasMovies || hasCategories || hasShort || hasAbout || hasController || hasPlatforms;
     if (!hasAny) return null;
@@ -47,8 +61,10 @@ export default function GameInfoSection({pick}: Props): React.ReactElement | nul
                 <div className="game-info__section">
                     <h4>Categories</h4>
                     <ul className="game-info__pills" aria-label="Categories">
-                        {pick.categories.map((c) => (
-                            <li key={`cat-${c.id}`} className="pill">{c.description}</li>
+                        {uniqueCategories.map((c) => (
+                            <li key={`cat-${c.id ?? c.description}`} className="pill">
+                                {c.description}
+                            </li>
                         ))}
                     </ul>
                 </div>
