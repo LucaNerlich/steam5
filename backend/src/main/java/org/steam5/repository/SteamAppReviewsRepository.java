@@ -67,6 +67,29 @@ public interface SteamAppReviewsRepository extends JpaRepository<SteamAppReviews
     @Query(value = "SELECT COALESCE(MAX(updated_at), now()) FROM steam_app_reviews", nativeQuery = true)
     OffsetDateTime maxUpdatedAt();
 
+    @Query(value = "SELECT r.app_id FROM steam_app_reviews r " +
+            "LEFT JOIN review_game_pick p ON p.app_id = r.app_id AND p.pick_date >= :sinceDate " +
+            "LEFT JOIN excluded_app x ON x.app_id = r.app_id " +
+            "WHERE p.app_id IS NULL AND x.app_id IS NULL " +
+            "AND (r.total_positive + r.total_negative) BETWEEN :lower AND :upper " +
+            "ORDER BY random()",
+            nativeQuery = true)
+    List<Long> findRandomBetween(@Param("sinceDate") LocalDate sinceDate,
+                                 @Param("lower") int lower,
+                                 @Param("upper") int upper,
+                                 Pageable pageable);
+
+    @Query(value = "SELECT r.app_id FROM steam_app_reviews r " +
+            "LEFT JOIN review_game_pick p ON p.app_id = r.app_id AND p.pick_date >= :sinceDate " +
+            "LEFT JOIN excluded_app x ON x.app_id = r.app_id " +
+            "WHERE p.app_id IS NULL AND x.app_id IS NULL " +
+            "AND (r.total_positive + r.total_negative) >= :lower " +
+            "ORDER BY random()",
+            nativeQuery = true)
+    List<Long> findRandomGte(@Param("sinceDate") LocalDate sinceDate,
+                             @Param("lower") int lower,
+                             Pageable pageable);
+
     @Query(value = "SELECT app_id FROM steam_app_reviews ORDER BY updated_at ASC", nativeQuery = true)
     List<Long> findIdsOrderByUpdatedAtAsc(Pageable pageable);
 
