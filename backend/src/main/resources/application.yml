@@ -69,4 +69,7 @@ jobs:
     enabled: ${JOB_BLURHASH:false}
   blurhashAvatar:
     enabled: ${JOB_BLURHASH_AVATAR:false}
+  reviews-refresh:
+    enabled: ${JOB_REVIEWS_REFRESH:false}
+    nightly-limit: ${JOB_REVIEWS_REFRESH_LIMIT:15000}
 

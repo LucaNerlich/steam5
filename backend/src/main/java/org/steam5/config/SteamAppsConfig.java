@@ -14,6 +14,7 @@ public class SteamAppsConfig {
     private final boolean includeGames = true;
     private final String downloadCron = "0 5 0 * * *"; // default: daily 00:05 UTC
     private final int httpTimeoutMs = 120_000;
+    private final int reviewsNightlyLimit = 15_000;
     @Value("${STEAM_API_KEY}")
     private String apiKey;
 

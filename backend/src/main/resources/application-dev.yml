@@ -28,3 +28,5 @@ jobs:
     enabled: true
   blurhashAvatar:
     enabled: true
+  reviews-refresh:
+    enabled: true
