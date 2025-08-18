@@ -89,6 +89,7 @@ public class ReviewGameStateController {
     }
 
     @GetMapping("/days")
+    @Cacheable(value = "review-game", key = "'days'", unless = "#result == null")
     public ResponseEntity<List<String>> listDays(@RequestParam(value = "limit", defaultValue = "60") int limit) {
         final int capped = Math.max(1, Math.min(limit, 3650));
         final List<LocalDate> dates = pickRepository.listDistinctPickDates(PageRequest.of(0, capped));
