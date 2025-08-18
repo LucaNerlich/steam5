@@ -59,7 +59,7 @@ export default function LeaderboardTable({entries, ariaLabel}: { entries: Leader
                             </div>
                         </td>
                         <td className="num">{entry.totalPoints}</td>
-                        <td className="num">{entry.hits + entry.tooHigh + entry.tooLow}</td>
+                        <td className="num">{entry.rounds}</td>
                         <td className="num">{entry.hits}</td>
                         <td className="num">{entry.tooHigh}</td>
                         <td className="num">{entry.tooLow}</td>
