@@ -30,6 +30,10 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
+  quartz:
+    properties:
+      org.quartz.scheduler.idleWaitTime: 1000
+      org.quartz.threadPool.threadCount: 5
 server:
   port: ${SERVER_PORT:8080}
   error:

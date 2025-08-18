@@ -12,9 +12,10 @@ import org.steam5.domain.details.Screenshot;
 import org.steam5.repository.details.ScreenshotRepository;
 import org.steam5.service.BlurhashService;
 
+import java.util.List;
+
 @Component
 @Slf4j
-@DisallowConcurrentExecution
 public class BlurhashScreenshotsJob implements Job {
 
     private final BlurhashService service;
@@ -27,11 +28,23 @@ public class BlurhashScreenshotsJob implements Job {
         this.screenshotRepository = screenshotRepository;
     }
 
-    public void encodeForApp(Long appId) {
+    /**
+     * Encodes missing screenshots for a given application into BlurHash format.
+     *
+     * This method processes all missing screenshots associated with the specified
+     * application ID. It scans each screenshot, and if conditions are met (i.e.,
+     * paths are available and BlurHash values are unset), it encodes them using
+     * the BlurhashService to generate compact image representations. The encoded
+     * data is then stored in the database.
+     *
+     * @param appId The unique identifier of the application whose screenshots need to be processed.
+     * @return The total number of successfully encoded screenshots for the specified application ID.
+     */
+    int encodeForApp(Long appId) {
         int scanned = 0, encoded = 0, failed = 0;
         try {
-            var list = screenshotRepository.findMissingForApp(appId);
-            for (var s : list) {
+            final List<Screenshot> list = screenshotRepository.findMissingForApp(appId);
+            for (Screenshot s : list) {
                 scanned++;
                 final Counters c = handleScreenshot(s);
                 encoded += c.encoded;
@@ -41,12 +54,35 @@ public class BlurhashScreenshotsJob implements Job {
         } catch (Exception e) {
             log.warn("Blurhash immediate failed for appId={} err={}", appId, e.toString());
         }
+        return encoded;
     }
 
     @Override
     public void execute(JobExecutionContext context) throws JobExecutionException {
         log.info("Job start BlurhashScreenshotsJob key={} fireTime={} scheduled={} refireCount={}", context.getJobDetail().getKey(), context.getFireTime(), context.getScheduledFireTime(), context.getRefireCount());
 
+        // When executed programmatically, we can optionally specify an appId to limit the scope of the job.
+        final Object appIdObj = context.getMergedJobDataMap() != null ? context.getMergedJobDataMap().get("appId") : null;
+        if (appIdObj != null) {
+            final Long appId = toLong(appIdObj);
+            if (appId != null) {
+                try {
+                    int encoded = encodeForApp(appId);
+                    if (encoded > 0) {
+                        final Cache cache = cacheManager.getCache("review-game");
+                        if (cache != null) {
+                            cache.clear();
+                        }
+                        log.info("Targeted BlurhashScreenshotsJob finished for appId={} encoded={}", appId, encoded);
+                    }
+                } catch (Exception e) {
+                    log.warn("Targeted BlurhashScreenshotsJob failed for appId {}: {}", appId, e.getMessage());
+                }
+                return;
+            }
+        }
+
+        // Fallback 'full-run' job, which encodes all screenshots.
         long start = System.nanoTime();
         int scanned = 0, encoded = 0, failed = 0;
         try {
@@ -84,6 +120,15 @@ public class BlurhashScreenshotsJob implements Job {
                 }
             }
         }
+    }
+
+    private Long toLong(Object obj) {
+        try {
+            if (obj instanceof Number) return ((Number) obj).longValue();
+            if (obj instanceof String s) return Long.parseLong(s);
+        } catch (Exception ignored) {
+        }
+        return null;
     }
 
     @Bean("BlurhashScreenshotsJob")
