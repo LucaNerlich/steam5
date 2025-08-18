@@ -12,11 +12,12 @@ export interface GuessResponse {
     correct: boolean;
 }
 
-export type BucketsResponse = string[];
+export type BucketsResponse = { buckets: string[]; bucketTitles: string[] } | string[];
 
 export interface ReviewGameState {
     date: string; // ISO local date (yyyy-MM-dd)
     buckets: string[];
+    bucketTitles?: string[];
     picks: SteamAppDetail[];
 }
 

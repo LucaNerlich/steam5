@@ -234,6 +234,23 @@ public class ReviewGameStateService {
         labels.add(bounds.getLast() + "+");
         return labels;
     }
+
+    public List<String> getBucketTitles() {
+        final List<String> labels = getBucketLabels();
+        final List<String> titles = config.getBucketTitles();
+        if (labels.isEmpty()) return List.of();
+        if (titles == null || titles.isEmpty()) {
+            // default to empty strings of same length
+            return java.util.stream.IntStream.range(0, labels.size()).mapToObj(i -> "").toList();
+        }
+        if (titles.size() == labels.size()) return titles;
+        // normalize size by truncating or padding with empty strings
+        final java.util.ArrayList<String> out = new java.util.ArrayList<>(labels.size());
+        for (int i = 0; i < labels.size(); i++) {
+            out.add(i < titles.size() ? (titles.get(i) == null ? "" : titles.get(i)) : "");
+        }
+        return out;
+    }
 }
 
 

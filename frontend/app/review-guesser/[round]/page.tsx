@@ -87,6 +87,7 @@ export default async function ReviewGuesserRoundPage({params}: { params: Promise
             <ReviewGuesserRound
                 appId={pick.appId}
                 buckets={today.buckets}
+                bucketTitles={today.bucketTitles}
                 roundIndex={roundIndex}
                 totalRounds={totalRounds}
                 pickName={pick.name}

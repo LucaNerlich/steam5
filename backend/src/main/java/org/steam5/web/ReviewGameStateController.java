@@ -58,7 +58,7 @@ public class ReviewGameStateController {
         }
 
         final LocalDate date = picks.isEmpty() ? LocalDate.now() : picks.getFirst().getPickDate();
-        return ResponseEntity.ok(new ReviewGameStateDto(date, service.getBucketLabels(), details));
+        return ResponseEntity.ok(new ReviewGameStateDto(date, service.getBucketLabels(), service.getBucketTitles(), details));
     }
 
     @GetMapping("/day/{date}")
@@ -85,7 +85,7 @@ public class ReviewGameStateController {
         if (appIds.size() != details.size()) {
             throw new ReviewGameException(500, "Number of appIds and details don't match for day " + date);
         }
-        return ResponseEntity.ok(new ReviewGameStateDto(day, service.getBucketLabels(), details));
+        return ResponseEntity.ok(new ReviewGameStateDto(day, service.getBucketLabels(), service.getBucketTitles(), details));
     }
 
     @GetMapping("/days")
@@ -217,11 +217,15 @@ public class ReviewGameStateController {
 
     @GetMapping("/buckets")
     @Cacheable(value = "one-day", key = "'buckets'")
-    public ResponseEntity<List<String>> buckets() {
-        return ResponseEntity.ok(service.getBucketLabels());
+    public ResponseEntity<BucketMeta> buckets() {
+        return ResponseEntity.ok(new BucketMeta(service.getBucketLabels(), service.getBucketTitles()));
     }
 
-    public record ReviewGameStateDto(LocalDate date, List<String> buckets, List<SteamAppDetail> picks) {
+    public record ReviewGameStateDto(LocalDate date, List<String> buckets, List<String> bucketTitles,
+                                     List<SteamAppDetail> picks) {
+    }
+
+    public record BucketMeta(List<String> buckets, List<String> bucketTitles) {
     }
 
     public record GuessRequest(Long appId, String bucketGuess) {
