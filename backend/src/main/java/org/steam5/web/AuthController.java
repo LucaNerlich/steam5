@@ -85,22 +85,14 @@ public class AuthController {
     public ResponseEntity<Void> startLogin(@RequestParam(value = "redirect", required = false) String redirect,
                                            jakarta.servlet.http.HttpServletRequest request) {
         // Compute return_to and realm. Realm MUST be the origin (scheme://host[:port]) of return_to
-        String returnTo = (redirect == null || redirect.isBlank()) ? defaultRedirectBase + "/api/auth/steam/callback" : redirect;
-        String realm = deriveOriginSafe(returnTo, defaultRedirectBase);
-
-        final String xfp = request.getHeader("X-Forwarded-Proto");
-        final String xfh = request.getHeader("X-Forwarded-Host");
-        final String host = request.getHeader("Host");
-        log.info("Auth startLogin: redirect={} returnTo={} realm={} host={} xfp={} xfh={} remoteAddr={}",
-                redirect, returnTo, realm, host, xfp, xfh, request.getRemoteAddr());
-
-        String url = OPENID_ENDPOINT + "?openid.ns=" + enc("http://specs.openid.net/auth/2.0")
+        final String returnTo = (redirect == null || redirect.isBlank()) ? defaultRedirectBase + "/api/auth/steam/callback" : redirect;
+        final String realm = deriveOriginSafe(returnTo, defaultRedirectBase);
+        final String url = OPENID_ENDPOINT + "?openid.ns=" + enc("http://specs.openid.net/auth/2.0")
                 + "&openid.mode=checkid_setup"
                 + "&openid.return_to=" + enc(returnTo)
                 + "&openid.realm=" + enc(realm)
                 + "&openid.identity=" + enc("http://specs.openid.net/auth/2.0/identifier_select")
                 + "&openid.claimed_id=" + enc("http://specs.openid.net/auth/2.0/identifier_select");
-        log.info("Auth startLogin: redirecting to Steam OpenID url={}", url);
         return ResponseEntity.status(302).location(URI.create(url)).build();
     }
 
@@ -110,22 +102,24 @@ public class AuthController {
             // Verify assertion with Steam via check_authentication
             final String body = buildCheckAuthBody(params);
             final String opEndpoint = params.getOrDefault("openid.op_endpoint", OPENID_ENDPOINT);
-            HttpClient client = HttpClient.newBuilder()
+            HttpResponse<String> res;
+            try (HttpClient client = HttpClient.newBuilder()
                     .followRedirects(HttpClient.Redirect.NEVER)
-                    .build();
-            HttpRequest req = HttpRequest.newBuilder()
-                    .uri(URI.create(opEndpoint))
-                    .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-                    .header(HttpHeaders.ACCEPT, "text/plain")
-                    .header(HttpHeaders.ACCEPT_ENCODING, "identity")
-                    .header(HttpHeaders.USER_AGENT, "steam5-auth/1.0")
-                    .POST(HttpRequest.BodyPublishers.ofString(body))
-                    .build();
-            HttpResponse<String> res = client.send(req, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
-            String resBody = res.body();
+                    .build()) {
+                final HttpRequest req = HttpRequest.newBuilder()
+                        .uri(URI.create(opEndpoint))
+                        .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                        .header(HttpHeaders.ACCEPT, "text/plain")
+                        .header(HttpHeaders.ACCEPT_ENCODING, "identity")
+                        .header(HttpHeaders.USER_AGENT, "steam5-auth/1.0")
+                        .POST(HttpRequest.BodyPublishers.ofString(body))
+                        .build();
+                res = client.send(req, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+            }
+            final String resBody = res.body();
             if (res.statusCode() / 100 == 3) {
-                String loc = res.headers().firstValue("Location").orElse("<none>");
-                log.warn("Steam OpenID verification redirected: status={} location={}", res.statusCode(), loc);
+                final String location = res.headers().firstValue("Location").orElse("<none>");
+                log.warn("Steam OpenID verification redirected: status={} location={}", res.statusCode(), location);
             }
 
             // Hard verify Steam response: must contain is_valid:true
@@ -150,8 +144,7 @@ public class AuthController {
             steamUserService.updateUserProfile(steamId);
 
             // Issue signed token
-            String token = tokenService.generateToken(steamId);
-
+            final String token = tokenService.generateToken(steamId);
             return ResponseEntity.ok(Map.of("steamId", steamId, "token", token));
         } catch (Exception e) {
             log.error("Steam OpenID callback error", e);
@@ -161,7 +154,7 @@ public class AuthController {
 
     @GetMapping("/validate")
     public ResponseEntity<?> validate(@RequestParam("token") String token) {
-        String steamId = tokenService.verifyToken(token);
+        final String steamId = tokenService.verifyToken(token);
         if (steamId == null) return ResponseEntity.status(401).body(Map.of("valid", false));
         return ResponseEntity.ok(Map.of("valid", true, "steamId", steamId));
     }
