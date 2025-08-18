@@ -2,6 +2,8 @@ package org.steam5.job;
 
 import lombok.extern.slf4j.Slf4j;
 import org.quartz.*;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -16,10 +18,12 @@ import org.steam5.service.BlurhashService;
 public class BlurhashScreenshotsJob implements Job {
 
     private final BlurhashService service;
+    private final CacheManager cacheManager;
     private final ScreenshotRepository screenshotRepository;
 
-    public BlurhashScreenshotsJob(final BlurhashService service, final ScreenshotRepository screenshotRepository) {
+    public BlurhashScreenshotsJob(final BlurhashService service, final CacheManager cacheManager, final ScreenshotRepository screenshotRepository) {
         this.service = service;
+        this.cacheManager = cacheManager;
         this.screenshotRepository = screenshotRepository;
     }
 
@@ -71,6 +75,14 @@ public class BlurhashScreenshotsJob implements Job {
         } finally {
             long ms = (System.nanoTime() - start) / 1_000_000L;
             log.info("BlurhashScreenshotsJob finished scanned={} encoded={} failed={} durationMs={}", scanned, encoded, failed, ms);
+
+            // Clear game cache, to allow the FE to pull new screenshot data.
+            if (encoded > 0) {
+                final Cache cache = cacheManager.getCache("review-game");
+                if (cache != null) {
+                    cache.clear();
+                }
+            }
         }
     }
 
