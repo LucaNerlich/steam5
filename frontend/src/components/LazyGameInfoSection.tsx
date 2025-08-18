@@ -15,7 +15,7 @@ export default function LazyGameInfoSection({pick}: { pick: SteamAppDetail }): R
 
     React.useEffect(() => {
         if (!ref.current || inView) return;
-        let observer: IntersectionObserver | null = new IntersectionObserver(
+        const observer: IntersectionObserver | null = new IntersectionObserver(
             (entries) => {
                 for (const entry of entries) {
                     if (entry.isIntersecting) {
