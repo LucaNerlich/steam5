@@ -3,6 +3,7 @@ package org.steam5.web;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -34,6 +35,7 @@ public class ReviewGameStateController {
     private final GuessRepository guessRepository;
     private final UserRepository userRepository;
     private final AuthTokenService authTokenService;
+    private final org.steam5.repository.ReviewGamePickRepository pickRepository;
 
     @GetMapping("/today")
     @Cacheable(value = "review-game", key = "'picks'", unless = "#result == null")
@@ -57,6 +59,41 @@ public class ReviewGameStateController {
 
         final LocalDate date = picks.isEmpty() ? LocalDate.now() : picks.getFirst().getPickDate();
         return ResponseEntity.ok(new ReviewGameStateDto(date, service.getBucketLabels(), details));
+    }
+
+    @GetMapping("/day/{date}")
+    @Cacheable(value = "review-game", key = "'picks:' + #date", unless = "#result == null")
+    public ResponseEntity<ReviewGameStateDto> getByDate(@PathVariable("date") String date) {
+        final java.time.LocalDate day;
+        try {
+            day = java.time.LocalDate.parse(date);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+        final java.util.List<ReviewGamePick> picks = pickRepository.findByPickDate(day);
+        if (picks.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        final java.util.List<Long> appIds = picks.stream().map(ReviewGamePick::getAppId).toList();
+        final java.util.List<SteamAppDetail> fetched = detailRepository.findAllById(appIds).stream().toList();
+        final java.util.Map<Long, SteamAppDetail> byId = new java.util.HashMap<>();
+        for (SteamAppDetail d : fetched) byId.put(d.getAppId(), d);
+        final java.util.List<SteamAppDetail> details = appIds.stream()
+                .map(byId::get)
+                .filter(java.util.Objects::nonNull)
+                .toList();
+        if (appIds.size() != details.size()) {
+            throw new ReviewGameException(500, "Number of appIds and details don't match for day " + date);
+        }
+        return ResponseEntity.ok(new ReviewGameStateDto(day, service.getBucketLabels(), details));
+    }
+
+    @GetMapping("/days")
+    public ResponseEntity<List<String>> listDays(@RequestParam(value = "limit", defaultValue = "60") int limit) {
+        final int capped = Math.max(1, Math.min(limit, 3650));
+        final List<LocalDate> dates = pickRepository.listDistinctPickDates(PageRequest.of(0, capped));
+        final List<String> out = dates.stream().map(LocalDate::toString).toList();
+        return ResponseEntity.ok(out);
     }
 
     @GetMapping("/today/details")
