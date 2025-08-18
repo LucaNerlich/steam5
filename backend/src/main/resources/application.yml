@@ -54,6 +54,8 @@ review:
     bucket-boundaries: [ 100, 1000, 10000 ]
     low-percentile: ${LOW_PERCENTILE:0.65}
     high-percentile: ${HIGH_PERCENTILE:0.95}
+    # refresh reviews for picked apps when older than N days
+    min-reviews-fresh-days: ${MIN_REVIEWS_FRESH_DAYS:7}
 
 # per-job enable/disable toggles
 jobs:

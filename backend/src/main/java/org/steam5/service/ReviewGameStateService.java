@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.steam5.config.ReviewGameConfig;
 import org.steam5.domain.ReviewGamePick;
+import org.steam5.domain.SteamAppReviews;
 import org.steam5.http.SteamApiException;
 import org.steam5.job.blurhash.BlurhashEnqueueListener;
 import org.steam5.job.events.BlurhashEncodeRequested;
@@ -182,11 +183,24 @@ public class ReviewGameStateService {
         if (!saved.isEmpty()) {
             // Update reviews and details for the selected appIds
             for (ReviewGamePick p : saved) {
+                // Refresh reviews only if data is stale beyond configured threshold
                 try {
-                    reviewsFetcher.fetchForAppId(p.getAppId());
+                    final int days = config.getMinReviewsFreshDays();
+                    if (days > 0) {
+                        final OffsetDateTime cutoff = OffsetDateTime.now().minusDays(days);
+                        final SteamAppReviews existingReviews = reviewsRepository.findById(p.getAppId()).orElse(null);
+                        final boolean needsRefresh = existingReviews == null
+                                || existingReviews.getUpdatedAt() == null
+                                || existingReviews.getUpdatedAt().isBefore(cutoff);
+                        if (needsRefresh) {
+                            log.info("Refreshing reviews for picked appId {} (cutoff={}, existingAt={})", p.getAppId(), cutoff, existingReviews != null ? existingReviews.getUpdatedAt() : null);
+                            reviewsFetcher.fetchForAppId(p.getAppId());
+                        }
+                    }
                 } catch (Exception e) {
-                    log.warn("Failed to refresh reviews for picked appId {}: {}", p.getAppId(), e.getMessage());
+                    log.warn("Failed to conditionally refresh reviews for picked appId {}: {}", p.getAppId(), e.getMessage());
                 }
+
                 try {
                     detailsFetcher.fetchForAppId(p.getAppId());
                 } catch (Exception e) {

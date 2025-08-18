@@ -31,6 +31,12 @@ public class ReviewGameConfig {
      */
     private double lowPercentile = 0.25;
     private double highPercentile = 0.90;
+
+    /**
+     * If a picked app's reviews were updated before this many days ago, refresh them before using the pick.
+     * Default: 7 days.
+     */
+    private int minReviewsFreshDays = 7;
 }
 
 
