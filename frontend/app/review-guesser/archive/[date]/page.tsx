@@ -35,8 +35,8 @@ export default async function ArchivePage({params}: { params: Promise<{ date: st
             <h1>Archive — {formatDate(date)}</h1>
             <nav aria-label="Rounds table of contents" className="archive__toc">
                 <ol>
-                    {data.picks.map((_, idx) => (
-                        <li key={`toc-${idx + 1}`}><a href={`#round-${idx + 1}`}>Round {idx + 1}</a></li>
+                    {data.picks.map((app, idx) => (
+                        <li key={`toc-${idx + 1}`}><a href={`#round-${idx + 1}`}>{app.name}</a></li>
                     ))}
                 </ol>
             </nav>
