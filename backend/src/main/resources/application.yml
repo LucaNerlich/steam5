@@ -63,4 +63,6 @@ jobs:
     enabled: ${JOB_GENERATE_REVIEW_STATE:false}
   blurhash:
     enabled: ${JOB_BLURHASH:false}
+  blurhashAvatar:
+    enabled: ${JOB_BLURHASH_AVATAR:false}
 
