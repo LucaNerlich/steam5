@@ -44,9 +44,18 @@
     gap: 0.4rem;
 }
 
+.leaderboard__avatar-wrap {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background-size: cover;
+    background-position: center;
+    overflow: hidden;
+}
+
 .leaderboard__avatar {
-    width: 20px;
-    height: 20px;
+    width: 24px;
+    height: 24px;
     border-radius: 50%;
     object-fit: cover;
 }
@@ -74,6 +83,8 @@
 .leaderboard__profile-link:visited {
     color: var(--color-text);
 }
+
+/* No internal Next blur needed; using backgroundImage placeholder */
 
 @media (max-width: 640px) {
     /* Show rounds on mobile; hide less critical columns to save space */

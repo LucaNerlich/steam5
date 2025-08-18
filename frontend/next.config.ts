@@ -24,6 +24,14 @@ const nextConfig: NextConfig = {
             },
             {
                 protocol: 'https',
+                hostname: 'avatars.cloudflare.steamstatic.com',
+            },
+            {
+                protocol: 'https',
+                hostname: 'avatars.akamai.steamstatic.com',
+            },
+            {
+                protocol: 'https',
                 hostname: 'steamcdn-a.akamaihd.net',
             },
         ],

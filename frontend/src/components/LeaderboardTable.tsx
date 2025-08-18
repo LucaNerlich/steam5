@@ -38,12 +38,15 @@ export default function LeaderboardTable({entries, ariaLabel}: { entries: Leader
                         <td>
                             <div className="leaderboard__player">
                                 {entry.avatar && (
-                                    <Image className="leaderboard__avatar"
-                                           src={entry.avatar}
-                                           placeholder={entry.avatarBlurdata ? 'blur' : 'empty'}
-                                           blurDataURL={entry.avatarBlurdata || undefined}
-                                           alt="" width={20}
-                                           height={20}/>
+                                    <div className="leaderboard__avatar-wrap"
+                                         style={{backgroundImage: entry.avatarBlurdata ? `url(${entry.avatarBlurdata})` : undefined}}>
+                                        <Image className="leaderboard__avatar"
+                                               src={entry.avatar}
+                                               placeholder={'empty'}
+                                               alt=""
+                                               width={24}
+                                               height={24}/>
+                                    </div>
                                 )}
                                 {entry.profileUrl ? (
                                     <a href={entry.profileUrl} target="_blank" rel="noopener noreferrer"
