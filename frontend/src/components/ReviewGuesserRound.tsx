@@ -325,7 +325,7 @@ export default function ReviewGuesserRound({
                 </div>
             )}
 
-            {!isComplete && <ReviewRules/>}
+            {signedIn === false && <ReviewRules/>}
         </>
     );
 }
