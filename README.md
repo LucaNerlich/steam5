@@ -1,11 +1,13 @@
-## Steam5 — Review Guesser (Backend)
+## Steam5 — Review Guesser (Monorepo)
 
-Spring Boot backend for a daily game that shows five random Steam games. Players guess each game's review count; results
-are revealed after submitting guesses.
+Daily guessing game: five Steam games per day, guess each game’s review-count bucket. Monorepo contains a Spring Boot
+backend and a Next.js frontend.
 
-### APIs
+### Backend APIs used
 
-- https://steamapi.xpaw.me/#IStoreService/GetAppList
+- IStoreService/GetAppList: `https://steamapi.xpaw.me/#IStoreService/GetAppList`
+- Steam Storefront: `https://store.steampowered.com/api/appdetails`
+- Steam Reviews: `https://store.steampowered.com/appreviews`
 
 ### Tech stack
 
@@ -30,16 +32,16 @@ are revealed after submitting guesses.
 Default JDBC URL in `backend/src/main/resources/application.yml` is:
 
 ```
-jdbc:postgresql://localhost:5432/steam5
+jdbc:postgresql://localhost:5432/postgres
 ```
 
 Create database and a least-privileged user:
 
 ```sql
 -- From psql connected as a superuser (e.g. postgres):
-CREATE DATABASE steam5_db;
+CREATE DATABASE postgres;
 CREATE ROLE steam5_user WITH LOGIN PASSWORD 'steam5_password';
-GRANT CONNECT ON DATABASE steam5_db TO steam5_user;
+GRANT CONNECT ON DATABASE postgres TO steam5_user;
 \c steam5
 GRANT USAGE ON SCHEMA public TO steam5_user;
 GRANT CREATE, USAGE ON SCHEMA public TO steam5_user;
@@ -48,7 +50,7 @@ GRANT CREATE, USAGE ON SCHEMA public TO steam5_user;
 Alternatively, run Postgres via Docker:
 
 ```bash
-docker run --name steam5-pg -e POSTGRES_DB=steam5 -e POSTGRES_USER=steam5_user -e POSTGRES_PASSWORD=steam5_password -p 5432:5432 -d postgres:16
+docker run --name steam5-pg -e POSTGRES_DB=postgres -e POSTGRES_USER=steam5_user -e POSTGRES_PASSWORD=steam5_password -p 5432:5432 -d postgres:16
 ```
 
 ### Export and Import Backup
@@ -74,7 +76,7 @@ You can override properties with environment variables:
 
 The `dev` profile is active by default. See `backend/src/main/resources/application.yml`.
 
-### Run the app
+### Run the backend
 
 - Windows (PowerShell):
   ```powershell
@@ -102,52 +104,48 @@ Flyway is enabled and will apply SQL files in `backend/src/main/resources/db/mig
 
 ---
 
-## Scheduled job: fetch and store games
+## Scheduled jobs
 
-We will run a Quartz job daily to ingest games and prepare the day’s set.
+Quartz jobs (see `backend/src/main/java/org/steam5/job`):
 
-Planned job: `SteamGameIngestJob`
+- `SteamAppListJob`, `SteamAppReviewsJob`, `SteamAppDetailJob`: periodic ingestion and refresh
+- `ReviewGameStateJob`: generates daily picks (once per day)
+- `BlurhashScreenshotsJob`, `BlurhashAvatarJob`: compute BlurHash placeholders asynchronously
 
-- Schedule: daily around 00:05 UTC (configurable)
-- Steps:
-    1. Fetch Steam app list and/or candidate set.
-    2. Sample/choose five eligible games (exclude DLC, unreleased, duplicates, etc.).
-    3. Fetch metadata and review counts per app via Steam Storefront API.
-    4. Upsert into `game` and insert a `game_review_snapshot` row for each.
-    5. Create a `daily_set` for the date and five `daily_set_game` rows.
+Jobs can also be triggered ad-hoc by the application (e.g., after daily picks generation or user profile update).
+Respect rate limits; on any Steam 429 the jobs abort early.
 
-Suggested configuration (add to `application.yml` as needed):
+---
 
-```yaml
-steam:
-  ingest:
-    cron: "5 0 * * *"   # every day at 00:05 UTC
-    country: "US"       # for store API localization
-    language: "en"
+## Backend REST API (selected)
+
+- `GET /api/review-game/today` and `/today/details`: daily picks and details
+- `POST /api/review-game/guess`: submit a guess
+- `GET /api/review-game/buckets`: bucket labels for UI
+- `GET /api/leaderboard/today` and `/leaderboard`: leaderboards
+- Auth: `/api/auth/steam/*` (OpenID), `/api/auth/me`, `/api/auth/logout`
+- Actuator: `/actuator/*` (includes `/actuator/quartz` in dev)
+
+Security: token-based auth via Steam login. See `frontend/app/api/auth/*` and `backend/web/AuthController`.
+
+---
+
+## Frontend (Next.js)
+
+- Next 15, App Router, TypeScript
+- Local fonts via `next/font/local` (Monaspace Krypton & Neon)
+    - To keep payload small we only ship Regular (400) and Bold (700) for each
+    - Neon is not preloaded; toggled via the UI will load it on demand
+- BlurHash placeholders for screenshots and avatars
+- Image host allowlist in `next.config.ts`
+
+Dev:
+
+```bash
+cd frontend
+npm i
+npm run dev
 ```
-
-Notes:
-
-- Steam Storefront details endpoint:
-  `https://store.steampowered.com/api/appdetails?appids={APPID}&cc={COUNTRY}&l={LANG}`
-- Respect Steam’s terms/rate limits; add retry/backoff.
-
----
-
-## Planned REST API (first iteration)
-
-- `GET /api/v1/daily`
-    - Returns the five games for today: `[{ appId, name, headerImage, slot }]`.
-- `POST /api/v1/daily/{date}/guess`
-    - Body: `{ guesses: [{ appId, guessedReviewCount }] }`
-    - Returns stored guesses and a simple score diff summary.
-- `GET /api/v1/daily/{date}/result`
-    - Returns actual counts for the day and computed deltas.
-- Actuator: `GET /actuator/health`, `GET /actuator/metrics`, `GET /actuator/flyway`, etc.
-
-Security/auth will be added later; initial endpoints can be open for development.
-
----
 
 ## Contributing / Dev workflow
 
