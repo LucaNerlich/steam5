@@ -5,12 +5,15 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.steam5.config.ReviewGameConfig;
 import org.steam5.domain.ReviewGamePick;
 import org.steam5.http.SteamApiException;
+import org.steam5.job.blurhash.BlurhashEnqueueListener;
+import org.steam5.job.events.BlurhashEncodeRequested;
 import org.steam5.repository.DailyPickLockRepository;
 import org.steam5.repository.ExcludedAppRepository;
 import org.steam5.repository.ReviewGamePickRepository;
@@ -30,6 +33,7 @@ import java.util.function.Predicate;
 public class ReviewGameStateService {
 
     public static final int MIN_BUCKET_BOUND = 1;
+
     private final SteamAppReviewsRepository reviewsRepository;
     private final SteamAppReviewsFetcher reviewsFetcher;
     private final SteamAppDetailsFetcher detailsFetcher;
@@ -38,7 +42,7 @@ public class ReviewGameStateService {
     private final ExcludedAppRepository excludedAppRepository;
     private final ReviewGameConfig config;
     private final CacheManager cacheManager;
-    private final org.steam5.job.BlurhashJob blurhashJob;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public List<ReviewGamePick> generateDailyPicks() {
@@ -51,10 +55,21 @@ public class ReviewGameStateService {
         // Try to acquire a per-day lock to prevent concurrent generation (job vs endpoint)
         final int acquired = pickLockRepository.tryAcquire(today);
         if (acquired == 0) {
-            // Another generator is running/just ran; re-read and return existing
-            final List<ReviewGamePick> concurrent = pickRepository.findByPickDate(today);
-            if (!concurrent.isEmpty()) return concurrent;
+            // Another generator is running/just ran; wait briefly for it to finish then return existing
+            for (int i = 0; i < 20; i++) { // ~2s total
+                final List<ReviewGamePick> concurrent = pickRepository.findByPickDate(today);
+                if (!concurrent.isEmpty()) return concurrent;
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException ignored) {
+                    break;
+                }
+            }
+            // Do not attempt to generate if lock not acquired
+            return pickRepository.findByPickDate(today);
         }
+
+        log.info("Generating review-game picks for {}", today);
 
         // Exclusion window parameterized
         final int doNotRepeatDays = Math.max(0, config.getDoNotRepeatDays());
@@ -177,12 +192,9 @@ public class ReviewGameStateService {
                 } catch (Exception e) {
                     log.warn("Failed to refresh details for picked appId {}: {}", p.getAppId(), e.getMessage());
                 }
-                // Immediately compute blurhash/blurdata for screenshots to ensure same-day placeholders
-                try {
-                    blurhashJob.encodeForApp(p.getAppId());
-                } catch (Throwable t) {
-                    log.warn("Blurhash immediate compute failed for appId {}: {}", p.getAppId(), t.getMessage());
-                }
+
+                // Publish an event to enqueue BlurhashScreenshotsJob asynchronously for this appId
+                eventPublisher.publishEvent(new BlurhashEncodeRequested(p.getAppId(), null, BlurhashEnqueueListener.Type.SCREENSHOT));
             }
 
             // Clear game cache

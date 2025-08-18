@@ -35,6 +35,7 @@ dependencies {
     implementation("com.github.ben-manes.caffeine:caffeine:3.2.2")
     implementation("io.jsonwebtoken:jjwt-api:0.12.6")
     implementation("me.paulschwarz:spring-dotenv:4.0.0")
+    implementation("org.apache.commons:commons-lang3")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-data-rest")

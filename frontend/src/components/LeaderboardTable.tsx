@@ -11,6 +11,7 @@ export type LeaderEntry = {
     tooLow: number;
     avgPoints: number;
     avatar?: string | null;
+    avatarBlurdata?: string | null;
     profileUrl?: string | null;
 };
 
@@ -31,31 +32,35 @@ export default function LeaderboardTable({entries, ariaLabel}: { entries: Leader
                 </tr>
                 </thead>
                 <tbody>
-                {entries.map((e, i) => (
-                    <tr key={e.steamId}>
+                {entries.map((entry, i) => (
+                    <tr key={entry.steamId}>
                         <td>{i + 1}</td>
                         <td>
                             <div className="leaderboard__player">
-                                {e.avatar && (
-                                    <Image className="leaderboard__avatar" src={e.avatar} alt="" width={20}
+                                {entry.avatar && (
+                                    <Image className="leaderboard__avatar"
+                                           src={entry.avatar}
+                                           placeholder={entry.avatarBlurdata ? 'blur' : 'empty'}
+                                           blurDataURL={entry.avatarBlurdata || undefined}
+                                           alt="" width={20}
                                            height={20}/>
                                 )}
-                                {e.profileUrl ? (
-                                    <a href={e.profileUrl} target="_blank" rel="noopener noreferrer"
+                                {entry.profileUrl ? (
+                                    <a href={entry.profileUrl} target="_blank" rel="noopener noreferrer"
                                        className="leaderboard__profile-link">
-                                        <strong>{e.personaName || e.steamId}</strong>
+                                        <strong>{entry.personaName || entry.steamId}</strong>
                                     </a>
                                 ) : (
-                                    <strong>{e.personaName || e.steamId}</strong>
+                                    <strong>{entry.personaName || entry.steamId}</strong>
                                 )}
                             </div>
                         </td>
-                        <td className="num">{e.totalPoints}</td>
-                        <td className="num">{e.hits + e.tooHigh + e.tooLow}</td>
-                        <td className="num">{e.hits}</td>
-                        <td className="num">{e.tooHigh}</td>
-                        <td className="num">{e.tooLow}</td>
-                        <td className="num">{e.avgPoints.toFixed(2)}</td>
+                        <td className="num">{entry.totalPoints}</td>
+                        <td className="num">{entry.hits + entry.tooHigh + entry.tooLow}</td>
+                        <td className="num">{entry.hits}</td>
+                        <td className="num">{entry.tooHigh}</td>
+                        <td className="num">{entry.tooLow}</td>
+                        <td className="num">{entry.avgPoints.toFixed(2)}</td>
                     </tr>
                 ))}
                 </tbody>

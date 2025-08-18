@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.OffsetDateTime;
 
@@ -27,12 +28,30 @@ public class User {
     @Column(name = "avatar")
     private String avatar;
 
+    @Setter
+    @Column(name = "blurhash_avatar", length = 200)
+    private String blurhashAvatar;
+
+    @Setter
+    @Column(name = "blurdata_avatar", columnDefinition = "TEXT")
+    private String blurdataAvatar;
+
+    // not in use
     @Column(name = "avatar_medium")
     private String avatarMedium;
 
     @Column(name = "avatar_full")
     private String avatarFull;
 
+    @Setter
+    @Column(name = "blurhash_avatar_full", length = 200)
+    private String blurhashAvatarFull;
+
+    @Setter
+    @Column(name = "blurdata_avatar_full", columnDefinition = "TEXT")
+    private String blurdataAvatarFull;
+
+    // not in use
     @Column(name = "avatar_hash")
     private String avatarHash;
 

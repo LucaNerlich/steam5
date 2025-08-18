@@ -47,9 +47,10 @@ public class LeaderboardController {
             double avgPoints = rounds > 0 ? ((double) totalPoints) / rounds : 0.0;
             final var user = userRepository.findById(steamId).orElse(null);
             final String personaName = user != null && user.getPersonaName() != null && !user.getPersonaName().isBlank() ? user.getPersonaName() : steamId;
-            final String avatar = user != null && user.getAvatar() != null && !user.getAvatar().isBlank() ? user.getAvatar() : null;
+            final String avatar = user != null && user.getAvatarFull() != null && !user.getAvatarFull().isBlank() ? user.getAvatarFull() : null;
+            final String avatarBlurdata = user != null && user.getBlurdataAvatarFull() != null && !user.getBlurdataAvatarFull().isBlank() ? user.getBlurdataAvatarFull() : null;
             final String profileUrl = user != null && user.getProfileUrl() != null && !user.getProfileUrl().isBlank() ? user.getProfileUrl() : null;
-            return new LeaderEntry(steamId, personaName, totalPoints, rounds, hits, tooHigh, tooLow, avgPoints, avatar, profileUrl);
+            return new LeaderEntry(steamId, personaName, totalPoints, rounds, hits, tooHigh, tooLow, avgPoints, avatar, avatarBlurdata, profileUrl);
         }).sorted((a, b) -> Long.compare(b.totalPoints, a.totalPoints)).toList();
         return ResponseEntity.ok(out);
     }
@@ -75,9 +76,10 @@ public class LeaderboardController {
             double avgPoints = rounds > 0 ? ((double) totalPoints) / rounds : 0.0;
             final var user = userRepository.findById(steamId).orElse(null);
             final String personaName = user != null && user.getPersonaName() != null && !user.getPersonaName().isBlank() ? user.getPersonaName() : steamId;
-            final String avatar = user != null && user.getAvatar() != null && !user.getAvatar().isBlank() ? user.getAvatar() : null;
+            final String avatar = user != null && user.getAvatarFull() != null && !user.getAvatarFull().isBlank() ? user.getAvatarFull() : null;
+            final String avatarBlurdata = user != null && user.getBlurdataAvatarFull() != null && !user.getBlurdataAvatarFull().isBlank() ? user.getBlurdataAvatarFull() : null;
             final String profileUrl = user != null && user.getProfileUrl() != null && !user.getProfileUrl().isBlank() ? user.getProfileUrl() : null;
-            return new LeaderEntry(steamId, personaName, totalPoints, rounds, hits, tooHigh, tooLow, avgPoints, avatar, profileUrl);
+            return new LeaderEntry(steamId, personaName, totalPoints, rounds, hits, tooHigh, tooLow, avgPoints, avatar, avatarBlurdata, profileUrl);
         }).sorted((a, b) -> Long.compare(b.totalPoints, a.totalPoints)).toList();
         return ResponseEntity.ok(out);
     }
@@ -87,6 +89,7 @@ public class LeaderboardController {
                               long hits, long tooHigh, long tooLow,
                               double avgPoints,
                               String avatar,
+                              String avatarBlurdata,
                               String profileUrl) {
     }
 }

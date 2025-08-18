@@ -26,3 +26,5 @@ jobs:
     enabled: true
   blurhash:
     enabled: true
+  blurhashAvatar:
+    enabled: true

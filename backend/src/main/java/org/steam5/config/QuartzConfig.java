@@ -56,9 +56,9 @@ public class QuartzConfig {
 
     @Bean
     @ConditionalOnProperty(prefix = "jobs.blurhash", name = "enabled", havingValue = "true", matchIfMissing = false)
-    public Trigger triggerBlurhashJob(@Qualifier("BlurhashJob") JobDetail job) {
+    public Trigger triggerBlurhashScreenshotJob(@Qualifier("BlurhashScreenshotsJob") JobDetail job) {
         return TriggerBuilder.newTrigger().forJob(job)
-                .withIdentity("BlurhashJob_Trigger")
+                .withIdentity("BlurhashScreenshotsJob_Trigger")
                 .startNow()
                 .withSchedule(simpleSchedule().repeatForever().withIntervalInHours(24))
                 .build();
