@@ -33,6 +33,7 @@ export default function ShareControls(props: {
 }) {
     const {buckets, gameDate, totalRounds, latestRound, latest, inline, results} = props;
     const [copied, setCopied] = useState(false);
+    const isLocalhost = typeof window !== 'undefined' && (location.hostname === 'localhost' || location.hostname === '127.0.0.1');
 
     if (!gameDate) return null;
 
@@ -54,6 +55,36 @@ export default function ShareControls(props: {
     const indices = new Set(Object.keys(data.results).map(n => parseInt(n, 10)));
     indices.add(latestRound);
     const isComplete = indices.size >= totalRounds;
+
+    async function syncLocalGuessesToBackend() {
+        try {
+            if (!isLocalhost) return;
+            // Only attempt when we do NOT have server results
+            const hasServer = results && Object.keys(results).length > 0;
+            if (hasServer) return;
+            const backend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
+            for (const i of Array.from(indices)) {
+                const r = (i === latestRound ? latest : data!.results[i]);
+                if (!r) continue;
+                // Fire-and-forget; backend will ignore duplicates
+                await fetch(`${backend}/api/review-game/guess`, {
+                    method: 'POST',
+                    headers: {'content-type': 'application/json', 'accept': 'application/json'},
+                    body: JSON.stringify({appId: r.appId, bucketGuess: r.selectedLabel}),
+                    cache: 'no-store'
+                }).catch(() => {
+                });
+            }
+        } catch {
+            // ignore sync errors
+        }
+    }
+
+    // Best-effort sync in the background when summary/share is possible
+    if (isLocalhost) {
+        // no await; avoid blocking render
+        void syncLocalGuessesToBackend();
+    }
     if (!isComplete) return null;
 
     const lines: string[] = [];

@@ -202,6 +202,27 @@ export default function ReviewGuesserRound({
         Object.keys(serverResults).length > 0
     );
 
+    // Determine auth state (client-side) to conditionally show the sign-in nudge
+    const [signedIn, setSignedIn] = useState<boolean | null>(null);
+    useEffect(() => {
+        let cancelled = false;
+
+        async function check() {
+            try {
+                const res = await fetch('/api/auth/me', {cache: 'no-store'});
+                const json = await res.json();
+                if (!cancelled) setSignedIn(Boolean(json?.signedIn));
+            } catch {
+                if (!cancelled) setSignedIn(false);
+            }
+        }
+
+        check();
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
     return (
         <>
             <h2>Review Count Guess</h2>
@@ -250,22 +271,31 @@ export default function ReviewGuesserRound({
                             <Link href={nextHref} className="btn-cta" aria-label="Go to next round">Next round →</Link>
                         )}
                         {canShowShare && (
-                            <ShareControls
-                                inline
-                                buckets={buckets}
-                                gameDate={gameDate}
-                                totalRounds={totalRounds}
-                                latestRound={latestStoredRoundIndex}
-                                latest={latestStored ? latestStored : {
-                                    appId,
-                                    pickName,
-                                    selectedLabel: selectedLabel ?? '',
-                                    actualBucket: effectiveResponse ? effectiveResponse.actualBucket : '',
-                                    totalReviews: effectiveResponse ? effectiveResponse.totalReviews : 0,
-                                    correct: effectiveResponse ? effectiveResponse.correct : false,
-                                }}
-                                results={Object.keys(serverResults).length > 0 ? serverResults : undefined}
-                            />
+                            <>
+                                {/* Inline nudge only for guests */}
+                                {signedIn === false && (
+                                    <p className="text-muted" style={{margin: '0.5rem 0 0.25rem 0'}}>
+                                        Sign in with Steam to save your results, track streaks, and appear on the
+                                        leaderboard.
+                                    </p>
+                                )}
+                                <ShareControls
+                                    inline
+                                    buckets={buckets}
+                                    gameDate={gameDate}
+                                    totalRounds={totalRounds}
+                                    latestRound={latestStoredRoundIndex}
+                                    latest={latestStored ? latestStored : {
+                                        appId,
+                                        pickName,
+                                        selectedLabel: selectedLabel ?? '',
+                                        actualBucket: effectiveResponse ? effectiveResponse.actualBucket : '',
+                                        totalReviews: effectiveResponse ? effectiveResponse.totalReviews : 0,
+                                        correct: effectiveResponse ? effectiveResponse.correct : false,
+                                    }}
+                                    results={Object.keys(serverResults).length > 0 ? serverResults : undefined}
+                                />
+                            </>
                         )}
                     </div>
                     {canShowShare && (
