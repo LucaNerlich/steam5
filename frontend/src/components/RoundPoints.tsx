@@ -30,7 +30,7 @@ export default function RoundPoints({buckets, selectedLabel, actualBucket}: {
     return (
         <p className="review-round__points">
             <span className="points-emoji" aria-hidden="true">{bar}</span>
-            <strong>{points}</strong> {points === 1 ? 'point' : 'points'} — {distance === 0 ? 'exact match' : `off by ${distance}`}
+            <strong>&nbsp;{points}</strong> {points === 1 ? 'point' : 'points'} — {distance === 0 ? 'exact match' : `off by ${distance}`}
         </p>
     );
 }
