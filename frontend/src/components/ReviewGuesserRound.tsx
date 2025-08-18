@@ -10,6 +10,7 @@ import RoundResult from "@/components/RoundResult";
 import RoundPoints from "@/components/RoundPoints";
 import RoundSummary from "@/components/RoundSummary";
 import ShareControls from "@/components/ShareControls";
+import {buildSteamLoginUrl} from "@/components/SteamLoginButton";
 import ReviewRules from "@/components/ReviewRules";
 import "@/styles/components/reviewRoundResult.css";
 import "@/styles/components/reviewShareControls.css";
@@ -275,8 +276,11 @@ export default function ReviewGuesserRound({
                                 {/* Inline nudge only for guests */}
                                 {signedIn === false && (
                                     <p className="text-muted" style={{margin: '0.5rem 0 0.25rem 0'}}>
-                                        Sign in with Steam to save your results, track streaks, and appear on the
-                                        leaderboard.
+                                        <a href="#" onClick={(e) => {
+                                            e.preventDefault();
+                                            window.location.href = buildSteamLoginUrl();
+                                        }}>Sign in with Steam</a>
+                                        &nbsp;to save your results, track streaks, and appear on the leaderboard.
                                     </p>
                                 )}
                                 <ShareControls

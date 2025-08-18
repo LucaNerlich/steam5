@@ -4,8 +4,15 @@ import React, {useEffect, useState} from "react";
 import {clearAll} from "@/lib/storage";
 import Image from "next/image";
 
-export default function SteamLoginButton(): React.ReactElement {
+export function buildSteamLoginUrl(): string {
     const backend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
+    const envBase = process.env.NEXT_PUBLIC_DOMAIN;
+    const callbackBase = (typeof window !== 'undefined' && (!envBase || envBase.length === 0)) ? window.location.origin : (envBase || '');
+    const callback = `${callbackBase}/api/auth/steam/callback`;
+    return `${backend}/api/auth/steam/login?redirect=${encodeURIComponent(callback)}`;
+}
+
+export default function SteamLoginButton(): React.ReactElement {
     const [steamId, setSteamId] = useState<string | null>(null);
 
     useEffect(() => {
@@ -33,15 +40,12 @@ export default function SteamLoginButton(): React.ReactElement {
     }, []);
 
     const onClick = () => {
-        const envBase = process.env.NEXT_PUBLIC_DOMAIN;
-        const callbackBase = envBase && envBase.length > 0 ? envBase : window.location.origin;
-        const callback = `${callbackBase}/api/auth/steam/callback`;
-        // Debug log for callback base selection (visible only in dev tools)
+        const url = buildSteamLoginUrl();
         try {
-            console.debug('steam5 login callback base', {envBase, callbackBase, callback});
+            console.debug('steam5 login url', url);
         } catch {
         }
-        window.location.href = `${backend}/api/auth/steam/login?redirect=${encodeURIComponent(callback)}`;
+        window.location.href = url;
     };
 
     if (steamId) {
