@@ -79,9 +79,7 @@ export default function ReviewGuesserRound({
 
     // Persist this round's result for the current game date
     useEffect(() => {
-        // If user is authenticated (token cookie present on server), SSR passes prefilled; we choose not to persist
-        const isAuthenticated = Boolean(prefilled);
-        if (isAuthenticated) return;
+        // Persist locally to ensure immediate completion UX even for authenticated users
         if (!state || !state.ok || !state.response || !selectedLabel || !gameDate) return;
         const key = `review-guesser:${gameDate}`;
         try {
@@ -142,16 +140,6 @@ export default function ReviewGuesserRound({
     const storedResults = stored?.results || {};
     const serverResults = allResults || {};
     const storedThisRound = storedResults[roundIndex] || serverResults[roundIndex];
-    const completedCount = Math.max(Object.keys(storedResults).length, Object.keys(serverResults).length);
-    const isComplete = completedCount >= totalRounds;
-    const latestStoredRoundIndex = (() => {
-        const keysLocal = Object.keys(storedResults).map(n => parseInt(n, 10)).filter(Number.isFinite);
-        const keysServer = Object.keys(serverResults).map(n => parseInt(n, 10)).filter(Number.isFinite);
-        const keys = [...keysLocal, ...keysServer];
-        if (keys.length === 0) return roundIndex;
-        return Math.max(...keys);
-    })();
-    const latestStored = storedResults[latestStoredRoundIndex] || serverResults[latestStoredRoundIndex];
 
     // Prefer server response; fallback to stored round result; finally use prefilled from server (authenticated restore)
     const prefilledResponse: GuessResponse | null = prefilled && prefilled.selectedLabel
@@ -173,80 +161,46 @@ export default function ReviewGuesserRound({
             }
             : prefilledResponse;
 
-    // Submitted flag: either current state submitted, or restored from storage, or authenticated prefilled for this round
-    const submittedFlag = Boolean(state && (state.ok || state.error)) || Boolean(storedThisRound) || Boolean(prefilled);
-
     // Effective selected label used for rendering (ignore stale selection from previous scope)
     const renderSelectedLabel = selectionScopeKey === scopeKey ? selectedLabel : (prefilled?.selectedLabel ?? null);
 
-    if (isComplete && roundIndex >= totalRounds) {
-        // Only show share when the day is complete
-        return (
-            <div>
-                <div role="dialog" aria-modal="true" className="review-round__result">
-                    <RoundResult result={(effectiveResponse ?? {
-                        appId,
-                        totalReviews: storedThisRound?.totalReviews ?? 0,
-                        actualBucket: storedThisRound?.actualBucket ?? '',
-                        correct: storedThisRound?.correct ?? false,
-                    }) as GuessResponse}/>
-                    <RoundPoints
-                        buckets={buckets}
-                        selectedLabel={storedThisRound?.selectedLabel ?? selectedLabel}
-                        actualBucket={(effectiveResponse ?? {
-                            actualBucket: storedThisRound?.actualBucket ?? ''
-                        } as GuessResponse).actualBucket}
-                    />
-                    <RoundSummary
-                        buckets={buckets}
-                        gameDate={gameDate}
-                        totalRounds={totalRounds}
-                        latestRound={latestStoredRoundIndex}
-                        latest={latestStored ? latestStored : {
-                            appId,
-                            pickName,
-                            selectedLabel: selectedLabel ?? '',
-                            actualBucket: effectiveResponse ? effectiveResponse.actualBucket : '',
-                            totalReviews: effectiveResponse ? effectiveResponse.totalReviews : 0,
-                            correct: effectiveResponse ? effectiveResponse.correct : false,
-                        }}
-                    />
-                    <div className="review-round__actions">
-                        <a
-                            href={`https://store.steampowered.com/app/${appId}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="btn-ghost"
-                            aria-label="Open this game on Steam"
-                        >
-                            Open on Steam ↗
-                        </a>
-                        {prevHref && (
-                            <Link href={prevHref} className="btn-ghost" aria-label="Go to previous round">← Previous
-                                round</Link>
-                        )}
-                        <ShareControls
-                            inline
-                            buckets={buckets}
-                            gameDate={gameDate}
-                            totalRounds={totalRounds}
-                            latestRound={latestStoredRoundIndex}
-                            latest={latestStored ? latestStored : {
-                                appId,
-                                pickName,
-                                selectedLabel: selectedLabel ?? '',
-                                actualBucket: effectiveResponse ? effectiveResponse.actualBucket : '',
-                                totalReviews: effectiveResponse ? effectiveResponse.totalReviews : 0,
-                                correct: effectiveResponse ? effectiveResponse.correct : false,
-                            }}
-                            results={Object.keys(serverResults).length > 0 ? serverResults : undefined}
-                        />
-                    </div>
-                </div>
-                <p className="review-round__complete text-muted">You have completed all rounds for today.</p>
-            </div>
-        );
+    // Merge the "current" submitted/effective response into server results so
+    // authenticated users see completion immediately without relying on SSR re-fetch
+    const mergedServerResults: Record<number, StoredRoundResult> = {...serverResults};
+    if (effectiveResponse) {
+        mergedServerResults[roundIndex] = {
+            appId,
+            pickName,
+            selectedLabel: storedThisRound?.selectedLabel ?? (renderSelectedLabel ?? ''),
+            actualBucket: effectiveResponse.actualBucket,
+            totalReviews: effectiveResponse.totalReviews,
+            correct: effectiveResponse.correct,
+        };
     }
+
+    const completedCount = Math.max(
+        Object.keys(storedResults).length,
+        Object.keys(mergedServerResults).length
+    );
+    const isComplete = completedCount >= totalRounds;
+    const latestStoredRoundIndex = (() => {
+        const keysLocal = Object.keys(storedResults).map(n => parseInt(n, 10)).filter(Number.isFinite);
+        const keysServer = Object.keys(mergedServerResults).map(n => parseInt(n, 10)).filter(Number.isFinite);
+        const keys = [...keysLocal, ...keysServer];
+        if (keys.length === 0) return roundIndex;
+        return Math.max(...keys);
+    })();
+    const latestStored = storedResults[latestStoredRoundIndex] || mergedServerResults[latestStoredRoundIndex];
+
+    // Submitted flag: either current state submitted, or restored from storage, or authenticated prefilled for this round
+    const submittedFlag = Boolean(state && (state.ok || state.error)) || Boolean(storedThisRound) || Boolean(prefilled);
+
+    // Single source of truth: when to show ShareControls
+    const canShowShare = Boolean(
+        effectiveResponse ||
+        storedThisRound ||
+        Object.keys(serverResults).length > 0
+    );
 
     return (
         <>
@@ -277,6 +231,7 @@ export default function ReviewGuesserRound({
                         selectedLabel={storedThisRound?.selectedLabel ?? renderSelectedLabel}
                         actualBucket={(effectiveResponse ?? {actualBucket: prefilled?.actualBucket ?? ''} as GuessResponse).actualBucket}
                     />
+                    {/* Summary rendered below to avoid duplication and keep actions visible */}
                     <div className="review-round__actions">
                         <a
                             href={`https://store.steampowered.com/app/${appId}`}
@@ -294,23 +249,45 @@ export default function ReviewGuesserRound({
                         {roundIndex < totalRounds && (
                             <Link href={nextHref} className="btn-cta" aria-label="Go to next round">Next round →</Link>
                         )}
-                        <ShareControls
-                            inline
+                        {canShowShare && (
+                            <ShareControls
+                                inline
+                                buckets={buckets}
+                                gameDate={gameDate}
+                                totalRounds={totalRounds}
+                                latestRound={latestStoredRoundIndex}
+                                latest={latestStored ? latestStored : {
+                                    appId,
+                                    pickName,
+                                    selectedLabel: selectedLabel ?? '',
+                                    actualBucket: effectiveResponse ? effectiveResponse.actualBucket : '',
+                                    totalReviews: effectiveResponse ? effectiveResponse.totalReviews : 0,
+                                    correct: effectiveResponse ? effectiveResponse.correct : false,
+                                }}
+                                results={Object.keys(serverResults).length > 0 ? serverResults : undefined}
+                            />
+                        )}
+                    </div>
+                    {canShowShare && (
+                        <RoundSummary
                             buckets={buckets}
                             gameDate={gameDate}
                             totalRounds={totalRounds}
                             latestRound={latestStoredRoundIndex}
-                            latest={latestStored ? latestStored : {
-                                appId,
-                                pickName,
-                                selectedLabel: selectedLabel ?? '',
-                                actualBucket: effectiveResponse ? effectiveResponse.actualBucket : '',
-                                totalReviews: effectiveResponse ? effectiveResponse.totalReviews : 0,
-                                correct: effectiveResponse ? effectiveResponse.correct : false,
-                            }}
+                            latest={(Object.keys(mergedServerResults).length > 0 ? mergedServerResults[latestStoredRoundIndex] : null) ||
+                                latestStored ||
+                                {
+                                    appId,
+                                    pickName,
+                                    selectedLabel: (storedThisRound?.selectedLabel ?? renderSelectedLabel ?? '') as string,
+                                    actualBucket: effectiveResponse ? effectiveResponse.actualBucket : (storedThisRound?.actualBucket ?? ''),
+                                    totalReviews: effectiveResponse ? effectiveResponse.totalReviews : (storedThisRound?.totalReviews ?? 0),
+                                    correct: effectiveResponse ? effectiveResponse.correct : (storedThisRound?.correct ?? false),
+                                }
+                            }
                             results={Object.keys(serverResults).length > 0 ? serverResults : undefined}
                         />
-                    </div>
+                    )}
                 </div>
             )}
 

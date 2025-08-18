@@ -107,13 +107,6 @@ public class AuthController {
     @GetMapping("/steam/callback")
     public ResponseEntity<?> callback(@RequestParam Map<String, String> params) {
         try {
-            final String returnToParam = params.get("openid.return_to");
-            final String claimedId = params.get("openid.claimed_id");
-            log.info("Auth callback: return_to={} claimed_id={} mode={} op_endpoint={}",
-                    returnToParam, claimedId, params.get("openid.mode"), params.get("openid.op_endpoint"));
-            if (returnToParam != null && returnToParam.contains("localhost")) {
-                log.warn("Auth callback return_to points to localhost; check frontend NEXT_PUBLIC_DOMAIN and backend auth.redirectBase");
-            }
             // Verify assertion with Steam via check_authentication
             final String body = buildCheckAuthBody(params);
             final String opEndpoint = params.getOrDefault("openid.op_endpoint", OPENID_ENDPOINT);

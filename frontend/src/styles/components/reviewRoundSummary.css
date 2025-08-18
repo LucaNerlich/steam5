@@ -1,7 +1,7 @@
 .review-round__summary {
     margin-top: 8px;
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-end;
     align-items: baseline;
     gap: 8px;
 }
