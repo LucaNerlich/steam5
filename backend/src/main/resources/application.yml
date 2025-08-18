@@ -51,7 +51,7 @@ review:
     # days to avoid reusing an appid after it was picked; increase for fewer repeats
     do-not-repeat-days: 3650
     # dynamic bucket boundaries for guessing game (inclusive upper bounds in ascending order)
-    bucket-boundaries: [ 100, 1000, 10000 ]
+    bucket-boundaries: [ 13, 111, 855, 6467 ]
     low-percentile: ${LOW_PERCENTILE:0.65}
     high-percentile: ${HIGH_PERCENTILE:0.95}
     # refresh reviews for picked apps when older than N days
