@@ -92,6 +92,8 @@ export default function ShareControls(props: {
     lines.push(title);
     let total = 0;
     const bars: string[] = [];
+    lines.push('---');
+    lines.push('');
     for (let i = 1; i <= totalRounds; i++) {
         const r = i === latestRound ? latest : data.results[i];
         if (!r) continue;
@@ -102,12 +104,13 @@ export default function ShareControls(props: {
     }
     if (bars.length > 0) {
         const maxTotal = 5 * totalRounds;
-        lines.splice(1, 0, `${bars.join('')} ${total}/${maxTotal}`, '');
+        lines.splice(1, 0, `${bars.join('')} ${total}/${maxTotal} Points`, '');
     }
-    lines.push(`Total points: ${total}`);
+    lines.push('');
+    lines.push('---');
     lines.push('');
     lines.push('Play: https://steam5.org/review-guesser');
-    lines.push('Leaderboard: https://steam5.org/review-guesser/leaderboard');
+    lines.push('Leaderboard: https://steam5.org/leaderboard');
     const text = lines.join('\n');
 
     async function copyToClipboard() {

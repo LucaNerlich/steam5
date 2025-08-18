@@ -43,6 +43,11 @@ const nextConfig: NextConfig = {
                 destination: '/review-guesser',
                 permanent: false,
             },
+            {
+                source: '/leaderboard',
+                destination: '/review-guesser/leaderboard',
+                permanent: false,
+            },
 
         ];
     }
