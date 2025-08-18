@@ -14,6 +14,20 @@ footer .container {
     padding: 1rem 0;
 }
 
+.footer__nav ul {
+    list-style: none;
+    display: flex;
+    gap: 1rem;
+    padding: 0;
+    margin: 0;
+}
+
+.footer__nav a {
+    color: var(--color-text);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
 footer .controls {
     display: flex;
     gap: 14px;

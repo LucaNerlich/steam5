@@ -3,11 +3,13 @@ import FontToggle from "./FontToggle";
 import ResetTodayButton from "./ResetTodayButton";
 import AuthLogoutLink from "@/components/AuthLogoutLink";
 import "@/styles/components/footer.css";
+import FooterNavRow from "@/components/FooterNavRow";
 
 export default function Footer() {
     return (
         <footer>
             <div className="container">
+                <FooterNavRow/>
                 <small className="text-muted">Imprint: Steam5.org · Luca Nerlich</small>
                 <div className="controls">
                     <a

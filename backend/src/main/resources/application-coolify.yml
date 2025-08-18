@@ -2,7 +2,7 @@ name: coolify
 spring:
   cache:
     caffeine:
-      spec: maximumSize=500,expireAfterWrite=30m
+      spec: maximumSize=500,expireAfterWrite=12h,refreshAfterWrite=1h #https://github.com/ben-manes/caffeine/wiki/Refresh
 management:
   server:
     port: 8081

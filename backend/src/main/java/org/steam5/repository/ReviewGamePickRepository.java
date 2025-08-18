@@ -1,5 +1,6 @@
 package org.steam5.repository;
 
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -22,6 +23,9 @@ public interface ReviewGamePickRepository extends JpaRepository<ReviewGamePick, 
 
     @Query(value = "SELECT COALESCE(MAX(pick_date), DATE '1970-01-01') FROM review_game_pick", nativeQuery = true)
     LocalDate findLatestPickDate();
+
+    @Query("select distinct p.pickDate from ReviewGamePick p order by p.pickDate desc")
+    List<LocalDate> listDistinctPickDates(Pageable pageable);
 }
 
 

@@ -3,7 +3,7 @@ import ReviewGuesserRound from "../../../src/components/ReviewGuesserRound";
 import Link from "next/link";
 import ReviewGuesserHero from "@/components/ReviewGuesserHero";
 import {cookies, headers} from 'next/headers';
-import LazyGameInfoSection from "@/components/LazyGameInfoSection";
+import GameInfoSection from "@/components/GameInfoSection";
 
 export const dynamic = "force-dynamic";
 
@@ -103,7 +103,7 @@ export default async function ReviewGuesserRoundPage({params}: { params: Promise
                 }]))}
             />
 
-            <LazyGameInfoSection pick={pick}/>
+            <GameInfoSection pick={pick}/>
         </section>
     );
 }
