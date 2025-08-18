@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.steam5.config.SteamAppsConfig;
@@ -70,7 +71,7 @@ public class SteamUserService {
                 final boolean avatarChanged = !Objects.equals(previousAvatar, user.getAvatar());
                 final boolean avatarFullChanged = !Objects.equals(previousAvatarFull, user.getAvatarFull());
 
-                if (avatarChanged || avatarFullChanged) {
+                if (StringUtils.isBlank(user.getBlurdataAvatarFull()) || avatarChanged || avatarFullChanged) {
                     log.info("User {} avatar changed, trigger blurhash generation: avatarChanged={} avatarFullChanged={}", steamId, avatarChanged, avatarFullChanged);
                     // Publish an event to enqueue Blurhash Avatar job only when avatar fields changed
                     eventPublisher.publishEvent(new BlurhashEncodeRequested(null, steamId, BlurhashEnqueueListener.Type.AVATAR));
