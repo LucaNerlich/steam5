@@ -67,6 +67,9 @@ public interface SteamAppReviewsRepository extends JpaRepository<SteamAppReviews
     @Query(value = "SELECT COALESCE(MAX(updated_at), now()) FROM steam_app_reviews", nativeQuery = true)
     OffsetDateTime maxUpdatedAt();
 
+    @Query(value = "SELECT app_id FROM steam_app_reviews ORDER BY updated_at ASC", nativeQuery = true)
+    List<Long> findIdsOrderByUpdatedAtAsc(Pageable pageable);
+
     interface ReviewThresholds {
         Integer getLowThreshold();
 

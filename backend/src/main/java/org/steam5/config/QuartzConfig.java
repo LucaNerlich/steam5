@@ -63,4 +63,14 @@ public class QuartzConfig {
                 .withSchedule(simpleSchedule().repeatForever().withIntervalInHours(24))
                 .build();
     }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "jobs.reviews-refresh", name = "enabled", havingValue = "true", matchIfMissing = true)
+    public Trigger triggerReviewsRefreshJob(@Qualifier("SteamAppReviewsRefreshJob") JobDetail job) {
+        return TriggerBuilder.newTrigger().forJob(job)
+                .withIdentity("SteamAppReviewsRefreshJob_Trigger")
+                // nightly at 02:00
+                .withSchedule(CronScheduleBuilder.cronSchedule("0 0 2 * * ?"))
+                .build();
+    }
 }
