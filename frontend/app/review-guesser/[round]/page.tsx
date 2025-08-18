@@ -4,6 +4,7 @@ import Link from "next/link";
 import ReviewGuesserHero from "@/components/ReviewGuesserHero";
 import {cookies, headers} from 'next/headers';
 import GameInfoSection from "@/components/GameInfoSection";
+import NewsBox from "@/components/NewsBox";
 
 export const dynamic = "force-dynamic";
 
@@ -83,6 +84,8 @@ export default async function ReviewGuesserRoundPage({params}: { params: Promise
                                pick={pick}
                                roundIndex={roundIndex}
                                locale={acceptLanguage?.split(',')[0]}/>
+
+            {roundIndex === 1 && <NewsBox/>}
 
             <ReviewGuesserRound
                 appId={pick.appId}

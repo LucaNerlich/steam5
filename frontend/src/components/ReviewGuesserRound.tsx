@@ -181,11 +181,6 @@ export default function ReviewGuesserRound({
         };
     }
 
-    const completedCount = Math.max(
-        Object.keys(storedResults).length,
-        Object.keys(mergedServerResults).length
-    );
-    const isComplete = completedCount >= totalRounds;
     const latestStoredRoundIndex = (() => {
         const keysLocal = Object.keys(storedResults).map(n => parseInt(n, 10)).filter(Number.isFinite);
         const keysServer = Object.keys(mergedServerResults).map(n => parseInt(n, 10)).filter(Number.isFinite);
@@ -328,7 +323,7 @@ export default function ReviewGuesserRound({
                 </div>
             )}
 
-            {!signedIn && <ReviewRules/>}
+            {!signedIn && roundIndex === 1 && <ReviewRules/>}
         </>
     );
 }
