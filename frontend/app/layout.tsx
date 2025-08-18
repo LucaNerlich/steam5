@@ -7,8 +7,7 @@ import localFont from "next/font/local";
 
 const krypton = localFont({
     src: [
-        {path: "./fonts/krypton/MonaspaceKrypton-Regular.woff2", weight: "400", style: "normal"},
-        {path: "./fonts/krypton/MonaspaceKrypton-Bold.woff2", weight: "700", style: "normal"},
+        {path: "./fonts/krypton/MonaspaceKryptonVar.woff2"},
     ],
     display: 'swap',
     variable: '--font-krypton'
@@ -16,8 +15,7 @@ const krypton = localFont({
 
 const neon = localFont({
     src: [
-        {path: "./fonts/neon/MonaspaceNeon-Regular.woff2", weight: "400", style: "normal"},
-        {path: "./fonts/neon/MonaspaceNeon-Bold.woff2", weight: "700", style: "normal"},
+        {path: "./fonts/neon/MonaspaceNeonVar.woff2"},
     ],
     display: 'swap',
     variable: '--font-neon',
