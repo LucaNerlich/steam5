@@ -73,8 +73,8 @@ public class BlurhashScreenshotsJob implements Job {
                         if (cache != null) {
                             cache.clear();
                         }
-                        log.info("Targeted BlurhashScreenshotsJob finished for appId={} encoded={}", appId, encoded);
                     }
+                    log.info("Targeted BlurhashScreenshotsJob finished for appId={} encoded={}", appId, encoded);
                 } catch (Exception e) {
                     log.warn("Targeted BlurhashScreenshotsJob failed for appId {}: {}", appId, e.getMessage());
                 }

@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.steam5.config.ReviewGameConfig;
 import org.steam5.domain.ReviewGamePick;
 import org.steam5.http.SteamApiException;
+import org.steam5.job.blurhash.BlurhashEnqueueListener;
 import org.steam5.job.events.BlurhashEncodeRequested;
 import org.steam5.repository.DailyPickLockRepository;
 import org.steam5.repository.ExcludedAppRepository;
@@ -184,7 +185,7 @@ public class ReviewGameStateService {
                 }
 
                 // Publish an event to enqueue BlurhashScreenshotsJob asynchronously for this appId
-                eventPublisher.publishEvent(new BlurhashEncodeRequested(p.getAppId()));
+                eventPublisher.publishEvent(new BlurhashEncodeRequested(p.getAppId(), null, BlurhashEnqueueListener.Type.SCREENSHOT));
             }
 
             // Clear game cache
