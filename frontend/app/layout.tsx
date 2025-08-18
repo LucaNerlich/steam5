@@ -7,13 +7,8 @@ import localFont from "next/font/local";
 
 const krypton = localFont({
     src: [
-        {path: "./fonts/krypton/MonaspaceKrypton-Light.woff2", weight: "300", style: "normal"},
         {path: "./fonts/krypton/MonaspaceKrypton-Regular.woff2", weight: "400", style: "normal"},
-        {path: "./fonts/krypton/MonaspaceKrypton-Medium.woff2", weight: "500", style: "normal"},
         {path: "./fonts/krypton/MonaspaceKrypton-Bold.woff2", weight: "700", style: "normal"},
-        {path: "./fonts/krypton/MonaspaceKrypton-ExtraBold.woff2", weight: "800", style: "normal"},
-        {path: "./fonts/krypton/MonaspaceKrypton-Italic.woff2", weight: "400", style: "italic"},
-        {path: "./fonts/krypton/MonaspaceKrypton-BoldItalic.woff2", weight: "700", style: "italic"},
     ],
     display: 'swap',
     variable: '--font-krypton'
@@ -21,16 +16,12 @@ const krypton = localFont({
 
 const neon = localFont({
     src: [
-        {path: "./fonts/neon/MonaspaceNeon-Light.woff2", weight: "300", style: "normal"},
         {path: "./fonts/neon/MonaspaceNeon-Regular.woff2", weight: "400", style: "normal"},
-        {path: "./fonts/neon/MonaspaceNeon-Medium.woff2", weight: "500", style: "normal"},
         {path: "./fonts/neon/MonaspaceNeon-Bold.woff2", weight: "700", style: "normal"},
-        {path: "./fonts/neon/MonaspaceNeon-ExtraBold.woff2", weight: "800", style: "normal"},
-        {path: "./fonts/neon/MonaspaceNeon-Italic.woff2", weight: "400", style: "italic"},
-        {path: "./fonts/neon/MonaspaceNeon-BoldItalic.woff2", weight: "700", style: "italic"},
     ],
     display: 'swap',
-    variable: '--font-neon'
+    variable: '--font-neon',
+    preload: false, // load Neon on demand when toggled
 });
 
 
