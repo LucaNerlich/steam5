@@ -7,7 +7,6 @@ export async function GET(req: NextRequest) {
     const qs = url.searchParams.toString();
     const verifyUrl = `${BACKEND_ORIGIN}/api/auth/steam/callback${qs ? `?${qs}` : ''}`;
     try {
-        console.log('[steam5] callback start', {requestUrl: url.toString(), verifyUrl});
         const res = await fetch(verifyUrl, {headers: {accept: 'application/json'}});
         if (!res.ok) {
             const xfHost = req.headers.get('x-forwarded-host');
@@ -20,7 +19,6 @@ export async function GET(req: NextRequest) {
         const xfHost = req.headers.get('x-forwarded-host');
         const xfProto = req.headers.get('x-forwarded-proto') || 'https';
         const base = process.env.NEXT_PUBLIC_DOMAIN || (xfHost ? `${xfProto}://${xfHost}` : url.origin);
-        console.log('[steam5] callback ok; redirect base', {base});
         const resp = NextResponse.redirect(new URL(`/review-guesser/1?auth=ok`, base));
         resp.cookies.set('s5_token', data.token, {
             httpOnly: true,

@@ -21,9 +21,16 @@ public class ReviewGameConfig {
 
     /**
      * Upper bounds for review count buckets, in ascending order.
-     * Example: [100, 1000, 10000] yields buckets: 0-100, 101-1000, 1001-10000, 10000+
+     * Example: [100, 1000, 10000] yields buckets: 1-100, 101-1000, 1001-10000, 10000+
      */
     private List<Integer> bucketBoundaries = List.of(100, 1000, 10000);
+
+    /**
+     * Optional human-friendly titles for each bucket. Should have the same length as the
+     * number of computed bucket labels (i.e., bucketBoundaries.size() + 1).
+     * These are not persisted to the database; they are only delivered by the API for UI hints.
+     */
+    private List<String> bucketTitles = List.of();
 
     /**
      * Percentile for low/high thresholds when partitioning by total reviews.

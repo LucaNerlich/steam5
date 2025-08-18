@@ -95,7 +95,6 @@ public class BlurhashService {
         }
     }
 
-
     public enum Type {
         THUMBNAIL,
         FULL

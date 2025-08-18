@@ -18,6 +18,7 @@ import "@/styles/components/reviewShareControls.css";
 interface Props {
     appId: number;
     buckets: string[];
+    bucketTitles?: string[];
     roundIndex: number;
     totalRounds: number;
     pickName?: string;
@@ -47,6 +48,7 @@ type StoredDay = { totalRounds: number; results: Record<number, StoredRoundResul
 export default function ReviewGuesserRound({
                                                appId,
                                                buckets,
+                                               bucketTitles,
                                                roundIndex,
                                                totalRounds,
                                                pickName,
@@ -230,6 +232,7 @@ export default function ReviewGuesserRound({
             <GuessButtons
                 appId={appId}
                 buckets={buckets}
+                bucketTitles={bucketTitles}
                 selectedLabel={renderSelectedLabel}
                 onSelect={setSelectedLabel}
                 submitted={submittedFlag}
@@ -325,7 +328,7 @@ export default function ReviewGuesserRound({
                 </div>
             )}
 
-            {!isComplete && <ReviewRules/>}
+            {!signedIn && <ReviewRules/>}
         </>
     );
 }

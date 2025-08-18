@@ -58,7 +58,7 @@ public class ReviewGameStateController {
         }
 
         final LocalDate date = picks.isEmpty() ? LocalDate.now() : picks.getFirst().getPickDate();
-        return ResponseEntity.ok(new ReviewGameStateDto(date, service.getBucketLabels(), details));
+        return ResponseEntity.ok(new ReviewGameStateDto(date, service.getBucketLabels(), service.getBucketTitles(), details));
     }
 
     @GetMapping("/day/{date}")
@@ -85,7 +85,7 @@ public class ReviewGameStateController {
         if (appIds.size() != details.size()) {
             throw new ReviewGameException(500, "Number of appIds and details don't match for day " + date);
         }
-        return ResponseEntity.ok(new ReviewGameStateDto(day, service.getBucketLabels(), details));
+        return ResponseEntity.ok(new ReviewGameStateDto(day, service.getBucketLabels(), service.getBucketTitles(), details));
     }
 
     @GetMapping("/days")
@@ -125,7 +125,7 @@ public class ReviewGameStateController {
 
         final int total = service.getTotalReviewCountForApp(req.appId);
         final String actual = service.inferBucket(total);
-        final boolean ok = actual.equals(req.bucketGuess);
+        final boolean ok = isCorrectForLabel(req.bucketGuess, total);
         return ResponseEntity.ok(new GuessResponse(req.appId, total, actual, ok));
     }
 
@@ -185,7 +185,7 @@ public class ReviewGameStateController {
 
         // create new
         guessRepository.save(new org.steam5.domain.Guess(null, steamId, date, roundIndex, req.appId, req.bucketGuess, computedActual, points, java.time.OffsetDateTime.now()));
-        final boolean ok = computedActual.equals(req.bucketGuess);
+        final boolean ok = isCorrectForLabel(req.bucketGuess, total);
         return ResponseEntity.ok(new GuessResponse(req.appId, total, computedActual, ok));
     }
 
@@ -217,11 +217,15 @@ public class ReviewGameStateController {
 
     @GetMapping("/buckets")
     @Cacheable(value = "one-day", key = "'buckets'")
-    public ResponseEntity<List<String>> buckets() {
-        return ResponseEntity.ok(service.getBucketLabels());
+    public ResponseEntity<BucketMeta> buckets() {
+        return ResponseEntity.ok(new BucketMeta(service.getBucketLabels(), service.getBucketTitles()));
     }
 
-    public record ReviewGameStateDto(LocalDate date, List<String> buckets, List<SteamAppDetail> picks) {
+    public record ReviewGameStateDto(LocalDate date, List<String> buckets, List<String> bucketTitles,
+                                     List<SteamAppDetail> picks) {
+    }
+
+    public record BucketMeta(List<String> buckets, List<String> bucketTitles) {
     }
 
     public record GuessRequest(Long appId, String bucketGuess) {
@@ -231,6 +235,45 @@ public class ReviewGameStateController {
     }
 
     public record MyGuessDto(int roundIndex, Long appId, String selectedBucket, String actualBucket, int totalReviews) {
+    }
+
+    // --- Bucket label parser: supports ranges like "1-100", en dash, em dash, and open-ended labels like "10000+" or "≥ 10000" ---
+    private static boolean isCorrectForLabel(String label, long totalReviews) {
+        Range r = parseBucketLabel(label);
+        if (r.upper == null) return totalReviews >= r.lower;
+        return totalReviews >= r.lower && totalReviews <= r.upper;
+    }
+
+    private record Range(long lower, Long upper) {}
+
+    private static Range parseBucketLabel(String label) {
+        if (label == null) throw new IllegalArgumentException("label null");
+        String s = label.trim();
+        // normalize thousands separators and spaces
+        s = s.replaceAll("[\\s,._]", "");
+        // open ended: "+", "≥", ">="
+        if (s.contains("+") || s.contains("≥") || s.contains(">=")) {
+            String digits = s.replaceAll("[^0-9]", "");
+            long lower = digits.isEmpty() ? 0L : Long.parseLong(digits);
+            return new Range(lower, null);
+        }
+        // closed range: hyphen, en dash, em dash
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("(?i)(\\d+)[-–—](\\d+)").matcher(s);
+        if (m.find()) {
+            long a = Long.parseLong(m.group(1));
+            long b = Long.parseLong(m.group(2));
+            long lower = Math.min(a, b);
+            long upper = Math.max(a, b);
+            return new Range(lower, upper);
+        }
+        // single number fallback => exact match
+        java.util.regex.Matcher one = java.util.regex.Pattern.compile("(\\d+)").matcher(s);
+        if (one.find()) {
+            long v = Long.parseLong(one.group(1));
+            return new Range(v, v);
+        }
+        // default: treat as open ended from zero to be forgiving
+        return new Range(0L, null);
     }
 }
 

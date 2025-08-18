@@ -108,53 +108,31 @@ public class ReviewGameStateService {
             }
         };
 
-        // LOW
-        final List<Long> lowIds = reviewsRepository.findRandomLowAppIds(excludeSince, lowThreshold, PageRequest.of(0, 5));
-        for (Long id : lowIds) {
-            if (validateApp.test(id)) {
-                chosenIds.add(id);
-                picks.add(new ReviewGamePick(null, today, id, OffsetDateTime.now()));
-                break;
+        // Build five buckets from configured boundaries
+        final List<Integer> bounds = config.getBucketBoundaries();
+        final List<int[]> bucketRanges = new ArrayList<>(5);
+        if (bounds != null && !bounds.isEmpty()) {
+            int prev = MIN_BUCKET_BOUND;
+            for (int b : bounds) {
+                bucketRanges.add(new int[]{prev, b});
+                prev = b + 1;
             }
-        }
-        if (picks.stream().noneMatch(p -> true)) {
-            final List<Long> relaxed = reviewsRepository.findRandomLowAppIds(includeAll, lowThreshold, PageRequest.of(0, 10));
-            for (Long id : relaxed) {
-                if (validateApp.test(id)) {
-                    chosenIds.add(id);
-                    picks.add(new ReviewGamePick(null, today, id, OffsetDateTime.now()));
-                    break;
-                }
-            }
+            bucketRanges.add(new int[]{bounds.getLast() + 1, Integer.MAX_VALUE});
+        } else {
+            bucketRanges.add(new int[]{MIN_BUCKET_BOUND, 100});
+            bucketRanges.add(new int[]{101, 1000});
+            bucketRanges.add(new int[]{1001, 10000});
+            bucketRanges.add(new int[]{10001, 100000});
+            bucketRanges.add(new int[]{100001, Integer.MAX_VALUE});
         }
 
-        // HIGH
-        final List<Long> highIds = reviewsRepository.findRandomHighAppIds(excludeSince, highThreshold, PageRequest.of(0, 5));
-        boolean pickedHigh = false;
-        for (Long id : highIds) {
-            if (!chosenIds.contains(id) && validateApp.test(id)) {
-                chosenIds.add(id);
-                picks.add(new ReviewGamePick(null, today, id, OffsetDateTime.now()));
-                pickedHigh = true;
-                break;
-            }
-        }
-        if (!pickedHigh) {
-            final List<Long> relaxed = reviewsRepository.findRandomHighAppIds(includeAll, highThreshold, PageRequest.of(0, 10));
-            for (Long id : relaxed) {
-                if (!chosenIds.contains(id) && validateApp.test(id)) {
-                    chosenIds.add(id);
-                    picks.add(new ReviewGamePick(null, today, id, OffsetDateTime.now()));
-                    break;
-                }
-            }
-        }
-
-        // fill remaining ANY
-        while (picks.size() < 5) {
-            final List<Long> anyIds = reviewsRepository.findRandomAnyAppIds(excludeSince, 25, PageRequest.of(0, 10));
+        // Try to pick one app per bucket, with fallback to ANY
+        for (int[] range : bucketRanges) {
             boolean added = false;
-            for (Long id : anyIds) {
+            final List<Long> fromRange = (range[1] == Integer.MAX_VALUE)
+                    ? reviewsRepository.findRandomGte(excludeSince, range[0], PageRequest.of(0, 8))
+                    : reviewsRepository.findRandomBetween(excludeSince, range[0], range[1], PageRequest.of(0, 8));
+            for (Long id : fromRange) {
                 if (!chosenIds.contains(id) && validateApp.test(id)) {
                     chosenIds.add(id);
                     picks.add(new ReviewGamePick(null, today, id, OffsetDateTime.now()));
@@ -163,8 +141,9 @@ public class ReviewGameStateService {
                 }
             }
             if (!added) {
-                final List<Long> relaxed = reviewsRepository.findRandomAnyAppIds(includeAll, PageRequest.of(0, 10));
-                for (Long id : relaxed) {
+                // fallback ANY
+                final List<Long> anyIds = reviewsRepository.findRandomAnyAppIds(excludeSince, 25, PageRequest.of(0, 10));
+                for (Long id : anyIds) {
                     if (!chosenIds.contains(id) && validateApp.test(id)) {
                         chosenIds.add(id);
                         picks.add(new ReviewGamePick(null, today, id, OffsetDateTime.now()));
@@ -173,9 +152,10 @@ public class ReviewGameStateService {
                     }
                 }
             }
-            if (!added) break;
         }
 
+        // Shuffle picks to avoid deterministic bucket order per round
+        java.util.Collections.shuffle(picks);
         final List<ReviewGamePick> saved = pickRepository.saveAll(picks);
         log.info("Generated {} review-game picks for {} (low<= {}, high>= {})", saved.size(), today, lowThreshold, highThreshold);
 
@@ -253,6 +233,23 @@ public class ReviewGameStateService {
         }
         labels.add(bounds.getLast() + "+");
         return labels;
+    }
+
+    public List<String> getBucketTitles() {
+        final List<String> labels = getBucketLabels();
+        final List<String> titles = config.getBucketTitles();
+        if (labels.isEmpty()) return List.of();
+        if (titles == null || titles.isEmpty()) {
+            // default to empty strings of same length
+            return java.util.stream.IntStream.range(0, labels.size()).mapToObj(i -> "").toList();
+        }
+        if (titles.size() == labels.size()) return titles;
+        // normalize size by truncating or padding with empty strings
+        final java.util.ArrayList<String> out = new java.util.ArrayList<>(labels.size());
+        for (int i = 0; i < labels.size(); i++) {
+            out.add(i < titles.size() ? (titles.get(i) == null ? "" : titles.get(i)) : "");
+        }
+        return out;
     }
 }
 
