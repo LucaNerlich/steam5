@@ -52,15 +52,24 @@ public class ReviewGameStateService {
             return existing;
         }
 
-        log.info("Generating review-game picks for {}", today);
-
         // Try to acquire a per-day lock to prevent concurrent generation (job vs endpoint)
         final int acquired = pickLockRepository.tryAcquire(today);
         if (acquired == 0) {
-            // Another generator is running/just ran; re-read and return existing
-            final List<ReviewGamePick> concurrent = pickRepository.findByPickDate(today);
-            if (!concurrent.isEmpty()) return concurrent;
+            // Another generator is running/just ran; wait briefly for it to finish then return existing
+            for (int i = 0; i < 20; i++) { // ~2s total
+                final List<ReviewGamePick> concurrent = pickRepository.findByPickDate(today);
+                if (!concurrent.isEmpty()) return concurrent;
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException ignored) {
+                    break;
+                }
+            }
+            // Do not attempt to generate if lock not acquired
+            return pickRepository.findByPickDate(today);
         }
+
+        log.info("Generating review-game picks for {}", today);
 
         // Exclusion window parameterized
         final int doNotRepeatDays = Math.max(0, config.getDoNotRepeatDays());
