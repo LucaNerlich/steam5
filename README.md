@@ -117,44 +117,6 @@ Respect rate limits; on any Steam 429 the jobs abort early.
 
 ---
 
-## Daily picks: how the 5 games are chosen
-
-- Lock and reuse
-    - If today already has picks in `review_game_pick`, return them.
-    - Otherwise acquire a per-day DB lock via `daily_pick_lock`. If not acquired, we briefly poll (~2s) and reuse the
-      other worker’s picks.
-
-- Parameters and thresholds
-    - Exclude previously picked appIds since `review.game.do-not-repeat-days` (default 3650); fall back to “include all”
-      when needed.
-    - Compute low/high review thresholds from existing `steam_app_reviews` using percentiles
-      `review.game.low-percentile` / `high-percentile`.
-    - Bucket labels come from `review.game.bucket-boundaries`.
-
-- Candidate selection
-    - Use random queries that exclude recent picks and excluded apps:
-        - LOW: one from ≤ lowThreshold (else retry with include-all window)
-        - HIGH: one from ≥ highThreshold (else retry include-all)
-        - ANY: fill remaining slots from any; if needed retry include-all
-    - For each candidate appId, validate by fetching details. On failure it’s recorded in `excluded_app`. On Steam 429
-      we abort the whole run (no exclusion), to respect rate limits.
-    - Eliminate duplicates with an in-memory set.
-
-- Persist and post-processing
-    - Save to `review_game_pick` for today.
-    - For each picked appId:
-        - Conditionally refresh reviews if stale: when `steam_app_reviews.updated_at` < now −
-          `review.game.min-reviews-fresh-days` (default 7), otherwise skip.
-        - Refresh details (best-effort).
-        - Trigger screenshot BlurHash computation asynchronously.
-    - Clear the `review-game` cache so the FE loads fresh data.
-
-- Concurrency and safety
-    - The per-day DB lock prevents duplicate generation across job and endpoint.
-    - Any Steam 429 aborts generation to avoid hammering the API.
-
----
-
 ## Backend REST API (selected)
 
 - `GET /api/review-game/today` and `/today/details`: daily picks and details
