@@ -22,11 +22,9 @@ import org.steam5.repository.SteamAppReviewsRepository;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Predicate;
+import java.util.stream.IntStream;
 
 @Service
 @Slf4j
@@ -34,16 +32,6 @@ import java.util.function.Predicate;
 public class ReviewGameStateService {
 
     public static final int MIN_BUCKET_BOUND = 1;
-
-    private final SteamAppReviewsRepository reviewsRepository;
-    private final SteamAppReviewsFetcher reviewsFetcher;
-    private final SteamAppDetailsFetcher detailsFetcher;
-    private final ReviewGamePickRepository pickRepository;
-    private final DailyPickLockRepository pickLockRepository;
-    private final ExcludedAppRepository excludedAppRepository;
-    private final ReviewGameConfig config;
-    private final CacheManager cacheManager;
-    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public List<ReviewGamePick> generateDailyPicks() {
@@ -155,7 +143,7 @@ public class ReviewGameStateService {
         }
 
         // Shuffle picks to avoid deterministic bucket order per round
-        java.util.Collections.shuffle(picks);
+        Collections.shuffle(picks);
         final List<ReviewGamePick> saved = pickRepository.saveAll(picks);
         log.info("Generated {} review-game picks for {} (low<= {}, high>= {})", saved.size(), today, lowThreshold, highThreshold);
 
@@ -200,6 +188,30 @@ public class ReviewGameStateService {
         return saved;
     }
 
+    private final SteamAppReviewsRepository reviewsRepository;
+    private final SteamAppReviewsFetcher reviewsFetcher;
+    private final SteamAppDetailsFetcher detailsFetcher;
+    private final ReviewGamePickRepository pickRepository;
+    private final DailyPickLockRepository pickLockRepository;
+    private final ExcludedAppRepository excludedAppRepository;
+    private final ReviewGameConfig config;
+    private final CacheManager cacheManager;
+    private final ApplicationEventPublisher eventPublisher;
+
+    public List<String> getBucketLabels() {
+        final List<Integer> bounds = config.getBucketBoundaries();
+        if (bounds == null || bounds.isEmpty()) return List.of();
+
+        final ArrayList<String> labels = new ArrayList<>(bounds.size() + MIN_BUCKET_BOUND);
+        int prev = MIN_BUCKET_BOUND;
+        for (Integer b : bounds) {
+            labels.add((prev == MIN_BUCKET_BOUND ? "1-" + b : (prev + MIN_BUCKET_BOUND) + "-" + b));
+            prev = b;
+        }
+        labels.add(bounds.getLast() + "+");
+        return labels;
+    }
+
     @Cacheable(value = "review-game", key = "#appId + 'review-count'")
     public int getTotalReviewCountForApp(Long appId) {
         return reviewsRepository.findById(appId).map(r -> r.getTotalPositive() + r.getTotalNegative()).orElse(0);
@@ -221,35 +233,51 @@ public class ReviewGameStateService {
         return bounds.getLast() + "+";
     }
 
-    public List<String> getBucketLabels() {
-        final List<Integer> bounds = config.getBucketBoundaries();
-        if (bounds == null || bounds.isEmpty()) return List.of();
-
-        final ArrayList<String> labels = new java.util.ArrayList<>(bounds.size() + MIN_BUCKET_BOUND);
-        int prev = MIN_BUCKET_BOUND;
-        for (Integer b : bounds) {
-            labels.add((prev == MIN_BUCKET_BOUND ? "1-" + b : (prev + MIN_BUCKET_BOUND) + "-" + b));
-            prev = b;
-        }
-        labels.add(bounds.getLast() + "+");
-        return labels;
-    }
-
     public List<String> getBucketTitles() {
         final List<String> labels = getBucketLabels();
         final List<String> titles = config.getBucketTitles();
         if (labels.isEmpty()) return List.of();
         if (titles == null || titles.isEmpty()) {
             // default to empty strings of same length
-            return java.util.stream.IntStream.range(0, labels.size()).mapToObj(i -> "").toList();
+            return IntStream.range(0, labels.size()).mapToObj(i -> "").toList();
         }
         if (titles.size() == labels.size()) return titles;
         // normalize size by truncating or padding with empty strings
-        final java.util.ArrayList<String> out = new java.util.ArrayList<>(labels.size());
+        final ArrayList<String> out = new ArrayList<>(labels.size());
         for (int i = 0; i < labels.size(); i++) {
             out.add(i < titles.size() ? (titles.get(i) == null ? "" : titles.get(i)) : "");
         }
         return out;
+    }
+
+    /**
+     * 0. Check, that we have at least 5 buckets. It can be more, but the count needs to be uneven. Abort and throw an exception, if we dont.
+     * 1. Pick a random bucket strategy
+     * 2. Pick a random appId for each round according to the chosen bucket strategy
+     * 3. Save picks.
+     * 4. Refresh reviews and details for the picked appIds.
+     * 5. Publish an event to enqueue BlurhashScreenshotsJob asynchronously for each appId.
+     * 6. Clear game cache.
+     *
+     * The bucket strategies are:
+     * - RANDOM: Pick a random appId for each round from a random bucket.
+     * - EQUAL: Pick an appId from each bucket with equal probability — we end up with exactly one pick per bucket.
+     * - LEAN_HIGH: Pick three appId from each bucket with a higher probability for higher buckets — e.g for five buckets, we pick three from the higher three. Fill up the rest randomly.
+     * - LEAN_LOW: Pick three appId from each bucket with a higher probability for lower buckets — e.g for five buckets, we pick three from the lower three. Fill up the rest randomly.
+     * - LEAN_CENTER: Pick three appId from each bucket with a higher probability for the center bucket — e.g for five buckets, we pick three from the center three. Fill up the rest randomly.
+     * - HIGH: Pick two appId from the highest bucket (prefer the upper 1/4) — e.g for five buckets, we pick three from the top 2. Fill up the rest randomly.
+     * - LOW: Pick two appId from the lowest bucket. (prefer the lower 1/4) — e.g for five buckets, we pick three from the bottom 2. Fill up the rest randomly.
+     * - CENTER: Pick two appId from the center bucket. — e.g for five buckets, we pick three from the center. Fill up the rest randomly.
+     */
+    public enum BUCKET_STRATEGY {
+        RANDOM,
+        EQUAL,
+        LEAN_HIGH,
+        LEAN_LOW,
+        LEAN_CENTER,
+        HIGH,
+        LOW,
+        CENTER
     }
 }
 
