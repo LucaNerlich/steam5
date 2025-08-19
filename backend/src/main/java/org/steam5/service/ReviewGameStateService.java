@@ -63,7 +63,6 @@ public class ReviewGameStateService {
         // Exclusion window parameterized
         final int doNotRepeatDays = Math.max(0, config.getDoNotRepeatDays());
         final LocalDate excludeSince = doNotRepeatDays >= 36500 ? LocalDate.of(1970, MIN_BUCKET_BOUND, MIN_BUCKET_BOUND) : today.minusDays(doNotRepeatDays);
-        final LocalDate includeAll = LocalDate.of(1970, MIN_BUCKET_BOUND, MIN_BUCKET_BOUND); // relax by allowing any past picks
 
         final double lowPct = Math.max(0.0, Math.min(1.0, config.getLowPercentile()));
         final double highPct = Math.max(0.0, Math.min(1.0, config.getHighPercentile()));
@@ -96,7 +95,7 @@ public class ReviewGameStateService {
             }
         };
 
-        // Build five buckets from configured boundaries
+        // Build buckets from configured boundaries
         final List<Integer> bounds = config.getBucketBoundaries();
         final List<int[]> bucketRanges = new ArrayList<>(5);
         if (bounds != null && !bounds.isEmpty()) {
@@ -112,6 +111,12 @@ public class ReviewGameStateService {
             bucketRanges.add(new int[]{1001, 10000});
             bucketRanges.add(new int[]{10001, 100000});
             bucketRanges.add(new int[]{100001, Integer.MAX_VALUE});
+        }
+
+        // Validate bucket count: at least 5; if more than 5, the count must be odd
+        final int bucketCount = bucketRanges.size();
+        if (bucketCount < 5 || (bucketCount > 5 && bucketCount % 2 == 0)) {
+            throw new IllegalStateException("Invalid bucket configuration: " + bucketCount + " buckets. Must be at least 5 and odd when > 5.");
         }
 
         // Try to pick one app per bucket, with fallback to ANY
@@ -251,7 +256,7 @@ public class ReviewGameStateService {
     }
 
     /**
-     * 0. Check, that we have at least 5 buckets. It can be more, but the count needs to be uneven. Abort and throw an exception, if we dont.
+     * 0. Validate that we have at least 5 buckets; if there are more than 5, the total number of buckets must be odd. Abort with an exception otherwise.
      * 1. Pick a random bucket strategy
      * 2. Pick a random appId for each round according to the chosen bucket strategy
      * 3. Save picks.
@@ -260,14 +265,14 @@ public class ReviewGameStateService {
      * 6. Clear game cache.
      *
      * The bucket strategies are:
-     * - RANDOM: Pick a random appId for each round from a random bucket.
-     * - EQUAL: Pick an appId from each bucket with equal probability — we end up with exactly one pick per bucket.
-     * - LEAN_HIGH: Pick three appId from each bucket with a higher probability for higher buckets — e.g for five buckets, we pick three from the higher three. Fill up the rest randomly.
-     * - LEAN_LOW: Pick three appId from each bucket with a higher probability for lower buckets — e.g for five buckets, we pick three from the lower three. Fill up the rest randomly.
-     * - LEAN_CENTER: Pick three appId from each bucket with a higher probability for the center bucket — e.g for five buckets, we pick three from the center three. Fill up the rest randomly.
-     * - HIGH: Pick two appId from the highest bucket (prefer the upper 1/4) — e.g for five buckets, we pick three from the top 2. Fill up the rest randomly.
-     * - LOW: Pick two appId from the lowest bucket. (prefer the lower 1/4) — e.g for five buckets, we pick three from the bottom 2. Fill up the rest randomly.
-     * - CENTER: Pick two appId from the center bucket. — e.g for five buckets, we pick three from the center. Fill up the rest randomly.
+     * - RANDOM: For each round, choose a bucket uniformly at random, then pick a random app from that bucket.
+     * - EQUAL: Aim for an equal number of picks per bucket across the rounds (exactly one per bucket when rounds == bucket count).
+     * - LEAN_HIGH: Assign higher selection probability to higher buckets (e.g., skew toward the top buckets when there are five).
+     * - LEAN_LOW: Assign higher selection probability to lower buckets (e.g., skew toward the bottom buckets when there are five).
+     * - LEAN_CENTER: Assign higher selection probability to the center bucket (e.g., skew toward the middle when there are five).
+     * - HIGH: Reserve multiple focused picks from the top two buckets; select remaining rounds according to the baseline distribution.
+     * - LOW: Reserve multiple focused picks from the bottom two buckets; select remaining rounds according to the baseline distribution.
+     * - CENTER: Reserve multiple focused picks from the single center bucket (odd number of buckets is enforced); select remaining rounds according to the baseline distribution.
      */
     public enum BUCKET_STRATEGY {
         RANDOM,
