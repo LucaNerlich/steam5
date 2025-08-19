@@ -1,5 +1,3 @@
-export const dynamic = "force-dynamic";
-
 async function loadDays(): Promise<string[]> {
     const base = process.env.NEXT_PUBLIC_DOMAIN || 'http://localhost:3000';
     const res = await fetch(`${base}/api/review-game/days?limit=120`, {

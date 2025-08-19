@@ -5,8 +5,6 @@ import {formatDate} from "@/lib/format";
 import "@/styles/components/archive.css";
 import GameInfoSection from "@/components/GameInfoSection";
 
-export const dynamic = "force-dynamic";
-
 async function loadArchived(date: string): Promise<ReviewGameState | null> {
     const base = process.env.NEXT_PUBLIC_DOMAIN || 'http://localhost:3000';
     const res = await fetch(`${base}/api/review-game/day/${encodeURIComponent(date)}`, {
