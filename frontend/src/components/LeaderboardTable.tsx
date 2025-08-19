@@ -1,5 +1,8 @@
+"use client";
+
 import "@/styles/components/leaderboard.css";
 import Image from "next/image";
+import useSWR from "swr";
 
 export type LeaderEntry = {
     steamId: string;
@@ -15,10 +18,28 @@ export type LeaderEntry = {
     profileUrl?: string | null;
 };
 
-export default function LeaderboardTable({entries, ariaLabel}: { entries: LeaderEntry[]; ariaLabel: string }) {
+const fetcher = (url: string) => fetch(url, {headers: {accept: 'application/json'}}).then(r => {
+    if (!r.ok) throw new Error(`Failed to load ${url}: ${r.status}`);
+    return r.json();
+});
+
+export default function LeaderboardTable(props: { mode: 'today' | 'all'; refreshMs?: number; ariaLabel?: string }) {
+    const backend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
+    const endpoint = props.mode === 'today' ? '/api/leaderboard/today' : '/api/leaderboard/all';
+    const {data, error, isLoading} = useSWR<LeaderEntry[]>(`${backend}${endpoint}`, fetcher, {
+        refreshInterval: props.refreshMs ?? (props.mode === 'today' ? 5000 : 10000),
+        revalidateOnFocus: true,
+    });
+
+    if (error) return <p className="text-muted">Failed to load leaderboard. Please try again.</p>;
+    if (isLoading || !data) return <p className="text-muted">Loading leaderboard…</p>;
+
+    const entries = data;
+    const aria = props.ariaLabel ?? (props.mode === 'today' ? 'Today Leaderboard' : 'All-time Leaderboard');
+
     return (
         <div className="leaderboard">
-            <table className="leaderboard__table" aria-label={ariaLabel}>
+            <table className="leaderboard__table" aria-label={aria}>
                 <thead>
                 <tr>
                     <th scope="col" className="num">#</th>
