@@ -149,6 +149,9 @@ public class ReviewGameStateServiceTest {
         final var plan = service.planBucketSelection(ReviewGameStateService.BUCKET_STRATEGY.EQUAL, 5, 5, LocalDate.now());
         assertEquals(5, plan.size());
         assertEquals(5, plan.stream().distinct().count());
+        // trigger logging for this strategy
+        final List<ReviewGamePick> picks = service.generateDailyPicks();
+        assertEquals(5, picks.size());
     }
 
     @Test
@@ -157,6 +160,8 @@ public class ReviewGameStateServiceTest {
         final var plan = service.planBucketSelection(ReviewGameStateService.BUCKET_STRATEGY.LEAN_HIGH, 5, 1000, LocalDate.now());
         final long highish = plan.stream().filter(i -> i >= 3).count();
         assertTrue(highish > 500, "expected >50% from top 2 buckets");
+        final List<ReviewGamePick> picks = service.generateDailyPicks();
+        assertEquals(5, picks.size());
     }
 
     @Test
@@ -165,6 +170,8 @@ public class ReviewGameStateServiceTest {
         final var plan = service.planBucketSelection(ReviewGameStateService.BUCKET_STRATEGY.LEAN_LOW, 5, 1000, LocalDate.now());
         final long lowish = plan.stream().filter(i -> i <= 1).count();
         assertTrue(lowish > 500, "expected >50% from bottom 2 buckets");
+        final List<ReviewGamePick> picks = service.generateDailyPicks();
+        assertEquals(5, picks.size());
     }
 
     @Test
@@ -173,6 +180,8 @@ public class ReviewGameStateServiceTest {
         final var plan = service.planBucketSelection(ReviewGameStateService.BUCKET_STRATEGY.LEAN_CENTER, 5, 1000, LocalDate.now());
         final long center = plan.stream().filter(i -> i == 2).count();
         assertTrue(center > 350, "expected noticeable mass at center bucket");
+        final List<ReviewGamePick> picks = service.generateDailyPicks();
+        assertEquals(5, picks.size());
     }
 
     @Test
@@ -182,6 +191,8 @@ public class ReviewGameStateServiceTest {
         // first two planned slots must be from top two buckets (3 or 4)
         assertTrue(plan.get(0) >= 3 && plan.get(0) <= 4);
         assertTrue(plan.get(1) >= 3 && plan.get(1) <= 4);
+        final List<ReviewGamePick> picks = service.generateDailyPicks();
+        assertEquals(5, picks.size());
     }
 
     @Test
@@ -191,6 +202,8 @@ public class ReviewGameStateServiceTest {
         // first two planned slots must be from bottom two buckets (0 or 1)
         assertTrue(plan.get(0) >= 0 && plan.get(0) <= 1);
         assertTrue(plan.get(1) >= 0 && plan.get(1) <= 1);
+        final List<ReviewGamePick> picks = service.generateDailyPicks();
+        assertEquals(5, picks.size());
     }
 
     @Test
@@ -200,6 +213,8 @@ public class ReviewGameStateServiceTest {
         // first two planned slots should be the exact center index (2)
         assertEquals(2, plan.get(0));
         assertEquals(2, plan.get(1));
+        final List<ReviewGamePick> picks = service.generateDailyPicks();
+        assertEquals(5, picks.size());
     }
 }
 

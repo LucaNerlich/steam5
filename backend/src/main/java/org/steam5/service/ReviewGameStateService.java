@@ -64,12 +64,6 @@ public class ReviewGameStateService {
         final int doNotRepeatDays = Math.max(0, config.getDoNotRepeatDays());
         final LocalDate excludeSince = doNotRepeatDays >= 36500 ? LocalDate.of(1970, MIN_BUCKET_BOUND, MIN_BUCKET_BOUND) : today.minusDays(doNotRepeatDays);
 
-        final double lowPct = Math.max(0.0, Math.min(1.0, config.getLowPercentile()));
-        final double highPct = Math.max(0.0, Math.min(1.0, config.getHighPercentile()));
-        final SteamAppReviewsRepository.ReviewThresholds thresholds = reviewsRepository.findPercentileThresholds(lowPct, highPct);
-        final int lowThreshold = thresholds == null || thresholds.getLowThreshold() == null ? 100 : thresholds.getLowThreshold();
-        final int highThreshold = thresholds == null || thresholds.getHighThreshold() == null ? 10000 : thresholds.getHighThreshold();
-
         final List<ReviewGamePick> picks = new ArrayList<>(5);
         final Set<Long> chosenIds = new HashSet<>();
 
@@ -155,7 +149,6 @@ public class ReviewGameStateService {
                         chosenIds.add(id);
                         picks.add(new ReviewGamePick(null, today, id, OffsetDateTime.now()));
                         log.info("Round {}: bucket {} fallback ANY -> picked appId {}", round, (labels.isEmpty() ? bucketIndex : labels.get(bucketIndex)), id);
-                        added = true;
                         break;
                     }
                 }
@@ -166,7 +159,7 @@ public class ReviewGameStateService {
         // Shuffle picks to avoid deterministic bucket order per round
         Collections.shuffle(picks);
         final List<ReviewGamePick> saved = pickRepository.saveAll(picks);
-        log.info("Generated {} review-game picks for {} (low<= {}, high>= {})", saved.size(), today, lowThreshold, highThreshold);
+        log.info("Generated {} review-game picks for {}", saved.size(), today);
 
         // Evict review-game cache only when new picks were created
         if (!saved.isEmpty()) {
