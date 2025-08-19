@@ -223,7 +223,7 @@ export default function ReviewGuesserRound({
 
     return (
         <>
-            <h2>Review Count Guess</h2>
+            <h2>Submit Your Guess</h2>
             <GuessButtons
                 appId={appId}
                 buckets={buckets}
