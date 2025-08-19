@@ -1,20 +1,7 @@
 import Link from "next/link";
-import LeaderboardTable, {LeaderEntry} from "@/components/LeaderboardTable";
-
-// use LeaderEntry type from LeaderboardTable
-
-async function loadLeaderboardToday(): Promise<LeaderEntry[]> {
-    const backend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
-    const res = await fetch(`${backend}/api/leaderboard/today`, {
-        headers: {accept: 'application/json'},
-        next: {revalidate: 30},
-    });
-    if (!res.ok) throw new Error('Failed to load leaderboard');
-    return res.json();
-}
+import LeaderboardTable from "@/components/LeaderboardTable";
 
 export default async function LeaderboardTodayPage() {
-    const today = await loadLeaderboardToday();
     return (
         <section className="container">
             <h1>Review Guesser — Leaderboard</h1>
@@ -24,7 +11,7 @@ export default async function LeaderboardTodayPage() {
             </nav>
             <h2>Today</h2>
             <p className="text-muted">Today&apos;s total points by player (sorted highest first)</p>
-            <LeaderboardTable entries={today} ariaLabel="Today Leaderboard"/>
+            <LeaderboardTable mode="today" refreshMs={5000}/>
         </section>
     );
 }
