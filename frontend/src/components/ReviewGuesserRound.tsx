@@ -184,7 +184,7 @@ export default function ReviewGuesserRound({
         } catch {
             setStored(null);
         }
-    }, [gameDate, roundIndex, prefilled, totalRounds, appId, pickName, selectedLabel, scopeKey]);
+    }, [gameDate, roundIndex, prefilled, fetchedPrefill, totalRounds, appId, pickName, selectedLabel, scopeKey]);
 
     // Determine completion and existing result for this round
     const storedResults = stored?.results || {};
