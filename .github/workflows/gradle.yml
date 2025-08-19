@@ -35,7 +35,7 @@ jobs:
 
       # https://stackoverflow.com/questions/58282791/why-when-i-use-github-actions-ci-for-a-gradle-project-i-face-gradlew-permiss
     - name: Change wrapper permissions
-      run: chmod +x ./gradlew
+      run: chmod +x ./backend/gradlew
 
     - name: Build with Gradle Wrapper
       run: ./backend/gradlew build
