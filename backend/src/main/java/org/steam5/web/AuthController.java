@@ -22,6 +22,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -59,7 +60,7 @@ public class AuthController {
         form.add("openid.mode", "check_authentication");
         StringBuilder sb = new StringBuilder();
         boolean first = true;
-        for (Map.Entry<String, java.util.List<String>> e : form.entrySet()) {
+        for (Map.Entry<String, List<String>> e : form.entrySet()) {
             for (String v : e.getValue()) {
                 if (!first) sb.append('&');
                 sb.append(enc(e.getKey())).append('=').append(enc(v));
