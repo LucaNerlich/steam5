@@ -1,6 +1,6 @@
 "use client";
 
-import React, {useState} from "react";
+import React, {useEffect, useState} from "react";
 import "@/styles/components/reviewShareControls.css";
 import {scoreForRound} from "@/lib/scoring";
 
@@ -34,6 +34,7 @@ export default function ShareControls(props: {
     const {buckets, gameDate, totalRounds, latestRound, latest, inline, results} = props;
     const [copied, setCopied] = useState(false);
     const isLocalhost = typeof window !== 'undefined' && (location.hostname === 'localhost' || location.hostname === '127.0.0.1');
+    const [appNamesById, setAppNamesById] = useState<Record<number, string>>({});
 
     if (!gameDate) return null;
 
@@ -94,13 +95,35 @@ export default function ShareControls(props: {
     const bars: string[] = [];
     lines.push('---');
     lines.push('');
+    // Fetch today's picks to enrich app names for all rounds
+    useEffect(() => {
+        let cancelled = false;
+        async function loadNames() {
+            try {
+                const res = await fetch('/api/review-game/today', {cache: 'no-store'});
+                if (!res.ok) return;
+                const json = await res.json() as { picks: Array<{ appId: number; name?: string }> };
+                if (cancelled || !json || !json.picks) return;
+                const map: Record<number, string> = {};
+                for (const p of json.picks) {
+                    if (p && typeof p.appId === 'number' && p.name) map[p.appId] = p.name;
+                }
+                setAppNamesById(map);
+            } catch {
+            }
+        }
+        loadNames();
+        return () => { cancelled = true; };
+    }, []);
+
     for (let i = 1; i <= totalRounds; i++) {
         const r = i === latestRound ? latest : data.results[i];
         if (!r) continue;
         const {bar, points, distance} = scoreForRound(buckets, r.selectedLabel, r.actualBucket);
         total += points;
         bars.push(bar);
-        lines.push(`${bar} | Round ${i}: ${r.pickName ?? 'App ' + r.appId} — off by ${distance}`);
+        const displayName = r.pickName || appNamesById[r.appId] || ('App ' + r.appId);
+        lines.push(`${bar} | Round ${i}: ${displayName} — off by ${distance}`);
     }
     if (bars.length > 0) {
         const maxTotal = 5 * totalRounds;
