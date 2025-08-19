@@ -1,0 +1,37 @@
+### Index of statistics endpoints (JSON)
+GET {{host}}/api/stats
+Accept: application/json
+
+### List top genres (default limit=100)
+GET {{host}}/api/stats/genres
+Accept: application/json
+
+### List top genres with limit
+GET {{host}}/api/stats/genres?limit=50
+Accept: application/json
+
+### List top categories (default limit=100)
+GET {{host}}/api/stats/categories
+Accept: application/json
+
+### List top categories with limit
+GET {{host}}/api/stats/categories?limit=50
+Accept: application/json
+
+### Review buckets (log-space default)
+GET {{host}}/api/stats/reviews/buckets
+Accept: application/json
+
+### Review buckets (equal-width)
+GET {{host}}/api/stats/reviews/buckets?mode=EQUAL_WIDTH
+Accept: application/json
+
+### Review buckets (equal-count)
+GET {{host}}/api/stats/reviews/buckets?mode=EQUAL_COUNT
+Accept: application/json
+
+### Review buckets (linear winsorized)
+GET {{host}}/api/stats/reviews/buckets?mode=LINEAR_WINSORIZED
+Accept: application/json
+
+
