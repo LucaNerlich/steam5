@@ -62,7 +62,7 @@ public class ReviewGameStateServiceTest {
         );
 
         // Defaults for config
-        config.setBucketBoundaries(List.of(13, 111, 855, 6467)); // yields 5 buckets
+        config.setBucketBoundaries(List.of(100, 1000, 10000, 100000)); // yields 5 buckets
         config.setDoNotRepeatDays(3650);
         config.setMinReviewsFreshDays(0);
 
