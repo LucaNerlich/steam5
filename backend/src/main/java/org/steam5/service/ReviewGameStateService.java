@@ -119,32 +119,48 @@ public class ReviewGameStateService {
             throw new IllegalStateException("Invalid bucket configuration: " + bucketCount + " buckets. Must be at least 5 and odd when > 5.");
         }
 
-        // Try to pick one app per bucket, with fallback to ANY
-        for (int[] range : bucketRanges) {
+        // Decide on strategy for today (seeded for reproducibility)
+        final BUCKET_STRATEGY strategy = chooseStrategyForDate(today);
+        log.info("Bucket strategy for {}: {}", today, strategy);
+
+        final List<Integer> bucketOrder = planBucketSelection(strategy, bucketRanges.size(), bucketRanges.size(), today);
+
+        // For logging, prepare labels for each bucket
+        final List<String> labels = getBucketLabels();
+
+        // Pick apps according to planned buckets, with fallback to ANY while preserving uniqueness
+        int round = 1;
+        for (Integer bucketIndex : bucketOrder) {
+            final int[] range = bucketRanges.get(bucketIndex);
             boolean added = false;
-            final List<Long> fromRange = (range[1] == Integer.MAX_VALUE)
+            final List<Long> candidates = (range[1] == Integer.MAX_VALUE)
                     ? reviewsRepository.findRandomGte(excludeSince, range[0], PageRequest.of(0, 8))
                     : reviewsRepository.findRandomBetween(excludeSince, range[0], range[1], PageRequest.of(0, 8));
-            for (Long id : fromRange) {
+
+            for (Long id : candidates) {
                 if (!chosenIds.contains(id) && validateApp.test(id)) {
                     chosenIds.add(id);
                     picks.add(new ReviewGamePick(null, today, id, OffsetDateTime.now()));
+                    log.info("Round {}: bucket {} (range {}-{}) -> picked appId {}", round, (labels.isEmpty() ? bucketIndex : labels.get(bucketIndex)), range[0], range[1] == Integer.MAX_VALUE ? "∞" : String.valueOf(range[1]), id);
                     added = true;
                     break;
                 }
             }
+
             if (!added) {
                 // fallback ANY
-                final List<Long> anyIds = reviewsRepository.findRandomAnyAppIds(excludeSince, 25, PageRequest.of(0, 10));
+                final List<Long> anyIds = reviewsRepository.findRandomAnyAppIds(excludeSince, PageRequest.of(0, 10));
                 for (Long id : anyIds) {
                     if (!chosenIds.contains(id) && validateApp.test(id)) {
                         chosenIds.add(id);
                         picks.add(new ReviewGamePick(null, today, id, OffsetDateTime.now()));
+                        log.info("Round {}: bucket {} fallback ANY -> picked appId {}", round, (labels.isEmpty() ? bucketIndex : labels.get(bucketIndex)), id);
                         added = true;
                         break;
                     }
                 }
             }
+            round++;
         }
 
         // Shuffle picks to avoid deterministic bucket order per round
@@ -283,6 +299,80 @@ public class ReviewGameStateService {
         HIGH,
         LOW,
         CENTER
+    }
+
+    public BUCKET_STRATEGY chooseStrategyForDate(final LocalDate date) {
+        final BUCKET_STRATEGY[] values = BUCKET_STRATEGY.values();
+        final Random rng = new Random(date.toEpochDay());
+        return values[rng.nextInt(values.length)];
+    }
+
+    public List<Integer> planBucketSelection(final BUCKET_STRATEGY strategy, final int bucketCount, final int rounds, final LocalDate date) {
+        final ArrayList<Integer> plan = new ArrayList<>(rounds);
+        final Random rng = new Random(date.toEpochDay() * 31L + 7L);
+
+        switch (strategy) {
+            case EQUAL -> {
+                for (int i = 0; i < bucketCount && plan.size() < rounds; i++) plan.add(i);
+                // If more rounds than buckets (unlikely), fill uniformly
+                while (plan.size() < rounds) plan.add(rng.nextInt(bucketCount));
+            }
+            case RANDOM -> {
+                for (int i = 0; i < rounds; i++) plan.add(rng.nextInt(bucketCount));
+            }
+            case LEAN_HIGH -> {
+                final double[] w = new double[bucketCount];
+                for (int i = 0; i < bucketCount; i++) w[i] = i + 1.0; // higher index = higher weight
+                for (int i = 0; i < rounds; i++) plan.add(sampleIndex(w, rng));
+            }
+            case LEAN_LOW -> {
+                final double[] w = new double[bucketCount];
+                for (int i = 0; i < bucketCount; i++) w[i] = (bucketCount - i);
+                for (int i = 0; i < rounds; i++) plan.add(sampleIndex(w, rng));
+            }
+            case LEAN_CENTER -> {
+                final int c = bucketCount / 2; // single center due to odd count enforcement
+                final double sigma = Math.max(1.0, bucketCount / 5.0); // tighter focus on center
+                final double[] w = new double[bucketCount];
+                for (int i = 0; i < bucketCount; i++) {
+                    final double d = i - c;
+                    w[i] = Math.exp(-(d * d) / (2 * sigma * sigma));
+                }
+                for (int i = 0; i < rounds; i++) plan.add(sampleIndex(w, rng));
+            }
+            case HIGH -> {
+                final int k = Math.min(2, rounds);
+                for (int i = 0; i < k; i++)
+                    plan.add(bucketCount - 1 - rng.nextInt(Math.min(2, bucketCount))); // top two
+                while (plan.size() < rounds) plan.add(rng.nextInt(bucketCount));
+            }
+            case LOW -> {
+                final int k = Math.min(2, rounds);
+                for (int i = 0; i < k; i++) plan.add(rng.nextInt(Math.min(2, bucketCount))); // bottom two
+                while (plan.size() < rounds) plan.add(rng.nextInt(bucketCount));
+            }
+            case CENTER -> {
+                final int c = bucketCount / 2; // single center due to odd count enforcement
+                final int k = Math.min(2, rounds);
+                for (int i = 0; i < k; i++) plan.add(c);
+                while (plan.size() < rounds) plan.add(rng.nextInt(bucketCount));
+            }
+        }
+
+        // If we exactly have one per bucket for EQUAL, shuffle to avoid deterministic ordering
+        if (strategy == BUCKET_STRATEGY.EQUAL && rounds >= bucketCount) Collections.shuffle(plan, rng);
+        return plan;
+    }
+
+    public int sampleIndex(final double[] weights, final Random rng) {
+        double sum = 0.0;
+        for (double w : weights) sum += w;
+        double r = rng.nextDouble() * sum;
+        for (int i = 0; i < weights.length; i++) {
+            r -= weights[i];
+            if (r <= 0) return i;
+        }
+        return weights.length - 1;
     }
 }
 
