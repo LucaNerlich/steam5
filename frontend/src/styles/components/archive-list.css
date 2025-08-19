@@ -7,13 +7,19 @@
     counter-reset: round;
 }
 
+.archive-list__toc > ol {
+    margin-inline-start: 40px;
+}
+
 .archive-list__toc li {
     counter-increment: round;
-    padding-inline-start: 40px;
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    column-gap: 0.5rem;
 }
 
 .archive-list__toc li::before {
-    content: "Round " counter(round) "\2002";
+    content: "Round " counter(round);
     color: var(--color-muted);
 }
 
