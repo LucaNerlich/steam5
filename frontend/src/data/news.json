@@ -14,6 +14,13 @@
         "footer": "The actual strategy chosen will be hidden. We hope you enjoy the new strategies! Please let us know if you have any feedback."
     },
     {
+        "start": "2025-08-19",
+        "end": "2025-08-31",
+        "title": "Customize Fonts & Theme",
+        "text": "<p>You can now switch the <strong>font family</strong> and <strong>light/dark theme</strong> from the footer. Your choices are saved on your device.</p>",
+        "footer": "Tip: Try Krypton, Neon, Argon, Radon, or Xenon in the font selector."
+    },
+    {
         "start": "2025-08-18",
         "end": "2025-08-19",
         "title": "New Review Buckets",
@@ -22,7 +29,7 @@
     },
     {
         "start": "2025-08-18",
-        "end": "2025-08-22",
+        "end": "2025-08-19",
         "title": "New Archive",
         "text": "<p>We've added a new <a href='https://steam5.org/review-guesser/archive'>archive</a> of all the daily challenges.</p>",
         "footer": "A link to the archive can also be found in the footer of every page."
