@@ -85,7 +85,9 @@ public class MetricsController {
     public ResponseEntity<SteamAppReviewsRepository.ReviewThresholds> getThresholds() {
         final SteamAppReviewsRepository.ReviewThresholds thresholds = reviewsRepository.findPercentileThresholds(
                 reviewGameConfig.getLowPercentile(), reviewGameConfig.getHighPercentile());
-        return ResponseEntity.ok(thresholds);
+        return ResponseEntity.ok()
+                .header("Cache-Control", "public, s-maxage=86400, max-age=3600")
+                .body(thresholds);
     }
 
     @GetMapping("/counts")
@@ -103,7 +105,9 @@ public class MetricsController {
                 pickRepository.count(),
                 ingestStateRepository.count()
         );
-        return ResponseEntity.ok(counts);
+        return ResponseEntity.ok()
+                .header("Cache-Control", "public, s-maxage=3600, max-age=300")
+                .body(counts);
     }
 
     @GetMapping("/coverage")
@@ -123,7 +127,9 @@ public class MetricsController {
                 indexCount == 0 ? 0.0 : (withReviews * 100.0) / indexCount,
                 indexCount == 0 ? 0.0 : (withDetails * 100.0) / indexCount
         );
-        return ResponseEntity.ok(coverage);
+        return ResponseEntity.ok()
+                .header("Cache-Control", "public, s-maxage=3600, max-age=300")
+                .body(coverage);
     }
 
     @GetMapping("/reviews/summary")
@@ -135,7 +141,9 @@ public class MetricsController {
         final var maxUpdated = reviewsRepository.maxUpdatedAt();
         final double avgReviewsPerApp = appsWithReviews == 0 ? 0.0 : (double) totalReviews / appsWithReviews;
         final ReviewsSummary summary = new ReviewsSummary(appsWithReviews, totalReviews, avgReviewsPerApp, minUpdated, maxUpdated);
-        return ResponseEntity.ok(summary);
+        return ResponseEntity.ok()
+                .header("Cache-Control", "public, s-maxage=3600, max-age=300")
+                .body(summary);
     }
 
     @GetMapping("/details/breakdown")
@@ -150,7 +158,9 @@ public class MetricsController {
                 detailRepository.countByIsMacTrue(),
                 detailRepository.countByIsLinuxTrue()
         );
-        return ResponseEntity.ok(breakdown);
+        return ResponseEntity.ok()
+                .header("Cache-Control", "public, s-maxage=3600, max-age=300")
+                .body(breakdown);
     }
 
     @GetMapping("/picks/summary")
@@ -159,7 +169,9 @@ public class MetricsController {
         final long totalPicks = pickRepository.count();
         final long distinctDays = pickRepository.countDistinctPickDates();
         final var latestDay = pickRepository.findLatestPickDate();
-        return ResponseEntity.ok(new PicksSummary(totalPicks, distinctDays, latestDay));
+        return ResponseEntity.ok()
+                .header("Cache-Control", "public, s-maxage=3600, max-age=300")
+                .body(new PicksSummary(totalPicks, distinctDays, latestDay));
     }
 
     public record EntityCounts(

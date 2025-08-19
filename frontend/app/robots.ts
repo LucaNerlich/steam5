@@ -7,6 +7,6 @@ export default function robots(): MetadataRoute.Robots {
             allow: '/',
             disallow: '/api/',
         },
-        sitemap: `${process.env.NEXT_PUBLIC_DOMAIN || 'https://steam5.org'}/sitemap.xml`,
+        sitemap: `${(process.env.NEXT_PUBLIC_DOMAIN || 'https://steam5.org').replace(/\/$/, '')}/sitemap.xml`,
     }
 }

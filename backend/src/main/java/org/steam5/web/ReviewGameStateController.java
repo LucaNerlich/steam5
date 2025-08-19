@@ -86,7 +86,9 @@ public class ReviewGameStateController {
         final int capped = Math.max(1, Math.min(limit, 3650));
         final List<LocalDate> dates = pickRepository.listDistinctPickDates(PageRequest.of(0, capped));
         final List<String> out = dates.stream().map(LocalDate::toString).toList();
-        return ResponseEntity.ok(out);
+        return ResponseEntity.ok()
+                .header("Cache-Control", "public, s-maxage=600, max-age=60")
+                .body(out);
     }
 
     @GetMapping("/today/details")
@@ -95,7 +97,9 @@ public class ReviewGameStateController {
         final List<ReviewGamePick> picks = service.generateDailyPicks();
         final List<Long> appIds = picks.stream().map(ReviewGamePick::getAppId).toList();
         final List<SteamAppDetail> details = detailRepository.findAllById(appIds);
-        return ResponseEntity.ok(details);
+        return ResponseEntity.ok()
+                .header("Cache-Control", "public, s-maxage=86400, max-age=3600")
+                .body(details);
     }
 
     @GetMapping("/today")
@@ -119,7 +123,9 @@ public class ReviewGameStateController {
         }
 
         final LocalDate date = picks.isEmpty() ? LocalDate.now() : picks.getFirst().getPickDate();
-        return ResponseEntity.ok(new ReviewGameStateDto(date, service.getBucketLabels(), service.getBucketTitles(), details));
+        return ResponseEntity.ok()
+                .header("Cache-Control", "public, s-maxage=300, max-age=60, stale-while-revalidate=600")
+                .body(new ReviewGameStateDto(date, service.getBucketLabels(), service.getBucketTitles(), details));
     }
 
     @PostMapping("/guess")
@@ -159,7 +165,11 @@ public class ReviewGameStateController {
         if (appIds.size() != details.size()) {
             throw new ReviewGameException(500, "Number of appIds and details don't match for day " + date);
         }
-        return ResponseEntity.ok(new ReviewGameStateDto(day, service.getBucketLabels(), service.getBucketTitles(), details));
+        final boolean isToday = day.equals(java.time.LocalDate.now());
+        final String cc = isToday ? "public, s-maxage=300, max-age=60, stale-while-revalidate=600" : "public, max-age=31536000, immutable";
+        return ResponseEntity.ok()
+                .header("Cache-Control", cc)
+                .body(new ReviewGameStateDto(day, service.getBucketLabels(), service.getBucketTitles(), details));
     }
 
     @GetMapping("/my/today")
@@ -191,7 +201,9 @@ public class ReviewGameStateController {
     @GetMapping("/buckets")
     @Cacheable(value = "one-day", key = "'buckets'")
     public ResponseEntity<BucketMeta> buckets() {
-        return ResponseEntity.ok(new BucketMeta(service.getBucketLabels(), service.getBucketTitles()));
+        return ResponseEntity.ok()
+                .header("Cache-Control", "public, s-maxage=86400, max-age=3600")
+                .body(new BucketMeta(service.getBucketLabels(), service.getBucketTitles()));
     }
 
     public record ReviewGameStateDto(LocalDate date, List<String> buckets, List<String> bucketTitles,
