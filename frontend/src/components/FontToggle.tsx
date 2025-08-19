@@ -2,52 +2,44 @@
 
 import {useEffect, useState} from "react";
 
-type FontChoice = "krypton" | "neon";
+type FontChoice = "krypton" | "neon" | 'argon' | 'radon' | 'xenon';
 
 export default function FontToggle() {
     const [font, setFont] = useState<FontChoice>(() => {
         if (typeof window === 'undefined') return 'krypton';
         const stored = window.localStorage.getItem('font-family-choice');
-        return stored === 'neon' || stored === 'krypton' ? stored : 'krypton';
+        switch (stored) {
+            case 'neon':
+            case 'argon':
+            case 'radon':
+            case 'xenon':
+            case 'krypton':
+                return stored as FontChoice;
+            default:
+                return 'krypton';
+        }
     });
 
     useEffect(() => {
         const root = document.documentElement;
-        if (font === 'neon') {
-            root.setAttribute('data-font', 'neon');
-        } else {
-            root.removeAttribute('data-font');
-        }
+        if (font === 'krypton') root.removeAttribute('data-font');
+        else root.setAttribute('data-font', font);
         window.localStorage.setItem('font-family-choice', font);
     }, [font]);
 
     return (
-        <button
-            title='Font Toggle'
-            className="theme-toggle"
-            aria-label="Toggle font family"
-            onClick={() => setFont(prev => prev === 'krypton' ? 'neon' : 'krypton')}
+        <select
+            aria-label="Font family"
+            className="font-select"
+            value={font}
+            onChange={(e) => setFont(e.target.value as FontChoice)}
         >
-            {font === 'neon' ? (
-                // Show next target: Krypton ⇒ display "K"
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"
-                     focusable="false">
-                    <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="1.5"/>
-                    <text x="12" y="12" fill="currentColor" fontSize="11" textAnchor="middle"
-                          dominantBaseline="central">K
-                    </text>
-                </svg>
-            ) : (
-                // Show next target: Neon ⇒ display "N"
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"
-                     focusable="false">
-                    <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="1.5"/>
-                    <text x="12" y="12" fill="currentColor" fontSize="11" textAnchor="middle"
-                          dominantBaseline="central">N
-                    </text>
-                </svg>
-            )}
-        </button>
+            <option value="krypton">Krypton</option>
+            <option value="neon">Neon</option>
+            <option value="argon">Argon</option>
+            <option value="radon">Radon</option>
+            <option value="xenon">Xenon</option>
+        </select>
     );
 }
 

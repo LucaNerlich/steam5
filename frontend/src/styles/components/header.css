@@ -17,6 +17,13 @@ header .header-actions {
     gap: 0.5rem;
 }
 
+/* Narrow dropdown for font selection */
+header .font-select {
+    max-width: 120px;
+    padding: 4px 6px;
+    font-size: 0.9rem;
+}
+
 /* Steam login image should appear without default button styling */
 header .steam-login-btn {
     background: transparent;
@@ -48,6 +55,11 @@ header .steam-login-btn:hover {
 
     header .header-actions {
         gap: 0.25rem;
+    }
+
+    header .font-select {
+        max-width: 100px;
+        font-size: 0.85rem;
     }
 
     header img[alt="Sign in through Steam"] {

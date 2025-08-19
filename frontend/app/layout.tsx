@@ -7,7 +7,7 @@ import localFont from "next/font/local";
 
 const krypton = localFont({
     src: [
-        {path: "./fonts/krypton/MonaspaceKryptonVar.woff2"},
+        {path: "./fonts/MonaspaceKryptonVar.woff2"},
     ],
     display: 'swap',
     variable: '--font-krypton'
@@ -15,11 +15,38 @@ const krypton = localFont({
 
 const neon = localFont({
     src: [
-        {path: "./fonts/neon/MonaspaceNeonVar.woff2"},
+        {path: "./fonts/MonaspaceNeonVar.woff2"},
     ],
     display: 'swap',
     variable: '--font-neon',
-    preload: false, // load Neon on demand when toggled
+    preload: false,
+});
+
+const argon = localFont({
+    src: [
+        {path: "./fonts/MonaspaceArgonVar.woff2"},
+    ],
+    display: 'swap',
+    variable: '--font-argon',
+    preload: false,
+});
+
+const radon = localFont({
+    src: [
+        {path: "./fonts/MonaspaceRadonVar.woff2"},
+    ],
+    display: 'swap',
+    variable: '--font-radon',
+    preload: false,
+});
+
+const xenon = localFont({
+    src: [
+        {path: "./fonts/MonaspaceXenonVar.woff2"},
+    ],
+    display: 'swap',
+    variable: '--font-xenon',
+    preload: false,
 });
 
 
@@ -78,7 +105,8 @@ export default function RootLayout({
     children: React.ReactNode;
 }>) {
     return (
-        <html lang="en" className={`${krypton.variable} ${neon.variable}`}>
+        <html lang="en"
+              className={`${krypton.variable} ${neon.variable} ${argon.variable} ${radon.variable} ${xenon.variable}`}>
         <body>
         <Header/>
         <main>
