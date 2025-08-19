@@ -98,6 +98,7 @@ public interface SteamAppReviewsRepository extends JpaRepository<SteamAppReviews
 
         Integer getHighThreshold();
     }
+
 }
 
 

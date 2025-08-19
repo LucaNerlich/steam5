@@ -36,11 +36,19 @@ public class CacheConfig {
                         .build()
         );
 
+        final CaffeineCache cacheStatsLong = new CaffeineCache(
+                "stats-long",
+                Caffeine.newBuilder()
+                        .expireAfterWrite(7, TimeUnit.DAYS)
+                        .build()
+        );
+
         final SimpleCacheManager cacheManager = new SimpleCacheManager();
         cacheManager.setCaches(List.of(
                 cacheOneHour,
                 cacheOneDay,
-                cacheReviewGame
+                cacheReviewGame,
+                cacheStatsLong
         ));
         return cacheManager;
     }
