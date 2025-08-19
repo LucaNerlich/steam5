@@ -1,18 +1,26 @@
 [
     {
+        "start": "2025-08-20",
+        "end": "2025-08-23",
+        "title": "New Bucket Strategies",
+        "text": "<p>To prevent users from guessing the last pick with certainty, we have implemented new 'bucket' strategies. The game will choose one strategy randomly each day and pick games accordingly.</p><ul><li>RANDOM: Uniform chance for each bucket per round.</li>\n<li>EQUAL: Evenly spread picks across buckets (exactly one per bucket when rounds match buckets).</li>\n<li>LEAN_HIGH: Higher probability for higher-review buckets.</li>\n<li>LEAN_LOW: Higher probability for lower-review buckets.</li>\n<li>LEAN_CENTER: Higher probability for the center bucket.</li>\n<li>HIGH: Reserves multiple picks from the top two buckets.</li>\n<li>LOW: Reserves multiple picks from the bottom two buckets.</li>\n<li>CENTER: Reserves multiple picks from the single center bucket.</li></ul>",
+        "footer": "The actual strategy chosen will be hidden. We hope you enjoy the new strategies! Please let us know if you have any feedback."
+    },
+    {
         "start": "2025-08-18",
-        "end": "2025-08-21",
+        "end": "2025-08-20",
         "title": "New Review Buckets",
-        "text": "We have updated the review buckets to be more fair. Simply choosing 1-100 wont work anymore 😏.",
+        "text": "<p>We have updated the review buckets to be more fair. Simply choosing 1-100 wont work anymore 😏.</p>",
         "footer": "Tip: Every bucket matches exactly one game per day."
     },
     {
         "start": "2025-08-18",
         "end": "2025-08-22",
         "title": "New Archive",
-        "text": "We've added a new archive of all the daily challenges.",
-        "footer": "A link to the archive is in the footer."
+        "text": "<p>We've added a new <a href='https://steam5.org/review-guesser/archive'>archive</a> of all the daily challenges.</p>",
+        "footer": "A link to the archive can also be found in the footer of every page."
     }
 ]
+
 
 
