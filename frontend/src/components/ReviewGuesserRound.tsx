@@ -184,7 +184,7 @@ export default function ReviewGuesserRound({
         } catch {
             setStored(null);
         }
-    }, [gameDate, roundIndex, prefilled, totalRounds, appId, pickName, selectedLabel, scopeKey]);
+    }, [gameDate, roundIndex, prefilled, fetchedPrefill, totalRounds, appId, pickName, selectedLabel, scopeKey]);
 
     // Determine completion and existing result for this round
     const storedResults = stored?.results || {};
@@ -192,7 +192,7 @@ export default function ReviewGuesserRound({
         ? allResults
         : Object.fromEntries(Object.entries(serverGuesses).map(([k, v]) => [Number(k), {
             appId: v.appId,
-            pickName,
+            pickName: undefined,
             selectedLabel: v.selectedBucket,
             actualBucket: v.actualBucket ?? '',
             totalReviews: v.totalReviews ?? 0,
@@ -230,7 +230,7 @@ export default function ReviewGuesserRound({
     if (effectiveResponse) {
         mergedServerResults[roundIndex] = {
             appId,
-            pickName,
+            pickName, // preserve current round's name
             selectedLabel: storedThisRound?.selectedLabel ?? (renderSelectedLabel ?? ''),
             actualBucket: effectiveResponse.actualBucket,
             totalReviews: effectiveResponse.totalReviews,
