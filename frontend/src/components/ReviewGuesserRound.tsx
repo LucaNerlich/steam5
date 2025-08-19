@@ -280,7 +280,7 @@ export default function ReviewGuesserRound({
 
     return (
         <>
-            <h2>Submit Your Guess</h2>
+            <h2 id="guess-submission">Submit Your Guess</h2>
             <GuessButtons
                 appId={appId}
                 buckets={buckets}

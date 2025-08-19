@@ -1,6 +1,7 @@
 import React from "react";
 import news from "@/data/news.json";
 import "@/styles/components/newsBox.css";
+import Link from "next/link";
 
 type NewsEntry = {
     start: string; // yyyy-mm-dd
@@ -25,6 +26,7 @@ export default function NewsBox(): React.ReactElement | null {
 
     return (
         <aside className="newsbox" aria-label="Latest updates">
+            <p className="newsbox__subline"><Link href="#guess-submission"><em>jump to round submission️</em></Link></p>
             <h2>News</h2>
             {items.map((news, idx) => (
                 <article className="newsbox__item" key={`${news.title}-${idx}`}>
