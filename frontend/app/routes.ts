@@ -8,4 +8,5 @@ export const Routes = {
     reviewGuesser5: '/review-guesser/5',
     leaderboard: '/review-guesser/leaderboard',
     leaderboardToday: '/review-guesser/leaderboard/today',
+    archive: '/review-guesser/archive',
 }
