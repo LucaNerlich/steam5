@@ -62,6 +62,52 @@ export default function ReviewGuesserRound({
     const [selectionScopeKey, setSelectionScopeKey] = useState<string | null>(null);
     const [stored, setStored] = useState<StoredDay | null>(null);
 
+    // Client-side fetch of authenticated guesses if not provided via props
+    type ServerGuess = {
+        roundIndex: number;
+        appId: number;
+        selectedBucket: string;
+        actualBucket?: string;
+        totalReviews?: number
+    };
+    const [serverGuesses, setServerGuesses] = useState<Record<number, ServerGuess>>({});
+    const [fetchedPrefill, setFetchedPrefill] = useState<{
+        selectedLabel: string;
+        actualBucket?: string;
+        totalReviews?: number
+    } | undefined>(undefined);
+
+    useEffect(() => {
+        let cancelled = false;
+
+        async function load() {
+            // Only fetch if caller did not provide results/prefill
+            if (prefilled || (allResults && Object.keys(allResults).length > 0)) return;
+            try {
+                const res = await fetch('/api/review-game/my/today', {credentials: 'include', cache: 'no-store'});
+                if (!res.ok) return;
+                const data = await res.json() as ServerGuess[];
+                if (cancelled) return;
+                const map: Record<number, ServerGuess> = {};
+                for (const g of data) map[g.roundIndex] = g;
+                setServerGuesses(map);
+                const g = map[roundIndex];
+                if (g) setFetchedPrefill({
+                    selectedLabel: g.selectedBucket,
+                    actualBucket: g.actualBucket ?? '',
+                    totalReviews: g.totalReviews ?? 0
+                });
+            } catch {
+                // ignore
+            }
+        }
+
+        load();
+        return () => {
+            cancelled = true;
+        };
+    }, [roundIndex, prefilled, allResults]);
+
     const scopeKey = `${gameDate ?? ''}:${roundIndex}:${appId}`;
 
     // Reset any previous selection when round/app/date changes before applying stored/prefilled
@@ -116,8 +162,9 @@ export default function ReviewGuesserRound({
     // Restore previously submitted guess for this round and load stored day once on mount/date change
     useEffect(() => {
         // Initialize from server-provided prefilled guess if present (without writing to localStorage)
-        if (prefilled && prefilled.selectedLabel && !selectedLabel) {
-            setSelectedLabel(prefilled.selectedLabel);
+        const computedPrefill = prefilled ?? fetchedPrefill;
+        if (computedPrefill && computedPrefill.selectedLabel && !selectedLabel) {
+            setSelectedLabel(computedPrefill.selectedLabel);
             setSelectionScopeKey(scopeKey);
         }
         if (!gameDate) return;
@@ -141,16 +188,26 @@ export default function ReviewGuesserRound({
 
     // Determine completion and existing result for this round
     const storedResults = stored?.results || {};
-    const serverResults = allResults || {};
+    const serverResults = (allResults && Object.keys(allResults).length > 0)
+        ? allResults
+        : Object.fromEntries(Object.entries(serverGuesses).map(([k, v]) => [Number(k), {
+            appId: v.appId,
+            pickName,
+            selectedLabel: v.selectedBucket,
+            actualBucket: v.actualBucket ?? '',
+            totalReviews: v.totalReviews ?? 0,
+            correct: v.actualBucket ? (v.actualBucket === v.selectedBucket) : false,
+        }])) as Record<number, StoredRoundResult>;
     const storedThisRound = storedResults[roundIndex] || serverResults[roundIndex];
 
     // Prefer server response; fallback to stored round result; finally use prefilled from server (authenticated restore)
-    const prefilledResponse: GuessResponse | null = prefilled && prefilled.selectedLabel
+    const computedPrefill = prefilled ?? fetchedPrefill;
+    const prefilledResponse: GuessResponse | null = computedPrefill && computedPrefill.selectedLabel
         ? {
             appId,
-            totalReviews: prefilled.totalReviews ?? 0,
-            actualBucket: prefilled.actualBucket ?? '',
-            correct: prefilled.actualBucket ? (prefilled.actualBucket === prefilled.selectedLabel) : false,
+            totalReviews: computedPrefill.totalReviews ?? 0,
+            actualBucket: computedPrefill.actualBucket ?? '',
+            correct: computedPrefill.actualBucket ? (computedPrefill.actualBucket === computedPrefill.selectedLabel) : false,
         }
         : null;
     const effectiveResponse: GuessResponse | null = state && state.ok && state.response
@@ -165,7 +222,7 @@ export default function ReviewGuesserRound({
             : prefilledResponse;
 
     // Effective selected label used for rendering (ignore stale selection from previous scope)
-    const renderSelectedLabel = selectionScopeKey === scopeKey ? selectedLabel : (prefilled?.selectedLabel ?? null);
+    const renderSelectedLabel = selectionScopeKey === scopeKey ? selectedLabel : (computedPrefill?.selectedLabel ?? null);
 
     // Merge the "current" submitted/effective response into server results so
     // authenticated users see completion immediately without relying on SSR re-fetch
@@ -242,14 +299,14 @@ export default function ReviewGuesserRound({
                 <div role="dialog" aria-modal="true" className="review-round__result">
                     <RoundResult result={(effectiveResponse ?? {
                         appId,
-                        totalReviews: prefilled?.totalReviews ?? 0,
-                        actualBucket: prefilled?.actualBucket ?? '',
-                        correct: prefilled?.actualBucket ? (prefilled.actualBucket === (prefilled?.selectedLabel ?? '')) : false,
+                        totalReviews: computedPrefill?.totalReviews ?? 0,
+                        actualBucket: computedPrefill?.actualBucket ?? '',
+                        correct: computedPrefill?.actualBucket ? (computedPrefill.actualBucket === (computedPrefill?.selectedLabel ?? '')) : false,
                     }) as GuessResponse}/>
                     <RoundPoints
                         buckets={buckets}
                         selectedLabel={storedThisRound?.selectedLabel ?? renderSelectedLabel}
-                        actualBucket={(effectiveResponse ?? {actualBucket: prefilled?.actualBucket ?? ''} as GuessResponse).actualBucket}
+                        actualBucket={(effectiveResponse ?? {actualBucket: computedPrefill?.actualBucket ?? ''} as GuessResponse).actualBucket}
                     />
                     {/* Summary rendered below to avoid duplication and keep actions visible */}
                     <div className="review-round__actions">

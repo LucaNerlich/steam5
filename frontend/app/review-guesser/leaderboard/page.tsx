@@ -1,13 +1,11 @@
 import Link from "next/link";
 import LeaderboardTable, {LeaderEntry} from "@/components/LeaderboardTable";
 
-export const dynamic = 'force-dynamic';
-
 async function loadLeaderboardAll(): Promise<LeaderEntry[]> {
     const backend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
     const res = await fetch(`${backend}/api/leaderboard/all`, {
-        cache: 'no-store',
-        headers: {accept: 'application/json'}
+        headers: {accept: 'application/json'},
+        next: {revalidate: 60},
     });
     if (!res.ok) throw new Error('Failed to load leaderboard');
     return res.json();

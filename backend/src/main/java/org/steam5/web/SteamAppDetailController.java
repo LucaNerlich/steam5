@@ -105,7 +105,9 @@ public class SteamAppDetailController {
         if (detail.getMovies() != null) detail.getMovies().size();
         detail.getPriceOverview();
 
-        return ResponseEntity.ok(detail);
+        return ResponseEntity.ok()
+                .header("Cache-Control", "public, s-maxage=86400, max-age=3600")
+                .body(detail);
     }
 
 }

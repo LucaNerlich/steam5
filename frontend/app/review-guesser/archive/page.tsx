@@ -1,8 +1,10 @@
+export const revalidate = 600;
+
 async function loadDays(): Promise<string[]> {
-    const base = process.env.NEXT_PUBLIC_DOMAIN || 'http://localhost:3000';
-    const res = await fetch(`${base}/api/review-game/days?limit=120`, {
-        cache: 'no-store',
-        headers: {'accept': 'application/json'}
+    const backend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
+    const res = await fetch(`${backend}/api/review-game/days?limit=120`, {
+        headers: {'accept': 'application/json'},
+        next: {revalidate: 600},
     });
     if (!res.ok) return [];
     return res.json();
@@ -18,13 +20,23 @@ export default async function ArchiveIndexPage() {
             ) : (
                 <ul>
                     {await Promise.all(days.map(async (d) => {
-                        const base = process.env.NEXT_PUBLIC_DOMAIN || 'http://localhost:3000';
-                        const res = await fetch(`${base}/api/review-game/day/summary/${encodeURIComponent(d)}`, {cache: 'no-store'});
-                        const titles: Array<{
-                            round: number;
-                            appId: number;
-                            name: string
-                        }> = res.ok ? await res.json() : [];
+                        const backend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
+                        const isToday = (() => {
+                            try {
+                                const now = new Date();
+                                const todayStr = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())).toISOString().slice(0, 10);
+                                return d === todayStr;
+                            } catch {
+                                return false;
+                            }
+                        })();
+                        const res = await fetch(`${backend}/api/review-game/day/${encodeURIComponent(d)}`, {
+                            headers: {accept: 'application/json'},
+                            next: {revalidate: isToday ? 60 : 31536000},
+                        });
+                        const data: { picks?: Array<{ appId: number; name: string }> } = res.ok ? await res.json() : {};
+                        const picks = Array.isArray(data?.picks) ? data.picks : [];
+                        const titles = picks.map((p, i) => ({round: i + 1, appId: p.appId, name: p.name}));
                         return (
                             <li key={d}>
                                 <a href={`/review-guesser/archive/${d}`}>{d}</a>

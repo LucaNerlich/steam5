@@ -39,7 +39,7 @@ export const metadata: Metadata = {
     alternates: {
         canonical: `/`,
     },
-    metadataBase: new URL(process.env.NEXT_PUBLIC_DOMAIN || 'https://steam5.org'),
+    metadataBase: new URL((process.env.NEXT_PUBLIC_DOMAIN || 'https://steam5.org').replace(/\/$/, '')),
     openGraph: {
         emails: 'luca.nerlich@gmail.com',
         title: 'Steam5',

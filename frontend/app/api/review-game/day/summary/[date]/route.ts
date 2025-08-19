@@ -1,7 +1,6 @@
 import {NextResponse} from "next/server";
 
-export const revalidate = 0;
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 const BACKEND_ORIGIN = process.env.NEXT_PUBLIC_API_DOMAIN || "http://localhost:8080";
 
@@ -9,7 +8,7 @@ export async function GET(_req: Request, {params}: { params: Promise<{ date: str
     const {date} = await params;
     try {
         const res = await fetch(`${BACKEND_ORIGIN}/api/review-game/day/${encodeURIComponent(date)}`, {
-            cache: "no-store",
+            next: {revalidate: 300},
             headers: {"accept": "application/json"}
         });
         if (!res.ok) return NextResponse.json([], {status: res.status});

@@ -5,11 +5,13 @@ import {formatDate} from "@/lib/format";
 import "@/styles/components/archive.css";
 import GameInfoSection from "@/components/GameInfoSection";
 
+export const revalidate = 31536000;
+
 async function loadArchived(date: string): Promise<ReviewGameState | null> {
-    const base = process.env.NEXT_PUBLIC_DOMAIN || 'http://localhost:3000';
-    const res = await fetch(`${base}/api/review-game/day/${encodeURIComponent(date)}`, {
+    const backend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
+    const res = await fetch(`${backend}/api/review-game/day/${encodeURIComponent(date)}`, {
         headers: {"accept": "application/json"},
-        cache: "no-store",
+        next: {revalidate: 31536000},
     });
     if (!res.ok) return null;
     return res.json();

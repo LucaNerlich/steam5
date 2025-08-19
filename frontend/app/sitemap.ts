@@ -2,7 +2,7 @@ import {Routes} from './routes'
 import {MetadataRoute} from 'next'
 
 export default function sitemap(): MetadataRoute.Sitemap {
-    const baseUrl = process.env.NEXT_PUBLIC_DOMAIN || 'https://steam5.org/'
+    const baseUrl = (process.env.NEXT_PUBLIC_DOMAIN || 'https://steam5.org').replace(/\/$/, '')
 
     const routes = Object.values(Routes)
     const date = new Date()
@@ -17,7 +17,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
             alternates: {
                 languages: {
                     de: `${baseUrl}${route}`,
-                    'x-default': `${baseUrl}/${route}`,
+                    'x-default': `${baseUrl}${route}`,
                 },
             },
         })),
