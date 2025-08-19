@@ -1,4 +1,5 @@
 export const revalidate = 600;
+import "@/styles/components/archive-list.css";
 
 async function loadDays(): Promise<string[]> {
     const backend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
@@ -34,20 +35,22 @@ export default async function ArchiveIndexPage() {
                             headers: {accept: 'application/json'},
                             next: {revalidate: isToday ? 60 : 31536000},
                         });
-                        const data: { picks?: Array<{ appId: number; name: string }> } = res.ok ? await res.json() : {};
+                        const data: {
+                            picks?: Array<{ appId: number; name: string }>
+                        } = res.ok ? await res.json() : {};
                         const picks = Array.isArray(data?.picks) ? data.picks : [];
                         const titles = picks.map((p, i) => ({round: i + 1, appId: p.appId, name: p.name}));
                         return (
-                            <li key={d}>
+                            <li key={d} className='archive-list__toc'>
                                 <a href={`/review-guesser/archive/${d}`}>{d}</a>
                                 {titles.length > 0 && (
-                                    <ul>
+                                    <ol>
                                         {titles.map(t => (
                                             <li key={`${d}-${t.appId}`}>
-                                                <a href={`/review-guesser/archive/${d}#round-${t.round}`}>Round {t.round}: {t.name}</a>
+                                                <a href={`/review-guesser/archive/${d}#round-${t.round}`}>{t.name}</a>
                                             </li>
                                         ))}
-                                    </ul>
+                                    </ol>
                                 )}
                             </li>
                         );
