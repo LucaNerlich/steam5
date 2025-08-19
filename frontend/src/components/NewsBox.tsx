@@ -18,8 +18,7 @@ function todayIso(): string {
 export default function NewsBox(): React.ReactElement | null {
     const today = todayIso();
     const items = (news as NewsEntry[]).filter(item =>
-        item && typeof item.start === "string" && typeof item.end === "string" &&
-        item.start <= today && today <= item.end
+        item && item.start <= today && today <= item.end
     );
 
     if (items.length === 0) return null;
@@ -27,17 +26,16 @@ export default function NewsBox(): React.ReactElement | null {
     return (
         <aside className="newsbox" aria-label="Latest updates">
             <h2>News</h2>
-            {items.map((n, idx) => (
-                <article className="newsbox__item" key={`${n.title}-${idx}`}>
+            {items.map((news, idx) => (
+                <article className="newsbox__item" key={`${news.title}-${idx}`}>
                     <header className="newsbox__header">
-                        <h3 className="newsbox__title">{n.title}</h3>
+                        <h3 className="newsbox__title">{news.title}</h3>
                         {/*<span className="newsbox__dates">{n.start} – {n.end}</span>*/}
                     </header>
-                    <div className="newsbox__body">
-                        <p>{n.text}</p>
+                    <div className="newsbox__body" dangerouslySetInnerHTML={{__html: news.text || ""}}>
                     </div>
-                    {n.footer && (
-                        <footer className="newsbox__footer">{n.footer}</footer>
+                    {news.footer && (
+                        <footer className="newsbox__footer">{news.footer}</footer>
                     )}
                 </article>
             ))}

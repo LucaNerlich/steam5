@@ -72,7 +72,7 @@ public class LeaderboardController {
     @GetMapping(value = {"", "/", "/all"})
     public ResponseEntity<List<LeaderEntry>> allTime() {
         final var guesses = guessRepository.findAll();
-        final java.util.Map<String, java.util.List<Guess>> byUser = guesses.stream().collect(java.util.stream.Collectors.groupingBy(Guess::getSteamId));
+        final Map<String, List<Guess>> byUser = guesses.stream().collect(Collectors.groupingBy(Guess::getSteamId));
         final List<LeaderEntry> out = byUser.entrySet().stream().map(e -> {
             final String steamId = e.getKey();
             final var list = e.getValue();
