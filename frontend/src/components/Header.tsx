@@ -18,7 +18,9 @@ export default function Header() {
                     <span>Steam5</span>
                 </Link>
                 {underReviewGuesser && (
-                    <span className="mobile-page-title" aria-hidden="true">Review Guesser</span>
+                    <span className="mobile-page-title" aria-hidden="true">
+                        <Link href={Routes.reviewGuesser1}>Review Guesser</Link>
+                    </span>
                 )}
                 <div className="header-actions">
                     {underReviewGuesser && (
