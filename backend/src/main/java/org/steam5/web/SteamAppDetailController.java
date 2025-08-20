@@ -96,14 +96,6 @@ public class SteamAppDetailController {
             return ResponseEntity.notFound().build();
         }
         final SteamAppDetail detail = detailOpt.get();
-        // Ensure required associations are initialized within the transaction
-        if (detail.getDevelopers() != null) detail.getDevelopers().size();
-        if (detail.getPublisher() != null) detail.getPublisher().size();
-        if (detail.getCategories() != null) detail.getCategories().size();
-        if (detail.getGenres() != null) detail.getGenres().size();
-        if (detail.getScreenshots() != null) detail.getScreenshots().size();
-        if (detail.getMovies() != null) detail.getMovies().size();
-        detail.getPriceOverview();
 
         return ResponseEntity.ok()
                 .header("Cache-Control", "public, s-maxage=86400, max-age=3600")

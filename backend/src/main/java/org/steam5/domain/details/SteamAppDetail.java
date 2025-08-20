@@ -6,8 +6,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -58,7 +58,7 @@ public class SteamAppDetail {
             joinColumns = @JoinColumn(name = "app_id"),
             inverseJoinColumns = @JoinColumn(name = "developer_id")
     )
-    private List<Developer> developers = new ArrayList<>();
+    private Set<Developer> developers = new HashSet<>();
 
     @ManyToMany
     @JoinTable(
@@ -66,7 +66,7 @@ public class SteamAppDetail {
             joinColumns = @JoinColumn(name = "app_id"),
             inverseJoinColumns = @JoinColumn(name = "publisher_id")
     )
-    private List<Publisher> publisher = new ArrayList<>();
+    private Set<Publisher> publisher = new HashSet<>();
 
     @ManyToMany
     @JoinTable(
@@ -74,7 +74,7 @@ public class SteamAppDetail {
             joinColumns = @JoinColumn(name = "app_id"),
             inverseJoinColumns = @JoinColumn(name = "category_id")
     )
-    private List<Category> categories = new ArrayList<>();
+    private Set<Category> categories = new HashSet<>();
 
     private boolean isWindows;
     private boolean isMac;
@@ -86,13 +86,13 @@ public class SteamAppDetail {
             joinColumns = @JoinColumn(name = "app_id"),
             inverseJoinColumns = @JoinColumn(name = "genre_id")
     )
-    private List<Genre> genres = new ArrayList<>();
+    private Set<Genre> genres = new HashSet<>();
 
     @OneToMany(mappedBy = "appId", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Screenshot> screenshots = new ArrayList<>();
+    private Set<Screenshot> screenshots = new HashSet<>();
 
     @OneToMany(mappedBy = "appId", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Movie> movies = new ArrayList<>();
+    private Set<Movie> movies = new HashSet<>();
 
     // mapped by field -> "total"
     private Long recommendations;

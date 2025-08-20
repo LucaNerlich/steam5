@@ -42,13 +42,17 @@ public interface SteamAppDetailRepository extends JpaRepository<SteamAppDetail, 
     }
 
     @EntityGraph(attributePaths = {
-            // Only to-one association to avoid multiple bag fetch when joining lists
-            "priceOverview"
+            "priceOverview",
+            "developers",
+            "publisher",
+            "genres",
+            "categories",
+            "screenshots",
+            "movies"
     }, type = org.springframework.data.jpa.repository.EntityGraph.EntityGraphType.LOAD)
     java.util.Optional<SteamAppDetail> findByAppId(Long appId);
 
     @EntityGraph(attributePaths = {
-            // Keep list fetch light to avoid multiple bag fetch; include only to-one association
             "priceOverview"
     }, type = org.springframework.data.jpa.repository.EntityGraph.EntityGraphType.LOAD)
     @Query("select d from SteamAppDetail d where d.appId in :ids")
