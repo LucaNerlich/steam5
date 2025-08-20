@@ -12,6 +12,7 @@ import RoundSummary from "@/components/RoundSummary";
 import ShareControls from "@/components/ShareControls";
 import {buildSteamLoginUrl} from "@/components/SteamLoginButton";
 import ReviewRules from "@/components/ReviewRules";
+import "@/styles/components/reviewGuesserRound.css";
 import "@/styles/components/reviewRoundResult.css";
 import "@/styles/components/reviewShareControls.css";
 
@@ -310,19 +311,22 @@ export default function ReviewGuesserRound({
                     />
                     {/* Summary rendered below to avoid duplication and keep actions visible */}
                     <div className="review-round__actions">
-                        <a
-                            href={`https://store.steampowered.com/app/${appId}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="btn-ghost"
-                            aria-label="Open this game on Steam"
-                        >
-                            Open on Steam ↗
-                        </a>
-                        {prevHref && (
-                            <Link href={prevHref} className="btn-ghost" aria-label="Go to previous round">← Previous
-                                round</Link>
-                        )}
+                        <div className="review-round__actions-inner">
+                            <a
+                                href={`https://store.steampowered.com/app/${appId}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="btn-ghost"
+                                aria-label="Open this game on Steam"
+                            >
+                                Open Steam ↗
+                            </a>
+                            {prevHref && (
+                                <Link href={prevHref} className="btn-ghost" aria-label="Go to previous round">
+                                    ← Last round
+                                </Link>
+                            )}
+                        </div>
                         {roundIndex < totalRounds && (
                             <Link href={nextHref} className="btn-cta" aria-label="Go to next round">Next round →</Link>
                         )}

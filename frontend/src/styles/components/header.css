@@ -3,6 +3,10 @@ header .container {
     justify-content: space-between;
     align-items: center;
     padding: 1rem 0;
+
+    @media (max-width: 640px) {
+        padding: 0.25rem 0;
+    }
 }
 
 header .brand {

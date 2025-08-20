@@ -1,4 +1,5 @@
-.review-round__complete {
-    margin-top: 12px;
+h1, h2 {
+    @media (max-width: 640px) {
+        margin: 0.5rem 0;
+    }
 }
-

@@ -20,6 +20,10 @@ body {
     color: var(--color-text);
 }
 
+h1, h2, h3, h4, h5, h6, p {
+    hyphens: auto;
+}
+
 /* Heading scale and vertical rhythm */
 h1, h2, h3, h4 {
     font-weight: 700;
@@ -75,6 +79,10 @@ header, main {
     padding-left: max(12px, env(safe-area-inset-left));
     padding-right: max(12px, env(safe-area-inset-right));
     padding-top: max(12px, env(safe-area-inset-top));
+
+    @media (max-width: 640px) {
+        padding-top: 0.25rem;
+    }
 }
 
 button.theme-toggle {
