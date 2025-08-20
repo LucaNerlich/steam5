@@ -44,8 +44,6 @@ export default async function ReviewGuesserRoundPage({params}: { params: Promise
                                pick={pick}
                                roundIndex={roundIndex}/>
 
-            {roundIndex === 1 && <NewsBox/>}
-
             <ReviewGuesserRound
                 appId={pick.appId}
                 buckets={today.buckets}
@@ -55,6 +53,8 @@ export default async function ReviewGuesserRoundPage({params}: { params: Promise
                 pickName={pick.name}
                 gameDate={today.date}
             />
+
+            {roundIndex === 1 && <NewsBox/>}
 
             <GameInfoSection pick={pick}/>
         </section>

@@ -35,8 +35,8 @@ export default function GameInfoSection({pick}: Props): React.ReactElement | nul
     if (!pick || !hasAny) return null;
 
     return (
-        <section className="game-info" aria-labelledby="game-info-title">
-            <h2 id="game-info-title" className="game-info__title">More about this game</h2>
+        <section className="game-info" aria-labelledby="more-about-this-game">
+            <h2 id="more-about-this-game" className="game-info__title">More about this game</h2>
 
             {hasPlatforms && (
                 <div className="game-info__section">

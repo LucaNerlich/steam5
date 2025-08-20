@@ -22,6 +22,7 @@ export default function ReviewGuesserHero(props: Readonly<ReviewGuesserHeroProps
 
     const [isOpen, setIsOpen] = useState(false);
     const [index, setIndex] = useState(0);
+    const [isMobile, setIsMobile] = useState(false);
 
     const openAt = useCallback((i: number) => {
         setIndex(i);
@@ -45,11 +46,32 @@ export default function ReviewGuesserHero(props: Readonly<ReviewGuesserHeroProps
         return () => window.removeEventListener('keydown', onKey);
     }, [isOpen, close, prev, next]);
 
+    // Track viewport to switch heading semantics for accessibility (mobile vs desktop)
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const mql = window.matchMedia('(max-width: 640px)');
+        const apply = () => setIsMobile(mql.matches);
+        apply();
+        mql.addEventListener?.('change', apply);
+        return () => mql.removeEventListener?.('change', apply);
+    }, []);
+
     return (
         <section className='review-guesser-hero'>
-            <h1>Review Guesser</h1>
-            <p>Round <strong>{props.roundIndex}</strong> of <strong>{totalRounds}</strong> | Game Date: {today.date}</p>
-            <h2>{pick.name}</h2>
+            {isMobile ? (
+                <>
+                    <h1 className="game-title">{pick.name}</h1>
+                    <p>Round <strong>{props.roundIndex}</strong> of <strong>{totalRounds}</strong> | Game
+                        Date: {today.date}</p>
+                </>
+            ) : (
+                <>
+                    <h1>Review Guesser</h1>
+                    <p>Round <strong>{props.roundIndex}</strong> of <strong>{totalRounds}</strong> | Game
+                        Date: {today.date}</p>
+                    <h2>{pick.name}</h2>
+                </>
+            )}
             <p className="meta">
                 {pick.developers && pick.developers.length > 0 && (
                     <span title='Developer' className="meta-item">

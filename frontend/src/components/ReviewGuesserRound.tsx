@@ -11,7 +11,6 @@ import RoundPoints from "@/components/RoundPoints";
 import RoundSummary from "@/components/RoundSummary";
 import ShareControls from "@/components/ShareControls";
 import {buildSteamLoginUrl} from "@/components/SteamLoginButton";
-import ReviewRules from "@/components/ReviewRules";
 import "@/styles/components/reviewGuesserRound.css";
 import "@/styles/components/reviewRoundResult.css";
 import "@/styles/components/reviewShareControls.css";
@@ -384,7 +383,7 @@ export default function ReviewGuesserRound({
                 </div>
             )}
 
-            {!signedIn && roundIndex === 1 && <ReviewRules/>}
+            {/*{!signedIn && roundIndex === 1 && <ReviewRules/>}*/}
         </>
     );
 }

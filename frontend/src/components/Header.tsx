@@ -17,11 +17,16 @@ export default function Header() {
                     <Image src="/logo.svg" alt="Steam5" width={20} height={20} priority/>
                     <span>Steam5</span>
                 </Link>
+                {underReviewGuesser && (
+                    <span className="mobile-page-title" aria-hidden="true">Review Guesser</span>
+                )}
                 <div className="header-actions">
                     {underReviewGuesser && (
                         <Link href="/review-guesser/leaderboard" className="btn leaderboard-link"
+                              title="Leaderboard"
                               aria-label="Open leaderboard">
-                            Leaderboard
+                            <span className="mobile__show">Scores</span>
+                            <span className="mobile__hide">Leaderboard</span>
                         </Link>
                     )}
                     <SteamLoginButton/>

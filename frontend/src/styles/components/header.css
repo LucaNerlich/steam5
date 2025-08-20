@@ -5,7 +5,12 @@ header .container {
     padding: 1rem 0;
 
     @media (max-width: 640px) {
+        /* Mobile: switch to a 3-column grid so a title can sit centered */
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        align-items: center;
         padding: 0.25rem 0;
+        gap: 0.5rem;
     }
 }
 
@@ -19,6 +24,9 @@ header .header-actions {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
+    @media (max-width: 640px) {
+        justify-self: end;
+    }
 }
 
 /* Narrow dropdown for font selection */
@@ -69,6 +77,30 @@ header .steam-login-btn:hover {
     header img[alt="Sign in through Steam"] {
         height: 24px;
         width: auto;
+    }
+}
+
+/* Extra narrow phones: shrink steam button a bit more */
+@media (max-width: 400px) {
+    header img[alt="Sign in through Steam"] {
+        height: 20px;
+    }
+}
+
+/* Mobile-only inline page title for Review Guesser */
+header .mobile-page-title {
+    display: none;
+}
+
+@media (max-width: 640px) {
+    header .mobile-page-title {
+        display: block;
+        text-align: center;
+        font-weight: 600;
+        font-size: 1rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 }
 
