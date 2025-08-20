@@ -55,12 +55,12 @@ public class SteamAppDetailControllerTest {
 
         // found
         SteamAppDetail detail = Mockito.mock(SteamAppDetail.class);
-        when(detail.getDevelopers()).thenReturn(Collections.emptyList());
-        when(detail.getPublisher()).thenReturn(Collections.emptyList());
-        when(detail.getCategories()).thenReturn(Collections.emptyList());
-        when(detail.getGenres()).thenReturn(Collections.emptyList());
-        when(detail.getScreenshots()).thenReturn(Collections.emptyList());
-        when(detail.getMovies()).thenReturn(Collections.emptyList());
+        when(detail.getDevelopers()).thenReturn(Collections.emptySet());
+        when(detail.getPublisher()).thenReturn(Collections.emptySet());
+        when(detail.getCategories()).thenReturn(Collections.emptySet());
+        when(detail.getGenres()).thenReturn(Collections.emptySet());
+        when(detail.getScreenshots()).thenReturn(Collections.emptySet());
+        when(detail.getMovies()).thenReturn(Collections.emptySet());
         when(detail.getPriceOverview()).thenReturn(null);
         when(repo.findById(7L)).thenReturn(Optional.of(detail));
 

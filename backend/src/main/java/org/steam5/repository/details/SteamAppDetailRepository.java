@@ -7,6 +7,10 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.steam5.domain.details.SteamAppDetail;
 
+import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
+
 @Repository
 public interface SteamAppDetailRepository extends JpaRepository<SteamAppDetail, Long> {
     long countByIsFreeTrue();
@@ -25,7 +29,7 @@ public interface SteamAppDetailRepository extends JpaRepository<SteamAppDetail, 
             "GROUP BY g.description " +
             "ORDER BY count DESC " +
             "LIMIT :limit", nativeQuery = true)
-    java.util.List<LabelCountProjection> topGenres(@Param("limit") int limit);
+    List<LabelCountProjection> topGenres(@Param("limit") int limit);
 
     @Query(value = "SELECT c.description AS label, COUNT(*) AS count " +
             "FROM steam_app_category sac " +
@@ -33,7 +37,7 @@ public interface SteamAppDetailRepository extends JpaRepository<SteamAppDetail, 
             "GROUP BY c.description " +
             "ORDER BY count DESC " +
             "LIMIT :limit", nativeQuery = true)
-    java.util.List<LabelCountProjection> topCategories(@Param("limit") int limit);
+    List<LabelCountProjection> topCategories(@Param("limit") int limit);
 
     interface LabelCountProjection {
         String getLabel();
@@ -50,13 +54,19 @@ public interface SteamAppDetailRepository extends JpaRepository<SteamAppDetail, 
             "screenshots",
             "movies"
     }, type = org.springframework.data.jpa.repository.EntityGraph.EntityGraphType.LOAD)
-    java.util.Optional<SteamAppDetail> findByAppId(Long appId);
+    Optional<SteamAppDetail> findByAppId(Long appId);
 
     @EntityGraph(attributePaths = {
-            "priceOverview"
+            "priceOverview",
+            "developers",
+            "publisher",
+            "genres",
+            "categories",
+            "screenshots",
+            "movies"
     }, type = org.springframework.data.jpa.repository.EntityGraph.EntityGraphType.LOAD)
-    @Query("select d from SteamAppDetail d where d.appId in :ids")
-    java.util.List<SteamAppDetail> findAllByAppIdIn(@Param("ids") java.util.Collection<Long> ids);
+    @Query("select distinct d from SteamAppDetail d where d.appId in :ids")
+    List<SteamAppDetail> findAllByAppIdIn(@Param("ids") Collection<Long> ids);
 }
 
 
