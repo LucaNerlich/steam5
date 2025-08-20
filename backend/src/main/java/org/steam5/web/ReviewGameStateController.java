@@ -80,52 +80,74 @@ public class ReviewGameStateController {
         return new Range(0L, null);
     }
 
+    private static String weakEtagForPicks(List<SteamAppDetail> details) {
+        try {
+            java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
+            for (SteamAppDetail d : details) {
+                md.update(java.nio.charset.StandardCharsets.UTF_8.encode(String.valueOf(d.getAppId())));
+                if (d.getName() != null) md.update(d.getName().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                if (d.getReleaseDate() != null)
+                    md.update(d.getReleaseDate().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                if (d.getPriceOverview() != null) {
+                    if (d.getPriceOverview().getCurrency() != null)
+                        md.update(d.getPriceOverview().getCurrency().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                    md.update(Long.toString(d.getPriceOverview().getFinalAmount()).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                }
+                // screenshot paths influence visual content; limit sample for speed
+                int i = 0;
+                if (d.getScreenshots() != null) for (var s : d.getScreenshots()) {
+                    if (i++ >= 2) break;
+                    if (s.getPathFull() != null)
+                        md.update(s.getPathFull().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                }
+            }
+            byte[] digest = md.digest();
+            StringBuilder sb = new StringBuilder();
+            for (byte b : digest) sb.append(String.format("%02x", b));
+            return "W/\"" + sb + "\"";
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private static String weakEtagForStringLists(List<? extends List<String>> lists) {
+        try {
+            java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
+            for (List<String> l : lists) {
+                if (l == null) continue;
+                for (String s : l) {
+                    if (s != null) md.update(s.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                    md.update((byte) '\n');
+                }
+                md.update((byte) '\u0000');
+            }
+            byte[] digest = md.digest();
+            StringBuilder sb = new StringBuilder();
+            for (byte b : digest) sb.append(String.format("%02x", b));
+            return "W/\"" + sb + "\"";
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
     @GetMapping("/days")
     @Cacheable(value = "review-game", key = "'days'", unless = "#result == null")
-    public ResponseEntity<List<String>> listDays(@RequestParam(value = "limit", defaultValue = "60") int limit) {
+    public ResponseEntity<List<String>> listDays(@RequestParam(value = "limit", defaultValue = "60") int limit,
+                                                 @RequestHeader HttpHeaders headers) {
         final int capped = Math.max(1, Math.min(limit, 3650));
         final List<LocalDate> dates = pickRepository.listDistinctPickDates(PageRequest.of(0, capped));
         final List<String> out = dates.stream().map(LocalDate::toString).toList();
+        final String etag = weakEtagForStringLists(java.util.List.of(out));
+        if (etag != null && headers.getIfNoneMatch().contains(etag)) {
+            return ResponseEntity.status(304)
+                    .eTag(etag)
+                    .header("Cache-Control", "public, s-maxage=600, max-age=60")
+                    .build();
+        }
         return ResponseEntity.ok()
+                .eTag(etag)
                 .header("Cache-Control", "public, s-maxage=600, max-age=60")
                 .body(out);
-    }
-
-    @GetMapping("/today/details")
-    @Cacheable(value = "review-game", key = "'details'", unless = "#result == null")
-    public ResponseEntity<List<SteamAppDetail>> getTodayDetails() {
-        final List<ReviewGamePick> picks = service.generateDailyPicks();
-        final List<Long> appIds = picks.stream().map(ReviewGamePick::getAppId).toList();
-        final List<SteamAppDetail> details = detailRepository.findAllById(appIds);
-        return ResponseEntity.ok()
-                .header("Cache-Control", "public, s-maxage=86400, max-age=3600")
-                .body(details);
-    }
-
-    @GetMapping("/today")
-    @Cacheable(value = "review-game", key = "'picks'", unless = "#result == null")
-    public ResponseEntity<ReviewGameStateDto> getToday() {
-        final List<ReviewGamePick> picks = service.generateDailyPicks();
-        final List<Long> appIds = picks.stream().map(ReviewGamePick::getAppId).toList();
-        final List<SteamAppDetail> fetched = detailRepository.findAllById(appIds).stream().toList();
-        // Ensure details preserve the appIds order so round indices match what the user sees
-        final Map<Long, SteamAppDetail> byId = new HashMap<>();
-        for (SteamAppDetail d : fetched) {
-            byId.put(d.getAppId(), d);
-        }
-        final List<SteamAppDetail> details = appIds.stream()
-                .map(byId::get)
-                .filter(Objects::nonNull)
-                .toList();
-
-        if (appIds.size() != details.size()) {
-            throw new ReviewGameException(500, "Number of appIds and details don't match");
-        }
-
-        final LocalDate date = picks.isEmpty() ? LocalDate.now() : picks.getFirst().getPickDate();
-        return ResponseEntity.ok()
-                .header("Cache-Control", "public, s-maxage=300, max-age=60, stale-while-revalidate=600")
-                .body(new ReviewGameStateDto(date, service.getBucketLabels(), service.getBucketTitles(), details));
     }
 
     @PostMapping("/guess")
@@ -141,35 +163,23 @@ public class ReviewGameStateController {
         return ResponseEntity.ok(new GuessResponse(req.appId, total, actual, ok));
     }
 
-    @GetMapping("/day/{date}")
-    @Cacheable(value = "review-game", key = "'picks:' + #date", unless = "#result == null")
-    public ResponseEntity<ReviewGameStateDto> getByDate(@PathVariable("date") String date) {
-        final java.time.LocalDate day;
-        try {
-            day = java.time.LocalDate.parse(date);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
-        }
-        final List<ReviewGamePick> picks = pickRepository.findByPickDate(day);
-        if (picks.isEmpty()) {
-            return ResponseEntity.notFound().build();
-        }
+    @GetMapping("/today/details")
+    @Cacheable(value = "review-game", key = "'details'", unless = "#result == null")
+    public ResponseEntity<List<SteamAppDetail>> getTodayDetails(@RequestHeader HttpHeaders headers) {
+        final List<ReviewGamePick> picks = service.generateDailyPicks();
         final List<Long> appIds = picks.stream().map(ReviewGamePick::getAppId).toList();
-        final List<SteamAppDetail> fetched = detailRepository.findAllById(appIds).stream().toList();
-        final Map<Long, SteamAppDetail> byId = new HashMap<>();
-        for (SteamAppDetail d : fetched) byId.put(d.getAppId(), d);
-        final List<SteamAppDetail> details = appIds.stream()
-                .map(byId::get)
-                .filter(Objects::nonNull)
-                .toList();
-        if (appIds.size() != details.size()) {
-            throw new ReviewGameException(500, "Number of appIds and details don't match for day " + date);
+        final List<SteamAppDetail> details = detailRepository.findAllByAppIdIn(appIds);
+        final String etag = weakEtagForPicks(details);
+        if (etag != null && headers.getIfNoneMatch().contains(etag)) {
+            return ResponseEntity.status(304)
+                    .eTag(etag)
+                    .header("Cache-Control", "public, s-maxage=86400, max-age=3600")
+                    .build();
         }
-        final boolean isToday = day.equals(java.time.LocalDate.now());
-        final String cc = isToday ? "public, s-maxage=300, max-age=60, stale-while-revalidate=600" : "public, max-age=31536000, immutable";
         return ResponseEntity.ok()
-                .header("Cache-Control", cc)
-                .body(new ReviewGameStateDto(day, service.getBucketLabels(), service.getBucketTitles(), details));
+                .eTag(etag)
+                .header("Cache-Control", "public, s-maxage=86400, max-age=3600")
+                .body(details);
     }
 
     @GetMapping("/my/today")
@@ -198,12 +208,38 @@ public class ReviewGameStateController {
         return ResponseEntity.ok(dtos);
     }
 
-    @GetMapping("/buckets")
-    @Cacheable(value = "one-day", key = "'buckets'")
-    public ResponseEntity<BucketMeta> buckets() {
+    @GetMapping("/today")
+    @Cacheable(value = "review-game", key = "'picks'", unless = "#result == null")
+    public ResponseEntity<ReviewGameStateDto> getToday(@RequestHeader HttpHeaders headers) {
+        final List<ReviewGamePick> picks = service.generateDailyPicks();
+        final List<Long> appIds = picks.stream().map(ReviewGamePick::getAppId).toList();
+        final List<SteamAppDetail> fetched = detailRepository.findAllByAppIdIn(appIds).stream().toList();
+        // Ensure details preserve the appIds order so round indices match what the user sees
+        final Map<Long, SteamAppDetail> byId = new HashMap<>();
+        for (SteamAppDetail d : fetched) {
+            byId.put(d.getAppId(), d);
+        }
+        final List<SteamAppDetail> details = appIds.stream()
+                .map(byId::get)
+                .filter(Objects::nonNull)
+                .toList();
+
+        if (appIds.size() != details.size()) {
+            throw new ReviewGameException(500, "Number of appIds and details don't match");
+        }
+
+        final LocalDate date = picks.isEmpty() ? LocalDate.now() : picks.getFirst().getPickDate();
+        final String etag = weakEtagForPicks(details);
+        if (etag != null && headers.getIfNoneMatch().contains(etag)) {
+            return ResponseEntity.status(304)
+                    .eTag(etag)
+                    .header("Cache-Control", "public, s-maxage=300, max-age=60, stale-while-revalidate=600")
+                    .build();
+        }
         return ResponseEntity.ok()
-                .header("Cache-Control", "public, s-maxage=86400, max-age=3600")
-                .body(new BucketMeta(service.getBucketLabels(), service.getBucketTitles()));
+                .eTag(etag)
+                .header("Cache-Control", "public, s-maxage=300, max-age=60, stale-while-revalidate=600")
+                .body(new ReviewGameStateDto(date, service.getBucketLabels(), service.getBucketTitles(), details));
     }
 
     public record ReviewGameStateDto(LocalDate date, List<String> buckets, List<String> bucketTitles,
@@ -287,6 +323,65 @@ public class ReviewGameStateController {
         guessRepository.save(new org.steam5.domain.Guess(null, steamId, date, roundIndex, req.appId, req.bucketGuess, computedActual, points, java.time.OffsetDateTime.now()));
         final boolean ok = isCorrectForLabel(req.bucketGuess, total);
         return ResponseEntity.ok(new GuessResponse(req.appId, total, computedActual, ok));
+    }
+
+    @GetMapping("/day/{date}")
+    @Cacheable(value = "review-game", key = "'picks:' + #date", unless = "#result == null")
+    public ResponseEntity<ReviewGameStateDto> getByDate(@PathVariable("date") String date,
+                                                        @RequestHeader HttpHeaders headers) {
+        final java.time.LocalDate day;
+        try {
+            day = java.time.LocalDate.parse(date);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+        final List<ReviewGamePick> picks = pickRepository.findByPickDate(day);
+        if (picks.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        final List<Long> appIds = picks.stream().map(ReviewGamePick::getAppId).toList();
+        final List<SteamAppDetail> fetched = detailRepository.findAllByAppIdIn(appIds).stream().toList();
+        final Map<Long, SteamAppDetail> byId = new HashMap<>();
+        for (SteamAppDetail d : fetched) byId.put(d.getAppId(), d);
+        final List<SteamAppDetail> details = appIds.stream()
+                .map(byId::get)
+                .filter(Objects::nonNull)
+                .toList();
+        if (appIds.size() != details.size()) {
+            throw new ReviewGameException(500, "Number of appIds and details don't match for day " + date);
+        }
+        final boolean isToday = day.equals(java.time.LocalDate.now());
+        final String etag = weakEtagForPicks(details);
+        if (etag != null && headers.getIfNoneMatch().contains(etag)) {
+            final String cc = isToday ? "public, s-maxage=300, max-age=60, stale-while-revalidate=600" : "public, max-age=31536000, immutable";
+            return ResponseEntity.status(304)
+                    .eTag(etag)
+                    .header("Cache-Control", cc)
+                    .build();
+        }
+        final String cc = isToday ? "public, s-maxage=300, max-age=60, stale-while-revalidate=600" : "public, max-age=31536000, immutable";
+        return ResponseEntity.ok()
+                .eTag(etag)
+                .header("Cache-Control", cc)
+                .body(new ReviewGameStateDto(day, service.getBucketLabels(), service.getBucketTitles(), details));
+    }
+
+    @GetMapping("/buckets")
+    @Cacheable(value = "one-day", key = "'buckets'")
+    public ResponseEntity<BucketMeta> buckets(@RequestHeader HttpHeaders headers) {
+        final List<String> labels = service.getBucketLabels();
+        final List<String> titles = service.getBucketTitles();
+        final String etag = weakEtagForStringLists(java.util.List.of(labels, titles));
+        if (etag != null && headers.getIfNoneMatch().contains(etag)) {
+            return ResponseEntity.status(304)
+                    .eTag(etag)
+                    .header("Cache-Control", "public, s-maxage=86400, max-age=3600")
+                    .build();
+        }
+        return ResponseEntity.ok()
+                .eTag(etag)
+                .header("Cache-Control", "public, s-maxage=86400, max-age=3600")
+                .body(new BucketMeta(labels, titles));
     }
 
     private record Range(long lower, Long upper) {
