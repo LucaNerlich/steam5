@@ -19,6 +19,8 @@ public class CacheConfig {
                 "one-hour",
                 Caffeine.newBuilder()
                         .expireAfterWrite(1, TimeUnit.HOURS)
+                        .maximumSize(500)
+                        .recordStats()
                         .build()
         );
 
@@ -26,6 +28,8 @@ public class CacheConfig {
                 "one-day",
                 Caffeine.newBuilder()
                         .expireAfterWrite(24, TimeUnit.HOURS)
+                        .maximumSize(500)
+                        .recordStats()
                         .build()
         );
 
@@ -33,6 +37,8 @@ public class CacheConfig {
                 "review-game",
                 Caffeine.newBuilder()
                         .expireAfterWrite(24, TimeUnit.HOURS)
+                        .maximumSize(500)
+                        .recordStats()
                         .build()
         );
 
@@ -40,6 +46,8 @@ public class CacheConfig {
                 "stats-long",
                 Caffeine.newBuilder()
                         .expireAfterWrite(7, TimeUnit.DAYS)
+                        .maximumSize(500)
+                        .recordStats()
                         .build()
         );
 

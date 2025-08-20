@@ -35,3 +35,8 @@ CREATE INDEX IF NOT EXISTS idx_screenshot_app ON screenshots (app_id);
 CREATE INDEX IF NOT EXISTS idx_screenshot_missing_blurhash
     ON screenshots (id)
     WHERE (blurhash_thumb IS NULL OR blurhash_thumb = '' OR blurhash_full IS NULL OR blurhash_full = '');
+
+CREATE INDEX IF NOT EXISTS idx_developer_name_lower ON developer (lower(name));
+CREATE INDEX IF NOT EXISTS idx_publisher_name_lower ON publisher (lower(name));
+CREATE INDEX IF NOT EXISTS idx_genre_desc_lower ON genre (lower(description));
+CREATE INDEX IF NOT EXISTS idx_category_desc_lower ON category (lower(description));

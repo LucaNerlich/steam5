@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="DataSourcePerFileMappings">
+    <file url="file://$APPLICATION_CONFIG_DIR$/consoles/db/53cc000d-35a2-4c08-b7f8-41900867e3ec/console_1.sql" value="53cc000d-35a2-4c08-b7f8-41900867e3ec" />
+    <file url="file://$APPLICATION_CONFIG_DIR$/consoles/db/53cc000d-35a2-4c08-b7f8-41900867e3ec/console_2.sql" value="53cc000d-35a2-4c08-b7f8-41900867e3ec" />
+    <file url="file://$APPLICATION_CONFIG_DIR$/consoles/db/53cc000d-35a2-4c08-b7f8-41900867e3ec/console_3.sql" value="53cc000d-35a2-4c08-b7f8-41900867e3ec" />
+    <file url="file://$APPLICATION_CONFIG_DIR$/consoles/db/53cc000d-35a2-4c08-b7f8-41900867e3ec/console_4.sql" value="53cc000d-35a2-4c08-b7f8-41900867e3ec" />
     <file url="file://$PROJECT_DIR$/backend/src/main/java/org/steam5/repository/IngestStateRepository.java" value="53cc000d-35a2-4c08-b7f8-41900867e3ec" />
     <file url="file://$PROJECT_DIR$/backend/src/main/java/org/steam5/repository/SteamAppReviewsRepository.java" value="53cc000d-35a2-4c08-b7f8-41900867e3ec" />
     <file url="file://$PROJECT_DIR$/backend/src/main/resources/db/by-threshold.sql" value="53cc000d-35a2-4c08-b7f8-41900867e3ec" />
