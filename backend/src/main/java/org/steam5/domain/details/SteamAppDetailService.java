@@ -1,6 +1,8 @@
 package org.steam5.domain.details;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.steam5.repository.details.*;
@@ -15,16 +17,19 @@ public class SteamAppDetailService {
     private final PublisherRepository publisherRepository;
     private final GenreRepository genreRepository;
     private final CategoryRepository categoryRepository;
+    private final CacheManager cacheManager;
 
     public SteamAppDetailService(final SteamAppDetailRepository repository,
                                  final DeveloperRepository developerRepository,
                                  final PublisherRepository publisherRepository,
-                                 final GenreRepository genreRepository, final CategoryRepository categoryRepository) {
+                                 final GenreRepository genreRepository, final CategoryRepository categoryRepository,
+                                 final CacheManager cacheManager) {
         this.repository = repository;
         this.developerRepository = developerRepository;
         this.publisherRepository = publisherRepository;
         this.genreRepository = genreRepository;
         this.categoryRepository = categoryRepository;
+        this.cacheManager = cacheManager;
     }
 
     private static Iterable<JsonNode> safeArray(JsonNode node) {
@@ -191,5 +196,15 @@ public class SteamAppDetailService {
         }
 
         repository.save(detail);
+
+        // Evict caches impacted by details updates
+        final Cache oneDay = cacheManager.getCache("one-day");
+        if (oneDay != null) {
+            oneDay.evict(appId);
+        }
+        final Cache reviewGame = cacheManager.getCache("review-game");
+        if (reviewGame != null) {
+            reviewGame.clear();
+        }
     }
 }

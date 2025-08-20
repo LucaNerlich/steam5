@@ -2,6 +2,7 @@ package org.steam5.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.CacheManager;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -28,17 +29,20 @@ public class SteamAppReviewsFetcher implements Fetcher {
     private final SteamAppIndexRepository appIndexRepository;
     private final SteamAppReviewsRepository reviewsRepository;
     private final IngestStateRepository ingestStateRepository;
+    private final CacheManager cacheManager;
 
     public SteamAppReviewsFetcher(SteamAppsConfig properties,
                                   JsonHttpClient jsonHttpClient,
                                   SteamAppIndexRepository appIndexRepository,
                                   SteamAppReviewsRepository reviewsRepository,
-                                  IngestStateRepository ingestStateRepository) {
+                                  IngestStateRepository ingestStateRepository,
+                                  CacheManager cacheManager) {
         this.properties = properties;
         this.jsonHttpClient = jsonHttpClient;
         this.appIndexRepository = appIndexRepository;
         this.reviewsRepository = reviewsRepository;
         this.ingestStateRepository = ingestStateRepository;
+        this.cacheManager = cacheManager;
     }
 
     @Override
@@ -95,6 +99,14 @@ public class SteamAppReviewsFetcher implements Fetcher {
 
         SteamAppReviews entity = new SteamAppReviews(appId, totalPositive, totalNegative, OffsetDateTime.now());
         reviewsRepository.save(entity);
+
+        // Evict dependent caches: per-app review count and review-game aggregates
+        final var reviewGame = cacheManager.getCache("review-game");
+        if (reviewGame != null) {
+            reviewGame.evict(appId + "review-count");
+            // today/picks can change derived buckets if numbers shift; conservative clear
+            reviewGame.clear();
+        }
     }
 }
 
