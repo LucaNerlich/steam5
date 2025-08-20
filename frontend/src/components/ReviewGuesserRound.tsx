@@ -278,21 +278,25 @@ export default function ReviewGuesserRound({
         };
     }, []);
 
+    const shouldShowGuessControls = !(effectiveResponse || storedThisRound || prefilled);
     return (
         <>
-            <h2 id="guess-submission">Submit Your Guess</h2>
-            <GuessButtons
-                appId={appId}
-                buckets={buckets}
-                bucketTitles={bucketTitles}
-                selectedLabel={renderSelectedLabel}
-                onSelect={setSelectedLabel}
-                submitted={submittedFlag}
-                formAction={formAction as unknown as (formData: FormData) => void}
-            />
-
-            {state && !state.ok && state.error && (
-                <p className="text-muted review-round__error">Error: {state.error}</p>
+            {shouldShowGuessControls && (
+                <>
+                    <h2 id="guess-submission">Submit Your Guess</h2>
+                    <GuessButtons
+                        appId={appId}
+                        buckets={buckets}
+                        bucketTitles={bucketTitles}
+                        selectedLabel={renderSelectedLabel}
+                        onSelect={setSelectedLabel}
+                        submitted={submittedFlag}
+                        formAction={formAction as unknown as (formData: FormData) => void}
+                    />
+                    {state && !state.ok && state.error && (
+                        <p className="text-muted review-round__error">Error: {state.error}</p>
+                    )}
+                </>
             )}
 
             {(effectiveResponse || prefilled) && (
@@ -302,7 +306,8 @@ export default function ReviewGuesserRound({
                         totalReviews: computedPrefill?.totalReviews ?? 0,
                         actualBucket: computedPrefill?.actualBucket ?? '',
                         correct: computedPrefill?.actualBucket ? (computedPrefill.actualBucket === (computedPrefill?.selectedLabel ?? '')) : false,
-                    }) as GuessResponse}/>
+                    }) as GuessResponse}
+                                 selectedLabel={storedThisRound?.selectedLabel ?? renderSelectedLabel ?? (computedPrefill?.selectedLabel ?? null)}/>
                     <RoundPoints
                         buckets={buckets}
                         selectedLabel={storedThisRound?.selectedLabel ?? renderSelectedLabel}
