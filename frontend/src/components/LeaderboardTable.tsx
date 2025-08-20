@@ -5,7 +5,6 @@ import Image from "next/image";
 import useSWR from "swr";
 
 export type LeaderEntry = {
-    steamId: string;
     personaName: string;
     totalPoints: number;
     rounds: number;
@@ -23,9 +22,34 @@ const fetcher = (url: string) => fetch(url, {headers: {accept: 'application/json
     return r.json();
 });
 
-export default function LeaderboardTable(props: { mode: 'today' | 'all'; refreshMs?: number; ariaLabel?: string }) {
+export default function LeaderboardTable(props: {
+    mode: 'today' | 'weekly' | 'weekly-floating' | 'all';
+    refreshMs?: number;
+    ariaLabel?: string
+}) {
     const backend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
-    const endpoint = props.mode === 'today' ? '/api/leaderboard/today' : '/api/leaderboard/all';
+
+    let aria;
+    let endpoint;
+    switch (props.mode) {
+        case 'today':
+            endpoint = '/api/leaderboard/today';
+            aria = props.ariaLabel ?? 'Today Leaderboard';
+            break;
+        case 'weekly':
+            endpoint = '/api/leaderboard/weekly';
+            aria = props.ariaLabel ?? 'Weekly Leaderboard';
+            break;
+        case 'weekly-floating':
+            endpoint = '/api/leaderboard/weekly?floating=true';
+            aria = props.ariaLabel ?? 'Weekly Leaderboard';
+            break;
+        case 'all':
+        default:
+            endpoint = '/api/leaderboard/all';
+            aria = props.ariaLabel ?? 'All-time Leaderboard';
+
+    }
     const {data, error, isLoading} = useSWR<LeaderEntry[]>(`${backend}${endpoint}`, fetcher, {
         refreshInterval: props.refreshMs ?? (props.mode === 'today' ? 5000 : 10000),
         revalidateOnFocus: true,
@@ -33,9 +57,6 @@ export default function LeaderboardTable(props: { mode: 'today' | 'all'; refresh
 
     if (error) return <p className="text-muted">Failed to load leaderboard. Please try again.</p>;
     if (isLoading || !data) return <p className="text-muted">Loading leaderboard…</p>;
-
-    const entries = data;
-    const aria = props.ariaLabel ?? (props.mode === 'today' ? 'Today Leaderboard' : 'All-time Leaderboard');
 
     return (
         <div className="leaderboard">
@@ -53,8 +74,8 @@ export default function LeaderboardTable(props: { mode: 'today' | 'all'; refresh
                 </tr>
                 </thead>
                 <tbody>
-                {entries.map((entry, i) => (
-                    <tr key={entry.steamId}>
+                {data.map((entry, i) => (
+                    <tr key={entry.profileUrl}>
                         <td>{i + 1}</td>
                         <td>
                             <div className="leaderboard__player">
@@ -72,10 +93,10 @@ export default function LeaderboardTable(props: { mode: 'today' | 'all'; refresh
                                 {entry.profileUrl ? (
                                     <a href={entry.profileUrl} target="_blank" rel="noopener noreferrer"
                                        className="leaderboard__profile-link">
-                                        <strong>{entry.personaName || entry.steamId}</strong>
+                                        <strong>{entry.personaName || 'no-name'}</strong>
                                     </a>
                                 ) : (
-                                    <strong>{entry.personaName || entry.steamId}</strong>
+                                    <strong>{entry.personaName || 'no-name'}</strong>
                                 )}
                             </div>
                         </td>

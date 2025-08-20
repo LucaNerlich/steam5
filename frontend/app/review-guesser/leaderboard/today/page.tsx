@@ -7,6 +7,7 @@ export default async function LeaderboardTodayPage() {
             <h1>Review Guesser — Leaderboard</h1>
             <nav className="leaderboard__toggle" aria-label="Leaderboard view">
                 <Link href="/review-guesser/leaderboard" className="btn-ghost">All-time</Link>
+                <Link href="/review-guesser/leaderboard/weekly" className="btn-ghost">Weekly</Link>
                 <Link href="/review-guesser/leaderboard/today" className="btn-ghost is-active">Today</Link>
             </nav>
             <h2>Today</h2>
