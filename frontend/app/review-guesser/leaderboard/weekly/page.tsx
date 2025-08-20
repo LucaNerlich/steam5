@@ -1,3 +1,4 @@
+import type {Metadata} from "next";
 import Link from "next/link";
 import LeaderboardTable from "@/components/LeaderboardTable";
 
@@ -16,3 +17,20 @@ export default async function LeaderboardWeeklyPage() {
         </section>
     );
 }
+
+export const metadata: Metadata = {
+    title: 'Leaderboard — Weekly',
+    description: 'Weekly total points by player for Steam Review Guesser.',
+    openGraph: {
+        title: 'Leaderboard — Weekly',
+        description: 'Weekly total points by player for Steam Review Guesser.',
+        url: '/review-guesser/leaderboard/weekly',
+        images: ['/opengraph-image'],
+    },
+    twitter: {
+        card: 'summary_large_image',
+        title: 'Leaderboard — Weekly',
+        description: 'Weekly total points by player for Steam Review Guesser.',
+        images: ['/opengraph-image'],
+    },
+};

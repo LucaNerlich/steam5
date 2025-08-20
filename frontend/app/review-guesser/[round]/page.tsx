@@ -1,3 +1,4 @@
+import type {Metadata} from "next";
 import type {ReviewGameState} from "@/types/review-game";
 import Link from "next/link";
 import ReviewGuesserHero from "@/components/ReviewGuesserHero";
@@ -58,6 +59,60 @@ export default async function ReviewGuesserRoundPage({params}: { params: Promise
             <GameInfoSection pick={pick}/>
         </section>
     );
+}
+
+export async function generateMetadata({params}: { params: Promise<{ round: string }> }): Promise<Metadata> {
+    const {round} = await params;
+    const backend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
+    try {
+        const today: ReviewGameState = await fetch(`${backend}/api/review-game/today`, {
+            headers: {"accept": "application/json"},
+            next: {revalidate: 60}
+        }).then(r => r.json());
+        const roundIndex = Math.max(1, Number.parseInt(round || '1', 10));
+        const pick = today.picks[roundIndex - 1];
+        const title = pick ? `Review Guesser — Round ${roundIndex} of ${today.picks.length}` : `Review Guesser`;
+        const description = pick ? `${pick.name} — Can you guess how many Steam reviews it has?` : `Play today's Steam Review guessing game.`;
+        const ogUrl = new URL((process.env.NEXT_PUBLIC_DOMAIN || 'https://steam5.org').replace(/\/$/, ''));
+        ogUrl.pathname = '/opengraph-image';
+        return {
+            title,
+            description,
+            openGraph: {
+                title,
+                description,
+                url: `/review-guesser/${roundIndex}`,
+                images: [ogUrl.toString()],
+            },
+            twitter: {
+                card: 'summary_large_image',
+                title,
+                description,
+                images: [ogUrl.toString()],
+            },
+        };
+    } catch (e) {
+        const title = `Review Guesser`;
+        const description = `Play today's Steam Review guessing game.`;
+        const ogUrl = new URL((process.env.NEXT_PUBLIC_DOMAIN || 'https://steam5.org').replace(/\/$/, ''));
+        ogUrl.pathname = '/opengraph-image';
+        return {
+            title,
+            description,
+            openGraph: {
+                title,
+                description,
+                url: `/review-guesser/${round || '1'}`,
+                images: [ogUrl.toString()],
+            },
+            twitter: {
+                card: 'summary_large_image',
+                title,
+                description,
+                images: [ogUrl.toString()],
+            },
+        };
+    }
 }
 
 
