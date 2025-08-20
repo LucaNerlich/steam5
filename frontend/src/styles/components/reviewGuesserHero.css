@@ -60,6 +60,30 @@
     }
 }
 
+.review-guesser-hero {}
+
+@media (max-width: 640px) {
+    /* Mobile: show screenshots as a compact 2-column grid */
+    .review-guesser-hero .screenshots {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.5rem;
+    }
+
+    .review-guesser-hero .screenshots .shot {
+        flex: none;
+        max-width: none;
+        aspect-ratio: 16 / 9;
+        overflow: hidden;
+    }
+
+    .review-guesser-hero .screenshots .shot img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+}
+
 .lightbox-overlay {
     position: fixed;
     inset: 0;
