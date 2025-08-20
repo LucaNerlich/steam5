@@ -28,6 +28,10 @@ public interface GuessRepository extends JpaRepository<Guess, Long> {
     @Query("select g from Guess g where g.gameDate = :date")
     List<Guess> findAllByDate(@Param("date") LocalDate date);
 
+    @Query("select g from Guess g where g.gameDate between :start and :end")
+    List<Guess> findAllBetween(@Param("start") LocalDate start,
+                                @Param("end") LocalDate end);
+
     interface LeaderboardRow {
         String getSteamId();
 

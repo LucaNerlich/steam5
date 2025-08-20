@@ -1,10 +1,12 @@
 package org.steam5.web;
 
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.steam5.domain.Guess;
 import org.steam5.domain.ReviewGamePick;
@@ -49,50 +51,68 @@ public class LeaderboardController {
         final List<ReviewGamePick> picks = reviewGameStateService.generateDailyPicks();
         final LocalDate date = picks.isEmpty() ? LocalDate.now() : picks.getFirst().getPickDate();
         final List<Guess> guesses = guessRepository.findAllByDate(date);
-        final Map<String, List<Guess>> byUser = guesses.stream().collect(Collectors.groupingBy(Guess::getSteamId));
-        final List<LeaderEntry> out = byUser.entrySet().stream().map(e -> {
-            final String steamId = e.getKey();
-            final List<Guess> list = e.getValue();
-            final long totalPoints = list.stream().mapToLong(Guess::getPoints).sum();
-            final long rounds = list.size();
-            final long hits = list.stream().filter(g -> g.getSelectedBucket().equals(g.getActualBucket())).count();
-            final long tooHigh = list.stream().filter(g -> bucketOrderFromLabel(g.getSelectedBucket()) > bucketOrderFromLabel(g.getActualBucket())).count();
-            final long tooLow = list.stream().filter(g -> bucketOrderFromLabel(g.getSelectedBucket()) < bucketOrderFromLabel(g.getActualBucket())).count();
-            final double avgPoints = rounds > 0 ? ((double) totalPoints) / rounds : 0.0;
-            final User user = userRepository.findById(steamId).orElse(null);
-            final String personaName = user != null && user.getPersonaName() != null && !user.getPersonaName().isBlank() ? user.getPersonaName() : steamId;
-            final String avatar = user != null && user.getAvatarFull() != null && !user.getAvatarFull().isBlank() ? user.getAvatarFull() : null;
-            final String avatarBlurdata = user != null && user.getBlurdataAvatarFull() != null && !user.getBlurdataAvatarFull().isBlank() ? user.getBlurdataAvatarFull() : null;
-            final String profileUrl = user != null && user.getProfileUrl() != null && !user.getProfileUrl().isBlank() ? user.getProfileUrl() : null;
-            return new LeaderEntry(steamId, personaName, totalPoints, rounds, hits, tooHigh, tooLow, avgPoints, avatar, avatarBlurdata, profileUrl);
-        }).sorted((a, b) -> Long.compare(b.totalPoints, a.totalPoints)).toList();
-        return ResponseEntity.ok(out);
+        return getGuessResponse(guesses);
+    }
+
+    @GetMapping("/weekly")
+    public ResponseEntity<List<LeaderEntry>> weekly(@RequestParam(name = "floating", required = false, defaultValue = "false") boolean floating) {
+        final List<ReviewGamePick> picks = reviewGameStateService.generateDailyPicks();
+
+        final LocalDate today = picks.isEmpty() ? LocalDate.now() : picks.getFirst().getPickDate();
+        final LocalDate start;
+        final LocalDate end;
+
+        if (floating) {
+            // last seven days including today
+            end = today;
+            start = today.minusDays(6);
+        } else {
+            // last full week: Monday..Sunday immediately before the current week
+            final LocalDate startOfCurrentWeek = today.minusDays((today.getDayOfWeek().getValue() + 6) % 7L);
+            start = startOfCurrentWeek.minusDays(7);
+            end = startOfCurrentWeek.minusDays(1);
+        }
+
+        final List<Guess> guesses = guessRepository.findAllBetween(start, end);
+        return getGuessResponse(guesses);
     }
 
     @GetMapping(value = {"", "/", "/all"})
     public ResponseEntity<List<LeaderEntry>> allTime() {
-        final var guesses = guessRepository.findAll();
+        final List<Guess> guesses = guessRepository.findAll();
+        return getGuessResponse(guesses);
+    }
+
+    @NotNull
+    private ResponseEntity<List<LeaderEntry>> getGuessResponse(final List<Guess> guesses) {
         final Map<String, List<Guess>> byUser = guesses.stream().collect(Collectors.groupingBy(Guess::getSteamId));
-        final List<LeaderEntry> out = byUser.entrySet().stream().map(e -> {
-            final String steamId = e.getKey();
-            final var list = e.getValue();
-            long totalPoints = list.stream().mapToLong(Guess::getPoints).sum();
-            long rounds = list.size();
-            long hits = list.stream().filter(g -> g.getSelectedBucket().equals(g.getActualBucket())).count();
-            long tooHigh = list.stream().filter(g -> bucketOrderFromLabel(g.getSelectedBucket()) > bucketOrderFromLabel(g.getActualBucket())).count();
-            long tooLow = list.stream().filter(g -> bucketOrderFromLabel(g.getSelectedBucket()) < bucketOrderFromLabel(g.getActualBucket())).count();
-            double avgPoints = rounds > 0 ? ((double) totalPoints) / rounds : 0.0;
-            final var user = userRepository.findById(steamId).orElse(null);
-            final String personaName = user != null && user.getPersonaName() != null && !user.getPersonaName().isBlank() ? user.getPersonaName() : steamId;
-            final String avatar = user != null && user.getAvatarFull() != null && !user.getAvatarFull().isBlank() ? user.getAvatarFull() : null;
-            final String avatarBlurdata = user != null && user.getBlurdataAvatarFull() != null && !user.getBlurdataAvatarFull().isBlank() ? user.getBlurdataAvatarFull() : null;
-            final String profileUrl = user != null && user.getProfileUrl() != null && !user.getProfileUrl().isBlank() ? user.getProfileUrl() : null;
-            return new LeaderEntry(steamId, personaName, totalPoints, rounds, hits, tooHigh, tooLow, avgPoints, avatar, avatarBlurdata, profileUrl);
-        }).sorted((a, b) -> Long.compare(b.totalPoints, a.totalPoints)).toList();
+        final List<LeaderEntry> out = byUser.entrySet().stream().map(this::buildEntries).sorted((a, b) -> Long.compare(b.totalPoints, a.totalPoints)).toList();
         return ResponseEntity.ok(out);
     }
 
-    public record LeaderEntry(String steamId, String personaName,
+    @NotNull
+    private LeaderboardController.LeaderEntry getLeaderEntry(final String steamId, final long totalPoints, final long rounds, final long hits, final long tooHigh, final long tooLow, final double avgPoints, final User user) {
+        final String personaName = user != null && user.getPersonaName() != null && !user.getPersonaName().isBlank() ? user.getPersonaName() : steamId;
+        final String avatar = user != null && user.getAvatarFull() != null && !user.getAvatarFull().isBlank() ? user.getAvatarFull() : null;
+        final String avatarBlurdata = user != null && user.getBlurdataAvatarFull() != null && !user.getBlurdataAvatarFull().isBlank() ? user.getBlurdataAvatarFull() : null;
+        final String profileUrl = user != null && user.getProfileUrl() != null && !user.getProfileUrl().isBlank() ? user.getProfileUrl() : null;
+        return new LeaderEntry(personaName, totalPoints, rounds, hits, tooHigh, tooLow, avgPoints, avatar, avatarBlurdata, profileUrl);
+    }
+
+    private LeaderEntry buildEntries(Map.Entry<String, List<Guess>> entry) {
+        final String steamId = entry.getKey();
+        final List<Guess> list = entry.getValue();
+        final long totalPoints = list.stream().mapToLong(Guess::getPoints).sum();
+        final long rounds = list.size();
+        final long hits = list.stream().filter(g -> g.getSelectedBucket().equals(g.getActualBucket())).count();
+        final long tooHigh = list.stream().filter(g -> bucketOrderFromLabel(g.getSelectedBucket()) > bucketOrderFromLabel(g.getActualBucket())).count();
+        final long tooLow = list.stream().filter(g -> bucketOrderFromLabel(g.getSelectedBucket()) < bucketOrderFromLabel(g.getActualBucket())).count();
+        final double avgPoints = rounds > 0 ? ((double) totalPoints) / rounds : 0.0;
+        final User user = userRepository.findById(steamId).orElse(null);
+        return getLeaderEntry(steamId, totalPoints, rounds, hits, tooHigh, tooLow, avgPoints, user);
+    }
+
+    public record LeaderEntry(String personaName,
                               long totalPoints, long rounds,
                               long hits, long tooHigh, long tooLow,
                               double avgPoints,

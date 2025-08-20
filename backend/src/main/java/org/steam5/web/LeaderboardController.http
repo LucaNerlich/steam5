@@ -1,0 +1,21 @@
+### Today leaderboard
+GET {{host}}/api/leaderboard/today
+Accept: application/json
+
+### Weekly leaderboard (last full week, Monday..Sunday before current week)
+GET {{host}}/api/leaderboard/weekly
+Accept: application/json
+
+### Weekly leaderboard (floating last 7 days, including today)
+GET {{host}}/api/leaderboard/weekly?floating=true
+Accept: application/json
+
+### All-time leaderboard
+GET {{host}}/api/leaderboard
+Accept: application/json
+
+### All-time leaderboard (explicit alias)
+GET {{host}}/api/leaderboard/all
+Accept: application/json
+
+
