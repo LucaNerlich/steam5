@@ -1,5 +1,6 @@
 package org.steam5.repository.details;
 
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -39,6 +40,19 @@ public interface SteamAppDetailRepository extends JpaRepository<SteamAppDetail, 
 
         long getCount();
     }
+
+    @EntityGraph(attributePaths = {
+            // Only to-one association to avoid multiple bag fetch when joining lists
+            "priceOverview"
+    }, type = org.springframework.data.jpa.repository.EntityGraph.EntityGraphType.LOAD)
+    java.util.Optional<SteamAppDetail> findByAppId(Long appId);
+
+    @EntityGraph(attributePaths = {
+            // Keep list fetch light to avoid multiple bag fetch; include only to-one association
+            "priceOverview"
+    }, type = org.springframework.data.jpa.repository.EntityGraph.EntityGraphType.LOAD)
+    @Query("select d from SteamAppDetail d where d.appId in :ids")
+    java.util.List<SteamAppDetail> findAllByAppIdIn(@Param("ids") java.util.Collection<Long> ids);
 }
 
 

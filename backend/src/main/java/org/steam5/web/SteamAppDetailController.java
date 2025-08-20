@@ -91,12 +91,12 @@ public class SteamAppDetailController {
     @Transactional(readOnly = true)
     @Cacheable(value = "one-day", key = "#appId", unless = "#result == null || !#result.statusCode.is2xxSuccessful()")
     public ResponseEntity<SteamAppDetail> getDetails(@PathVariable("appId") Long appId) {
-        final Optional<SteamAppDetail> detailOpt = detailRepository.findById(appId);
+        final Optional<SteamAppDetail> detailOpt = detailRepository.findByAppId(appId);
         if (detailOpt.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
         final SteamAppDetail detail = detailOpt.get();
-        // Touch associations to ensure they are initialized within the transaction
+        // Ensure required associations are initialized within the transaction
         if (detail.getDevelopers() != null) detail.getDevelopers().size();
         if (detail.getPublisher() != null) detail.getPublisher().size();
         if (detail.getCategories() != null) detail.getCategories().size();

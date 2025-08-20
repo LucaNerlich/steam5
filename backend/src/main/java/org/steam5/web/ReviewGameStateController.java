@@ -96,7 +96,7 @@ public class ReviewGameStateController {
     public ResponseEntity<List<SteamAppDetail>> getTodayDetails() {
         final List<ReviewGamePick> picks = service.generateDailyPicks();
         final List<Long> appIds = picks.stream().map(ReviewGamePick::getAppId).toList();
-        final List<SteamAppDetail> details = detailRepository.findAllById(appIds);
+        final List<SteamAppDetail> details = detailRepository.findAllByAppIdIn(appIds);
         return ResponseEntity.ok()
                 .header("Cache-Control", "public, s-maxage=86400, max-age=3600")
                 .body(details);
@@ -107,7 +107,7 @@ public class ReviewGameStateController {
     public ResponseEntity<ReviewGameStateDto> getToday() {
         final List<ReviewGamePick> picks = service.generateDailyPicks();
         final List<Long> appIds = picks.stream().map(ReviewGamePick::getAppId).toList();
-        final List<SteamAppDetail> fetched = detailRepository.findAllById(appIds).stream().toList();
+        final List<SteamAppDetail> fetched = detailRepository.findAllByAppIdIn(appIds).stream().toList();
         // Ensure details preserve the appIds order so round indices match what the user sees
         final Map<Long, SteamAppDetail> byId = new HashMap<>();
         for (SteamAppDetail d : fetched) {
@@ -155,7 +155,7 @@ public class ReviewGameStateController {
             return ResponseEntity.notFound().build();
         }
         final List<Long> appIds = picks.stream().map(ReviewGamePick::getAppId).toList();
-        final List<SteamAppDetail> fetched = detailRepository.findAllById(appIds).stream().toList();
+        final List<SteamAppDetail> fetched = detailRepository.findAllByAppIdIn(appIds).stream().toList();
         final Map<Long, SteamAppDetail> byId = new HashMap<>();
         for (SteamAppDetail d : fetched) byId.put(d.getAppId(), d);
         final List<SteamAppDetail> details = appIds.stream()
