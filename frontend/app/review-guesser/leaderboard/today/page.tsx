@@ -1,3 +1,4 @@
+import type {Metadata} from "next";
 import Link from "next/link";
 import LeaderboardTable from "@/components/LeaderboardTable";
 
@@ -16,3 +17,20 @@ export default async function LeaderboardTodayPage() {
         </section>
     );
 }
+
+export const metadata: Metadata = {
+    title: 'Leaderboard — Today',
+    description: "Today's total points by player for Steam Review Guesser.",
+    openGraph: {
+        title: 'Leaderboard — Today',
+        description: "Today's total points by player for Steam Review Guesser.",
+        url: '/review-guesser/leaderboard/today',
+        images: ['/opengraph-image'],
+    },
+    twitter: {
+        card: 'summary_large_image',
+        title: 'Leaderboard — Today',
+        description: "Today's total points by player for Steam Review Guesser.",
+        images: ['/opengraph-image'],
+    },
+};

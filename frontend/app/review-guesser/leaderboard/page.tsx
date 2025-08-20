@@ -1,3 +1,4 @@
+import type {Metadata} from "next";
 import Link from "next/link";
 import LeaderboardTable from "@/components/LeaderboardTable";
 
@@ -16,5 +17,22 @@ export default async function LeaderboardPage() {
         </section>
     );
 }
+
+export const metadata: Metadata = {
+    title: 'Leaderboard — All-time',
+    description: 'Overall points summed across all days for Steam Review Guesser.',
+    openGraph: {
+        title: 'Leaderboard — All-time',
+        description: 'Overall points summed across all days for Steam Review Guesser.',
+        url: '/review-guesser/leaderboard',
+        images: ['/opengraph-image'],
+    },
+    twitter: {
+        card: 'summary_large_image',
+        title: 'Leaderboard — All-time',
+        description: 'Overall points summed across all days for Steam Review Guesser.',
+        images: ['/opengraph-image'],
+    },
+};
 
 

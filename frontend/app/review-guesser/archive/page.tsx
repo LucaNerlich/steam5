@@ -1,4 +1,5 @@
 export const revalidate = 600;
+import type {Metadata} from "next";
 import "@/styles/components/archive-list.css";
 
 async function loadDays(): Promise<string[]> {
@@ -60,5 +61,22 @@ export default async function ArchiveIndexPage() {
         </section>
     );
 }
+
+export const metadata: Metadata = {
+    title: 'Archive',
+    description: 'Browse previous daily challenges for Steam Review Guesser.',
+    openGraph: {
+        title: 'Archive',
+        description: 'Browse previous daily challenges for Steam Review Guesser.',
+        url: '/review-guesser/archive',
+        images: ['/opengraph-image'],
+    },
+    twitter: {
+        card: 'summary_large_image',
+        title: 'Archive',
+        description: 'Browse previous daily challenges for Steam Review Guesser.',
+        images: ['/opengraph-image'],
+    },
+};
 
 

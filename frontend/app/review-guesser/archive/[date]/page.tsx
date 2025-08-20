@@ -1,3 +1,4 @@
+import type {Metadata} from "next";
 import type {ReviewGameState} from "@/types/review-game";
 import ReviewGuesserHero from "@/components/ReviewGuesserHero";
 import Link from "next/link";
@@ -50,6 +51,29 @@ export default async function ArchivePage({params}: { params: Promise<{ date: st
             <Link href="/review-guesser/1" className="btn-ghost">Back to today’s game</Link>
         </section>
     );
+}
+
+export async function generateMetadata({params}: { params: Promise<{ date: string }> }): Promise<Metadata> {
+    const {date} = await params;
+    const title = `Archive — ${formatDate(date)}`;
+    const description = `Past daily challenge for ${formatDate(date)} — Steam Review Guesser.`;
+    const ogUrl = '/opengraph-image';
+    return {
+        title,
+        description,
+        openGraph: {
+            title,
+            description,
+            url: `/review-guesser/archive/${encodeURIComponent(date)}`,
+            images: [ogUrl],
+        },
+        twitter: {
+            card: 'summary_large_image',
+            title,
+            description,
+            images: [ogUrl],
+        },
+    };
 }
 
 

@@ -53,7 +53,10 @@ const xenon = localFont({
 const description = 'Steam Review Guessing Game';
 
 export const metadata: Metadata = {
-    title: 'Steam5',
+    title: {
+        default: 'Steam5',
+        template: '%s | Steam5',
+    },
     description: description,
     keywords: 'Review, Steam, Guessing Game',
     creator: 'Luca Nerlich',
