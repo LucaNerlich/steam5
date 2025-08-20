@@ -130,6 +130,53 @@ Security: token-based auth via Steam login. See `frontend/app/api/auth/*` and `b
 
 ---
 
+## Actuator (dev, on port 8081)
+
+- Index
+    - [Actuator root](http://localhost:8081/actuator): lists all exposed endpoints.
+
+- Health
+    - [Health](http://localhost:8081/actuator/health): overall and detailed status.
+
+- Metrics (JSON)
+    - [Metrics index](http://localhost:8081/actuator/metrics): all metric names.
+    - Cache metrics (Caffeine with `recordStats()`):
+        - [cache.requests (all)](http://localhost:8081/actuator/metrics/cache.requests)
+        - Per cache name (examples):
+            - Hits/misses: `GET /actuator/metrics/cache.gets?tag=cache:review-game`
+            - Requests: `GET /actuator/metrics/cache.requests?tag=cache:one-day`
+            - Puts: `GET /actuator/metrics/cache.puts?tag=cache:review-game`
+            - Evictions: `GET /actuator/metrics/cache.evictions?tag=cache:review-game`
+            - Size: `GET /actuator/metrics/cache.size?tag=cache:review-game`
+        - Tip: add `&tag=cacheManager:cacheManager` if you have multiple managers.
+    - HTTP server metrics:
+        - `GET /actuator/metrics/http.server.requests?tag=uri:/api/review-game/today`
+
+- Prometheus (text)
+    - [Prometheus scrape](http://localhost:8081/actuator/prometheus)
+    - Search for series like `cache_gets_total`, `cache_requests_total`, `cache_evictions_total` with tags
+      `cache="review-game"` etc.
+
+- Environment and logging
+    - [Environment](http://localhost:8081/actuator/env)
+    - [Loggers](http://localhost:8081/actuator/loggers) (lists all loggers and their levels)
+
+- Beans
+    - [Beans](http://localhost:8081/actuator/beans)
+
+- Quartz (scheduler)
+    - [Quartz index](http://localhost:8081/actuator/quartz)
+    - [Jobs](http://localhost:8081/actuator/quartz/jobs)
+    - [Triggers](http://localhost:8081/actuator/quartz/triggers)
+
+Notes
+
+- You’ll only see cache metrics after endpoints using `@Cacheable` are exercised.
+- In dev, actuator on port 8081 is open (no auth). If you want it restricted to specific endpoints, update
+  `SecurityConfig` to narrow `EndpointRequest`.
+
+---
+
 ## Frontend (Next.js)
 
 - Next 15, App Router, TypeScript
