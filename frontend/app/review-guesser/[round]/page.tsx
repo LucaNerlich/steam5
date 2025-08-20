@@ -73,8 +73,15 @@ export async function generateMetadata({params}: { params: Promise<{ round: stri
         const pick = today.picks[roundIndex - 1];
         const title = pick ? `Review Guesser — Round ${roundIndex} of ${today.picks.length}` : `Review Guesser`;
         const description = pick ? `${pick.name} — Can you guess how many Steam reviews it has?` : `Play today's Steam Review guessing game.`;
-        const ogUrl = new URL((process.env.NEXT_PUBLIC_DOMAIN || 'https://steam5.org').replace(/\/$/, ''));
-        ogUrl.pathname = '/opengraph-image';
+        const base = (process.env.NEXT_PUBLIC_DOMAIN || 'https://steam5.org').replace(/\/$/, '');
+        const firstShot = pick?.screenshots?.[0];
+        const rawImg = firstShot?.pathFull || firstShot?.pathThumbnail || '/opengraph-image';
+        let imageUrl: string;
+        try {
+            imageUrl = new URL(rawImg).toString();
+        } catch {
+            imageUrl = new URL(rawImg.startsWith('/') ? rawImg : `/${rawImg}`, base).toString();
+        }
         return {
             title,
             description,
@@ -82,13 +89,13 @@ export async function generateMetadata({params}: { params: Promise<{ round: stri
                 title,
                 description,
                 url: `/review-guesser/${roundIndex}`,
-                images: [ogUrl.toString()],
+                images: [imageUrl],
             },
             twitter: {
                 card: 'summary_large_image',
                 title,
                 description,
-                images: [ogUrl.toString()],
+                images: [imageUrl],
             },
         };
     } catch (e) {
