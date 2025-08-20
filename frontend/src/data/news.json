@@ -8,14 +8,14 @@
     },
     {
         "start": "2025-08-20",
-        "end": "2025-08-23",
+        "end": "2025-08-20",
         "title": "New Bucket Strategies",
         "text": "<p>To prevent users from guessing the last pick with certainty, we have implemented new 'bucket' strategies. The game will choose one strategy randomly each day and pick games accordingly.</p><ul><li><strong>RANDOM</strong>: Uniform chance for each bucket per round.</li>\n<li><strong>EQUAL</strong>: Evenly spread picks across buckets (exactly one per bucket when rounds match buckets).</li>\n<li><strong>LEAN_HIGH</strong>: Higher probability for higher-review buckets.</li>\n<li><strong>LEAN_LOW</strong>: Higher probability for lower-review buckets.</li>\n<li><strong>LEAN_CENTER</strong>: Higher probability for the center bucket.</li>\n<li><strong>HIGH</strong>: Reserves multiple picks from the top two buckets.</li>\n<li><strong>LOW</strong>: Reserves multiple picks from the bottom two buckets.</li>\n<li><strong>CENTER</strong>: Reserves multiple picks from the single center bucket.</li></ul>",
         "footer": "The actual strategy chosen will be hidden. We hope you enjoy the new strategies! Please let us know if you have any feedback."
     },
     {
         "start": "2025-08-19",
-        "end": "2025-08-31",
+        "end": "2025-08-20",
         "title": "Customize Fonts & Theme",
         "text": "<p>You can now switch the <strong>font family</strong> and <strong>light/dark theme</strong> from the footer. Your choices are saved on your device.</p>",
         "footer": "Tip: Try Krypton, Neon, Argon, Radon, or Xenon in the font selector."
