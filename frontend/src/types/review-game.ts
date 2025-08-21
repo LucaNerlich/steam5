@@ -40,9 +40,9 @@ export interface SteamAppDetail {
     developers: Developer[];
     publisher: Publisher[];
     categories: Category[];
-    isWindows: boolean;
-    isMac: boolean;
-    isLinux: boolean;
+    windows: boolean;
+    mac: boolean;
+    linux: boolean;
     genres: Genre[];
     screenshots: Screenshot[];
     movies: Movie[];

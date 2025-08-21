@@ -27,12 +27,15 @@ export default function GameInfoSection({pick}: Props): React.ReactElement | nul
         });
     }, [pick]);
 
+    console.log("pick", pick);
+
     const hasMovies = Array.isArray(pick?.movies) && pick!.movies.length > 0;
     const hasCategories = uniqueCategories.length > 0;
     const hasShort = Boolean(pick?.shortDescription);
     const hasAbout = Boolean(pick?.aboutTheGame);
     const hasController = Boolean(pick?.controllerSupport);
-    const hasPlatforms = Boolean(pick?.isWindows || pick?.isMac || pick?.isLinux);
+    const hasPlatforms = Boolean(pick?.windows || pick?.mac || pick?.linux);
+    console.log("hasPlatforms", hasPlatforms);
     const hasAny = Boolean(
         pick &&
         (hasMovies || hasCategories || hasShort || hasAbout || hasController || hasPlatforms)
@@ -124,17 +127,6 @@ export default function GameInfoSection({pick}: Props): React.ReactElement | nul
         <section className="game-info" aria-labelledby="more-about-this-game">
             <h2 id="more-about-this-game" className="game-info__title">More about this game</h2>
 
-            {hasPlatforms && (
-                <div className="game-info__section">
-                    <h3>Platforms</h3>
-                    <ul className="game-info__badges" aria-label="Supported platforms">
-                        {pick.isWindows && <li className="badge">Windows</li>}
-                        {pick.isMac && <li className="badge">macOS</li>}
-                        {pick.isLinux && <li className="badge">Linux</li>}
-                    </ul>
-                </div>
-            )}
-
             {hasCategories && (
                 <div className="game-info__section">
                     <h3>Categories</h3>
@@ -179,10 +171,25 @@ export default function GameInfoSection({pick}: Props): React.ReactElement | nul
                 </div>
             )}
 
+            {(hasController || hasPlatforms) && (
+                <h2>Technical Info</h2>
+            )}
+
             {hasController && (
                 <div className="game-info__section">
                     <h3>Controller</h3>
                     <p className="text-muted">{pick.controllerSupport}</p>
+                </div>
+            )}
+
+            {hasPlatforms && (
+                <div className="game-info__section">
+                    <h3>Platforms</h3>
+                    <ul className="game-info__badges" aria-label="Supported platforms">
+                        {pick.windows && <li className="pill">Windows</li>}
+                        {pick.mac && <li className="pill">macOS</li>}
+                        {pick.linux && <li className="pill">Linux</li>}
+                    </ul>
                 </div>
             )}
         </section>
