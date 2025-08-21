@@ -10,4 +10,6 @@ export const Routes = {
     leaderboardWeekly: '/review-guesser/leaderboard/weekly',
     leaderboardToday: '/review-guesser/leaderboard/today',
     archive: '/review-guesser/archive',
+    imprint: '/imprint',
+    privacy: '/privacy',
 }

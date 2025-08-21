@@ -4,13 +4,16 @@ import ResetTodayButton from "./ResetTodayButton";
 import AuthLogoutLink from "@/components/AuthLogoutLink";
 import "@/styles/components/footer.css";
 import FooterNavRow from "@/components/FooterNavRow";
+import Link from "next/link";
 
 export default function Footer() {
     return (
         <footer>
             <div className="container">
                 <FooterNavRow/>
-                <small className="text-muted">Imprint: Steam5.org · Luca Nerlich</small>
+                <small className="text-muted" style={{display: 'block', fontSize: '0.8rem'}}>
+                    <Link href="/imprint">Imprint</Link> · <Link href="/privacy">Privacy</Link>
+                </small>
                 <div className="controls">
                     <a
                         href="https://github.com/LucaNerlich/steam5"
