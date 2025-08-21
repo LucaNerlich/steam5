@@ -95,7 +95,6 @@ header .mobile-page-title {
 @media (max-width: 640px) {
     header .mobile-page-title {
         display: block;
-        text-align: center;
         font-weight: 600;
         font-size: 1rem;
         white-space: nowrap;
