@@ -60,7 +60,8 @@ export default function ReviewGuesserRound({
     const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
     const [selectionScopeKey, setSelectionScopeKey] = useState<string | null>(null);
     const [stored, setStored] = useState<StoredDay | null>(null);
-    const serverGuesses = useServerGuesses();
+    const disableClientFetch = Boolean(prefilled) || (allResults && Object.keys(allResults).length > 0);
+    const serverGuesses = useServerGuesses(disableClientFetch);
 
     const scopeKey = `${gameDate ?? ''}:${roundIndex}:${appId}`;
 

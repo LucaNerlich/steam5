@@ -24,6 +24,12 @@ a:visited {
     color: var(--color-text);
 }
 
+/* Ensure button-like links keep their intended contrast even when visited */
+a.btn-cta:visited,
+a.btn-success:visited {
+    color: #fff;
+}
+
 h1, h2, h3, h4, h5, h6, p {
     hyphens: auto;
 }

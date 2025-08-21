@@ -10,10 +10,11 @@ export type ServerGuess = {
     totalReviews?: number;
 };
 
-export default function useServerGuesses(): Record<number, ServerGuess> {
+export default function useServerGuesses(disabled: boolean = false): Record<number, ServerGuess> {
     const [serverGuesses, setServerGuesses] = useState<Record<number, ServerGuess>>({});
 
     useEffect(() => {
+        if (disabled) return;
         let cancelled = false;
 
         async function load() {
@@ -34,7 +35,7 @@ export default function useServerGuesses(): Record<number, ServerGuess> {
         return () => {
             cancelled = true;
         };
-    }, []);
+    }, [disabled]);
 
     return serverGuesses;
 }
