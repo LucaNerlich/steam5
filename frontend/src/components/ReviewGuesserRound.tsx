@@ -2,14 +2,12 @@
 
 import {useActionState, useEffect, useMemo, useState} from "react";
 import type {GuessResponse} from "@/types/review-game";
-import Link from "next/link";
 import type {GuessActionState} from "../../app/review-guesser/[round]/actions";
 import {submitGuessAction} from "../../app/review-guesser/[round]/actions";
 import GuessButtons from "@/components/GuessButtons";
-import RoundResult from "@/components/RoundResult";
-import RoundPoints from "@/components/RoundPoints";
-import RoundSummary from "@/components/RoundSummary";
-import ShareControls from "@/components/ShareControls";
+import RoundResultDialog from "@/components/RoundResultDialog";
+import RoundResultActions from "@/components/RoundResultActions";
+import RoundShareSummary from "@/components/RoundShareSummary";
 import {buildSteamLoginUrl} from "@/components/SteamLoginButton";
 import useAuthSignedIn from "@/lib/hooks/useAuthSignedIn";
 import useServerGuesses from "@/lib/hooks/useServerGuesses";
@@ -232,43 +230,42 @@ export default function ReviewGuesserRound({
             )}
 
             {(effectiveResponse || prefilled) && (
-                <div role="dialog" aria-modal="true" className="review-round__result">
-                    <RoundResult result={(effectiveResponse ?? {
+                <RoundResultDialog
+                    buckets={buckets}
+                    selectedLabel={storedThisRound?.selectedLabel ?? renderSelectedLabel ?? (computedPrefill?.selectedLabel ?? null)}
+                    result={(effectiveResponse ?? {
                         appId,
                         totalReviews: computedPrefill?.totalReviews ?? 0,
                         actualBucket: computedPrefill?.actualBucket ?? '',
                         correct: computedPrefill?.actualBucket ? (computedPrefill.actualBucket === (computedPrefill?.selectedLabel ?? '')) : false,
                     }) as GuessResponse}
-                                 selectedLabel={storedThisRound?.selectedLabel ?? renderSelectedLabel ?? (computedPrefill?.selectedLabel ?? null)}/>
-                    <RoundPoints
-                        buckets={buckets}
-                        selectedLabel={storedThisRound?.selectedLabel ?? renderSelectedLabel}
-                        actualBucket={(effectiveResponse ?? {actualBucket: computedPrefill?.actualBucket ?? ''} as GuessResponse).actualBucket}
-                    />
-                    {/* Summary rendered below to avoid duplication and keep actions visible */}
-                    <div className="review-round__actions">
-                        <div className="review-round__actions-inner">
-                            <a
-                                href={`https://store.steampowered.com/app/${appId}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="btn-ghost"
-                                aria-label="Open this game on Steam"
-                            >
-                                Open Steam ↗
-                            </a>
-                            {prevHref && (
-                                <Link href={prevHref} className="btn-ghost" aria-label="Go to previous round">
-                                    ← Last round
-                                </Link>
-                            )}
-                        </div>
-                        {roundIndex < totalRounds && (
-                            <Link href={nextHref} className="btn-cta" aria-label="Go to next round">Next round →</Link>
-                        )}
+                >
+                    <RoundResultActions
+                        appId={appId}
+                        prevHref={prevHref}
+                        nextHref={roundIndex < totalRounds ? nextHref : null}
+                    >
                         {canShowShare && (
                             <>
-                                {/* Inline nudge only for guests */}
+                                <RoundShareSummary
+                                    buckets={buckets}
+                                    gameDate={gameDate}
+                                    totalRounds={totalRounds}
+                                    latestRound={latestStoredRoundIndex}
+                                    latest={(Object.keys(mergedServerResults).length > 0 ? mergedServerResults[latestStoredRoundIndex] : null) ||
+                                        latestStored ||
+                                        {
+                                            appId,
+                                            pickName,
+                                            selectedLabel: (storedThisRound?.selectedLabel ?? renderSelectedLabel ?? '') as string,
+                                            actualBucket: effectiveResponse ? effectiveResponse.actualBucket : (storedThisRound?.actualBucket ?? ''),
+                                            totalReviews: effectiveResponse ? effectiveResponse.totalReviews : (storedThisRound?.totalReviews ?? 0),
+                                            correct: effectiveResponse ? effectiveResponse.correct : (storedThisRound?.correct ?? false),
+                                        }
+                                    }
+                                    results={Object.keys(serverResults).length > 0 ? serverResults : undefined}
+                                    signedIn={signedIn}
+                                />
                                 {signedIn === false && (
                                     <p className="text-muted review-round__signin-nudge">
                                         <a href="#" onClick={(e) => {
@@ -278,46 +275,10 @@ export default function ReviewGuesserRound({
                                         &nbsp;to save your results, track streaks, and appear on the leaderboard.
                                     </p>
                                 )}
-                                <ShareControls
-                                    inline
-                                    buckets={buckets}
-                                    gameDate={gameDate}
-                                    totalRounds={totalRounds}
-                                    latestRound={latestStoredRoundIndex}
-                                    latest={latestStored ? latestStored : {
-                                        appId,
-                                        pickName,
-                                        selectedLabel: selectedLabel ?? '',
-                                        actualBucket: effectiveResponse ? effectiveResponse.actualBucket : '',
-                                        totalReviews: effectiveResponse ? effectiveResponse.totalReviews : 0,
-                                        correct: effectiveResponse ? effectiveResponse.correct : false,
-                                    }}
-                                    results={Object.keys(serverResults).length > 0 ? serverResults : undefined}
-                                />
                             </>
                         )}
-                    </div>
-                    {canShowShare && (
-                        <RoundSummary
-                            buckets={buckets}
-                            gameDate={gameDate}
-                            totalRounds={totalRounds}
-                            latestRound={latestStoredRoundIndex}
-                            latest={(Object.keys(mergedServerResults).length > 0 ? mergedServerResults[latestStoredRoundIndex] : null) ||
-                                latestStored ||
-                                {
-                                    appId,
-                                    pickName,
-                                    selectedLabel: (storedThisRound?.selectedLabel ?? renderSelectedLabel ?? '') as string,
-                                    actualBucket: effectiveResponse ? effectiveResponse.actualBucket : (storedThisRound?.actualBucket ?? ''),
-                                    totalReviews: effectiveResponse ? effectiveResponse.totalReviews : (storedThisRound?.totalReviews ?? 0),
-                                    correct: effectiveResponse ? effectiveResponse.correct : (storedThisRound?.correct ?? false),
-                                }
-                            }
-                            results={Object.keys(serverResults).length > 0 ? serverResults : undefined}
-                        />
-                    )}
-                </div>
+                    </RoundResultActions>
+                </RoundResultDialog>
             )}
 
             {/*{!signedIn && roundIndex === 1 && <ReviewRules/>}*/}

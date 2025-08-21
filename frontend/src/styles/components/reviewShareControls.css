@@ -7,6 +7,14 @@
     flex-wrap: wrap;
 }
 
+/* Ensure the score summary wraps to a new line and aligns right */
+.review-round__actions .review-round__summary {
+    flex: 1 1 100%;
+    width: 100%;
+    display: flex;
+    justify-content: flex-end;
+}
+
 /* Desktop: keep buttons inline */
 .review-round__actions .btn-cta {
     text-align: center;

@@ -71,7 +71,6 @@ export default function RoundSummary(props: {
 
     return (
         <>
-            <hr style={{marginTop: '1rem', marginBottom: '1rem'}}/>
             <div className="review-round__summary" aria-live="polite">
                 <div className="summary-bar">{bars.join('')}</div>
                 <div className="summary-points"><strong>Score:</strong> {total}/{maxTotal}</div>
