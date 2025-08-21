@@ -1,6 +1,6 @@
 header .container {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-start;
     align-items: center;
     padding: 1rem 0;
 
@@ -24,6 +24,7 @@ header .header-actions {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
+    margin-left: auto;
     @media (max-width: 640px) {
         justify-self: end;
     }
@@ -87,19 +88,19 @@ header .steam-login-btn:hover {
     }
 }
 
-/* Mobile-only inline page title for Review Guesser */
-header .mobile-page-title {
-    display: none;
+/* Inline page title for current game (e.g., Review Guesser) */
+header .game-title {
+    display: block;
+    font-weight: 600;
+    font-size: 1rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-@media (max-width: 640px) {
-    header .mobile-page-title {
-        display: block;
-        font-weight: 600;
-        font-size: 1rem;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+@media (min-width: 641px) {
+    header .game-title {
+        margin-left: 1rem;
     }
 }
 

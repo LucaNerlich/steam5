@@ -58,20 +58,9 @@ export default function ReviewGuesserHero(props: Readonly<ReviewGuesserHeroProps
 
     return (
         <section className='review-guesser-hero'>
-            {isMobile ? (
-                <>
-                    <h1 className="game-title">{pick.name}</h1>
-                    <p>Round <strong>{props.roundIndex}</strong> of <strong>{totalRounds}</strong> | Game
-                        Date: {today.date}</p>
-                </>
-            ) : (
-                <>
-                    <h1>Review Guesser</h1>
-                    <p>Round <strong>{props.roundIndex}</strong> of <strong>{totalRounds}</strong> | Game
-                        Date: {today.date}</p>
-                    <h2>{pick.name}</h2>
-                </>
-            )}
+            <h1 className="game-title">{pick.name}</h1>
+            <p>Round <strong>{props.roundIndex}</strong> of <strong>{totalRounds}</strong> | Game
+                Date: {today.date}</p>
             <p className="meta">
                 {pick.developers && pick.developers.length > 0 && (
                     <span title='Developer' className="meta-item">

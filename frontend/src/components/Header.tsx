@@ -18,7 +18,7 @@ export default function Header() {
                     <span>Steam5</span>
                 </Link>
                 {underReviewGuesser && (
-                    <span className="mobile-page-title" aria-hidden="true">
+                    <span className="game-title" aria-hidden="true">
                         <Link href={Routes.reviewGuesser1}>Review Guesser</Link>
                     </span>
                 )}

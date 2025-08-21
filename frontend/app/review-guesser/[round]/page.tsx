@@ -31,7 +31,6 @@ export default async function ReviewGuesserRoundPage({params}: { params: Promise
     if (!pick) {
         return (
             <section className="container">
-                <h1>Review Guesser</h1>
                 <p>No pick for this round. You may have finished all rounds.</p>
                 <Link href="/review-guesser/1">Go to first round</Link>
             </section>
