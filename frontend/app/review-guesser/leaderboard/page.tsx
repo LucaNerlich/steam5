@@ -21,6 +21,9 @@ export default async function LeaderboardPage() {
 export const metadata: Metadata = {
     title: 'Leaderboard — All-time',
     description: 'Overall points summed across all days for Steam Review Guesser.',
+    alternates: {
+        canonical: '/review-guesser/leaderboard',
+    },
     openGraph: {
         title: 'Leaderboard — All-time',
         description: 'Overall points summed across all days for Steam Review Guesser.',

@@ -85,6 +85,9 @@ export async function generateMetadata({params}: { params: Promise<{ round: stri
         return {
             title,
             description,
+            alternates: {
+                canonical: `/review-guesser/${roundIndex}`,
+            },
             openGraph: {
                 title,
                 description,
@@ -106,6 +109,9 @@ export async function generateMetadata({params}: { params: Promise<{ round: stri
         return {
             title,
             description,
+            alternates: {
+                canonical: `/review-guesser/${round || '1'}`,
+            },
             openGraph: {
                 title,
                 description,

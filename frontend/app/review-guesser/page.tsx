@@ -8,6 +8,9 @@ export default function ReviewGuesserEntryPage() {
 export const metadata: Metadata = {
     title: 'Review Guesser',
     description: 'Play the Steam Review guessing game — 5 daily rounds.',
+    alternates: {
+        canonical: '/review-guesser',
+    },
     openGraph: {
         title: 'Review Guesser',
         description: 'Play the Steam Review guessing game — 5 daily rounds.',

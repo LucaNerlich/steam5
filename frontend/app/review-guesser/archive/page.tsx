@@ -65,6 +65,9 @@ export default async function ArchiveIndexPage() {
 export const metadata: Metadata = {
     title: 'Archive',
     description: 'Browse previous daily challenges for Steam Review Guesser.',
+    alternates: {
+        canonical: '/review-guesser/archive',
+    },
     openGraph: {
         title: 'Archive',
         description: 'Browse previous daily challenges for Steam Review Guesser.',

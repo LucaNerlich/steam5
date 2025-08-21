@@ -20,6 +20,9 @@ export default function Home() {
 export const metadata: Metadata = {
     title: 'Home',
     description: 'Steam5 — Steam Review guessing games.',
+    alternates: {
+        canonical: '/',
+    },
     openGraph: {
         title: 'Home',
         description: 'Steam5 — Steam Review guessing games.',

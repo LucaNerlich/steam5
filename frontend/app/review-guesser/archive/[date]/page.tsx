@@ -61,6 +61,9 @@ export async function generateMetadata({params}: { params: Promise<{ date: strin
     return {
         title,
         description,
+        alternates: {
+            canonical: `/review-guesser/archive/${encodeURIComponent(date)}`,
+        },
         openGraph: {
             title,
             description,

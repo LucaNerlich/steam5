@@ -21,6 +21,9 @@ export default async function LeaderboardWeeklyPage() {
 export const metadata: Metadata = {
     title: 'Leaderboard — Weekly',
     description: 'Weekly total points by player for Steam Review Guesser.',
+    alternates: {
+        canonical: '/review-guesser/leaderboard/weekly',
+    },
     openGraph: {
         title: 'Leaderboard — Weekly',
         description: 'Weekly total points by player for Steam Review Guesser.',
