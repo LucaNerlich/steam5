@@ -47,6 +47,15 @@ public class SteamAppDetailService {
         return f.isMissingNode() || f.isNull() ? null : f.asText();
     }
 
+    private static String normalizeToHttps(String url) {
+        if (url == null) return null;
+        final String trimmed = url.trim();
+        if (trimmed.isEmpty()) return null;
+        if (trimmed.startsWith("//")) return "https:" + trimmed;
+        if (trimmed.startsWith("http://")) return "https://" + trimmed.substring(7);
+        return trimmed;
+    }
+
     private static String joinDlcIds(JsonNode dlcArray) {
         if (dlcArray == null || !dlcArray.isArray() || dlcArray.isEmpty()) {
             return null;
@@ -171,8 +180,8 @@ public class SteamAppDetailService {
 
         // Screenshots
         for (JsonNode ssNode : safeArray(data.path("screenshots"))) {
-            final String thumb = ssNode.path("path_thumbnail").asText(null);
-            final String full = ssNode.path("path_full").asText(null);
+            final String thumb = normalizeToHttps(ssNode.path("path_thumbnail").asText(null));
+            final String full = normalizeToHttps(ssNode.path("path_full").asText(null));
             if (thumb != null || full != null) {
                 detail.getScreenshots().add(new Screenshot(null, detail, thumb, full, null, null, null, null));
             }
@@ -181,15 +190,17 @@ public class SteamAppDetailService {
         // Movies
         for (JsonNode mvNode : safeArray(data.path("movies"))) {
             final String name = mvNode.path("name").asText(null);
-            final String thumbnail = mvNode.path("thumbnail").asText(null);
+            final String thumbnail = normalizeToHttps(mvNode.path("thumbnail").asText(null));
             String webm = mvNode.path("webm").path("max").asText(null);
             if (webm == null || webm.isBlank()) {
                 webm = mvNode.path("webm").path("480").asText(null);
             }
+            webm = normalizeToHttps(webm);
             String mp4 = mvNode.path("mp4").path("max").asText(null);
             if (mp4 == null || mp4.isBlank()) {
                 mp4 = mvNode.path("mp4").path("480").asText(null);
             }
+            mp4 = normalizeToHttps(mp4);
             if (name != null || thumbnail != null || webm != null || mp4 != null) {
                 detail.getMovies().add(new Movie(null, name, thumbnail, webm, mp4, detail));
             }

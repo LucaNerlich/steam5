@@ -129,6 +129,7 @@ export default function ReviewGuesserHero(props: Readonly<ReviewGuesserHeroProps
                                 alt={pick.name}
                                 width={400}
                                 height={225}
+                                fetchPriority='high'
                                 placeholder={s.blurdataThumb ? 'blur' : 'empty'}
                                 blurDataURL={s.blurdataThumb || undefined}
                             />
