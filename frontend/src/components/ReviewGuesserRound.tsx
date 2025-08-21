@@ -11,6 +11,9 @@ import RoundPoints from "@/components/RoundPoints";
 import RoundSummary from "@/components/RoundSummary";
 import ShareControls from "@/components/ShareControls";
 import {buildSteamLoginUrl} from "@/components/SteamLoginButton";
+import useAuthSignedIn from "@/lib/hooks/useAuthSignedIn";
+import useServerGuesses from "@/lib/hooks/useServerGuesses";
+import {loadDay, saveRound, type StoredDay} from "@/lib/storage";
 import "@/styles/components/reviewGuesserRound.css";
 import "@/styles/components/reviewRoundResult.css";
 import "@/styles/components/reviewShareControls.css";
@@ -43,8 +46,6 @@ type StoredRoundResult = {
     correct: boolean;
 };
 
-type StoredDay = { totalRounds: number; results: Record<number, StoredRoundResult> };
-
 export default function ReviewGuesserRound({
                                                appId,
                                                buckets,
@@ -61,52 +62,7 @@ export default function ReviewGuesserRound({
     const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
     const [selectionScopeKey, setSelectionScopeKey] = useState<string | null>(null);
     const [stored, setStored] = useState<StoredDay | null>(null);
-
-    // Client-side fetch of authenticated guesses if not provided via props
-    type ServerGuess = {
-        roundIndex: number;
-        appId: number;
-        selectedBucket: string;
-        actualBucket?: string;
-        totalReviews?: number
-    };
-    const [serverGuesses, setServerGuesses] = useState<Record<number, ServerGuess>>({});
-    const [fetchedPrefill, setFetchedPrefill] = useState<{
-        selectedLabel: string;
-        actualBucket?: string;
-        totalReviews?: number
-    } | undefined>(undefined);
-
-    useEffect(() => {
-        let cancelled = false;
-
-        async function load() {
-            // Only fetch if caller did not provide results/prefill
-            if (prefilled || (allResults && Object.keys(allResults).length > 0)) return;
-            try {
-                const res = await fetch('/api/review-game/my/today', {credentials: 'include', cache: 'no-store'});
-                if (!res.ok) return;
-                const data = await res.json() as ServerGuess[];
-                if (cancelled) return;
-                const map: Record<number, ServerGuess> = {};
-                for (const g of data) map[g.roundIndex] = g;
-                setServerGuesses(map);
-                const g = map[roundIndex];
-                if (g) setFetchedPrefill({
-                    selectedLabel: g.selectedBucket,
-                    actualBucket: g.actualBucket ?? '',
-                    totalReviews: g.totalReviews ?? 0
-                });
-            } catch {
-                // ignore
-            }
-        }
-
-        load();
-        return () => {
-            cancelled = true;
-        };
-    }, [roundIndex, prefilled, allResults]);
+    const serverGuesses = useServerGuesses();
 
     const scopeKey = `${gameDate ?? ''}:${roundIndex}:${appId}`;
 
@@ -128,63 +84,48 @@ export default function ReviewGuesserRound({
 
     // Persist this round's result for the current game date
     useEffect(() => {
-        // Persist locally to ensure immediate completion UX even for authenticated users
         if (!state || !state.ok || !state.response || !selectedLabel || !gameDate) return;
-        const key = `review-guesser:${gameDate}`;
-        try {
-            const prevRaw = window.localStorage.getItem(key);
-            let data: StoredDay = {totalRounds, results: {}};
-            if (prevRaw) {
-                const parsed = JSON.parse(prevRaw) as unknown;
-                if (
-                    typeof parsed === 'object' && parsed !== null &&
-                    'results' in (parsed as Record<string, unknown>)
-                ) {
-                    data = parsed as StoredDay;
-                }
-            }
-            data.totalRounds = totalRounds;
-            data.results[roundIndex] = {
-                appId,
-                pickName,
-                selectedLabel,
-                actualBucket: state.response.actualBucket,
-                totalReviews: state.response.totalReviews,
-                correct: state.response.correct,
-            };
-            window.localStorage.setItem(key, JSON.stringify(data));
-            setStored(data);
-        } catch {
-            // ignore storage errors
-        }
+        const updated = saveRound(gameDate, roundIndex, totalRounds, {
+            appId,
+            pickName,
+            selectedLabel,
+            actualBucket: state.response.actualBucket,
+            totalReviews: state.response.totalReviews,
+            correct: state.response.correct,
+        });
+        if (updated) setStored(updated);
     }, [state, selectedLabel, gameDate, totalRounds, roundIndex, appId, pickName, prefilled]);
 
     // Restore previously submitted guess for this round and load stored day once on mount/date change
     useEffect(() => {
         // Initialize from server-provided prefilled guess if present (without writing to localStorage)
-        const computedPrefill = prefilled ?? fetchedPrefill;
-        if (computedPrefill && computedPrefill.selectedLabel && !selectedLabel) {
-            setSelectedLabel(computedPrefill.selectedLabel);
+        const maybeServerPrefill = (() => {
+            if (prefilled) return prefilled;
+            const g = serverGuesses[roundIndex];
+            if (!g) return undefined;
+            return {
+                selectedLabel: g.selectedBucket,
+                actualBucket: g.actualBucket ?? '',
+                totalReviews: g.totalReviews ?? 0,
+            };
+        })();
+        if (maybeServerPrefill && maybeServerPrefill.selectedLabel && !selectedLabel) {
+            setSelectedLabel(maybeServerPrefill.selectedLabel);
             setSelectionScopeKey(scopeKey);
         }
         if (!gameDate) return;
-        try {
-            const raw = window.localStorage.getItem(`review-guesser:${gameDate}`);
-            if (!raw) {
-                setStored(null);
-                return;
-            }
-            const data = JSON.parse(raw) as StoredDay;
-            setStored(data);
-            const existing = data.results?.[roundIndex];
-            if (existing && existing.selectedLabel) {
-                setSelectedLabel(existing.selectedLabel);
-                setSelectionScopeKey(scopeKey);
-            }
-        } catch {
+        const data = loadDay(gameDate);
+        if (!data) {
             setStored(null);
+            return;
         }
-    }, [gameDate, roundIndex, prefilled, fetchedPrefill, totalRounds, appId, pickName, selectedLabel, scopeKey]);
+        setStored(data);
+        const existing = data.results?.[roundIndex];
+        if (existing && existing.selectedLabel) {
+            setSelectedLabel(existing.selectedLabel);
+            setSelectionScopeKey(scopeKey);
+        }
+    }, [gameDate, roundIndex, prefilled, serverGuesses, totalRounds, appId, pickName, selectedLabel, scopeKey]);
 
     // Determine completion and existing result for this round
     const storedResults = stored?.results || {};
@@ -201,7 +142,16 @@ export default function ReviewGuesserRound({
     const storedThisRound = storedResults[roundIndex] || serverResults[roundIndex];
 
     // Prefer server response; fallback to stored round result; finally use prefilled from server (authenticated restore)
-    const computedPrefill = prefilled ?? fetchedPrefill;
+    const computedPrefill = useMemo(() => {
+        if (prefilled) return prefilled;
+        const g = serverGuesses[roundIndex];
+        if (!g) return undefined;
+        return {
+            selectedLabel: g.selectedBucket,
+            actualBucket: g.actualBucket ?? '',
+            totalReviews: g.totalReviews ?? 0,
+        };
+    }, [prefilled, serverGuesses, roundIndex]);
     const prefilledResponse: GuessResponse | null = computedPrefill && computedPrefill.selectedLabel
         ? {
             appId,
@@ -258,25 +208,7 @@ export default function ReviewGuesserRound({
     );
 
     // Determine auth state (client-side) to conditionally show the sign-in nudge
-    const [signedIn, setSignedIn] = useState<boolean | null>(null);
-    useEffect(() => {
-        let cancelled = false;
-
-        async function check() {
-            try {
-                const res = await fetch('/api/auth/me', {cache: 'no-store'});
-                const json = await res.json();
-                if (!cancelled) setSignedIn(Boolean(json?.signedIn));
-            } catch {
-                if (!cancelled) setSignedIn(false);
-            }
-        }
-
-        check();
-        return () => {
-            cancelled = true;
-        };
-    }, []);
+    const signedIn = useAuthSignedIn();
 
     const shouldShowGuessControls = !(effectiveResponse || storedThisRound || prefilled);
     return (
@@ -338,7 +270,7 @@ export default function ReviewGuesserRound({
                             <>
                                 {/* Inline nudge only for guests */}
                                 {signedIn === false && (
-                                    <p className="text-muted" style={{margin: '0.5rem 0 0.25rem 0'}}>
+                                    <p className="text-muted review-round__signin-nudge">
                                         <a href="#" onClick={(e) => {
                                             e.preventDefault();
                                             window.location.href = buildSteamLoginUrl();

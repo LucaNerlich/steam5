@@ -11,4 +11,18 @@
     margin-top: 8px;
 }
 
+.review-round__signin-nudge {
+    margin: 0.5rem 0 0.25rem 0;
+}
+
+.review-round__actions {
+    margin-top: 8px;
+}
+
+.review-round__actions-inner {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
 
