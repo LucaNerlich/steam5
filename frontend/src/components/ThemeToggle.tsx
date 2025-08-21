@@ -12,9 +12,15 @@ function getPreferredTheme(): "light" | "dark" {
 }
 
 export default function ThemeToggle() {
-    const [theme, setTheme] = useState<"light" | "dark">(getPreferredTheme());
+    const [theme, setTheme] = useState<"light" | "dark" | null>(null);
+
+    // Set initial theme on client to avoid SSR/CSR mismatch
+    useEffect(() => {
+        setTheme(getPreferredTheme());
+    }, []);
 
     useEffect(() => {
+        if (!theme) return;
         const root = document.documentElement;
         if (theme === "dark") {
             root.setAttribute("data-theme", "dark");
@@ -43,7 +49,7 @@ export default function ThemeToggle() {
             aria-label="Toggle color theme"
             onClick={() => setTheme(prev => prev === "dark" ? "light" : "dark")}
         >
-            {theme === "dark" ? (
+            {theme === null ? null : theme === "dark" ? (
                 // Sun icon for switching to light
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"
                      focusable="false">

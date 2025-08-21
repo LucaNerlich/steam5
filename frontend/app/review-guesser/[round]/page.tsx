@@ -101,7 +101,9 @@ export async function generateMetadata({params}: { params: Promise<{ round: stri
                 images: [imageUrl],
             },
         };
-    } catch (e) {
+    } catch (error) {
+        console.error('Failed to load today', error);
+
         const title = `Review Guesser`;
         const description = `Play today's Steam Review guessing game.`;
         const ogUrl = new URL((process.env.NEXT_PUBLIC_DOMAIN || 'https://steam5.org').replace(/\/$/, ''));
