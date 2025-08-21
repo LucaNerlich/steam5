@@ -26,7 +26,8 @@ export default function FontToggle() {
         try {
             const stored = window.localStorage.getItem('font-family-choice');
             if (stored === 'neon' || stored === 'argon' || stored === 'radon' || stored === 'xenon' || stored === 'krypton') {
-                if (stored !== font) setFont(stored as FontChoice);
+                const s = stored as FontChoice;
+                setFont(prev => (prev === s ? prev : s));
             }
         } catch {
             // ignore
@@ -36,10 +37,15 @@ export default function FontToggle() {
     }, []);
 
     useEffect(() => {
+        if (!font) return;
         const root = document.documentElement;
         if (font === 'krypton') root.removeAttribute('data-font');
         else root.setAttribute('data-font', font);
-        window.localStorage.setItem('font-family-choice', font);
+        // persist only when actually changed
+        const current = window.localStorage.getItem('font-family-choice');
+        if (current !== font) {
+            window.localStorage.setItem('font-family-choice', font);
+        }
     }, [font]);
 
     if (!mounted) return null;

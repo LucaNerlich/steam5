@@ -35,7 +35,10 @@ export default function ThemeToggle() {
         const handler = () => {
             const stored = window.localStorage.getItem("theme");
             if (stored !== "light" && stored !== "dark") {
-                setTheme(media.matches ? "dark" : "light");
+                setTheme(prev => {
+                    const next = media.matches ? "dark" : "light";
+                    return prev === next ? prev : next;
+                });
             }
         };
         media.addEventListener("change", handler);

@@ -27,15 +27,12 @@ export default function GameInfoSection({pick}: Props): React.ReactElement | nul
         });
     }, [pick]);
 
-    console.log("pick", pick);
-
     const hasMovies = Array.isArray(pick?.movies) && pick!.movies.length > 0;
     const hasCategories = uniqueCategories.length > 0;
     const hasShort = Boolean(pick?.shortDescription);
     const hasAbout = Boolean(pick?.aboutTheGame);
     const hasController = Boolean(pick?.controllerSupport);
     const hasPlatforms = Boolean(pick?.windows || pick?.mac || pick?.linux);
-    console.log("hasPlatforms", hasPlatforms);
     const hasAny = Boolean(
         pick &&
         (hasMovies || hasCategories || hasShort || hasAbout || hasController || hasPlatforms)
