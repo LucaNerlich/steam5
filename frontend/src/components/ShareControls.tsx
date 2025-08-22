@@ -152,6 +152,7 @@ export default function ShareControls(props: {
 
         if (bars.length > 0) {
             const maxTotal = 5 * totalRounds;
+            lines.push('');
             lines.push(`${total}/${maxTotal} Points`);
         }
         lines.push('');
