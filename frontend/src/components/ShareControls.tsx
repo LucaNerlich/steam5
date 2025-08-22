@@ -123,11 +123,11 @@ export default function ShareControls(props: {
     for (let i = 1; i <= totalRounds; i++) {
         const r = i === latestRound ? latest : data.results[i];
         if (!r) continue;
-        const {bar, points, distance} = scoreForRound(buckets, r.selectedLabel, r.actualBucket);
+        const {bar, points} = scoreForRound(buckets, r.selectedLabel, r.actualBucket);
         total += points;
         bars.push(bar);
         const displayName = r.pickName || appNamesById[r.appId] || ('App ' + r.appId);
-        lines.push(`${bar} | Round ${i}: ${displayName} — off by ${distance}`);
+        lines.push(`${bar} | Round ${i}: ${displayName}`);
     }
     if (bars.length > 0) {
         const maxTotal = 5 * totalRounds;
