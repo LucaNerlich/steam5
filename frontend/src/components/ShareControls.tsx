@@ -29,12 +29,14 @@ export default function ShareControls(props: {
     inline?: boolean,
     // Optional: provide full results when user is authenticated (server-provided),
     // so we don't rely on localStorage
-    results?: Record<number, RoundResult>
+    results?: Record<number, RoundResult>,
+    signedIn?: boolean | null,
 }) {
-    const {buckets, gameDate, totalRounds, latestRound, latest, inline, results} = props;
+    const {buckets, gameDate, totalRounds, latestRound, latest, inline, results, signedIn} = props;
     const [copied, setCopied] = useState(false);
     const isLocalhost = typeof window !== 'undefined' && (location.hostname === 'localhost' || location.hostname === '127.0.0.1');
     const [appNamesById, setAppNamesById] = useState<Record<number, string>>({});
+    const [namesLoading, setNamesLoading] = useState<boolean>(true);
 
     type Stored = { totalRounds: number; results: Record<number, RoundResult> };
 
@@ -44,6 +46,7 @@ export default function ShareControls(props: {
 
         async function loadNames() {
             try {
+                setNamesLoading(true);
                 const url = gameDate
                     ? `/api/review-game/day/summary/${encodeURIComponent(gameDate)}`
                     : '/api/review-game/today';
@@ -65,6 +68,8 @@ export default function ShareControls(props: {
                 }
                 if (Object.keys(map).length > 0) setAppNamesById(map);
             } catch {
+            } finally {
+                if (!cancelled) setNamesLoading(false);
             }
         }
 
@@ -90,6 +95,9 @@ export default function ShareControls(props: {
     const indices = new Set(Object.keys(data.results).map(n => parseInt(n, 10)));
     indices.add(latestRound);
     const isComplete = indices.size >= totalRounds;
+
+    // Only allow sharing after finishing all rounds (regardless of auth state)
+    if (!isComplete) return null;
 
     async function syncLocalGuessesToBackend() {
         try {
@@ -121,37 +129,45 @@ export default function ShareControls(props: {
         void syncLocalGuessesToBackend();
     }
 
-    const lines: string[] = [];
-    const title = `Steam5 | Review Game — ${gameDate}`;
-    lines.push(title);
-    let total = 0;
-    const bars: string[] = [];
-    lines.push('');
-
-    if (!gameDate) return null;
-    if (!isComplete) return null;
-
-    for (let i = 1; i <= totalRounds; i++) {
-        const r = i === latestRound ? latest : data.results[i];
-        if (!r) continue;
-        const {bar, points} = scoreForRound(buckets, r.selectedLabel, r.actualBucket);
-        total += points;
-        bars.push(bar);
-        const displayName = r.pickName || appNamesById[r.appId] || ('App ' + r.appId);
-        lines.push(`${bar} | ${i}: ${displayName}`);
-    }
-
-    if (bars.length > 0) {
-        const maxTotal = 5 * totalRounds;
+    function buildShareText(): string | null {
+        const lines: string[] = [];
+        const title = `Steam5 | Review Game — ${gameDate}`;
+        lines.push(title);
+        let total = 0;
+        const bars: string[] = [];
         lines.push('');
-        lines.push(`${total}/${maxTotal} Points`);
+
+        if (!gameDate) return null;
+        if (!isComplete) return null;
+
+        for (let i = 1; i <= totalRounds; i++) {
+            const r = i === latestRound ? latest : data!.results[i];
+            if (!r) continue;
+            const {bar, points} = scoreForRound(buckets, r.selectedLabel, r.actualBucket);
+            total += points;
+            bars.push(bar);
+            const displayName = r.pickName || appNamesById[r.appId] || ('App ' + r.appId);
+            lines.push(`${bar} | ${i}: ${displayName}`);
+        }
+
+        if (bars.length > 0) {
+            const maxTotal = 5 * totalRounds;
+            lines.push(`${total}/${maxTotal} Points`);
+        }
+        lines.push('');
+        lines.push('---');
+        lines.push('');
+        lines.push('Play: https://steam5.org/review-guesser');
+        lines.push('Leaderboard: https://steam5.org/leaderboard');
+        return lines.join('\n');
     }
-    lines.push('');
-    lines.push('Play: https://steam5.org/review-guesser');
-    lines.push('Leaderboard: https://steam5.org/leaderboard');
-    const text = lines.join('\n');
 
     async function copyToClipboard() {
+        if (namesLoading) return; // ensure names were fetched at least once
+
+        const text = buildShareText();
+        if (!text) return;
+
         const copyWithTextarea = () => {
             try {
                 const textarea = document.createElement('textarea');
@@ -188,7 +204,9 @@ export default function ShareControls(props: {
     if (inline) {
         return (
             <div className="share-inline">
-                <button type="button" className="btn-success" onClick={copyToClipboard}>Share Results</button>
+                <button type="button" className="btn-success" disabled={namesLoading} onClick={copyToClipboard}
+                        title={namesLoading ? 'Preparing…' : undefined}>Share Results
+                </button>
                 <span className={`share-copied ${copied ? 'is-visible' : ''}`}>Copied</span>
             </div>
         );
@@ -196,7 +214,9 @@ export default function ShareControls(props: {
     return (
         <div className="review-round__share">
             <div className="share-inline">
-                <button type="button" className="btn-success" onClick={copyToClipboard}>Share Results</button>
+                <button type="button" className="btn-success" disabled={namesLoading} onClick={copyToClipboard}
+                        title={namesLoading ? 'Preparing…' : undefined}>Share Results
+                </button>
                 <span className={`share-copied ${copied ? 'is-visible' : ''}`}>Copied</span>
             </div>
         </div>
