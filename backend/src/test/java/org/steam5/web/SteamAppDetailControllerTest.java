@@ -51,7 +51,7 @@ public class SteamAppDetailControllerTest {
         SteamAppDetailController controller = new SteamAppDetailController(repo);
 
         // not found
-        when(repo.findById(anyLong())).thenReturn(Optional.empty());
+        when(repo.findByAppId(anyLong())).thenReturn(Optional.empty());
         assertEquals(404, controller.getDetails(42L, new HttpHeaders()).getStatusCode().value());
 
         // found
@@ -63,7 +63,7 @@ public class SteamAppDetailControllerTest {
         when(detail.getScreenshots()).thenReturn(Collections.emptySet());
         when(detail.getMovies()).thenReturn(Collections.emptySet());
         when(detail.getPriceOverview()).thenReturn(null);
-        when(repo.findById(7L)).thenReturn(Optional.of(detail));
+        when(repo.findByAppId(7L)).thenReturn(Optional.of(detail));
 
         ResponseEntity<SteamAppDetail> ok = controller.getDetails(7L, new HttpHeaders());
         assertEquals(200, ok.getStatusCode().value());
