@@ -17,7 +17,9 @@ import org.steam5.service.SteamAppDetailsFetcher;
 import org.steam5.service.SteamAppReviewsFetcher;
 
 import java.time.LocalDate;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -215,6 +217,29 @@ public class ReviewGameStateServiceTest {
         assertEquals(2, plan.get(1));
         final List<ReviewGamePick> picks = service.generateDailyPicks();
         assertEquals(5, picks.size());
+    }
+
+    @Test
+    void strategyVariesAcrossDaysAndUsuallyDiffersDayToDay() {
+        // Verify that over a reasonable window of days we observe multiple strategies
+        // and that consecutive days most often have different strategies.
+        final LocalDate start = LocalDate.of(2024, 1, 1);
+        final int window = 256;
+        final Set<ReviewGameStateService.BUCKET_STRATEGY> seen = new HashSet<>();
+        int changes = 0;
+        ReviewGameStateService.BUCKET_STRATEGY prev = null;
+        for (int i = 0; i < window; i++) {
+            final LocalDate d = start.plusDays(i);
+            final var s = service.chooseStrategyForDate(d);
+            seen.add(s);
+            if (prev != null && s != prev) changes++;
+            prev = s;
+        }
+        // Expect broad coverage of strategies over time
+        assertTrue(seen.size() >= 6, "expected at least 6 distinct strategies across the window");
+        // With 7 strategies, identical consecutive picks should be ~1/7; assert a healthy change rate
+        final double changeRate = changes / (double) (window - 1);
+        assertTrue(changeRate >= 0.7, "expected >=70% of consecutive days to differ, got " + changeRate);
     }
 }
 

@@ -294,15 +294,34 @@ public class ReviewGameStateService {
         CENTER
     }
 
+    private static long mix64(long z) {
+        z = (z ^ (z >>> 30)) * 0xbf58476d1ce4e5b9L;
+        z = (z ^ (z >>> 27)) * 0x94d049bb133111ebL;
+        return z ^ (z >>> 31);
+    }
+
     public BUCKET_STRATEGY chooseStrategyForDate(final LocalDate date) {
         final BUCKET_STRATEGY[] values = BUCKET_STRATEGY.values();
-        final Random rng = new Random(date.toEpochDay());
+        // Use a mixed seed to avoid low-bit correlation issues from consecutive epochDay seeds
+        final Random rng = new Random(mix64(date.toEpochDay()));
         return values[rng.nextInt(values.length)];
+    }
+
+    public int sampleIndex(final double[] weights, final Random rng) {
+        double sum = 0.0;
+        for (double w : weights) sum += w;
+        double r = rng.nextDouble() * sum;
+        for (int i = 0; i < weights.length; i++) {
+            r -= weights[i];
+            if (r <= 0) return i;
+        }
+        return weights.length - 1;
     }
 
     public List<Integer> planBucketSelection(final BUCKET_STRATEGY strategy, final int bucketCount, final int rounds, final LocalDate date) {
         final ArrayList<Integer> plan = new ArrayList<>(rounds);
-        final Random rng = new Random(date.toEpochDay() * 31L + 7L);
+        // Use a separately mixed seed for the plan to avoid correlation with strategy choice
+        final Random rng = new Random(mix64(date.toEpochDay() * 31L + 7L));
 
         switch (strategy) {
             case EQUAL -> {
@@ -355,17 +374,6 @@ public class ReviewGameStateService {
         // If we exactly have one per bucket for EQUAL, shuffle to avoid deterministic ordering
         if (strategy == BUCKET_STRATEGY.EQUAL && rounds >= bucketCount) Collections.shuffle(plan, rng);
         return plan;
-    }
-
-    public int sampleIndex(final double[] weights, final Random rng) {
-        double sum = 0.0;
-        for (double w : weights) sum += w;
-        double r = rng.nextDouble() * sum;
-        for (int i = 0; i < weights.length; i++) {
-            r -= weights[i];
-            if (r <= 0) return i;
-        }
-        return weights.length - 1;
     }
 }
 

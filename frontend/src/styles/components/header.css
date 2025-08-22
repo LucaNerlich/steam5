@@ -1,8 +1,18 @@
+header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    background: var(--color-background);
+    border-bottom: 1px solid var(--color-border);
+}
+
 header .container {
     display: flex;
     justify-content: flex-start;
     align-items: center;
-    padding: 1rem 0;
+    padding: 0.5rem 0;
 
     @media (max-width: 640px) {
         /* Mobile: switch to a 3-column grid so a title can sit centered */

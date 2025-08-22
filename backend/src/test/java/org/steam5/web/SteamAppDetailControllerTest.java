@@ -2,6 +2,7 @@ package org.steam5.web;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.steam5.domain.details.SteamAppDetail;
@@ -51,7 +52,7 @@ public class SteamAppDetailControllerTest {
 
         // not found
         when(repo.findById(anyLong())).thenReturn(Optional.empty());
-        assertEquals(404, controller.getDetails(42L).getStatusCode().value());
+        assertEquals(404, controller.getDetails(42L, new HttpHeaders()).getStatusCode().value());
 
         // found
         SteamAppDetail detail = Mockito.mock(SteamAppDetail.class);
@@ -64,7 +65,7 @@ public class SteamAppDetailControllerTest {
         when(detail.getPriceOverview()).thenReturn(null);
         when(repo.findById(7L)).thenReturn(Optional.of(detail));
 
-        ResponseEntity<SteamAppDetail> ok = controller.getDetails(7L);
+        ResponseEntity<SteamAppDetail> ok = controller.getDetails(7L, new HttpHeaders());
         assertEquals(200, ok.getStatusCode().value());
         assertNotNull(ok.getHeaders().getFirst("Cache-Control"));
         assertSame(detail, ok.getBody());

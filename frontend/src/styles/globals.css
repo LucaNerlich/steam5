@@ -95,6 +95,15 @@ header, main {
     }
 }
 
+/* Add top spacing so fixed header doesn't cover content */
+main {
+    padding-top: 50px;
+    @media (min-width: 640px) {
+        padding-top: 55px;
+
+    }
+}
+
 button.theme-toggle {
     appearance: none;
     border: none;
