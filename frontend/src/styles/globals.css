@@ -88,7 +88,6 @@ main {
 header, main {
     padding-left: max(12px, env(safe-area-inset-left));
     padding-right: max(12px, env(safe-area-inset-right));
-    padding-top: max(12px, env(safe-area-inset-top));
 
     @media (max-width: 640px) {
         padding-top: 0.25rem;
