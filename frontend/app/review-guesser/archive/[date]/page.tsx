@@ -1,10 +1,13 @@
 import type {Metadata} from "next";
 import type {ReviewGameState} from "@/types/review-game";
 import ReviewGuesserHero from "@/components/ReviewGuesserHero";
+import ArchiveOfflineRound from "@/components/ArchiveOfflineRound";
+import ArchiveResetForDay from "@/components/ArchiveResetForDay";
 import Link from "next/link";
 import {formatDate} from "@/lib/format";
 import "@/styles/components/archive.css";
 import GameInfoSection from "@/components/GameInfoSection";
+import React from "react";
 
 export const revalidate = 31536000;
 
@@ -16,6 +19,33 @@ async function loadArchived(date: string): Promise<ReviewGameState | null> {
     });
     if (!res.ok) return null;
     return res.json();
+}
+
+async function loadAnswers(date: string, appIds: number[]): Promise<Record<number, {
+    actualBucket: string;
+    totalReviews: number
+}>> {
+    // Call the public guess endpoint per appId to get the bucket and review count without auth
+    // This runs on the server during SSG, so it does not expose any secrets and avoids client requests.
+    const backend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
+    const out: Record<number, { actualBucket: string; totalReviews: number }> = {};
+    await Promise.all(appIds.map(async (id) => {
+        try {
+            // We need bucket labels to query; however the backend guess API only needs appId and a label, but it returns the actual bucket regardless of correctness
+            // To avoid leaking labels, we just pass an arbitrary label; the response includes the correct one (actualBucket)
+            const res = await fetch(`${backend}/api/review-game/guess`, {
+                method: 'POST',
+                headers: {'content-type': 'application/json', 'accept': 'application/json'},
+                body: JSON.stringify({appId: id, bucketGuess: "_"})
+            });
+            if (!res.ok) return;
+            const data = await res.json() as { actualBucket: string; totalReviews: number };
+            out[id] = {actualBucket: data.actualBucket, totalReviews: data.totalReviews};
+        } catch {
+            // ignore
+        }
+    }));
+    return out;
 }
 
 export default async function ArchivePage({params}: { params: Promise<{ date: string }> }) {
@@ -31,6 +61,9 @@ export default async function ArchivePage({params}: { params: Promise<{ date: st
         );
     }
 
+    const appIds = data.picks.map(p => p.appId);
+    const answers = await loadAnswers(date, appIds);
+
     return (
         <section className="container">
             <h1>Archive — {formatDate(date)}</h1>
@@ -44,11 +77,22 @@ export default async function ArchivePage({params}: { params: Promise<{ date: st
             {data.picks.map((pick, idx) => (
                 <div key={pick.appId} id={`round-${idx + 1}`} className="archive__round">
                     <ReviewGuesserHero today={data} pick={pick} roundIndex={idx + 1}/>
+                    <ArchiveOfflineRound
+                        appId={pick.appId}
+                        buckets={data.buckets}
+                        bucketTitles={data.bucketTitles}
+                        roundIndex={idx + 1}
+                        totalRounds={data.picks.length}
+                        pickName={pick.name}
+                        gameDate={date}
+                        offlineAnswer={answers[pick.appId] ?? null}
+                    />
                     <GameInfoSection pick={pick}/>
                 </div>
             ))}
-            <p className="text-muted">Archive is read-only; guessing is disabled.</p>
-            <Link href="/review-guesser/1" className="btn-ghost">Back to today’s game</Link>
+            <div className="archive__reset">
+                <ArchiveResetForDay date={date}/>
+            </div>
         </section>
     );
 }

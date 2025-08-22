@@ -26,4 +26,21 @@
     margin-bottom: 2rem;
 }
 
+.archive__reset {
+    margin: 1rem 0;
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* Increase spacing for guess buttons only within archive offline rounds */
+.archive-offline-round .review-round__buttons {
+    gap: 12px;
+}
+
+@media (max-width: 640px) {
+    .archive-offline-round .review-round__buttons {
+        gap: 12px;
+    }
+}
+
 
