@@ -41,6 +41,7 @@ export default function ShareControls(props: {
     // Fetch picks (for the same game date) to enrich app names for all rounds
     useEffect(() => {
         let cancelled = false;
+
         async function loadNames() {
             try {
                 const url = gameDate
@@ -125,7 +126,6 @@ export default function ShareControls(props: {
     lines.push(title);
     let total = 0;
     const bars: string[] = [];
-    lines.push('---');
     lines.push('');
 
     if (!gameDate) return null;
@@ -138,14 +138,14 @@ export default function ShareControls(props: {
         total += points;
         bars.push(bar);
         const displayName = r.pickName || appNamesById[r.appId] || ('App ' + r.appId);
-        lines.push(`${bar} | Round ${i}: ${displayName}`);
+        lines.push(`${bar} | ${i}: ${displayName}`);
     }
+
     if (bars.length > 0) {
         const maxTotal = 5 * totalRounds;
-        lines.splice(1, 0, `${bars.join('')} ${total}/${maxTotal} Points`, '');
+        lines.push('');
+        lines.push(`${total}/${maxTotal} Points`);
     }
-    lines.push('');
-    lines.push('---');
     lines.push('');
     lines.push('Play: https://steam5.org/review-guesser');
     lines.push('Leaderboard: https://steam5.org/leaderboard');
