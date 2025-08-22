@@ -38,20 +38,31 @@ export default function ShareControls(props: {
 
     type Stored = { totalRounds: number; results: Record<number, RoundResult> };
 
-    // Fetch today's picks to enrich app names for all rounds
+    // Fetch picks (for the same game date) to enrich app names for all rounds
     useEffect(() => {
         let cancelled = false;
         async function loadNames() {
             try {
-                const res = await fetch('/api/review-game/today', {cache: 'no-store'});
+                const url = gameDate
+                    ? `/api/review-game/day/summary/${encodeURIComponent(gameDate)}`
+                    : '/api/review-game/today';
+                const res = await fetch(url, {cache: 'no-store'});
                 if (!res.ok) return;
-                const json = await res.json() as { picks: Array<{ appId: number; name?: string }> };
-                if (cancelled || !json || !json.picks) return;
+                const json = await res.json();
+                if (cancelled || !json) return;
                 const map: Record<number, string> = {};
-                for (const p of json.picks) {
-                    if (p && typeof p.appId === 'number' && p.name) map[p.appId] = p.name;
+                if (Array.isArray(json)) {
+                    // Day summary format: [{ round, appId, name }]
+                    for (const p of json as Array<{ appId: number; name?: string }>) {
+                        if (p && typeof p.appId === 'number' && p.name) map[p.appId] = p.name;
+                    }
+                } else if (json.picks && Array.isArray(json.picks)) {
+                    // Today format: { picks: [{ appId, name }] }
+                    for (const p of json.picks as Array<{ appId: number; name?: string }>) {
+                        if (p && typeof p.appId === 'number' && p.name) map[p.appId] = p.name;
+                    }
                 }
-                setAppNamesById(map);
+                if (Object.keys(map).length > 0) setAppNamesById(map);
             } catch {
             }
         }
@@ -60,7 +71,7 @@ export default function ShareControls(props: {
         return () => {
             cancelled = true;
         };
-    }, []);
+    }, [gameDate]);
 
     let data: Stored | null = null;
     if (results && Object.keys(results).length > 0) {
