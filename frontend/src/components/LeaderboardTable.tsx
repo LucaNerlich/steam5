@@ -68,15 +68,13 @@ export default function LeaderboardTable(props: {
     }, []);
 
     const requestSort = useCallback((key: SortKey) => {
-        setSortKey((currentKey) => {
-            if (currentKey === key) {
-                setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
-                return currentKey;
-            }
+        if (sortKey === key) {
+            setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+        } else {
+            setSortKey(key);
             setSortDir(defaultDirFor(key));
-            return key;
-        });
-    }, [defaultDirFor]);
+        }
+    }, [sortKey, defaultDirFor]);
 
     const sorted = useMemo(() => {
         if (!Array.isArray(data)) return [] as LeaderEntry[];
@@ -106,76 +104,39 @@ export default function LeaderboardTable(props: {
     if (error) return <p className="text-muted">Failed to load leaderboard. Please try again.</p>;
     if (isLoading || !data) return <p className="text-muted">Loading leaderboard…</p>;
 
+    const SortableTH = ({
+                            label,
+                            keyName,
+                            title,
+                            alignNum
+                        }: { label: string; keyName: SortKey; title?: string; alignNum?: boolean }) => {
+        const isActive = sortKey === keyName;
+        const aria = isActive ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none';
+        return (
+            <th scope="col" className={alignNum ? 'num' : undefined} title={title} aria-sort={aria}>
+                <button className={`sortable${isActive ? ' is-active' : ''}`} onClick={() => requestSort(keyName)}
+                        aria-label={`Sort by ${label}`}>
+                    {label}{isActive &&
+                  <span className="sort-indicator" aria-hidden="true">{sortDir === 'asc' ? '▲' : '▼'}</span>}
+                </button>
+            </th>
+        );
+    };
+
     return (
         <div className="leaderboard">
             <table className="leaderboard__table" aria-label={aria}>
                 <thead>
                 <tr>
                     <th scope="col" className="num">#</th>
-                    <th scope="col"
-                        aria-sort={sortKey === 'personaName' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}>
-                        <button className={`sortable${sortKey === 'personaName' ? ' is-active' : ''}`}
-                                onClick={() => requestSort('personaName')} aria-label="Sort by Player">
-                            Player{sortKey === 'personaName' &&
-                          <span className="sort-indicator" aria-hidden="true">{sortDir === 'asc' ? '▲' : '▼'}</span>}
-                        </button>
-                    </th>
-                    <th scope="col" className="num"
-                        aria-sort={sortKey === 'totalPoints' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}>
-                        <button className={`sortable${sortKey === 'totalPoints' ? ' is-active' : ''}`}
-                                onClick={() => requestSort('totalPoints')} aria-label="Sort by Points">
-                            Points{sortKey === 'totalPoints' &&
-                          <span className="sort-indicator" aria-hidden="true">{sortDir === 'asc' ? '▲' : '▼'}</span>}
-                        </button>
-                    </th>
-                    <th scope="col" className="num"
-                        aria-sort={sortKey === 'rounds' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}>
-                        <button className={`sortable${sortKey === 'rounds' ? ' is-active' : ''}`}
-                                onClick={() => requestSort('rounds')} aria-label="Sort by Rounds">
-                            Rounds{sortKey === 'rounds' &&
-                          <span className="sort-indicator" aria-hidden="true">{sortDir === 'asc' ? '▲' : '▼'}</span>}
-                        </button>
-                    </th>
-                    <th scope="col" className="num" title='Uninterrupted daily-challenges'
-                        aria-sort={sortKey === 'streak' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}>
-                        <button className={`sortable${sortKey === 'streak' ? ' is-active' : ''}`}
-                                onClick={() => requestSort('streak')} aria-label="Sort by Streak">
-                            Streak{sortKey === 'streak' &&
-                          <span className="sort-indicator" aria-hidden="true">{sortDir === 'asc' ? '▲' : '▼'}</span>}
-                        </button>
-                    </th>
-                    <th scope="col" className="num" title='Correct guess'
-                        aria-sort={sortKey === 'hits' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}>
-                        <button className={`sortable${sortKey === 'hits' ? ' is-active' : ''}`}
-                                onClick={() => requestSort('hits')} aria-label="Sort by Hits">
-                            Hits{sortKey === 'hits' &&
-                          <span className="sort-indicator" aria-hidden="true">{sortDir === 'asc' ? '▲' : '▼'}</span>}
-                        </button>
-                    </th>
-                    <th scope="col" className="num"
-                        aria-sort={sortKey === 'tooHigh' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}>
-                        <button className={`sortable${sortKey === 'tooHigh' ? ' is-active' : ''}`}
-                                onClick={() => requestSort('tooHigh')} aria-label="Sort by Too High">
-                            Too High{sortKey === 'tooHigh' &&
-                          <span className="sort-indicator" aria-hidden="true">{sortDir === 'asc' ? '▲' : '▼'}</span>}
-                        </button>
-                    </th>
-                    <th scope="col" className="num"
-                        aria-sort={sortKey === 'tooLow' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}>
-                        <button className={`sortable${sortKey === 'tooLow' ? ' is-active' : ''}`}
-                                onClick={() => requestSort('tooLow')} aria-label="Sort by Too Low">
-                            Too Low{sortKey === 'tooLow' &&
-                          <span className="sort-indicator" aria-hidden="true">{sortDir === 'asc' ? '▲' : '▼'}</span>}
-                        </button>
-                    </th>
-                    <th scope="col" className="num"
-                        aria-sort={sortKey === 'avgPoints' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}>
-                        <button className={`sortable${sortKey === 'avgPoints' ? ' is-active' : ''}`}
-                                onClick={() => requestSort('avgPoints')} aria-label="Sort by Average Points">
-                            Avg{sortKey === 'avgPoints' &&
-                          <span className="sort-indicator" aria-hidden="true">{sortDir === 'asc' ? '▲' : '▼'}</span>}
-                        </button>
-                    </th>
+                    <SortableTH label="Player" keyName={'personaName'}/>
+                    <SortableTH label="Points" keyName={'totalPoints'} alignNum/>
+                    <SortableTH label="Rounds" keyName={'rounds'} alignNum/>
+                    <SortableTH label="Streak" keyName={'streak'} title={'Uninterrupted daily-challenges'} alignNum/>
+                    <SortableTH label="Hits" keyName={'hits'} title={'Correct guess'} alignNum/>
+                    <SortableTH label="Too High" keyName={'tooHigh'} alignNum/>
+                    <SortableTH label="Too Low" keyName={'tooLow'} alignNum/>
+                    <SortableTH label="Avg" keyName={'avgPoints'} alignNum/>
                 </tr>
                 </thead>
                 <tbody>
