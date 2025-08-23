@@ -96,7 +96,8 @@ public class LeaderboardController {
         final String avatar = user != null && user.getAvatarFull() != null && !user.getAvatarFull().isBlank() ? user.getAvatarFull() : null;
         final String avatarBlurdata = user != null && user.getBlurdataAvatarFull() != null && !user.getBlurdataAvatarFull().isBlank() ? user.getBlurdataAvatarFull() : null;
         final String profileUrl = user != null && user.getProfileUrl() != null && !user.getProfileUrl().isBlank() ? user.getProfileUrl() : null;
-        return new LeaderEntry(personaName, totalPoints, rounds, hits, tooHigh, tooLow, avgPoints, avatar, avatarBlurdata, profileUrl);
+        final int streak = calculateStreak(steamId);
+        return new LeaderEntry(personaName, totalPoints, rounds, hits, tooHigh, tooLow, avgPoints, streak, avatar, avatarBlurdata, profileUrl);
     }
 
     private LeaderEntry buildEntries(Map.Entry<String, List<Guess>> entry) {
@@ -112,10 +113,31 @@ public class LeaderboardController {
         return getLeaderEntry(steamId, totalPoints, rounds, hits, tooHigh, tooLow, avgPoints, user);
     }
 
+    private int calculateStreak(String steamId) {
+        // Determine the current streak of consecutive days with at least one guess up to today.
+        final List<LocalDate> dates = guessRepository.findDistinctDatesUpTo(steamId, LocalDate.now());
+        if (dates.isEmpty()) return 0;
+        int streak = 0;
+        LocalDate expected = LocalDate.now();
+        for (LocalDate d : dates) {
+            if (d.equals(expected)) {
+                streak++;
+                expected = expected.minusDays(1);
+            } else if (d.isBefore(expected)) {
+                // break on first gap
+                break;
+            } else {
+                // future date shouldn't happen; skip
+            }
+        }
+        return streak;
+    }
+
     public record LeaderEntry(String personaName,
                               long totalPoints, long rounds,
                               long hits, long tooHigh, long tooLow,
                               double avgPoints,
+                              int streak,
                               String avatar,
                               String avatarBlurdata,
                               String profileUrl) {

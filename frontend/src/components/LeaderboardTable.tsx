@@ -12,6 +12,7 @@ export type LeaderEntry = {
     tooHigh: number;
     tooLow: number;
     avgPoints: number;
+    streak: number;
     avatar?: string | null;
     avatarBlurdata?: string | null;
     profileUrl?: string | null;
@@ -67,7 +68,8 @@ export default function LeaderboardTable(props: {
                     <th scope="col">Player</th>
                     <th scope="col" className="num">Points</th>
                     <th scope="col" className="num">Rounds</th>
-                    <th scope="col" className="num">Hits</th>
+                    <th scope="col" className="num" title='Uninterrupted daily-challenges'>Streak</th>
+                    <th scope="col" className="num" title='Correct guess'>Hits</th>
                     <th scope="col" className="num">Too High</th>
                     <th scope="col" className="num">Too Low</th>
                     <th scope="col" className="num">Avg</th>
@@ -102,6 +104,7 @@ export default function LeaderboardTable(props: {
                         </td>
                         <td className="num">{entry.totalPoints}</td>
                         <td className="num">{entry.rounds}</td>
+                        <td className="num">{entry.streak}</td>
                         <td className="num">{entry.hits}</td>
                         <td className="num">{entry.tooHigh}</td>
                         <td className="num">{entry.tooLow}</td>

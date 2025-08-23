@@ -32,6 +32,10 @@ public interface GuessRepository extends JpaRepository<Guess, Long> {
     List<Guess> findAllBetween(@Param("start") LocalDate start,
                                 @Param("end") LocalDate end);
 
+    @Query("select distinct g.gameDate from Guess g where g.steamId = :steamId and g.gameDate <= :asOfDate order by g.gameDate desc")
+    List<LocalDate> findDistinctDatesUpTo(@Param("steamId") String steamId,
+                                          @Param("asOfDate") LocalDate asOfDate);
+
     interface LeaderboardRow {
         String getSteamId();
 
