@@ -5,6 +5,7 @@ import org.quartz.*;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
 import org.steam5.config.SteamAppsConfig;
+import org.steam5.http.SteamApiException;
 import org.steam5.repository.SteamAppReviewsRepository;
 import org.steam5.service.SteamAppReviewsFetcher;
 
@@ -46,8 +47,17 @@ public class SteamAppReviewsRefreshJob implements Job {
                 try {
                     fetcher.fetchForAppId(appId);
                     refreshed++;
+                } catch (SteamApiException sae) {
+                    // Respect rate limiting: abort job on 429
+                    if (sae.getStatusCode() == 429) {
+                        log.warn("Rate limited (429) while refreshing reviews for appId {} - aborting job", appId);
+                        throw new JobExecutionException(sae, false);
+                    }
+                    // Log concise message without large response bodies
+                    log.warn("Failed refreshing reviews for appId {}: HTTP {}", appId, sae.getStatusCode());
                 } catch (Exception e) {
-                    log.warn("Failed refreshing reviews for appId {}: {}", appId, e.toString());
+                    // Avoid dumping entire exception body; keep it concise
+                    log.warn("Failed refreshing reviews for appId {}: {}", appId, e.getMessage());
                 }
             }
         } catch (Exception e) {
