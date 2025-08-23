@@ -3,6 +3,7 @@
 import "@/styles/components/leaderboard.css";
 import Image from "next/image";
 import useSWR from "swr";
+import {useCallback, useMemo, useState} from "react";
 
 export type LeaderEntry = {
     personaName: string;
@@ -56,6 +57,52 @@ export default function LeaderboardTable(props: {
         revalidateOnFocus: true,
     });
 
+    type SortKey = 'personaName' | 'totalPoints' | 'rounds' | 'streak' | 'hits' | 'tooHigh' | 'tooLow' | 'avgPoints';
+    type SortDir = 'asc' | 'desc';
+
+    const [sortKey, setSortKey] = useState<SortKey | null>(null);
+    const [sortDir, setSortDir] = useState<SortDir>('desc');
+
+    const defaultDirFor = useCallback((key: SortKey): SortDir => {
+        return key === 'personaName' ? 'asc' : 'desc';
+    }, []);
+
+    const requestSort = useCallback((key: SortKey) => {
+        setSortKey((currentKey) => {
+            if (currentKey === key) {
+                setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+                return currentKey;
+            }
+            setSortDir(defaultDirFor(key));
+            return key;
+        });
+    }, [defaultDirFor]);
+
+    const sorted = useMemo(() => {
+        if (!Array.isArray(data)) return [] as LeaderEntry[];
+        if (!sortKey) return data;
+        const sortedCopy = [...data];
+        sortedCopy.sort((a, b) => {
+            const dir = sortDir === 'asc' ? 1 : -1;
+            if (sortKey === 'personaName') {
+                const an = (a.personaName || '').toLowerCase();
+                const bn = (b.personaName || '').toLowerCase();
+                const cmp = an.localeCompare(bn);
+                return cmp * dir;
+            }
+            const av = (a[sortKey] ?? 0) as number;
+            const bv = (b[sortKey] ?? 0) as number;
+            if (av === bv) {
+                // Tiebreak by name for deterministic ordering
+                const an = (a.personaName || '').toLowerCase();
+                const bn = (b.personaName || '').toLowerCase();
+                return an.localeCompare(bn);
+            }
+            return av < bv ? -1 * dir : 1 * dir;
+        });
+        return sortedCopy;
+    }, [data, sortDir, sortKey]);
+
     if (error) return <p className="text-muted">Failed to load leaderboard. Please try again.</p>;
     if (isLoading || !data) return <p className="text-muted">Loading leaderboard…</p>;
 
@@ -65,18 +112,74 @@ export default function LeaderboardTable(props: {
                 <thead>
                 <tr>
                     <th scope="col" className="num">#</th>
-                    <th scope="col">Player</th>
-                    <th scope="col" className="num">Points</th>
-                    <th scope="col" className="num">Rounds</th>
-                    <th scope="col" className="num" title='Uninterrupted daily-challenges'>Streak</th>
-                    <th scope="col" className="num" title='Correct guess'>Hits</th>
-                    <th scope="col" className="num">Too High</th>
-                    <th scope="col" className="num">Too Low</th>
-                    <th scope="col" className="num">Avg</th>
+                    <th scope="col"
+                        aria-sort={sortKey === 'personaName' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                        <button className={`sortable${sortKey === 'personaName' ? ' is-active' : ''}`}
+                                onClick={() => requestSort('personaName')} aria-label="Sort by Player">
+                            Player{sortKey === 'personaName' &&
+                          <span className="sort-indicator" aria-hidden="true">{sortDir === 'asc' ? '▲' : '▼'}</span>}
+                        </button>
+                    </th>
+                    <th scope="col" className="num"
+                        aria-sort={sortKey === 'totalPoints' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                        <button className={`sortable${sortKey === 'totalPoints' ? ' is-active' : ''}`}
+                                onClick={() => requestSort('totalPoints')} aria-label="Sort by Points">
+                            Points{sortKey === 'totalPoints' &&
+                          <span className="sort-indicator" aria-hidden="true">{sortDir === 'asc' ? '▲' : '▼'}</span>}
+                        </button>
+                    </th>
+                    <th scope="col" className="num"
+                        aria-sort={sortKey === 'rounds' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                        <button className={`sortable${sortKey === 'rounds' ? ' is-active' : ''}`}
+                                onClick={() => requestSort('rounds')} aria-label="Sort by Rounds">
+                            Rounds{sortKey === 'rounds' &&
+                          <span className="sort-indicator" aria-hidden="true">{sortDir === 'asc' ? '▲' : '▼'}</span>}
+                        </button>
+                    </th>
+                    <th scope="col" className="num" title='Uninterrupted daily-challenges'
+                        aria-sort={sortKey === 'streak' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                        <button className={`sortable${sortKey === 'streak' ? ' is-active' : ''}`}
+                                onClick={() => requestSort('streak')} aria-label="Sort by Streak">
+                            Streak{sortKey === 'streak' &&
+                          <span className="sort-indicator" aria-hidden="true">{sortDir === 'asc' ? '▲' : '▼'}</span>}
+                        </button>
+                    </th>
+                    <th scope="col" className="num" title='Correct guess'
+                        aria-sort={sortKey === 'hits' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                        <button className={`sortable${sortKey === 'hits' ? ' is-active' : ''}`}
+                                onClick={() => requestSort('hits')} aria-label="Sort by Hits">
+                            Hits{sortKey === 'hits' &&
+                          <span className="sort-indicator" aria-hidden="true">{sortDir === 'asc' ? '▲' : '▼'}</span>}
+                        </button>
+                    </th>
+                    <th scope="col" className="num"
+                        aria-sort={sortKey === 'tooHigh' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                        <button className={`sortable${sortKey === 'tooHigh' ? ' is-active' : ''}`}
+                                onClick={() => requestSort('tooHigh')} aria-label="Sort by Too High">
+                            Too High{sortKey === 'tooHigh' &&
+                          <span className="sort-indicator" aria-hidden="true">{sortDir === 'asc' ? '▲' : '▼'}</span>}
+                        </button>
+                    </th>
+                    <th scope="col" className="num"
+                        aria-sort={sortKey === 'tooLow' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                        <button className={`sortable${sortKey === 'tooLow' ? ' is-active' : ''}`}
+                                onClick={() => requestSort('tooLow')} aria-label="Sort by Too Low">
+                            Too Low{sortKey === 'tooLow' &&
+                          <span className="sort-indicator" aria-hidden="true">{sortDir === 'asc' ? '▲' : '▼'}</span>}
+                        </button>
+                    </th>
+                    <th scope="col" className="num"
+                        aria-sort={sortKey === 'avgPoints' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                        <button className={`sortable${sortKey === 'avgPoints' ? ' is-active' : ''}`}
+                                onClick={() => requestSort('avgPoints')} aria-label="Sort by Average Points">
+                            Avg{sortKey === 'avgPoints' &&
+                          <span className="sort-indicator" aria-hidden="true">{sortDir === 'asc' ? '▲' : '▼'}</span>}
+                        </button>
+                    </th>
                 </tr>
                 </thead>
                 <tbody>
-                {data.map((entry, i) => (
+                {sorted.map((entry, i) => (
                     <tr key={entry.profileUrl}>
                         <td>{i + 1}</td>
                         <td>

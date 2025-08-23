@@ -22,7 +22,6 @@ export default function ReviewGuesserHero(props: Readonly<ReviewGuesserHeroProps
 
     const [isOpen, setIsOpen] = useState(false);
     const [index, setIndex] = useState(0);
-    const [isMobile, setIsMobile] = useState(false);
 
     const openAt = useCallback((i: number) => {
         setIndex(i);
@@ -46,15 +45,7 @@ export default function ReviewGuesserHero(props: Readonly<ReviewGuesserHeroProps
         return () => window.removeEventListener('keydown', onKey);
     }, [isOpen, close, prev, next]);
 
-    // Track viewport to switch heading semantics for accessibility (mobile vs desktop)
-    useEffect(() => {
-        if (typeof window === 'undefined') return;
-        const mql = window.matchMedia('(max-width: 640px)');
-        const apply = () => setIsMobile(mql.matches);
-        apply();
-        mql.addEventListener?.('change', apply);
-        return () => mql.removeEventListener?.('change', apply);
-    }, []);
+    // (Removed unused viewport tracking state)
 
     return (
         <section className='review-guesser-hero'>

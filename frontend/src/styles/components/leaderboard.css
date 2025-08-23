@@ -44,6 +44,35 @@
     gap: 0.4rem;
 }
 
+/* Sortable headers */
+.leaderboard__table th button.sortable {
+    appearance: none;
+    background: transparent;
+    border: 0;
+    padding: 0;
+    margin: 0;
+    color: inherit;
+    font: inherit;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    cursor: pointer;
+}
+
+.leaderboard__table th button.sortable:hover {
+    text-decoration: underline;
+}
+
+.leaderboard__table th button.sortable .sort-indicator {
+    font-size: 0.8em;
+    opacity: 0.7;
+}
+
+.leaderboard__table th[aria-sort="ascending"] button.sortable .sort-indicator,
+.leaderboard__table th[aria-sort="descending"] button.sortable .sort-indicator {
+    opacity: 1;
+}
+
 .leaderboard__avatar-wrap {
     width: 24px;
     height: 24px;

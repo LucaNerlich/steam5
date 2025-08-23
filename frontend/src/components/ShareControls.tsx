@@ -32,7 +32,7 @@ export default function ShareControls(props: {
     results?: Record<number, RoundResult>,
     signedIn?: boolean | null,
 }) {
-    const {buckets, gameDate, totalRounds, latestRound, latest, inline, results, signedIn} = props;
+    const {buckets, gameDate, totalRounds, latestRound, latest, inline, results} = props;
     const [copied, setCopied] = useState(false);
     const isLocalhost = typeof window !== 'undefined' && (location.hostname === 'localhost' || location.hostname === '127.0.0.1');
     const [appNamesById, setAppNamesById] = useState<Record<number, string>>({});
