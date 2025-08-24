@@ -6,7 +6,7 @@ export default async function LeaderboardTodayPage() {
     return (
         <LeaderboardSection active="today"
                             title="Today"
-                            subline={"Today'" + 's total points by player (sorted highest first)'}>
+                            subline={"Today'" + 's total points by player'}>
             <LeaderboardTable mode="today" refreshMs={5000}/>
         </LeaderboardSection>
     );
