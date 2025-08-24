@@ -6,7 +6,7 @@ export default async function LeaderboardPage() {
     return (
         <LeaderboardSection active="all"
                             title="All-time"
-                            subline="Overall points summed across all days (sorted highest first)">
+                            subline="Overall points summed across all days">
             <LeaderboardTable mode="all" refreshMs={10000}/>
         </LeaderboardSection>
     );
