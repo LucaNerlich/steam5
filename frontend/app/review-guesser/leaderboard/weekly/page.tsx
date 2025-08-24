@@ -6,7 +6,7 @@ export default async function LeaderboardWeeklyPage() {
     return (
         <LeaderboardSection active="weekly"
                             title="Weekly"
-                            subline="Last seven days total points by player (sorted highest first)">
+                            subline="Last seven days">
             <LeaderboardTable mode="weekly-floating" refreshMs={10000}/>
         </LeaderboardSection>
     );
