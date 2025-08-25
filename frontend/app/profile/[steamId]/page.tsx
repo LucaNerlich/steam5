@@ -57,7 +57,6 @@ export default async function ProfilePage({params}: { params: { steamId: string 
                     <div>
                         <h1 id="profile-title" className="profile__title">{name}</h1>
                         <div className="profile__meta">
-                            <span className="muted">Steam5 — Review Guesser</span>
                             {data.profileUrl && (
                                 <a href={data.profileUrl} target="_blank" rel="noopener noreferrer"
                                    className="profile__external">Open Steam profile</a>
@@ -90,7 +89,6 @@ export default async function ProfilePage({params}: { params: { steamId: string 
                                     <table className="profile__table">
                                         <thead>
                                         <tr>
-                                            <th scope="col">Round</th>
                                             <th scope="col">Game</th>
                                             <th scope="col">Selected</th>
                                             <th scope="col">Actual</th>
@@ -100,7 +98,6 @@ export default async function ProfilePage({params}: { params: { steamId: string 
                                         <tbody>
                                         {day.rounds.map(r => (
                                             <tr key={r.roundIndex}>
-                                                <td data-label="Round">#{r.roundIndex}</td>
                                                 <td data-label="Game" className="profile__game">
                                                     <a href={`https://store.steampowered.com/app/${r.appId}`}
                                                        target="_blank" rel="noopener noreferrer">
