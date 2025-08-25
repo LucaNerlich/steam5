@@ -6,6 +6,7 @@ import useSWR from "swr";
 import {useCallback, useMemo, useState} from "react";
 
 export type LeaderEntry = {
+    steamId: string;
     personaName: string;
     totalPoints: number;
     rounds: number;
@@ -156,14 +157,10 @@ export default function LeaderboardTable(props: {
                                                height={24}/>
                                     </div>
                                 )}
-                                {entry.profileUrl ? (
-                                    <a href={entry.profileUrl} target="_blank" rel="noopener noreferrer"
-                                       className="leaderboard__profile-link">
-                                        <strong>{entry.personaName || 'no-name'}</strong>
-                                    </a>
-                                ) : (
+                                <a href={`/profile/${encodeURIComponent(entry.steamId)}`}
+                                   className="leaderboard__profile-link">
                                     <strong>{entry.personaName || 'no-name'}</strong>
-                                )}
+                                </a>
                             </div>
                         </td>
                         <td className="num">{entry.totalPoints}</td>

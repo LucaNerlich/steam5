@@ -81,14 +81,19 @@
 
 #### Archiv
 
-- [ ] display list of prior 'daily challenges' and show their games and 'results'
-- [ ] also display user scores for each day
+- [x] display list of prior 'daily challenges' and show their games and 'results'
+- [x] also display user scores for each day
 
 #### Profiles
 
 - [ ] create route for steamid and display user profile
+- [ ] needs to be server-side-rendered, use Suspense while loading
+- [ ] prepare for multiple games
 - [ ] show aggreagte score
 - [ ] show all round guesses
+- [ ] link to profile pages from leaderboard
+- [ ] only use info we have in our backend, if we cant find a user, just return 404 page
+- [ ] show different (extended) info, when logged in and its "your" page
 
 ### Backend
 
