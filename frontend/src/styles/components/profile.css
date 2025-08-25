@@ -31,6 +31,21 @@
 .profile__game { overflow-wrap: break-word; word-break: break-word; }
 .profile__table .num { text-align: right; white-space: nowrap; }
 
+/* Mobile card list (CSS-only show/hide) */
+.profile__mobile-list { display: none; }
+.profile__mobile-card {
+    border: 1px solid var(--color-border);
+    border-radius: 0.5rem;
+    padding: 0.6rem 0.7rem;
+    background: var(--color-surface);
+    margin: 0 0 0.6rem 0;
+}
+.profile__mobile-row { display: flex; justify-content: space-between; gap: 0.75rem; }
+.profile__mobile-row + .profile__mobile-row { margin-top: 0.25rem; }
+.profile__mobile-row .label { color: var(--color-muted); white-space: nowrap; }
+.profile__mobile-row .value { text-align: right; }
+.profile__mobile-row .value.strong { font-weight: 700; }
+
 @media (min-width: 640px) {
     .profile__avatar-wrap { width: 64px; height: 64px; }
     .profile__avatar { width: 64px; height: 64px; }
@@ -145,14 +160,10 @@
 }
 
 /* On very small screens, hide less-critical columns to reduce scroll */
-@media (max-width: 480px) {
-    /* Turn table into stacked rows for very small screens */
-    .profile__table thead { display: none; }
-    .profile__table, .profile__table tbody, .profile__table tr, .profile__table td { display: block; width: 100%; }
-    .profile__table tr { border: 1px solid var(--color-border); border-radius: 0.5rem; padding: 0.5rem 0.6rem; margin: 0 0 0.6rem 0; background: var(--color-surface); }
-    .profile__table td { display: flex; justify-content: space-between; align-items: baseline; padding: 0.3rem 0; }
-    .profile__table td[data-label]::before { display: inline; }
-    .profile__table .num { text-align: right; }
+@media (max-width: 640px) {
+    /* Show mobile cards, hide table on small screens */
+    .profile__table-wrap { display: none; }
+    .profile__mobile-list { display: block; }
 }
 
 

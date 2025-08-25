@@ -39,6 +39,8 @@ export default async function ProfilePage({params}: { params: { steamId: string 
     const data = await res.json() as ProfileResponse;
 
     const name = data.personaName || data.steamId;
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const days = (data.days || []).filter(d => d.date !== todayStr);
 
     return (
         <section className="container">
@@ -80,10 +82,10 @@ export default async function ProfilePage({params}: { params: { steamId: string 
 
                 <section aria-labelledby="days-title">
                     <h2 id="days-title">Review Guesser — Rounds by day</h2>
-                    {data.days.length === 0 ? (
+                    {days.length === 0 ? (
                         <p className="muted">No rounds yet.</p>
                     ) : (
-                        data.days.map(day => (
+                        days.map(day => (
                             <article key={day.date} className="profile__day">
                                 <h3 className="profile__day-title">{day.date}</h3>
                                 <div className="profile__table-wrap">
@@ -112,6 +114,32 @@ export default async function ProfilePage({params}: { params: { steamId: string 
                                         ))}
                                         </tbody>
                                     </table>
+                                </div>
+                                <div className="profile__mobile-list" aria-label={`Rounds for ${day.date}`}>
+                                    {day.rounds.map(r => (
+                                        <div className="profile__mobile-card" key={r.roundIndex}>
+                                            <div className="profile__mobile-row">
+                                                <span className="label">Game</span>
+                                                <span className="value profile__game">
+                                                    <a href={`https://store.steampowered.com/app/${r.appId}`} target="_blank" rel="noopener noreferrer">
+                                                        {r.appName || r.appId}
+                                                    </a>
+                                                </span>
+                                            </div>
+                                            <div className="profile__mobile-row">
+                                                <span className="label">Selected</span>
+                                                <span className="value">{r.selectedBucket}</span>
+                                            </div>
+                                            <div className="profile__mobile-row">
+                                                <span className="label">Actual</span>
+                                                <span className="value">{r.actualBucket}</span>
+                                            </div>
+                                            <div className="profile__mobile-row">
+                                                <span className="label">Points</span>
+                                                <span className="value strong">{r.points}</span>
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
                             </article>
                         ))
