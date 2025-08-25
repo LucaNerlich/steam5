@@ -97,7 +97,7 @@ public class LeaderboardController {
         final String avatarBlurdata = user != null && user.getBlurdataAvatarFull() != null && !user.getBlurdataAvatarFull().isBlank() ? user.getBlurdataAvatarFull() : null;
         final String profileUrl = user != null && user.getProfileUrl() != null && !user.getProfileUrl().isBlank() ? user.getProfileUrl() : null;
         final int streak = calculateStreak(steamId);
-        return new LeaderEntry(personaName, totalPoints, rounds, hits, tooHigh, tooLow, avgPoints, streak, avatar, avatarBlurdata, profileUrl);
+        return new LeaderEntry(steamId, personaName, totalPoints, rounds, hits, tooHigh, tooLow, avgPoints, streak, avatar, avatarBlurdata, profileUrl);
     }
 
     private LeaderEntry buildEntries(Map.Entry<String, List<Guess>> entry) {
@@ -133,7 +133,8 @@ public class LeaderboardController {
         return streak;
     }
 
-    public record LeaderEntry(String personaName,
+    public record LeaderEntry(String steamId,
+                              String personaName,
                               long totalPoints, long rounds,
                               long hits, long tooHigh, long tooLow,
                               double avgPoints,
