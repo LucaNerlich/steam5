@@ -1,5 +1,6 @@
 import Image from "next/image";
 import {notFound} from "next/navigation";
+import type {Metadata} from "next";
 import "@/styles/components/profile.css";
 
 type ProfileResponse = {
@@ -32,7 +33,7 @@ type ProfileResponse = {
 export default async function ProfilePage({params}: { params: { steamId: string } }) {
     const backend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
     const {steamId} = await params;
-    const res = await fetch(`${backend}/api/profile/${encodeURIComponent(steamId)}`, {cache: 'no-store'});
+    const res = await fetch(`${backend}/api/profile/${encodeURIComponent(steamId)}`, { next: { revalidate: 300 } });
     if (res.status === 404) return notFound();
     if (!res.ok) throw new Error(`Failed to load profile: ${res.status}`);
     const data = await res.json() as ProfileResponse;
@@ -119,6 +120,43 @@ export default async function ProfilePage({params}: { params: { steamId: string 
             </section>
         </section>
     );
+}
+
+export const revalidate = 300;
+
+export async function generateMetadata({params}: { params: { steamId: string } }): Promise<Metadata> {
+    const backend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
+    const {steamId} = await params;
+    let name: string = steamId;
+    try {
+        const res = await fetch(`${backend}/api/profile/${encodeURIComponent(steamId)}`, { next: { revalidate: 300 } });
+        if (res.ok) {
+            const data = await res.json() as ProfileResponse;
+            name = data.personaName && data.personaName.trim() ? data.personaName : steamId;
+        }
+    } catch {
+        // ignore
+    }
+    const title = `${name} — Profile`;
+    const description = `Scores and rounds for ${name} in Steam5 Review Guesser.`;
+    const path = `/profile/${encodeURIComponent(steamId)}`;
+    return {
+        title,
+        description,
+        alternates: { canonical: path },
+        openGraph: {
+            title,
+            description,
+            url: path,
+            images: ['/opengraph-image'],
+        },
+        twitter: {
+            card: 'summary_large_image',
+            title,
+            description,
+            images: ['/opengraph-image'],
+        },
+    };
 }
 
 
