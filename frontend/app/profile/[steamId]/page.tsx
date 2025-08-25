@@ -100,16 +100,16 @@ export default async function ProfilePage({params}: { params: { steamId: string 
                                         <tbody>
                                         {day.rounds.map(r => (
                                             <tr key={r.roundIndex}>
-                                                <td>#{r.roundIndex}</td>
-                                                <td>
+                                                <td data-label="Round">#{r.roundIndex}</td>
+                                                <td data-label="Game" className="profile__game">
                                                     <a href={`https://store.steampowered.com/app/${r.appId}`}
                                                        target="_blank" rel="noopener noreferrer">
                                                         {r.appName || r.appId}
                                                     </a>
                                                 </td>
-                                                <td>{r.selectedBucket}</td>
-                                                <td>{r.actualBucket}</td>
-                                                <td className="num">{r.points}</td>
+                                                <td data-label="Selected">{r.selectedBucket}</td>
+                                                <td data-label="Actual">{r.actualBucket}</td>
+                                                <td data-label="Points" className="num">{r.points}</td>
                                             </tr>
                                         ))}
                                         </tbody>

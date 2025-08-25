@@ -25,8 +25,10 @@
 .profile__day-title { margin: 0 0 0.4rem; }
 
 .profile__table-wrap { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-.profile__table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-.profile__table th, .profile__table td { border-bottom: 1px solid var(--color-border); padding: 0.5rem 0.6rem; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
+.profile__table { width: 100%; border-collapse: collapse; table-layout: auto; }
+.profile__table th, .profile__table td { border-bottom: 1px solid var(--color-border); padding: 0.5rem 0.6rem; text-align: left; vertical-align: top; word-break: normal; overflow-wrap: break-word; white-space: normal; }
+.profile__table td[data-label]::before { content: attr(data-label) ": "; display: none; color: var(--color-muted); margin-right: 0.5rem; white-space: nowrap; }
+.profile__game { overflow-wrap: break-word; word-break: break-word; }
 .profile__table .num { text-align: right; white-space: nowrap; }
 
 @media (min-width: 640px) {
@@ -143,13 +145,14 @@
 }
 
 /* On very small screens, hide less-critical columns to reduce scroll */
-@media (max-width: 420px) {
-    .profile__rounds th:nth-child(3),
-    .profile__rounds td:nth-child(3),
-    .profile__rounds th:nth-child(4),
-    .profile__rounds td:nth-child(4) {
-        display: none;
-    }
+@media (max-width: 480px) {
+    /* Turn table into stacked rows for very small screens */
+    .profile__table thead { display: none; }
+    .profile__table, .profile__table tbody, .profile__table tr, .profile__table td { display: block; width: 100%; }
+    .profile__table tr { border: 1px solid var(--color-border); border-radius: 0.5rem; padding: 0.5rem 0.6rem; margin: 0 0 0.6rem 0; background: var(--color-surface); }
+    .profile__table td { display: flex; justify-content: space-between; align-items: baseline; padding: 0.3rem 0; }
+    .profile__table td[data-label]::before { display: inline; }
+    .profile__table .num { text-align: right; }
 }
 
 
