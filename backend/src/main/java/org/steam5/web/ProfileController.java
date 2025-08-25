@@ -11,6 +11,7 @@ import org.steam5.domain.Guess;
 import org.steam5.domain.User;
 import org.steam5.repository.GuessRepository;
 import org.steam5.repository.UserRepository;
+import org.steam5.repository.SteamAppIndexRepository;
 
 import java.time.LocalDate;
 import java.util.Comparator;
@@ -27,6 +28,7 @@ public class ProfileController {
 
     private final UserRepository userRepository;
     private final GuessRepository guessRepository;
+    private final SteamAppIndexRepository appIndexRepository;
 
     @GetMapping("/{steamId}")
     public ResponseEntity<?> getProfile(@PathVariable("steamId") String steamId) {
@@ -41,6 +43,18 @@ public class ProfileController {
                 .sorted(Comparator.comparing(Guess::getGameDate).thenComparingInt(Guess::getRoundIndex))
                 .toList();
 
+        // Resolve app names in bulk to avoid N+1 lookups
+        final Map<Long, String> appNames = guesses.stream()
+                .map(Guess::getAppId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.collectingAndThen(Collectors.toList(), ids ->
+                        appIndexRepository.findAllById(ids).stream().collect(Collectors.toMap(
+                                org.steam5.domain.SteamAppIndex::getAppId,
+                                org.steam5.domain.SteamAppIndex::getName
+                        ))
+                ));
+
         long totalPoints = guesses.stream().mapToLong(Guess::getPoints).sum();
         long rounds = guesses.size();
         long hits = guesses.stream().filter(g -> g.getSelectedBucket().equals(g.getActualBucket())).count();
@@ -52,34 +66,40 @@ public class ProfileController {
         Map<LocalDate, List<Guess>> byDay = guesses.stream()
                 .collect(Collectors.groupingBy(Guess::getGameDate));
 
-        return ResponseEntity.ok(Map.of(
-                "steamId", user.getSteamId(),
-                "personaName", user.getPersonaName(),
-                "avatar", user.getAvatarFull() != null && !user.getAvatarFull().isBlank() ? user.getAvatarFull() : user.getAvatar(),
-                "avatarBlurdata", user.getBlurdataAvatarFull() != null && !user.getBlurdataAvatarFull().isBlank() ? user.getBlurdataAvatarFull() : user.getBlurdataAvatar(),
-                "profileUrl", user.getProfileUrl(),
-                "stats", Map.of(
-                        "totalPoints", totalPoints,
-                        "rounds", rounds,
-                        "hits", hits,
-                        "tooHigh", tooHigh,
-                        "tooLow", tooLow,
-                        "avgPoints", avgPoints
-                ),
-                "days", byDay.entrySet().stream()
+        final java.util.Map<String, Object> out = new java.util.LinkedHashMap<>();
+        final String personaName = (user.getPersonaName() != null && !user.getPersonaName().isBlank()) ? user.getPersonaName() : user.getSteamId();
+        final String avatar = (user.getAvatarFull() != null && !user.getAvatarFull().isBlank()) ? user.getAvatarFull() : user.getAvatar();
+        final String avatarBlurdata = (user.getBlurdataAvatarFull() != null && !user.getBlurdataAvatarFull().isBlank()) ? user.getBlurdataAvatarFull() : user.getBlurdataAvatar();
+
+        out.put("steamId", user.getSteamId());
+        out.put("personaName", personaName);
+        out.put("avatar", avatar);
+        out.put("avatarBlurdata", avatarBlurdata);
+        out.put("profileUrl", user.getProfileUrl());
+        out.put("stats", Map.of(
+                "totalPoints", totalPoints,
+                "rounds", rounds,
+                "hits", hits,
+                "tooHigh", tooHigh,
+                "tooLow", tooLow,
+                "avgPoints", avgPoints
+        ));
+        out.put("days", byDay.entrySet().stream()
                         .sorted(Map.Entry.<LocalDate, List<Guess>>comparingByKey().reversed())
                         .map(e -> Map.of(
                                 "date", e.getKey().toString(),
                                 "rounds", e.getValue().stream().sorted(Comparator.comparingInt(Guess::getRoundIndex)).map(g -> Map.of(
                                         "roundIndex", g.getRoundIndex(),
                                         "appId", g.getAppId(),
+                                        "appName", appNames.getOrDefault(g.getAppId(), String.valueOf(g.getAppId())),
                                         "selectedBucket", g.getSelectedBucket(),
                                         "actualBucket", g.getActualBucket(),
                                         "points", g.getPoints()
                                 )).toList()
                         ))
-                        .toList()
-        ));
+                        .toList());
+
+        return ResponseEntity.ok(out);
     }
 
     private static int bucketOrderFromLabel(String label) {

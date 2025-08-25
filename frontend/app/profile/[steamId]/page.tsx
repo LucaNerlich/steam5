@@ -21,6 +21,7 @@ type ProfileResponse = {
         rounds: Array<{
             roundIndex: number;
             appId: number;
+            appName?: string;
             selectedBucket: string;
             actualBucket: string;
             points: number;
@@ -49,14 +50,14 @@ export default async function ProfilePage({params}: { params: { steamId: string 
                                    alt=""
                                    placeholder={data.avatarBlurdata ? 'blur' : 'empty'}
                                    blurDataURL={data.avatarBlurdata || undefined}
-                                   width={64}
-                                   height={64}/>
+                                   width={56}
+                                   height={56}/>
                         </div>
                     )}
-                    <div className="profile__heading">
+                    <div>
                         <h1 id="profile-title" className="profile__title">{name}</h1>
                         <div className="profile__meta">
-                            <span className="text-muted">Steam5 — Review Guesser</span>
+                            <span className="muted">Steam5 — Review Guesser</span>
                             {data.profileUrl && (
                                 <a href={data.profileUrl} target="_blank" rel="noopener noreferrer"
                                    className="profile__external">Open Steam profile</a>
@@ -65,66 +66,55 @@ export default async function ProfilePage({params}: { params: { steamId: string 
                     </div>
                 </section>
 
-                <section className="profile__stats" aria-labelledby="stats-title">
+                <section aria-labelledby="stats-title">
                     <h2 id="stats-title" className="sr-only">Overall stats</h2>
                     <dl className="stats-grid">
-                        <div>
-                            <dt>Points</dt>
-                            <dd>{data.stats.totalPoints}</dd>
-                        </div>
-                        <div>
-                            <dt>Rounds</dt>
-                            <dd>{data.stats.rounds}</dd>
-                        </div>
-                        <div>
-                            <dt>Hits</dt>
-                            <dd>{data.stats.hits}</dd>
-                        </div>
-                        <div>
-                            <dt>Too High</dt>
-                            <dd>{data.stats.tooHigh}</dd>
-                        </div>
-                        <div>
-                            <dt>Too Low</dt>
-                            <dd>{data.stats.tooLow}</dd>
-                        </div>
-                        <div>
-                            <dt>Avg</dt>
-                            <dd>{data.stats.avgPoints.toFixed(2)}</dd>
-                        </div>
+                        <div><dt>Points</dt><dd>{data.stats.totalPoints}</dd></div>
+                        <div><dt>Rounds</dt><dd>{data.stats.rounds}</dd></div>
+                        <div><dt>Hits</dt><dd>{data.stats.hits}</dd></div>
+                        <div><dt>Too High</dt><dd>{data.stats.tooHigh}</dd></div>
+                        <div><dt>Too Low</dt><dd>{data.stats.tooLow}</dd></div>
+                        <div><dt>Avg</dt><dd>{data.stats.avgPoints.toFixed(2)}</dd></div>
                     </dl>
                 </section>
 
-                <section className="profile__days" aria-labelledby="days-title">
+                <section aria-labelledby="days-title">
                     <h2 id="days-title">Review Guesser — Rounds by day</h2>
                     {data.days.length === 0 ? (
-                        <p className="text-muted">No rounds yet.</p>
+                        <p className="muted">No rounds yet.</p>
                     ) : (
                         data.days.map(day => (
                             <article key={day.date} className="profile__day">
                                 <h3 className="profile__day-title">{day.date}</h3>
-                                <table className="profile__rounds">
-                                    <thead>
-                                    <tr>
-                                        <th scope="col">Round</th>
-                                        <th scope="col">AppID</th>
-                                        <th scope="col">Selected</th>
-                                        <th scope="col">Actual</th>
-                                        <th scope="col">Points</th>
-                                    </tr>
-                                    </thead>
-                                    <tbody>
-                                    {day.rounds.map(r => (
-                                        <tr key={r.roundIndex}>
-                                            <td>#{r.roundIndex}</td>
-                                            <td>{r.appId}</td>
-                                            <td>{r.selectedBucket}</td>
-                                            <td>{r.actualBucket}</td>
-                                            <td>{r.points}</td>
+                                <div className="profile__table-wrap">
+                                    <table className="profile__table">
+                                        <thead>
+                                        <tr>
+                                            <th scope="col">Round</th>
+                                            <th scope="col">Game</th>
+                                            <th scope="col">Selected</th>
+                                            <th scope="col">Actual</th>
+                                            <th scope="col" className="num">Points</th>
                                         </tr>
-                                    ))}
-                                    </tbody>
-                                </table>
+                                        </thead>
+                                        <tbody>
+                                        {day.rounds.map(r => (
+                                            <tr key={r.roundIndex}>
+                                                <td>#{r.roundIndex}</td>
+                                                <td>
+                                                    <a href={`https://store.steampowered.com/app/${r.appId}`}
+                                                       target="_blank" rel="noopener noreferrer">
+                                                        {r.appName || r.appId}
+                                                    </a>
+                                                </td>
+                                                <td>{r.selectedBucket}</td>
+                                                <td>{r.actualBucket}</td>
+                                                <td className="num">{r.points}</td>
+                                            </tr>
+                                        ))}
+                                        </tbody>
+                                    </table>
+                                </div>
                             </article>
                         ))
                     )}
