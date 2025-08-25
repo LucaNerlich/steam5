@@ -25,10 +25,17 @@
 .profile__day-title { margin: 0 0 0.4rem; }
 
 .profile__table-wrap { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-.profile__table { width: 100%; border-collapse: collapse; table-layout: auto; }
+.profile__table { width: 100%; border-collapse: collapse; table-layout: fixed; }
 .profile__table th, .profile__table td { border-bottom: 1px solid var(--color-border); padding: 0.5rem 0.6rem; text-align: left; vertical-align: top; word-break: normal; overflow-wrap: break-word; white-space: normal; }
+.profile__table th:nth-child(2),
+.profile__table td:nth-child(2) { width: 9rem; }
+.profile__table th:nth-child(3),
+.profile__table td:nth-child(3) { width: 9rem; }
+.profile__table th:nth-child(4),
+.profile__table td:nth-child(4) { width: 5rem; }
 .profile__table td[data-label]::before { content: attr(data-label) ": "; display: none; color: var(--color-muted); margin-right: 0.5rem; white-space: nowrap; }
 .profile__game { overflow-wrap: break-word; word-break: break-word; }
+.profile__game a { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
 .profile__table .num { text-align: right; white-space: nowrap; }
 
 /* Mobile card list (CSS-only show/hide) */
