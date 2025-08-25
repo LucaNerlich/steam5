@@ -107,8 +107,10 @@ export default async function ProfilePage({params}: { params: { steamId: string 
                                                         {r.appName || r.appId}
                                                     </a>
                                                 </td>
-                                                <td data-label="Selected">{r.selectedBucket}</td>
-                                                <td data-label="Actual">{r.actualBucket}</td>
+                                                <td data-label="Selected"
+                                                    className={r.selectedBucket === r.actualBucket ? 'is-correct' : undefined}>{r.selectedBucket}</td>
+                                                <td data-label="Actual"
+                                                    className={r.selectedBucket === r.actualBucket ? 'is-correct' : undefined}>{r.actualBucket}</td>
                                                 <td data-label="Points" className="num">{r.points}</td>
                                             </tr>
                                         ))}
@@ -126,11 +128,13 @@ export default async function ProfilePage({params}: { params: { steamId: string 
                                                     </a>
                                                 </span>
                                             </div>
-                                            <div className="profile__mobile-row">
+                                            <div
+                                                className={"profile__mobile-row" + (r.selectedBucket === r.actualBucket ? ' is-correct' : '')}>
                                                 <span className="label">Selected</span>
                                                 <span className="value">{r.selectedBucket}</span>
                                             </div>
-                                            <div className="profile__mobile-row">
+                                            <div
+                                                className={"profile__mobile-row" + (r.selectedBucket === r.actualBucket ? ' is-correct' : '')}>
                                                 <span className="label">Actual</span>
                                                 <span className="value">{r.actualBucket}</span>
                                             </div>
