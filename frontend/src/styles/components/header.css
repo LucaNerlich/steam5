@@ -30,6 +30,15 @@ header .brand {
     align-items: center;
 }
 
+/* New: responsive brand icon handling */
+header .brand__logo-full { display: none; }
+header .brand__logo-icon { display: inline-block; }
+
+@media (min-width: 451px) {
+    header .brand__logo-full { display: inline-block; }
+    header .brand__logo-icon { display: none; }
+}
+
 header .header-actions {
     display: inline-flex;
     align-items: center;
