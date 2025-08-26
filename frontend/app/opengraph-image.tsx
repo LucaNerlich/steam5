@@ -4,34 +4,50 @@ export const runtime = "edge";
 export const size = {width: 1200, height: 630};
 export const contentType = "image/png";
 
-export default function Image() {
-    const bg = "#2563eb"; // matches logo background
-    const circleWhite = "#ffffff";
-    const circleAmber = "#fbbf24";
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+    let binary = "";
+    const bytes = new Uint8Array(buffer);
+    const len = bytes.byteLength;
+    for (let i = 0; i < len; i++) {
+        binary += String.fromCharCode(bytes[i]);
+    }
+    // Edge runtime provides btoa
+    return btoa(binary);
+}
+
+export default async function Image() {
+    const bg = "#0b1220"; // dark brand background
+
+    // Load the SVG from the public directory and embed via data URL for reliability in Edge runtime
+    const iconArrayBuffer = await fetch(new URL("../public/icon-full.svg", import.meta.url)).then(r => r.arrayBuffer());
+    const iconDataUri = `data:image/svg+xml;base64,${arrayBufferToBase64(iconArrayBuffer)}`;
 
     return new ImageResponse(
         (
-            // Inline styles are required in OG image generation; no external CSS is supported here
             <div
                 style={{
                     width: "100%",
                     height: "100%",
                     display: "flex",
-                    flexDirection: "column",
-                    alignItems: "stretch",
-                    justifyContent: "space-between",
+                    alignItems: "center",
+                    justifyContent: "center",
                     background: bg,
+                    padding: 40,
                 }}
             >
-                <div style={{position: "relative", width: "100%", height: 260, display: "flex"}}>
-                    {/* Logo motif scaled up */}
-                    <div style={{position: "absolute", left: 120, top: 70, width: 140, height: 140, background: circleWhite, borderRadius: 9999}}/>
-                    <div style={{position: "absolute", left: 280, top: 50, width: 220, height: 220, background: circleAmber, borderRadius: 9999}}/>
-                </div>
-                <div style={{padding: "0 96px 72px 96px", color: "#fff", display: "flex", flexDirection: "column"}}>
-                    <div style={{fontSize: 84, fontWeight: 800, lineHeight: 1}}>Steam5</div>
-                    <div style={{fontSize: 40, opacity: 0.9, marginTop: 8}}>Review Game</div>
-                    <div style={{fontSize: 28, opacity: 0.9, marginTop: 18}}>steam5.org</div>
+                <div
+                    style={{
+                        width: 1000,
+                        height: 500,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        background: "#0f172a",
+                        border: "2px solid #1f2937",
+                        borderRadius: 24,
+                    }}
+                >
+                    <img src={iconDataUri} alt="Steam5" width={680} height={240} />
                 </div>
             </div>
         ),
