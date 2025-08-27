@@ -21,8 +21,8 @@ export default function PerformanceSection({days}: { days: Day[] }): React.React
     const hasRounds = rounds.length > 0;
 
     // Normalize last N rounds for charts
-    const MAX = 30;
-    const last = rounds.slice(-MAX);
+    const WINDOW_ROUNDS = 35;
+    const last = rounds.slice(-WINDOW_ROUNDS);
     const width = 600;
     const height = 160;
     const padding = 24;
@@ -63,9 +63,9 @@ export default function PerformanceSection({days}: { days: Day[] }): React.React
     const sparkHeight = 100;
     const sparkPad = 6;
 
-    // Bottom graph: rolling hit rate over last 35 rounds
+    // Bottom graph: rolling hit rate over last WINDOW_ROUNDS rounds
     const sparkSeries = useMemo(() => {
-        const windowSize = 35;
+        const windowSize = WINDOW_ROUNDS;
         const vals: number[] = [];
         for (let i = 0; i < last.length; i++) {
             const s = Math.max(0, i - windowSize + 1);
@@ -90,7 +90,7 @@ export default function PerformanceSection({days}: { days: Day[] }): React.React
             <h2 id="perf-title">Recent performance</h2>
             <div className="perf-grid">
                 <div className="perf-card">
-                    <div className="perf-card__title">Points by round (last {last.length})</div>
+                    <div className="perf-card__title">Points by round (last {WINDOW_ROUNDS})</div>
                     <svg viewBox={`0 0 ${width} ${height}`} className="perf-line" role="img" aria-label="Points by round with axes">
                         <defs>
                             <linearGradient id="perfLineGrad" x1="0" y1="0" x2="0" y2="1">
@@ -143,7 +143,7 @@ export default function PerformanceSection({days}: { days: Day[] }): React.React
                 </div>
 
                 <div className="perf-card">
-                    <div className="perf-card__title">Outcome mix (last {last.length})</div>
+                    <div className="perf-card__title">Outcome mix (last {WINDOW_ROUNDS})</div>
                     <div className="perf-stacked" role="img" aria-label="Distribution of outcomes">
                         {bars.parts.map(part => (
                             <div key={part.key} className="perf-stacked__part" style={{width: `${part.pct * 100}%`, background: part.color}}/>
@@ -160,7 +160,7 @@ export default function PerformanceSection({days}: { days: Day[] }): React.React
                 </div>
 
                 <div className="perf-card">
-                    <div className="perf-card__title">Hit rate (rolling last 35)</div>
+                    <div className="perf-card__title">Hit rate (rolling last {WINDOW_ROUNDS})</div>
                     <svg viewBox={`0 0 ${sparkWidth} ${sparkHeight}`} className="perf-spark" role="img" aria-label="Rolling hit rate with axes">
                         {/* Y-axis ticks and labels at 0/25/50/75/100 */}
                         {([0,25,50,75,100] as const).map(p => (
@@ -181,7 +181,7 @@ export default function PerformanceSection({days}: { days: Day[] }): React.React
                             ));
                         })()}
                     </svg>
-                    <div style={{color: 'var(--color-muted)', fontSize: 12, marginTop: 4}}>Hit rate (%) over a rolling 35-round window.</div>
+                    <div style={{color: 'var(--color-muted)', fontSize: 12, marginTop: 4}}>Hit rate (%) over a rolling {WINDOW_ROUNDS}-round window.</div>
                 </div>
             </div>
         </section>
