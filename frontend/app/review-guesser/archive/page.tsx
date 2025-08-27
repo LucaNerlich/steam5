@@ -13,7 +13,10 @@ async function loadDays(): Promise<string[]> {
 }
 
 export default async function ArchiveIndexPage() {
-    const days = await loadDays();
+    let days = await loadDays();
+    const todayStr = new Date().toISOString().slice(0, 10);
+    days = (days || []).filter(date => date !== todayStr);
+
     return (
         <section className="container">
             <h1>Archive</h1>
