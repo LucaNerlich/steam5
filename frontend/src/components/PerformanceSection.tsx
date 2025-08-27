@@ -63,9 +63,9 @@ export default function PerformanceSection({days}: { days: Day[] }): React.React
     const sparkHeight = 100;
     const sparkPad = 6;
 
-    // Bottom graph: rolling hit rate over last 3 rounds
+    // Bottom graph: rolling hit rate over last 35 rounds
     const sparkSeries = useMemo(() => {
-        const windowSize = 3;
+        const windowSize = 35;
         const vals: number[] = [];
         for (let i = 0; i < last.length; i++) {
             const s = Math.max(0, i - windowSize + 1);
@@ -160,7 +160,7 @@ export default function PerformanceSection({days}: { days: Day[] }): React.React
                 </div>
 
                 <div className="perf-card">
-                    <div className="perf-card__title">Hit rate (rolling last 3)</div>
+                    <div className="perf-card__title">Hit rate (rolling last 35)</div>
                     <svg viewBox={`0 0 ${sparkWidth} ${sparkHeight}`} className="perf-spark" role="img" aria-label="Rolling hit rate with axes">
                         {/* Y-axis ticks and labels at 0/25/50/75/100 */}
                         {([0,25,50,75,100] as const).map(p => (
@@ -181,7 +181,7 @@ export default function PerformanceSection({days}: { days: Day[] }): React.React
                             ));
                         })()}
                     </svg>
-                    <div style={{color: 'var(--color-muted)', fontSize: 12, marginTop: 4}}>Hit rate (%) over a rolling 3-round window.</div>
+                    <div style={{color: 'var(--color-muted)', fontSize: 12, marginTop: 4}}>Hit rate (%) over a rolling 35-round window.</div>
                 </div>
             </div>
         </section>
