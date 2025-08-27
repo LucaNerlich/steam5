@@ -26,6 +26,7 @@ export default function PerformanceSection({days}: { days: Day[] }): React.React
     const width = 600;
     const height = 160;
     const padding = 24;
+    const xAxisSpace = 20; // reserved space below plot for X-axis labels
 
     const xScale = (i: number) => {
         if (last.length <= 1) return padding;
@@ -36,7 +37,8 @@ export default function PerformanceSection({days}: { days: Day[] }): React.React
         const min = 0;
         const max = 5; // max points per round
         const t = (p - min) / (max - min);
-        return height - padding - t * (height - padding * 2);
+        const plotHeight = height - padding * 2 - xAxisSpace;
+        return height - padding - xAxisSpace - t * plotHeight;
     };
 
     // (removed unused linePath)
@@ -60,7 +62,7 @@ export default function PerformanceSection({days}: { days: Day[] }): React.React
     }, [last]);
 
     const sparkWidth = width; // align coordinate system with main chart to avoid oversized labels when scaled
-    const sparkHeight = 100;
+    const sparkHeight = 110;
     const sparkPad = 6;
 
     // Bottom graph: rolling hit rate over last WINDOW_ROUNDS rounds
@@ -137,7 +139,6 @@ export default function PerformanceSection({days}: { days: Day[] }): React.React
                                     </text>
                                 ));
                             })()}
-                            <text x={width / 2} y={height - 6} fontSize="11" fill="var(--color-muted)" textAnchor="middle">Rounds (newest right)</text>
                         </g>
                     </svg>
                 </div>
@@ -166,16 +167,24 @@ export default function PerformanceSection({days}: { days: Day[] }): React.React
                         {([0,25,50,75,100] as const).map(p => (
                             <g key={p}>
                                 <line x1={padding} x2={sparkWidth - padding} y1={sparkY(p)} y2={sparkY(p)} stroke="var(--color-border)" strokeOpacity="0.5" strokeWidth="1" />
-                                <text x={6} y={sparkY(p) + 3} fontSize="10" fill="var(--color-muted)" textAnchor="start">{p}%</text>
+                                <text x={padding - 4} y={sparkY(p) + 3} fontSize="10" fill="var(--color-muted)" textAnchor="end">{p}%</text>
                             </g>
                         ))}
-                        <polyline fill="none" stroke="var(--color-primary, #6366f1)" strokeWidth="2" points={sparkPath.replace(/M|L/g, '').trim()} />
+                        {/* Clip path to avoid overlapping Y-axis labels */}
+                        <defs>
+                            <clipPath id="sparkClip">
+                                <rect x={padding} y={0} width={sparkWidth - padding * 2} height={sparkHeight} />
+                            </clipPath>
+                        </defs>
+                        <g clipPath="url(#sparkClip)">
+                            <polyline fill="none" stroke="var(--color-primary, #6366f1)" strokeWidth="2" points={sparkPath.replace(/M|L/g, '').trim()} />
+                        </g>
                         {/* X axis labels (small) */}
                         {(() => {
                             const len = Math.max(2, sparkSeries.values.length);
                             const idxs = [0, Math.floor((len - 1) / 2), len - 1];
                             return idxs.map((idx, i) => (
-                                <text key={i} x={padding + (idx / Math.max(1, len - 1)) * (sparkWidth - padding * 2)} y={sparkHeight - 6} fontSize="10" fill="var(--color-muted)" textAnchor={i === 0 ? 'start' : i === 2 ? 'end' : 'middle'}>
+                                <text key={i} x={padding + (idx / Math.max(1, len - 1)) * (sparkWidth - padding * 2)} y={sparkHeight - 2} fontSize="10" fill="var(--color-muted)" textAnchor={i === 0 ? 'start' : i === 2 ? 'end' : 'middle'}>
                                     {i === 0 ? 'older' : i === 1 ? 'mid' : 'newer'}
                                 </text>
                             ));
