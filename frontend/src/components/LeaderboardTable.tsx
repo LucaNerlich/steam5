@@ -30,7 +30,7 @@ export default function LeaderboardTable(props: {
     refreshMs?: number;
     ariaLabel?: string
 }) {
-    const backend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
+    const backend = '';
 
     let aria;
     let endpoint;

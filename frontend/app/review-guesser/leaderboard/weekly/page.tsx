@@ -1,5 +1,6 @@
 import type {Metadata} from "next";
 import LeaderboardTable from "@/components/LeaderboardTable";
+import {Suspense} from "react";
 import LeaderboardSection from "@/components/LeaderboardSection";
 
 export default async function LeaderboardWeeklyPage() {
@@ -7,7 +8,9 @@ export default async function LeaderboardWeeklyPage() {
         <LeaderboardSection active="weekly"
                             title="Weekly"
                             subline="Last seven days">
-            <LeaderboardTable mode="weekly-floating" refreshMs={10000}/>
+            <Suspense fallback={<div style={{height: 320, background: 'var(--color-border)', borderRadius: 8}}/>}>
+                <LeaderboardTable mode="weekly-floating" refreshMs={10000}/>
+            </Suspense>
         </LeaderboardSection>
     );
 }
