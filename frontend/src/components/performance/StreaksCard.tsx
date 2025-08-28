@@ -2,26 +2,55 @@
 
 import React, {useMemo} from "react";
 
-type Round = { selectedBucket: string; actualBucket: string };
+type Round = { date?: string };
+
+function toUTCDate(d: string): number {
+    // Parse yyyy-MM-dd as UTC midnight
+    return new Date(d + "T00:00:00Z").getTime();
+}
 
 export default function StreaksCard({rounds}: { rounds: Round[] }): React.ReactElement {
     const {current, longest} = useMemo(() => {
-        let cur = 0; let best = 0;
-        for (let i = 0; i < rounds.length; i++) {
-            if (rounds[i].selectedBucket === rounds[i].actualBucket) { cur++; best = Math.max(best, cur); } else { cur = 0; }
+        // Build unique played days from rounds
+        const dateSet = new Set<string>();
+        for (const r of rounds) if (r.date) dateSet.add(r.date);
+        const dates = Array.from(dateSet);
+        if (dates.length === 0) return {current: 0, longest: 0};
+        // Sort ascending
+        dates.sort((a, b) => toUTCDate(a) - toUTCDate(b));
+
+        // Compute longest consecutive-day streak across all dates
+        let best = 1;
+        let run = 1;
+        for (let i = 1; i < dates.length; i++) {
+            const prev = toUTCDate(dates[i - 1]);
+            const cur = toUTCDate(dates[i]);
+            if (cur - prev === 24 * 60 * 60 * 1000) {
+                run += 1;
+                if (run > best) best = run;
+            } else {
+                run = 1;
+            }
         }
-        let tail = 0;
-        for (let i = rounds.length - 1; i >= 0; i--) { if (rounds[i].selectedBucket === rounds[i].actualBucket) tail++; else break; }
+
+        // Compute current streak from most recent day backwards
+        let tail = 1;
+        for (let i = dates.length - 1; i > 0; i--) {
+            const prev = toUTCDate(dates[i - 1]);
+            const cur = toUTCDate(dates[i]);
+            if (cur - prev === 24 * 60 * 60 * 1000) tail += 1; else break;
+        }
+
         return {current: tail, longest: best};
     }, [rounds]);
 
     return (
         <div className="perf-card">
             <div className="perf-card__title">Streaks</div>
-            <dl className="stats-grid" aria-label="Current and longest hit streaks">
-                <dt>Current hit streak</dt>
+            <dl className="stats-grid" aria-label="Current and longest daily play streaks">
+                <dt>Current daily streak</dt>
                 <dd>{current}</dd>
-                <dt>Longest hit streak</dt>
+                <dt>Longest daily streak</dt>
                 <dd>{longest}</dd>
             </dl>
         </div>
