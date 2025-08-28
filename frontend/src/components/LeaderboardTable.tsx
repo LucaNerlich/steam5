@@ -30,7 +30,6 @@ export default function LeaderboardTable(props: {
     refreshMs?: number;
     ariaLabel?: string
 }) {
-    const backend = '';
 
     let aria;
     let endpoint;
@@ -53,7 +52,8 @@ export default function LeaderboardTable(props: {
             aria = props.ariaLabel ?? 'All-time Leaderboard';
 
     }
-    const {data, error, isLoading} = useSWR<LeaderEntry[]>(`${backend}${endpoint}`, fetcher, {
+
+    const {data, error, isLoading} = useSWR<LeaderEntry[]>(endpoint, fetcher, {
         refreshInterval: props.refreshMs ?? (props.mode === 'today' ? 5000 : 10000),
         revalidateOnFocus: true,
     });
