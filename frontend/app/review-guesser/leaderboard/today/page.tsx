@@ -1,5 +1,6 @@
 import type {Metadata} from "next";
 import LeaderboardTable from "@/components/LeaderboardTable";
+import {Suspense} from "react";
 import LeaderboardSection from "@/components/LeaderboardSection";
 
 export default async function LeaderboardTodayPage() {
@@ -7,7 +8,9 @@ export default async function LeaderboardTodayPage() {
         <LeaderboardSection active="today"
                             title="Today"
                             subline={"Today'" + 's total points by player'}>
-            <LeaderboardTable mode="today" refreshMs={5000}/>
+            <Suspense fallback={<div style={{height: 320, background: 'var(--color-border)', borderRadius: 8}}/>}>
+                <LeaderboardTable mode="today" refreshMs={5000}/>
+            </Suspense>
         </LeaderboardSection>
     );
 }

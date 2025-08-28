@@ -33,20 +33,16 @@ export default function Header() {
                         className="brand__logo-icon"
                     />
                 </Link>
-                {underReviewGuesser && (
-                    <span className="game-title" aria-hidden="true">
+                <span className="game-title" aria-hidden="true">
                         <Link href={Routes.reviewGuesser1}>Review Guesser</Link>
                     </span>
-                )}
                 <div className="header-actions">
-                    {underReviewGuesser && (
-                        <Link href="/review-guesser/leaderboard" className="btn leaderboard-link"
-                              title="Leaderboard"
-                              aria-label="Open leaderboard">
-                            <span className="mobile__show">Scores</span>
-                            <span className="mobile__hide">Leaderboard</span>
-                        </Link>
-                    )}
+                    <Link href="/review-guesser/leaderboard" className="btn leaderboard-link"
+                          title="Leaderboard"
+                          aria-label="Open leaderboard">
+                        <span className="mobile__show">Scores</span>
+                        <span className="mobile__hide">Leaderboard</span>
+                    </Link>
                     <SteamLoginButton/>
                 </div>
             </div>

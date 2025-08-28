@@ -2,6 +2,8 @@ import Image from "next/image";
 import {notFound} from "next/navigation";
 import type {Metadata} from "next";
 import "@/styles/components/profile.css";
+import PerformanceSection from "@/components/PerformanceSection";
+import {Suspense} from "react";
 
 type ProfileResponse = {
     steamId: string;
@@ -33,7 +35,9 @@ type ProfileResponse = {
 export default async function ProfilePage({params}: { params: { steamId: string } }) {
     const backend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
     const {steamId} = await params;
-    const res = await fetch(`${backend}/api/profile/${encodeURIComponent(steamId)}`, { next: { revalidate: 300 } });
+    const res = await fetch(`${backend}/api/profile/${encodeURIComponent(steamId)}`, { next: { revalidate: 300, tags: [
+                `profile:${steamId}`
+            ] } });
     if (res.status === 404) return notFound();
     if (!res.ok) throw new Error(`Failed to load profile: ${res.status}`);
     const data = await res.json() as ProfileResponse;
@@ -79,6 +83,11 @@ export default async function ProfilePage({params}: { params: { steamId: string 
                         <div><dt>Avg</dt><dd>{data.stats.avgPoints.toFixed(2)}</dd></div>
                     </dl>
                 </section>
+
+                <Suspense fallback={<div style={{height: 160, background: 'var(--color-border)', borderRadius: 8}}/>}>
+                    {/* PerformanceSection is client and renders quickly; Suspense ensures streaming */}
+                    <PerformanceSection days={days} />
+                </Suspense>
 
                 <section aria-labelledby="days-title">
                     <h2 id="days-title">Review Guesser — Rounds by day</h2>

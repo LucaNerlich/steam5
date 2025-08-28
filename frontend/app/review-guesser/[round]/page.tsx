@@ -5,6 +5,7 @@ import ReviewGuesserHero from "@/components/ReviewGuesserHero";
 import GameInfoSection from "@/components/GameInfoSection";
 import NewsBox from "@/components/NewsBox";
 import ReviewGuesserRound from "@/components/ReviewGuesserRound";
+import {Suspense} from "react";
 import {cookies} from "next/headers";
 
 export const revalidate = 60;
@@ -89,17 +90,19 @@ export default async function ReviewGuesserRoundPage({params}: { params: Promise
                                pick={pick}
                                roundIndex={roundIndex}/>
 
-            <ReviewGuesserRound
-                appId={pick.appId}
-                buckets={today.buckets}
-                bucketTitles={today.bucketTitles}
-                roundIndex={roundIndex}
-                totalRounds={totalRounds}
-                pickName={pick.name}
-                gameDate={today.date}
-                prefilled={currentPrefill}
-                allResults={allResults}
-            />
+            <Suspense fallback={<div style={{height: 220, background: 'var(--color-border)', borderRadius: 8}}/>}>
+                <ReviewGuesserRound
+                    appId={pick.appId}
+                    buckets={today.buckets}
+                    bucketTitles={today.bucketTitles}
+                    roundIndex={roundIndex}
+                    totalRounds={totalRounds}
+                    pickName={pick.name}
+                    gameDate={today.date}
+                    prefilled={currentPrefill}
+                    allResults={allResults}
+                />
+            </Suspense>
 
             {roundIndex === 1 && <NewsBox/>}
 
