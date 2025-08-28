@@ -1,7 +1,6 @@
 'use server';
 
 import type {GuessResponse} from "@/types/review-game";
-import {revalidateTag} from 'next/cache';
 import {cookies} from 'next/headers';
 
 export type GuessActionState = {
@@ -35,19 +34,7 @@ export async function submitGuessAction(_prev: GuessActionState | undefined, for
         if (!res.ok) {
             return {ok: false, error: `Upstream error ${res.status}`};
         }
-        const json: GuessResponse & { steamId?: string } = await res.json();
-        // Revalidate cached data tied to leaderboards and this user's profile
-        revalidateTag('leaderboard');
-        // Also invalidate today's leaderboard variants
-        revalidateTag('leaderboard:today');
-        revalidateTag('leaderboard:weekly');
-        revalidateTag('leaderboard:weekly:floating');
-        revalidateTag('leaderboard:all');
-        // Attempt to get steamId from upstream response if present
-        const steamId = json.steamId;
-        if (steamId) {
-            revalidateTag(`profile:${steamId}`);
-        }
+        const json: GuessResponse = await res.json();
         return {ok: true, response: json};
     } catch (e) {
         return {ok: false, error: e instanceof Error ? e.message : 'Unknown error'};
