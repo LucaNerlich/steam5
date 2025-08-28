@@ -1,6 +1,7 @@
 "use client";
 
 import React, {useMemo, useCallback} from "react";
+import useSWR from "swr";
 
 type Round = {
     roundIndex: number;
@@ -24,7 +25,7 @@ export default function PerformanceSection({days}: { days: Day[] }): React.React
     const WINDOW_ROUNDS = 35;
     const last = rounds.slice(-WINDOW_ROUNDS);
     const width = 600;
-    const height = 160;
+    const height = 200;
     const padding = 24;
     const xAxisSpace = 20; // reserved space below plot for X-axis labels
 
@@ -62,7 +63,7 @@ export default function PerformanceSection({days}: { days: Day[] }): React.React
     }, [last]);
 
     const sparkWidth = width; // align coordinate system with main chart to avoid oversized labels when scaled
-    const sparkHeight = 110;
+    const sparkHeight = 140;
     const sparkPad = 6;
 
     // Bottom graph: rolling hit rate over last WINDOW_ROUNDS rounds
@@ -84,6 +85,63 @@ export default function PerformanceSection({days}: { days: Day[] }): React.React
         return sparkHeight - sparkPad - t * (sparkHeight - sparkPad * 2);
     }, [sparkSeries.min, sparkSeries.max, sparkHeight, sparkPad]);
     const sparkPath = useMemo(() => sparkSeries.values.map((v, i) => `${i === 0 ? 'M' : 'L'}${sparkPad + (i / Math.max(1, sparkSeries.values.length - 1)) * (sparkWidth - sparkPad * 2)},${sparkY(v)}`).join(' '), [sparkSeries.values, sparkWidth, sparkY]);
+
+    // Accuracy per bucket (over last WINDOW_ROUNDS based on actual bucket)
+    const bucketStats = useMemo(() => {
+        const map = new Map<string, { hits: number; total: number }>();
+        for (const r of last) {
+            const key = r.actualBucket;
+            const entry = map.get(key) || {hits: 0, total: 0};
+            entry.total += 1;
+            if (r.selectedBucket === r.actualBucket) entry.hits += 1;
+            map.set(key, entry);
+        }
+        // Order buckets by numeric lower bound if present (e.g., "1-13", "14-111", ..., "6467+")
+        const parseStart = (label: string) => {
+            const m = label.match(/^(\d+)/);
+            return m ? parseInt(m[1], 10) : Number.MAX_SAFE_INTEGER;
+        };
+        const ordered = Array.from(map.entries()).sort((a, b) => parseStart(a[0]) - parseStart(b[0]));
+        const rows = ordered.map(([label, v]) => ({label, hits: v.hits, total: v.total, pct: v.total > 0 ? (v.hits / v.total) * 100 : 0}));
+        return rows;
+    }, [last]);
+
+    // Streaks (overall across recorded rounds)
+    const {currentStreak, longestStreak} = useMemo(() => {
+        let current = 0;
+        let longest = 0;
+        for (let i = 0; i < rounds.length; i++) {
+            const r = rounds[i];
+            if (r.selectedBucket === r.actualBucket) {
+                current += 1;
+                if (current > longest) longest = current;
+            } else {
+                current = 0;
+            }
+        }
+        // Current streak should be computed from the end (consecutive recent hits)
+        let tail = 0;
+        for (let i = rounds.length - 1; i >= 0; i--) {
+            if (rounds[i].selectedBucket === rounds[i].actualBucket) tail += 1; else break;
+        }
+        return {currentStreak: tail, longestStreak: longest};
+    }, [rounds]);
+
+    // Global average hit rate from all-time leaderboard
+    const fetcher = (url: string) => fetch(url, {headers: {accept: 'application/json'}}).then(r => r.json());
+    const {data: leaders} = useSWR<Array<{hits: number; rounds: number}>>("/api/leaderboard/all", fetcher, {refreshInterval: 300000, revalidateOnFocus: false});
+    const globalAvgHitRate = useMemo(() => {
+        if (!leaders || leaders.length === 0) return null as number | null;
+        let h = 0, t = 0;
+        for (const l of leaders) { h += (l.hits || 0); t += (l.rounds || 0); }
+        if (t <= 0) return null;
+        return (h / t) * 100;
+    }, [leaders]);
+    const myHitRateLast = useMemo(() => {
+        if (last.length === 0) return 0;
+        const hits = last.filter(r => r.selectedBucket === r.actualBucket).length;
+        return (hits / last.length) * 100;
+    }, [last]);
 
     if (!hasRounds) return null;
 
@@ -188,6 +246,65 @@ export default function PerformanceSection({days}: { days: Day[] }): React.React
                                     {i === 0 ? 'older' : i === 1 ? 'mid' : 'newer'}
                                 </text>
                             ));
+                        })()}
+                    </svg>
+                </div>
+
+                <div className="perf-card">
+                    <div className="perf-card__title">Accuracy by bucket (last {WINDOW_ROUNDS})</div>
+                    {bucketStats.length === 0 ? (
+                        <p className="text-muted">No data</p>
+                    ) : (
+                        <svg viewBox={`0 0 ${width} ${Math.max(1, bucketStats.length) * 22 + 8}`} className="perf-line" role="img" aria-label="Accuracy by bucket">
+                            <rect x="0" y="0" width={width} height={Math.max(1, bucketStats.length) * 22 + 8} fill="transparent"/>
+                            {bucketStats.map((row, i) => {
+                                const y = 8 + i * 22;
+                                const barX = padding + 90; // space for labels
+                                const barW = width - padding * 2 - 100;
+                                const filled = Math.max(0, Math.min(1, row.pct / 100)) * barW;
+                                return (
+                                    <g key={row.label}>
+                                        <text x={padding} y={y + 12} fontSize="11" fill="var(--color-muted)" textAnchor="start">{row.label}</text>
+                                        <rect x={barX} y={y} width={barW} height={12} fill="var(--color-border)" />
+                                        <rect x={barX} y={y} width={filled} height={12} fill="var(--color-primary, #6366f1)" />
+                                        <text x={barX + barW + 4} y={y + 10} fontSize="11" fill="var(--color-muted)" textAnchor="start">{Math.round(row.pct)}%</text>
+                                    </g>
+                                );
+                            })}
+                        </svg>
+                    )}
+                </div>
+
+                <div className="perf-card">
+                    <div className="perf-card__title">Streaks</div>
+                    <dl className="stats-grid" aria-label="Current and longest hit streaks">
+                        <dt>Current hit streak</dt>
+                        <dd>{currentStreak}</dd>
+                        <dt>Longest hit streak</dt>
+                        <dd>{longestStreak}</dd>
+                    </dl>
+                </div>
+
+                <div className="perf-card">
+                    <div className="perf-card__title">Hit rate vs average</div>
+                    <svg viewBox={`0 0 ${width} 86`} className="perf-line" role="img" aria-label="Your hit rate vs global average">
+                        {(() => {
+                            const barX = padding;
+                            const barW = width - padding * 2 - 60; // leave space for labels
+                            const row = (y: number, label: string, pct: number, color: string) => (
+                                <g>
+                                    <text x={barX} y={y - 2} fontSize="11" fill="var(--color-muted)" textAnchor="start">{label}</text>
+                                    <rect x={barX} y={y} width={barW} height={12} fill="var(--color-border)" />
+                                    <rect x={barX} y={y} width={Math.max(0, Math.min(1, pct / 100)) * barW} height={12} fill={color} />
+                                    <text x={barX + barW + 4} y={y + 10} fontSize="11" fill="var(--color-muted)" textAnchor="start">{Math.round(pct)}%</text>
+                                </g>
+                            );
+                            return (
+                                <>
+                                    {row(18, 'You (last 35)', myHitRateLast, 'var(--color-primary, #6366f1)')}
+                                    {row(44, 'All players', globalAvgHitRate ?? myHitRateLast, 'var(--color-success, #16a34a)')}
+                                </>
+                            );
                         })()}
                     </svg>
                 </div>
