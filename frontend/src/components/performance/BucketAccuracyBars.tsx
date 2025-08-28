@@ -28,9 +28,10 @@ export default function BucketAccuracyBars({rounds}: { rounds: Round[] }): React
             .map(([label, v]) => ({label, pct: v.total > 0 ? (v.hits / v.total) * 100 : 0}));
     }, [last]);
 
-    const svgH = Math.max(1, stats.length) * 22 + 8;
-    const barX = padding + 90;
-    const barW = width - padding * 2 - 100;
+    const rowH = 26;
+    const svgH = Math.max(1, stats.length) * rowH + 10;
+    const barX = padding + 100;
+    const barW = width - padding * 2 - 112;
 
     return (
         <div className="perf-card">
@@ -41,14 +42,14 @@ export default function BucketAccuracyBars({rounds}: { rounds: Round[] }): React
                 <svg viewBox={`0 0 ${width} ${svgH}`} className="perf-line" role="img" aria-label="Accuracy by bucket">
                     <rect x="0" y="0" width={width} height={svgH} fill="transparent"/>
                     {stats.map((row, i) => {
-                        const y = 8 + i * 22;
+                        const y = 8 + i * rowH;
                         const filled = Math.max(0, Math.min(1, row.pct / 100)) * barW;
                         return (
                             <g key={row.label}>
-                                <text x={padding} y={y + 12} fontSize="11" fill="var(--color-muted)" textAnchor="start">{row.label}</text>
-                                <rect x={barX} y={y} width={barW} height={12} fill="var(--color-border)" />
-                                <rect x={barX} y={y} width={filled} height={12} fill="var(--color-primary, #6366f1)" />
-                                <text x={barX + barW + 4} y={y + 10} fontSize="11" fill="var(--color-muted)" textAnchor="start">{Math.round(row.pct)}%</text>
+                                <text x={padding} y={y + 14} fontSize="14" fill="var(--color-muted)" textAnchor="start">{row.label}</text>
+                                <rect x={barX} y={y} width={barW} height={14} fill="var(--color-border)" />
+                                <rect x={barX} y={y} width={filled} height={14} fill="var(--color-primary, #6366f1)" />
+                                <text x={barX + barW + 4} y={y + 14} fontSize="14" fill="var(--color-muted)" textAnchor="start">{Math.round(row.pct)}%</text>
                             </g>
                         );
                     })}

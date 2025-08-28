@@ -37,7 +37,7 @@ export default function RollingHitRateSpark({rounds}: { rounds: Round[] }): Reac
                 {([0,25,50,75,100] as const).map(p => (
                     <g key={p}>
                         <line x1={padding} x2={width - padding} y1={y(p)} y2={y(p)} stroke="var(--color-border)" strokeOpacity="0.5" strokeWidth="1" />
-                        <text x={padding - 4} y={y(p) + 3} fontSize="10" fill="var(--color-muted)" textAnchor="end">{p}%</text>
+                        <text x={padding - 4} y={y(p) + 3} fontSize="16" fill="var(--color-muted)" textAnchor="end">{p}%</text>
                     </g>
                 ))}
                 <defs>
@@ -52,7 +52,7 @@ export default function RollingHitRateSpark({rounds}: { rounds: Round[] }): Reac
                     const len = Math.max(2, series.length);
                     const idxs = [0, Math.floor((len - 1) / 2), len - 1];
                     return idxs.map((idx, i) => (
-                        <text key={i} x={padding + (idx / Math.max(1, len - 1)) * (width - padding * 2)} y={height - 2} fontSize="10" fill="var(--color-muted)" textAnchor={i === 0 ? 'start' : i === 2 ? 'end' : 'middle'}>
+                        <text key={i} x={padding + (idx / Math.max(1, len - 1)) * (width - padding * 2)} y={height - 2} fontSize="16" fill="var(--color-muted)" textAnchor={i === 0 ? 'start' : i === 2 ? 'end' : 'middle'}>
                             {i === 0 ? 'older' : i === 1 ? 'mid' : 'newer'}
                         </text>
                     ));

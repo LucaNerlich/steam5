@@ -33,8 +33,8 @@ export default function PerformanceSection({days}: { days: Day[] }): React.React
                 <PointsByRoundChart rounds={rounds} />
                 <OutcomeMixBar rounds={rounds} />
                 <RollingHitRateSpark rounds={rounds} />
-                <BucketAccuracyBars rounds={rounds} />
                 <StreaksCard rounds={rounds} />
+                <BucketAccuracyBars rounds={rounds} />
                 <HitRateVsAverageCard rounds={rounds} />
             </div>
         </section>
