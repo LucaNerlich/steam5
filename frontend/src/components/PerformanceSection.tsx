@@ -190,7 +190,6 @@ export default function PerformanceSection({days}: { days: Day[] }): React.React
                             ));
                         })()}
                     </svg>
-                    <div style={{color: 'var(--color-muted)', fontSize: 12, marginTop: 4}}>Hit rate (%) over a rolling {WINDOW_ROUNDS}-round window.</div>
                 </div>
             </div>
         </section>
