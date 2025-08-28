@@ -43,8 +43,9 @@ export default async function ProfilePage({params}: { params: { steamId: string 
     const data = await res.json() as ProfileResponse;
 
     const name = data.personaName || data.steamId;
+    const allDays = (data.days || []);
     const todayStr = new Date().toISOString().slice(0, 10);
-    const days = (data.days || []).filter(d => d.date !== todayStr);
+    const days = allDays.filter(d => d.date !== todayStr);
 
     return (
         <section className="container">
@@ -86,7 +87,7 @@ export default async function ProfilePage({params}: { params: { steamId: string 
 
                 <Suspense fallback={<div style={{height: 160, background: 'var(--color-border)', borderRadius: 8}}/>}>
                     {/* PerformanceSection is client and renders quickly; Suspense ensures streaming */}
-                    <PerformanceSection days={days} />
+                    <PerformanceSection days={allDays} />
                 </Suspense>
 
                 <section aria-labelledby="days-title">
