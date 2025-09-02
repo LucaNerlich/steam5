@@ -180,23 +180,31 @@ export async function generateMetadata({params}: { params: { steamId: string } }
         // ignore
     }
     const title = `${name} — Profile`;
-    const description = `Scores and rounds for ${name} in Steam5 Review Guesser.`;
+    const description = `Scores, rounds, and recent performance for ${name} in Steam5 Review Guesser.`;
     const path = `/profile/${encodeURIComponent(steamId)}`;
+    const ogImage = `/opengraph-image?variant=profile&steamId=${encodeURIComponent(steamId)}`;
     return {
         title,
         description,
+        keywords: [
+            'Steam',
+            'profile',
+            'player stats',
+            'review guessing game',
+            name
+        ],
         alternates: { canonical: path },
         openGraph: {
             title,
             description,
             url: path,
-            images: ['/opengraph-image'],
+            images: [ogImage],
         },
         twitter: {
             card: 'summary_large_image',
             title,
             description,
-            images: ['/opengraph-image'],
+            images: [ogImage],
         },
     };
 }

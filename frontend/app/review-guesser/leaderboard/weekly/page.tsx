@@ -21,6 +21,13 @@ export const metadata: Metadata = {
     alternates: {
         canonical: '/review-guesser/leaderboard/weekly',
     },
+    keywords: [
+        'Steam',
+        'leaderboard',
+        'weekly',
+        'review guessing game',
+        'high scores'
+    ],
     openGraph: {
         title: 'Leaderboard — Weekly',
         description: 'Weekly total points by player for Steam Review Guesser.',

@@ -50,7 +50,7 @@ const xenon = localFont({
 });
 
 
-const description = 'Steam Review Guessing Game';
+const description = 'Daily Steam review guessing game — guess review counts, climb leaderboards, and share your results.';
 
 export const metadata: Metadata = {
     title: {
@@ -58,9 +58,23 @@ export const metadata: Metadata = {
         template: '%s | Steam5',
     },
     description: description,
-    keywords: 'Review, Steam, Guessing Game',
+    keywords: [
+        'Steam',
+        'Steam reviews',
+        'guessing game',
+        'daily game',
+        'review counts',
+        'leaderboard',
+        'indie game',
+        'gaming trivia'
+    ],
     creator: 'Luca Nerlich',
     publisher: 'Luca Nerlich',
+    icons: {
+        icon: ['/icon.svg', '/icon-full.svg'],
+        shortcut: ['/icon.svg'],
+        apple: ['/icon.svg'],
+    },
     formatDetection: {
         email: true,
         address: true,
@@ -75,8 +89,8 @@ export const metadata: Metadata = {
         title: 'Steam5',
         description: description,
         url: '/',
-        siteName: 'Steam5.org',
-        locale: 'de_DE',
+        siteName: 'Steam5',
+        locale: 'en_US',
         images: ['/opengraph-image'],
         type: 'website',
     },
@@ -91,6 +105,7 @@ export const metadata: Metadata = {
     category: 'Games, Technology',
     referrer: 'same-origin',
     generator: 'Next.js',
+    themeColor: '#0b1220',
     robots: {
         index: true,
         follow: true,

@@ -101,10 +101,31 @@ export async function generateMetadata({params}: { params: Promise<{ date: strin
     const {date} = await params;
     const title = `Archive — ${formatDate(date)}`;
     const description = `Past daily challenge for ${formatDate(date)} — Steam Review Guesser.`;
-    const ogUrl = '/opengraph-image';
+    const backend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
+    const base = (process.env.NEXT_PUBLIC_DOMAIN || 'https://steam5.org').replace(/\/$/, '');
+    let ogUrl = '/opengraph-image';
+    try {
+        const day: ReviewGameState | null = await fetch(`${backend}/api/review-game/day/${encodeURIComponent(date)}`, {
+            headers: { 'accept': 'application/json' },
+            next: { revalidate: 31536000 }
+        }).then(r => r.ok ? r.json() : null);
+        const firstShot = day?.picks?.[0]?.screenshots?.[0];
+        const rawImg = firstShot?.pathFull || firstShot?.pathThumbnail;
+        if (rawImg) {
+            try { ogUrl = new URL(rawImg).toString(); }
+            catch { ogUrl = new URL(rawImg.startsWith('/') ? rawImg : `/${rawImg}`, base).toString(); }
+        }
+    } catch { /* ignore, fallback to default */ }
     return {
         title,
         description,
+        keywords: [
+            'Steam',
+            'archive',
+            'past challenges',
+            'review guessing game',
+            date
+        ],
         alternates: {
             canonical: `/review-guesser/archive/${encodeURIComponent(date)}`,
         },

@@ -4,6 +4,13 @@ export const metadata: Metadata = {
     title: "Imprint",
     description: "Legal imprint for Steam5.org",
     alternates: {canonical: "/imprint"},
+    robots: { index: false, follow: true },
+    openGraph: {
+        title: 'Imprint',
+        description: 'Legal imprint for Steam5.org',
+        url: '/imprint',
+        images: ['/opengraph-image'],
+    },
 };
 
 export default function ImprintPage() {

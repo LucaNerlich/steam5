@@ -4,6 +4,13 @@ export const metadata: Metadata = {
     title: "Privacy Policy",
     description: "GDPR-compliant privacy policy for Steam5.org",
     alternates: {canonical: "/privacy"},
+    robots: { index: false, follow: true },
+    openGraph: {
+        title: 'Privacy Policy',
+        description: 'GDPR-compliant privacy policy for Steam5.org',
+        url: '/privacy',
+        images: ['/opengraph-image'],
+    },
 };
 
 export default function PrivacyPage() {

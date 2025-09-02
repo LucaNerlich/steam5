@@ -135,6 +135,14 @@ export async function generateMetadata({params}: { params: Promise<{ round: stri
         return {
             title,
             description,
+            keywords: [
+                'Steam',
+                'Steam reviews',
+                'review guessing game',
+                'daily challenge',
+                `round ${roundIndex}`,
+                ...(pick?.name ? [pick.name] : [])
+            ],
             alternates: {
                 canonical: `/review-guesser/${roundIndex}`,
             },
@@ -161,6 +169,12 @@ export async function generateMetadata({params}: { params: Promise<{ round: stri
         return {
             title,
             description,
+            keywords: [
+                'Steam',
+                'Steam reviews',
+                'review guessing game',
+                'daily challenge'
+            ],
             alternates: {
                 canonical: `/review-guesser/${round || '1'}`,
             },

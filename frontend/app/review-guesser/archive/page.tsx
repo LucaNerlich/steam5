@@ -71,6 +71,12 @@ export const metadata: Metadata = {
     alternates: {
         canonical: '/review-guesser/archive',
     },
+    keywords: [
+        'Steam',
+        'archive',
+        'past challenges',
+        'review guessing game'
+    ],
     openGraph: {
         title: 'Archive',
         description: 'Browse previous daily challenges for Steam Review Guesser.',

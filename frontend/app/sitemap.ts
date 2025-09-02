@@ -32,7 +32,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
         })),
         // Archive entries for each date
         ...reviewGuesserArchive.map((date) => ({
-            url: `${baseUrl}/archive/${date}`,
+            url: `${baseUrl}/review-guesser/archive/${date}`,
             // Archive pages are immutable once created; keep lastModified to the specific date
             lastModified: new Date(date),
             changeFrequency: 'never' as const,
