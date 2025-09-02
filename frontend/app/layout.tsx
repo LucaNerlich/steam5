@@ -70,11 +70,6 @@ export const metadata: Metadata = {
     ],
     creator: 'Luca Nerlich',
     publisher: 'Luca Nerlich',
-    icons: {
-        icon: ['/icon.svg', '/icon-full.svg'],
-        shortcut: ['/icon.svg'],
-        apple: ['/icon.svg'],
-    },
     formatDetection: {
         email: true,
         address: true,
