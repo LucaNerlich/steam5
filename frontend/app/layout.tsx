@@ -100,7 +100,6 @@ export const metadata: Metadata = {
     category: 'Games, Technology',
     referrer: 'same-origin',
     generator: 'Next.js',
-    themeColor: '#0b1220',
     robots: {
         index: true,
         follow: true,
