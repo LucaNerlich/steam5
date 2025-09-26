@@ -102,6 +102,13 @@ export default function LeaderboardTable(props: {
         return sortedCopy;
     }, [data, sortDir, sortKey]);
 
+    const avgTotalPoints = useMemo(() => {
+        const arr = Array.isArray(data) ? data : [];
+        if (arr.length === 0) return 0;
+        const sum = arr.reduce((acc, e) => acc + (typeof e.totalPoints === 'number' ? e.totalPoints : 0), 0);
+        return sum / arr.length;
+    }, [data]);
+
     if (error) return <p className="text-muted">Failed to load leaderboard. Please try again.</p>;
     if (isLoading || !data) return <p className="text-muted">Loading leaderboard…</p>;
 
@@ -176,6 +183,9 @@ export default function LeaderboardTable(props: {
                     ))}
                     </tbody>
                 </table>
+            </div>
+            <div className="leaderboard__subline" aria-live="polite">
+                Average points: <strong>{avgTotalPoints.toFixed(2)}</strong>
             </div>
         </div>
     );

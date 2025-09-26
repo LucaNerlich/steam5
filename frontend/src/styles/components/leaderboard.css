@@ -132,6 +132,14 @@
 
 /* No internal Next blur needed; using backgroundImage placeholder */
 
+.leaderboard__subline {
+    margin-top: 0.4rem;
+    font-size: 0.9rem;
+    color: var(--color-muted);
+    display: flex;
+    justify-content: flex-end;
+}
+
 @media (max-width: 640px) {
     /* Show rounds on mobile; hide less critical columns to save space */
     .leaderboard__table th:nth-child(6),
