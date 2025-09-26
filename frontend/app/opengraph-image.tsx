@@ -188,10 +188,8 @@ export default async function Image(req: Request) {
                 <div style={{ display: "flex", gap: 24, alignItems: "center" }}>
                     <div style={{ width: 128, height: 128, borderRadius: 16, overflow: "hidden", background: "#111827", border: `2px solid ${accent}` }}>
                         {avatarSrc ? (
-                            // eslint-disable-next-line @next/next/no-img-element
                             <img src={avatarSrc} alt="avatar" width={128} height={128} style={{ objectFit: "cover", width: "100%", height: "100%" }} />
                         ) : (
-                            // eslint-disable-next-line @next/next/no-img-element
                             <img src={iconDataUri} alt="Steam5" width={128} height={128} />
                         )}
                     </div>

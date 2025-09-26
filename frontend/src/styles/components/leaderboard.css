@@ -1,7 +1,17 @@
 .leaderboard {
+    /* keep horizontal scroll at outer container in case table is wider than viewport */
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     margin-top: 0.5rem;
+}
+
+/* inner scroll container to allow scrolling inside the table while keeping page static */
+.leaderboard__scroll {
+    max-height: 60vh; /* adjust as needed */
+    overflow-y: auto;
+    overflow-x: auto; /* preserve horizontal scroll if needed */
+    -webkit-overflow-scrolling: touch;
+    position: relative; /* create a stacking context for sticky headers */
 }
 
 .leaderboard__toggle {
@@ -42,6 +52,13 @@
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
+}
+
+.leaderboard__table thead tr th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background-color: var(--color-background);
 }
 
 /* Sortable headers */

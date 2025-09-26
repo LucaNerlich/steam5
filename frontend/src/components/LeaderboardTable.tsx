@@ -118,7 +118,7 @@ export default function LeaderboardTable(props: {
                 <button className={`sortable${isActive ? ' is-active' : ''}`} onClick={() => requestSort(keyName)}
                         aria-label={`Sort by ${label}`}>
                     {label}{isActive &&
-                  <span className="sort-indicator" aria-hidden="true">{sortDir === 'asc' ? '▲' : '▼'}</span>}
+                    <span className="sort-indicator" aria-hidden="true">{sortDir === 'asc' ? '▲' : '▼'}</span>}
                 </button>
             </th>
         );
@@ -126,54 +126,57 @@ export default function LeaderboardTable(props: {
 
     return (
         <div className="leaderboard">
-            <table className="leaderboard__table" aria-label={aria}>
-                <thead>
-                <tr>
-                    <th scope="col" className="num">#</th>
-                    <SortableTH label="Player" keyName={'personaName'}/>
-                    <SortableTH label="Points" keyName={'totalPoints'} alignNum/>
-                    <SortableTH label="Rounds" keyName={'rounds'} alignNum/>
-                    <SortableTH label="Streak" keyName={'streak'} title={'Uninterrupted daily-challenges'} alignNum/>
-                    <SortableTH label="Hits" keyName={'hits'} title={'Correct guess'} alignNum/>
-                    <SortableTH label="Too High" keyName={'tooHigh'} alignNum/>
-                    <SortableTH label="Too Low" keyName={'tooLow'} alignNum/>
-                    <SortableTH label="Avg" keyName={'avgPoints'} alignNum/>
-                </tr>
-                </thead>
-                <tbody>
-                {sorted.map((entry, i) => (
-                    <tr key={entry.profileUrl}>
-                        <td>{i + 1}</td>
-                        <td>
-                            <div className="leaderboard__player">
-                                {entry.avatar && (
-                                    <div className="leaderboard__avatar-wrap"
-                                         style={{backgroundImage: entry.avatarBlurdata ? `url(${entry.avatarBlurdata})` : undefined}}>
-                                        <Image className="leaderboard__avatar"
-                                               src={entry.avatar}
-                                               placeholder={'empty'}
-                                               alt=""
-                                               width={24}
-                                               height={24}/>
-                                    </div>
-                                )}
-                                <a href={`/profile/${encodeURIComponent(entry.steamId)}`}
-                                   className="leaderboard__profile-link">
-                                    <strong>{entry.personaName || 'no-name'}</strong>
-                                </a>
-                            </div>
-                        </td>
-                        <td className="num">{entry.totalPoints}</td>
-                        <td className="num">{entry.rounds}</td>
-                        <td className="num">{entry.streak}</td>
-                        <td className="num">{entry.hits}</td>
-                        <td className="num">{entry.tooHigh}</td>
-                        <td className="num">{entry.tooLow}</td>
-                        <td className="num">{entry.avgPoints.toFixed(2)}</td>
+            <div className="leaderboard__scroll">
+                <table className="leaderboard__table" aria-label={aria}>
+                    <thead>
+                    <tr>
+                        <th scope="col" className="num">#</th>
+                        <SortableTH label="Player" keyName={'personaName'}/>
+                        <SortableTH label="Points" keyName={'totalPoints'} alignNum/>
+                        <SortableTH label="Rounds" keyName={'rounds'} alignNum/>
+                        <SortableTH label="Streak" keyName={'streak'} title={'Uninterrupted daily-challenges'}
+                                    alignNum/>
+                        <SortableTH label="Hits" keyName={'hits'} title={'Correct guess'} alignNum/>
+                        <SortableTH label="Too High" keyName={'tooHigh'} alignNum/>
+                        <SortableTH label="Too Low" keyName={'tooLow'} alignNum/>
+                        <SortableTH label="Avg" keyName={'avgPoints'} alignNum/>
                     </tr>
-                ))}
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                    {sorted.map((entry, i) => (
+                        <tr key={entry.profileUrl}>
+                            <td>{i + 1}</td>
+                            <td>
+                                <div className="leaderboard__player">
+                                    {entry.avatar && (
+                                        <div className="leaderboard__avatar-wrap"
+                                             style={{backgroundImage: entry.avatarBlurdata ? `url(${entry.avatarBlurdata})` : undefined}}>
+                                            <Image className="leaderboard__avatar"
+                                                   src={entry.avatar}
+                                                   placeholder={'empty'}
+                                                   alt=""
+                                                   width={24}
+                                                   height={24}/>
+                                        </div>
+                                    )}
+                                    <a href={`/profile/${encodeURIComponent(entry.steamId)}`}
+                                       className="leaderboard__profile-link">
+                                        <strong>{entry.personaName || 'no-name'}</strong>
+                                    </a>
+                                </div>
+                            </td>
+                            <td className="num">{entry.totalPoints}</td>
+                            <td className="num">{entry.rounds}</td>
+                            <td className="num">{entry.streak}</td>
+                            <td className="num">{entry.hits}</td>
+                            <td className="num">{entry.tooHigh}</td>
+                            <td className="num">{entry.tooLow}</td>
+                            <td className="num">{entry.avgPoints.toFixed(2)}</td>
+                        </tr>
+                    ))}
+                    </tbody>
+                </table>
+            </div>
         </div>
     );
 }

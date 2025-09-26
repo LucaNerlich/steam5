@@ -1,17 +1,12 @@
-"use client";
-
 import Link from "next/link";
 import Image from "next/image";
 import {Routes} from "../../app/routes";
 import "@/styles/components/header.css";
 import SteamLoginButton from "@/components/SteamLoginButton";
-import {usePathname} from "next/navigation";
 import IconImage from "../../app/icon.svg"
 import IconFullImage from "../../public/icon-full.svg"
 
 export default function Header() {
-    const pathname = usePathname();
-    const underReviewGuesser = pathname?.startsWith('/review-guesser');
     return (
         <header>
             <div className="container">
