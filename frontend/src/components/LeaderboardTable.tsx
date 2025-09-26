@@ -185,7 +185,7 @@ export default function LeaderboardTable(props: {
                 </table>
             </div>
             <div className="leaderboard__subline" aria-live="polite">
-                Average points: <strong>{avgTotalPoints.toFixed(2)}</strong>
+                Average points:&nbsp;<strong>{avgTotalPoints.toFixed(2)}</strong>
             </div>
         </div>
     );
