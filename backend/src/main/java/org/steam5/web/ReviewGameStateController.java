@@ -258,6 +258,9 @@ public class ReviewGameStateController {
     public record MyGuessDto(int roundIndex, Long appId, String selectedBucket, String actualBucket, int totalReviews) {
     }
 
+    public record AlwaysPickScore(int bucketIndex, String bucketLabel, double avgPoints, int rounds) {
+    }
+
     // --- Bucket label parser: supports ranges like "1-100", en dash, em dash, and open-ended labels like "10000+" or "≥ 10000" ---
     private static boolean isCorrectForLabel(String label, long totalReviews) {
         Range r = parseBucketLabel(label);
@@ -385,6 +388,63 @@ public class ReviewGameStateController {
     }
 
     private record Range(long lower, Long upper) {
+    }
+
+    public record HistoricalAlwaysPickResponse(String from, String to, List<AlwaysPickScore> scores) {
+    }
+
+    @GetMapping("/history/always-pick")
+    @Cacheable(value = "review-game", key = "'always-pick-hist:' + (#from != null ? #from : 'min') + ':' + (#to != null ? #to : 'max')", unless = "#result == null")
+    public ResponseEntity<HistoricalAlwaysPickResponse> alwaysPickHistory(
+            @RequestParam(value = "from", required = false) String from,
+            @RequestParam(value = "to", required = false) String to) {
+        final java.time.LocalDate start = from == null || from.isBlank() ? java.time.LocalDate.of(1970, 1, 1) : java.time.LocalDate.parse(from);
+        final java.time.LocalDate end = to == null || to.isBlank() ? java.time.LocalDate.now() : java.time.LocalDate.parse(to);
+        if (end.isBefore(start)) return ResponseEntity.badRequest().build();
+        final var result = computeAlwaysPickForRange(start, end);
+        return ResponseEntity.ok()
+                .header("Cache-Control", "public, s-maxage=3600, max-age=600")
+                .body(new HistoricalAlwaysPickResponse(start.toString(), end.toString(), result.scores()));
+    }
+
+    private record AlwaysPickComputation(int rounds, List<AlwaysPickScore> scores) {
+    }
+
+    /**
+     * Computes the AlwaysPickComputation for a given date range. This involves analyzing the
+     * app IDs associated with review game picks within the specified range and computing
+     * scores for each bucket label based on historical data.
+     *
+     * @param start The start date of the range for computation, inclusive.
+     * @param end The end date of the range for computation, inclusive.
+     * @return An instance of AlwaysPickComputation, containing the computed results including
+     *         the number of rounds analyzed and the corresponding scores for each label.
+     */
+    private AlwaysPickComputation computeAlwaysPickForRange(java.time.LocalDate start, java.time.LocalDate end) {
+        final List<String> labels = service.getBucketLabels();
+        // Collect all appIds for dates in range, preserving chronological order per day
+        final java.util.ArrayList<Long> appIds = new java.util.ArrayList<>();
+        java.time.LocalDate d = start;
+        while (!d.isAfter(end)) {
+            final List<org.steam5.domain.ReviewGamePick> picks = pickRepository.findByPickDate(d);
+            if (!picks.isEmpty()) {
+                for (org.steam5.domain.ReviewGamePick p : picks) appIds.add(p.getAppId());
+            }
+            d = d.plusDays(1);
+        }
+        final List<String> actualBuckets = appIds.stream()
+                .map(id -> service.inferBucket(service.getTotalReviewCountForApp(id)))
+                .toList();
+        final int rounds = actualBuckets.size();
+        final java.util.ArrayList<AlwaysPickScore> out = new java.util.ArrayList<>();
+        for (int i = 0; i < labels.size(); i++) {
+            final String selected = labels.get(i);
+            int sum = 0;
+            for (String actual : actualBuckets) sum += scorePoints(labels, selected, actual);
+            final double avg = rounds == 0 ? 0.0 : ((double) sum) / rounds;
+            out.add(new AlwaysPickScore(i + 1, selected, avg, rounds));
+        }
+        return new AlwaysPickComputation(rounds, out);
     }
 }
 
