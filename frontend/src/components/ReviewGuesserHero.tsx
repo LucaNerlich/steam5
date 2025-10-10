@@ -24,7 +24,8 @@ export default function ReviewGuesserHero(props: Readonly<ReviewGuesserHeroProps
 
     useEffect(() => {
         // Initialize Fancybox for this component's screenshots
-        Fancybox.bind(`[data-fancybox="screenshots-${pick.appId}"]`, {
+        // @ts-ignore
+        Fancybox.qbind(`[data-fancybox="screenshots-${pick.appId}"]`, {
             Toolbar: {
                 display: {
                     left: ["infobar"],

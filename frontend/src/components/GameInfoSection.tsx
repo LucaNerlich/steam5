@@ -126,6 +126,7 @@ export default function GameInfoSection({pick}: Props): React.ReactElement | nul
         if (!hasMovies) return;
 
         // Initialize Fancybox for videos
+        // @ts-ignore
         Fancybox.bind(`[data-fancybox="videos-${pick.appId}"]`, {
             Toolbar: {
                 display: {
