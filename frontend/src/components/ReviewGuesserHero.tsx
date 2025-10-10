@@ -25,7 +25,7 @@ export default function ReviewGuesserHero(props: Readonly<ReviewGuesserHeroProps
     useEffect(() => {
         // Initialize Fancybox for this component's screenshots
         // @ts-ignore
-        Fancybox.qbind(`[data-fancybox="screenshots-${pick.appId}"]`, {
+        Fancybox.bind(`[data-fancybox="screenshots-${pick.appId}"]`, {
             Toolbar: {
                 display: {
                     left: ["infobar"],
@@ -43,6 +43,14 @@ export default function ReviewGuesserHero(props: Readonly<ReviewGuesserHeroProps
             Fancybox.close();
         };
     }, [pick.appId]);
+
+    // Helper to ensure URLs are absolute
+    const normalizeUrl = (url: string | null | undefined): string => {
+        if (!url) return '';
+        if (url.startsWith('http://') || url.startsWith('https://')) return url;
+        if (url.startsWith('//')) return `https:${url}`;
+        return url;
+    };
 
     return (
         <section className='review-guesser-hero'>
@@ -99,28 +107,32 @@ export default function ReviewGuesserHero(props: Readonly<ReviewGuesserHeroProps
             )}
             {allShots.length > 0 && (
                 <div className='screenshots'>
-                    {allShots.map((s, i) => (
-                        <a
-                            key={s.id}
-                            href={s.pathFull || s.pathThumbnail}
-                            data-fancybox={`screenshots-${pick.appId}`}
-                            data-caption={`${pick.name} - Screenshot ${i + 1}`}
-                            className={`shot ${i >= 4 ? 'shot--hidden' : ''}`}
-                            aria-label={`Open screenshot ${i + 1}`}
-                        >
-                            {i < 4 && (
-                                <Image
-                                    src={s.pathThumbnail || s.pathFull}
-                                    alt={`${pick.name} screenshot ${i + 1}`}
-                                    width={400}
-                                    height={225}
-                                    fetchPriority='high'
-                                    placeholder={s.blurdataThumb ? 'blur' : 'empty'}
-                                    blurDataURL={s.blurdataThumb || undefined}
-                                />
-                            )}
-                        </a>
-                    ))}
+                    {allShots.map((s, i) => {
+                        const fullUrl = normalizeUrl(s.pathFull || s.pathThumbnail);
+                        const thumbUrl = normalizeUrl(s.pathThumbnail || s.pathFull);
+                        return (
+                            <a
+                                key={s.id}
+                                href={fullUrl}
+                                data-fancybox={`screenshots-${pick.appId}`}
+                                data-caption={`${pick.name} - Screenshot ${i + 1}`}
+                                className={`shot ${i >= 4 ? 'shot--hidden' : ''}`}
+                                aria-label={`Open screenshot ${i + 1}`}
+                            >
+                                {i < 4 && (
+                                    <Image
+                                        src={thumbUrl}
+                                        alt={`${pick.name} screenshot ${i + 1}`}
+                                        width={400}
+                                        height={225}
+                                        fetchPriority='high'
+                                        placeholder={s.blurdataThumb ? 'blur' : 'empty'}
+                                        blurDataURL={s.blurdataThumb || undefined}
+                                    />
+                                )}
+                            </a>
+                        );
+                    })}
                 </div>
             )}
         </section>

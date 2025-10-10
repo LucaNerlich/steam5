@@ -122,6 +122,14 @@ export default function GameInfoSection({pick}: Props): React.ReactElement | nul
         return parse(html, options);
     }, [hasAbout, pick?.aboutTheGame]);
 
+    // Helper to ensure URLs are absolute
+    const normalizeUrl = (url: string | null | undefined): string => {
+        if (!url) return '';
+        if (url.startsWith('http://') || url.startsWith('https://')) return url;
+        if (url.startsWith('//')) return `https:${url}`;
+        return url;
+    };
+
     React.useEffect(() => {
         if (!hasMovies) return;
 
@@ -181,19 +189,20 @@ export default function GameInfoSection({pick}: Props): React.ReactElement | nul
                     <h3>Videos</h3>
                     <div className="game-info__videos">
                         {pick.movies.map((m, i) => {
-                            const videoSrc = m.mp4 || m.webm;
+                            const videoSrc = normalizeUrl(m.mp4 || m.webm);
+                            const thumbSrc = normalizeUrl(m.thumbnail);
                             return (
                                 <div key={`mov-${m.id}-${i}`} className="game-info__video">
                                     <a
                                         href={videoSrc || '#'}
                                         data-fancybox={`videos-${pick.appId}`}
                                         data-caption={m.name}
-                                        data-thumb={m.thumbnail}
+                                        data-thumb={thumbSrc}
                                         className="video-link"
                                     >
                                         <div className="video-thumbnail">
                                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                                            <img src={m.thumbnail} alt={m.name} loading="lazy"/>
+                                            <img src={thumbSrc} alt={m.name} loading="lazy"/>
                                             <div className="video-play-icon">▶</div>
                                         </div>
                                     </a>
