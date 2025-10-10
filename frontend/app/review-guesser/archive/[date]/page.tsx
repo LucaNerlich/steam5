@@ -3,6 +3,7 @@ import type {ReviewGameState} from "@/types/review-game";
 import ReviewGuesserHero from "@/components/ReviewGuesserHero";
 import ArchiveOfflineRound from "@/components/ArchiveOfflineRound";
 import ArchiveResetForDay from "@/components/ArchiveResetForDay";
+import ArchiveSummary from "@/components/ArchiveSummary";
 import Link from "next/link";
 import {formatDate} from "@/lib/format";
 import "@/styles/components/archive.css";
@@ -67,6 +68,11 @@ export default async function ArchivePage({params}: { params: Promise<{ date: st
     return (
         <section className="container">
             <h1>Archive — {formatDate(date)}</h1>
+            <ArchiveSummary
+                date={date}
+                bucketLabels={data.buckets}
+                bucketTitles={data.bucketTitles || data.buckets}
+            />
             <nav aria-label="Rounds table of contents" className="archive__toc">
                 <ol>
                     {data.picks.map((app, idx) => (

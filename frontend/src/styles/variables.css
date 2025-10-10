@@ -2,18 +2,27 @@
     --color-background: rgb(245, 241, 233);
     --color-text: #121212;
     --color-surface: #ffffff;
+    --color-surface-variant: #f3f4f6;
     --color-muted: #6b7280;
     --color-border: #e5e7eb;
+    --color-border-subtle: #f3f4f6;
     --color-primary: #2563eb;
     --color-accent: #f59e0b;
+    --color-success: #16a34a;
+    --color-error: #dc2626;
+    --font-mono: ui-monospace, 'SF Mono', 'Monaco', 'Cascadia Code', 'Roboto Mono', 'Consolas', monospace;
 }
 
 html[data-theme='dark'] {
     --color-background: #0b0f14;
     --color-text: #f3f4f6;
     --color-surface: #111827;
+    --color-surface-variant: #1f2937;
     --color-muted: #9ca3af;
     --color-border: #374151;
+    --color-border-subtle: #1f2937;
     --color-primary: #60a5fa;
     --color-accent: #fbbf24;
+    --color-success: #22c55e;
+    --color-error: #ef4444;
 }

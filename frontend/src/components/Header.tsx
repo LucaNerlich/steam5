@@ -31,6 +31,9 @@ export default function Header() {
                 <span className="game-title" aria-hidden="true">
                         <Link href={Routes.reviewGuesser1}>Review Guesser</Link>
                     </span>
+                <Link href="/review-guesser/archive" className="archive-link">
+                    Archive
+                </Link>
                 <div className="header-actions">
                     <Link href="/review-guesser/leaderboard" className="btn leaderboard-link"
                           title="Leaderboard"

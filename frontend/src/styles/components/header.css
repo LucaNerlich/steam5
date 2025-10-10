@@ -123,3 +123,31 @@ header .game-title {
     }
 }
 
+/* Archive link - subtle, secondary navigation */
+header .archive-link {
+    color: var(--color-muted);
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 400;
+    white-space: nowrap;
+    transition: color 0.2s ease;
+}
+
+header .archive-link:hover {
+    color: var(--color-text);
+    text-decoration: underline;
+}
+
+@media (min-width: 641px) {
+    header .archive-link {
+        margin-left: 0.75rem;
+    }
+}
+
+/* Hide archive link on very small screens to save space */
+@media (max-width: 480px) {
+    header .archive-link {
+        display: none;
+    }
+}
+

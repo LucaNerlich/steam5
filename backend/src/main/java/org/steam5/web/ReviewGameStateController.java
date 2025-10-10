@@ -208,6 +208,81 @@ public class ReviewGameStateController {
         return ResponseEntity.ok(dtos);
     }
 
+    @GetMapping("/my/day/{date}")
+    public ResponseEntity<?> myDay(@PathVariable("date") String date,
+                                   @RequestHeader HttpHeaders headers,
+                                   @CookieValue(value = "s5_token", required = false) String cookieToken) {
+        final String bearer = headers.getFirst(HttpHeaders.AUTHORIZATION);
+        String token = null;
+        if (bearer != null && bearer.toLowerCase().startsWith("bearer ")) {
+            token = bearer.substring(7).trim();
+        } else if (cookieToken != null && !cookieToken.isBlank()) {
+            token = cookieToken;
+        }
+        final String steamId = token == null ? null : authTokenService.verifyToken(token);
+        if (steamId == null) return ResponseEntity.status(401).build();
+
+        final LocalDate day;
+        try {
+            day = LocalDate.parse(date);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        final var guesses = guessRepository.findAllForDay(steamId, day);
+        final var dtos = guesses.stream().map(g -> new MyGuessDto(
+                g.getRoundIndex(),
+                g.getAppId(),
+                g.getSelectedBucket(),
+                g.getActualBucket(),
+                service.getTotalReviewCountForApp(g.getAppId())
+        )).toList();
+
+        final boolean isToday = day.equals(LocalDate.now());
+        final String cacheControl = isToday
+                ? "public, s-maxage=300, max-age=60"
+                : "public, max-age=31536000, immutable";
+
+        return ResponseEntity.ok()
+                .header("Cache-Control", cacheControl)
+                .body(dtos);
+    }
+
+    @GetMapping("/my/history")
+    public ResponseEntity<?> myHistory(@RequestParam(value = "from", required = false) String from,
+                                       @RequestParam(value = "to", required = false) String to,
+                                       @RequestHeader HttpHeaders headers,
+                                       @CookieValue(value = "s5_token", required = false) String cookieToken) {
+        final String bearer = headers.getFirst(HttpHeaders.AUTHORIZATION);
+        String token = null;
+        if (bearer != null && bearer.toLowerCase().startsWith("bearer ")) {
+            token = bearer.substring(7).trim();
+        } else if (cookieToken != null && !cookieToken.isBlank()) {
+            token = cookieToken;
+        }
+        final String steamId = token == null ? null : authTokenService.verifyToken(token);
+        if (steamId == null) return ResponseEntity.status(401).build();
+
+        final LocalDate start = from == null || from.isBlank() ? LocalDate.of(1970, 1, 1) : LocalDate.parse(from);
+        final LocalDate end = to == null || to.isBlank() ? LocalDate.now() : LocalDate.parse(to);
+        if (end.isBefore(start)) return ResponseEntity.badRequest().build();
+
+        final var guesses = guessRepository.findAllBetween(start, end).stream()
+                .filter(g -> g.getSteamId().equals(steamId))
+                .toList();
+        final var dtos = guesses.stream().map(g -> new MyGuessDto(
+                g.getRoundIndex(),
+                g.getAppId(),
+                g.getSelectedBucket(),
+                g.getActualBucket(),
+                service.getTotalReviewCountForApp(g.getAppId())
+        )).toList();
+
+        return ResponseEntity.ok()
+                .header("Cache-Control", "private, s-maxage=600, max-age=300")
+                .body(dtos);
+    }
+
     @GetMapping("/today")
     @Cacheable(value = "review-game", key = "'picks'", unless = "#result == null")
     public ResponseEntity<ReviewGameStateDto> getToday(@RequestHeader HttpHeaders headers) {

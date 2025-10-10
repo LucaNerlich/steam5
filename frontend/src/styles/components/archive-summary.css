@@ -1,0 +1,121 @@
+.archive-summary {
+    background: var(--color-surface-variant);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin: 1.5rem 0;
+    border: 1px solid var(--color-border);
+}
+
+.archive-summary__title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 0 0 0.5rem 0;
+}
+
+.archive-summary__description {
+    color: var(--color-muted);
+    margin: 0 0 1rem 0;
+    font-size: 0.95rem;
+}
+
+.archive-summary__table-wrapper {
+    overflow-x: auto;
+    margin: 1rem 0;
+}
+
+.archive-summary__table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+}
+
+.archive-summary__table thead {
+    border-bottom: 2px solid var(--color-border);
+}
+
+.archive-summary__table th {
+    text-align: left;
+    padding: 0.75rem 1rem;
+    font-weight: 600;
+    color: var(--color-muted);
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+}
+
+.archive-summary__table td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.archive-summary__table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.archive-summary__random-row {
+    border-top: 2px solid var(--color-border);
+}
+
+.archive-summary__random-row .archive-summary__bucket-title {
+    font-style: italic;
+    color: var(--color-muted);
+}
+
+.archive-summary__bucket-title {
+    font-weight: 500;
+}
+
+.archive-summary__total,
+.archive-summary__avg {
+    font-family: var(--font-mono);
+    text-align: right;
+}
+
+.archive-summary__delta {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    text-align: right;
+}
+
+.archive-summary__delta.positive {
+    color: var(--color-success);
+}
+
+.archive-summary__delta.negative {
+    color: var(--color-error);
+}
+
+.archive-summary__delta.neutral {
+    color: var(--color-muted);
+}
+
+.archive-summary__user-total {
+    margin: 1rem 0 0 0;
+    font-size: 1rem;
+    text-align: right;
+}
+
+.archive-summary__user-total strong {
+    font-family: var(--font-mono);
+    font-size: 1.15rem;
+}
+
+@media (max-width: 640px) {
+    .archive-summary {
+        padding: 1rem;
+    }
+
+    .archive-summary__table {
+        font-size: 0.875rem;
+    }
+
+    .archive-summary__table th,
+    .archive-summary__table td {
+        padding: 0.5rem 0.75rem;
+    }
+
+    .archive-summary__title {
+        font-size: 1.1rem;
+    }
+}
+

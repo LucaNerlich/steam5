@@ -1,6 +1,7 @@
 export const revalidate = 600;
 import type {Metadata} from "next";
 import "@/styles/components/archive-list.css";
+import ArchiveSummary from "@/components/ArchiveSummary";
 
 async function loadDays(): Promise<string[]> {
     const backend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
@@ -12,14 +13,31 @@ async function loadDays(): Promise<string[]> {
     return res.json();
 }
 
+async function loadBuckets(): Promise<{ buckets: string[]; bucketTitles: string[] }> {
+    const backend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
+    const res = await fetch(`${backend}/api/review-game/buckets`, {
+        headers: {'accept': 'application/json'},
+        next: {revalidate: 86400},
+    });
+    if (!res.ok) return {buckets: [], bucketTitles: []};
+    return res.json();
+}
+
 export default async function ArchiveIndexPage() {
     let days = await loadDays();
     const todayStr = new Date().toISOString().slice(0, 10);
     days = (days || []).filter(date => date !== todayStr);
+    const bucketData = await loadBuckets();
 
     return (
         <section className="container">
             <h1>Archive</h1>
+            {bucketData.buckets.length > 0 && (
+                <ArchiveSummary
+                    bucketLabels={bucketData.buckets}
+                    bucketTitles={bucketData.bucketTitles}
+                />
+            )}
             {days.length === 0 ? (
                 <p className="text-muted">No previous daily challenges found.</p>
             ) : (
