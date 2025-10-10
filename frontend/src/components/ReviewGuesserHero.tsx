@@ -1,7 +1,9 @@
 "use client";
 
-import React, {useCallback, useEffect, useState} from 'react';
+import React, {useEffect} from 'react';
 import Image from "next/image";
+import {Fancybox} from "@fancyapps/ui";
+import "@fancyapps/ui/dist/fancybox/fancybox.css";
 import {ReviewGameState, SteamAppDetail} from "@/types/review-game";
 import {formatDate, formatPrice} from "@/lib/format";
 import "@/styles/components/reviewGuesserHero.css";
@@ -20,32 +22,26 @@ export default function ReviewGuesserHero(props: Readonly<ReviewGuesserHeroProps
     const allShots = (pick.screenshots ?? []);
     const thumbShots = allShots.slice(0, 4);
 
-    const [isOpen, setIsOpen] = useState(false);
-    const [index, setIndex] = useState(0);
-
-    const openAt = useCallback((i: number) => {
-        setIndex(i);
-        setIsOpen(true);
-    }, []);
-
-    const close = useCallback(() => setIsOpen(false), []);
-    const prev = useCallback(() => setIndex((i) => (i - 1 + allShots.length) % allShots.length), [allShots.length]);
-    const next = useCallback(() => setIndex((i) => (i + 1) % allShots.length), [allShots.length]);
-
     useEffect(() => {
-        if (!isOpen) return;
+        // Initialize Fancybox for this component's screenshots
+        Fancybox.bind(`[data-fancybox="screenshots-${pick.appId}"]`, {
+            Toolbar: {
+                display: {
+                    left: ["infobar"],
+                    middle: [],
+                    right: ["close"]
+                }
+            },
+            Images: {
+                protected: true
+            }
+        });
 
-        function onKey(e: KeyboardEvent) {
-            if (e.key === 'Escape') close();
-            if (e.key === 'ArrowLeft') prev();
-            if (e.key === 'ArrowRight') next();
-        }
-
-        window.addEventListener('keydown', onKey);
-        return () => window.removeEventListener('keydown', onKey);
-    }, [isOpen, close, prev, next]);
-
-    // (Removed unused viewport tracking state)
+        return () => {
+            Fancybox.unbind(`[data-fancybox="screenshots-${pick.appId}"]`);
+            Fancybox.close();
+        };
+    }, [pick.appId]);
 
     return (
         <section className='review-guesser-hero'>
@@ -100,47 +96,30 @@ export default function ReviewGuesserHero(props: Readonly<ReviewGuesserHeroProps
                     ))}
                 </ul>
             )}
-            {thumbShots.length > 0 && (
+            {allShots.length > 0 && (
                 <div className='screenshots'>
-                    {thumbShots.map((s, i) => (
-                        <button className='shot' key={s.id} onClick={() => openAt(i)} aria-label="Open screenshot">
-                            <Image
-                                src={s.pathThumbnail || s.pathFull}
-                                alt={pick.name}
-                                width={400}
-                                height={225}
-                                fetchPriority='high'
-                                placeholder={s.blurdataThumb ? 'blur' : 'empty'}
-                                blurDataURL={s.blurdataThumb || undefined}
-                            />
-                        </button>
+                    {allShots.map((s, i) => (
+                        <a
+                            key={s.id}
+                            href={s.pathFull || s.pathThumbnail}
+                            data-fancybox={`screenshots-${pick.appId}`}
+                            data-caption={`${pick.name} - Screenshot ${i + 1}`}
+                            className={`shot ${i >= 4 ? 'shot--hidden' : ''}`}
+                            aria-label={`Open screenshot ${i + 1}`}
+                        >
+                            {i < 4 && (
+                                <Image
+                                    src={s.pathThumbnail || s.pathFull}
+                                    alt={`${pick.name} screenshot ${i + 1}`}
+                                    width={400}
+                                    height={225}
+                                    fetchPriority='high'
+                                    placeholder={s.blurdataThumb ? 'blur' : 'empty'}
+                                    blurDataURL={s.blurdataThumb || undefined}
+                                />
+                            )}
+                        </a>
                     ))}
-                </div>
-            )}
-
-            {isOpen && allShots[index] && (
-                <div className="lightbox-overlay" role="dialog" aria-modal="true" onClick={close}>
-                    <div className="lightbox-content" onClick={(e) => e.stopPropagation()}>
-                        <button className="lightbox-close" aria-label="Close" onClick={close}>✕</button>
-                        <div className="lightbox-img">
-                            <Image
-                                key={allShots[index].id}
-                                src={allShots[index].pathFull || allShots[index].pathThumbnail}
-                                alt={pick.name}
-                                width={1280}
-                                height={720}
-                                placeholder={allShots[index].blurdataFull ? 'blur' : 'empty'}
-                                blurDataURL={allShots[index].blurdataFull || undefined}
-                            />
-                        </div>
-                        {allShots.length > 1 && (
-                            <div className="lightbox-nav">
-                                <button onClick={prev} aria-label="Previous">←</button>
-                                <span>{index + 1}/{allShots.length}</span>
-                                <button onClick={next} aria-label="Next">→</button>
-                            </div>
-                        )}
-                    </div>
                 </div>
             )}
         </section>

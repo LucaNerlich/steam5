@@ -1,5 +1,9 @@
+"use client";
+
 import React from "react";
 import Image from "next/image";
+import {Fancybox} from "@fancyapps/ui";
+import "@fancyapps/ui/dist/fancybox/fancybox.css";
 import parse, {
     attributesToProps,
     type DOMNode,
@@ -118,6 +122,26 @@ export default function GameInfoSection({pick}: Props): React.ReactElement | nul
         return parse(html, options);
     }, [hasAbout, pick?.aboutTheGame]);
 
+    React.useEffect(() => {
+        if (!hasMovies) return;
+
+        // Initialize Fancybox for videos
+        Fancybox.bind(`[data-fancybox="videos-${pick.appId}"]`, {
+            Toolbar: {
+                display: {
+                    left: ["infobar"],
+                    middle: [],
+                    right: ["close"]
+                }
+            }
+        });
+
+        return () => {
+            Fancybox.unbind(`[data-fancybox="videos-${pick.appId}"]`);
+            Fancybox.close();
+        };
+    }, [hasMovies, pick.appId]);
+
     if (!pick || !hasAny) return null;
 
     return (
@@ -155,15 +179,27 @@ export default function GameInfoSection({pick}: Props): React.ReactElement | nul
                 <div className="game-info__section">
                     <h3>Videos</h3>
                     <div className="game-info__videos">
-                        {pick.movies.map((m, i) => (
-                            <div key={`mov-${m.id}-${i}`} className="game-info__video">
-                                <video controls preload="metadata" poster={m.thumbnail} className="video">
-                                    {m.webm && <source src={m.webm} type="video/webm"/>}
-                                    {m.mp4 && <source src={m.mp4} type="video/mp4"/>}
-                                </video>
-                                <div className="caption">{m.name}</div>
-                            </div>
-                        ))}
+                        {pick.movies.map((m, i) => {
+                            const videoSrc = m.mp4 || m.webm;
+                            return (
+                                <div key={`mov-${m.id}-${i}`} className="game-info__video">
+                                    <a
+                                        href={videoSrc || '#'}
+                                        data-fancybox={`videos-${pick.appId}`}
+                                        data-caption={m.name}
+                                        data-thumb={m.thumbnail}
+                                        className="video-link"
+                                    >
+                                        <div className="video-thumbnail">
+                                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                                            <img src={m.thumbnail} alt={m.name} loading="lazy"/>
+                                            <div className="video-play-icon">▶</div>
+                                        </div>
+                                    </a>
+                                    <div className="caption">{m.name}</div>
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
             )}

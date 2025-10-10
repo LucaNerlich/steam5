@@ -65,6 +65,53 @@
     max-width: 420px;
 }
 
+.game-info__video .video-link {
+    display: block;
+    position: relative;
+    cursor: pointer;
+    text-decoration: none;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.game-info__video .video-thumbnail {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+}
+
+.game-info__video .video-thumbnail img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.game-info__video .video-play-icon {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 60px;
+    height: 60px;
+    background: rgba(0, 0, 0, 0.7);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 24px;
+    padding-left: 4px;
+    transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.game-info__video .video-link:hover .video-play-icon {
+    background: rgba(0, 0, 0, 0.85);
+    transform: translate(-50%, -50%) scale(1.1);
+}
+
 .game-info__video .video {
     width: 100%;
     height: auto;
@@ -76,6 +123,7 @@
 .game-info__video .caption {
     margin-top: 0.25rem;
     font-size: 0.9rem;
+    color: var(--color-text);
 }
 
 .game-info__about p {
