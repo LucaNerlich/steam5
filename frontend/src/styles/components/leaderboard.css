@@ -7,9 +7,9 @@
 
 /* inner scroll container to allow scrolling inside the table while keeping page static */
 .leaderboard__scroll {
-    max-height: 60vh; /* adjust as needed */
-    overflow-y: auto;
+    /* horizontal scrolling only; let the page handle vertical flow */
     overflow-x: auto; /* preserve horizontal scroll if needed */
+    overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
     position: relative; /* create a stacking context for sticky headers */
 }
