@@ -23,7 +23,14 @@ type Day = {
 };
 
 export default function PerformanceSection({days}: { days: Day[] }): React.ReactElement | null {
-    const rounds = useMemo(() => days.flatMap(d => d.rounds.map(r => ({...r, date: d.date}))), [days]);
+    const rounds = useMemo(() => {
+        const flat = days.flatMap(d => d.rounds.map(r => ({...r, date: d.date})));
+        // Ensure chronological order: oldest -> newest, then by roundIndex
+        return flat.sort((a: any, b: any) => {
+            if (a.date === b.date) return (a.roundIndex||0) - (b.roundIndex||0);
+            return a.date.localeCompare(b.date);
+        });
+    }, [days]);
     if (rounds.length === 0) return null;
 
     return (
