@@ -68,8 +68,8 @@ public class StatisticsService {
         final Set<String> alreadyAwarded = new HashSet<>();
 
         // 1) Time-of-day based
-        final List<GuessRepository.AvgTimeRow> earliest = guessRepository.findUsersByAvgSubmissionTimeAsc(MIN_ROUNDS, 5);
-        final List<GuessRepository.AvgTimeRow> latest = guessRepository.findUsersByAvgSubmissionTimeDesc(MIN_ROUNDS, 5);
+        final List<GuessRepository.AvgTimeRow> earliest = guessRepository.findUsersByAvgSubmissionTimeAsc(MIN_ROUNDS);
+        final List<GuessRepository.AvgTimeRow> latest = guessRepository.findUsersByAvgSubmissionTimeDesc(MIN_ROUNDS);
 
         if (!earliest.isEmpty()) {
             for (GuessRepository.AvgTimeRow row : earliest) {
@@ -92,7 +92,7 @@ public class StatisticsService {
         }
 
         // 2) Accuracy/skill based — Sharpshooter (highest average points)
-        final List<GuessRepository.AvgPointsRow> sharp = guessRepository.findUsersByAvgPointsDesc(MIN_ROUNDS, 50);
+        final List<GuessRepository.AvgPointsRow> sharp = guessRepository.findUsersByAvgPointsDesc(MIN_ROUNDS);
         for (GuessRepository.AvgPointsRow row : sharp) {
             final String steamId = row.getSteamId();
             if (alreadyAwarded.add(steamId)) {
@@ -102,7 +102,7 @@ public class StatisticsService {
         }
 
         // 3) Accuracy/skill based — Bullseye (most perfect rounds)
-        final List<GuessRepository.PerfectRoundsRow> bulls = guessRepository.findUsersByPerfectRoundsDesc(MIN_ROUNDS, 50);
+        final List<GuessRepository.PerfectRoundsRow> bulls = guessRepository.findUsersByPerfectRoundsDesc(MIN_ROUNDS);
         for (GuessRepository.PerfectRoundsRow row : bulls) {
             final String steamId = row.getSteamId();
             if (alreadyAwarded.add(steamId)) {
@@ -112,7 +112,7 @@ public class StatisticsService {
         }
 
         // 4) Accuracy/skill based — Perfect Day (most perfect days)
-        final List<GuessRepository.PerfectDaysRow> pdays = guessRepository.findUsersByPerfectDaysDesc(MIN_ROUNDS, 100);
+        final List<GuessRepository.PerfectDaysRow> pdays = guessRepository.findUsersByPerfectDaysDesc(MIN_ROUNDS);
         for (GuessRepository.PerfectDaysRow row : pdays) {
             final String steamId = row.getSteamId();
             if (alreadyAwarded.add(steamId)) {

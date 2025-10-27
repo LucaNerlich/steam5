@@ -46,16 +46,14 @@ public interface GuessRepository extends JpaRepository<Guess, Long> {
     @Query(value = "SELECT steam_id AS steamId, COUNT(*) AS rounds, " +
             "AVG(EXTRACT(HOUR FROM created_at) * 60 + EXTRACT(MINUTE FROM created_at)) AS avgMinutes " +
             "FROM guesses GROUP BY steam_id HAVING COUNT(*) >= :minRounds " +
-            "ORDER BY avgMinutes ASC LIMIT :limit", nativeQuery = true)
-    List<AvgTimeRow> findUsersByAvgSubmissionTimeAsc(@Param("minRounds") int minRounds,
-                                                     @Param("limit") int limit);
+            "ORDER BY avgMinutes ASC", nativeQuery = true)
+    List<AvgTimeRow> findUsersByAvgSubmissionTimeAsc(@Param("minRounds") int minRounds);
 
     @Query(value = "SELECT steam_id AS steamId, COUNT(*) AS rounds, " +
             "AVG(EXTRACT(HOUR FROM created_at) * 60 + EXTRACT(MINUTE FROM created_at)) AS avgMinutes " +
             "FROM guesses GROUP BY steam_id HAVING COUNT(*) >= :minRounds " +
-            "ORDER BY avgMinutes DESC LIMIT :limit", nativeQuery = true)
-    List<AvgTimeRow> findUsersByAvgSubmissionTimeDesc(@Param("minRounds") int minRounds,
-                                                      @Param("limit") int limit);
+            "ORDER BY avgMinutes DESC", nativeQuery = true)
+    List<AvgTimeRow> findUsersByAvgSubmissionTimeDesc(@Param("minRounds") int minRounds);
 
     // Highest average points per guess
     interface AvgPointsRow {
@@ -66,9 +64,8 @@ public interface GuessRepository extends JpaRepository<Guess, Long> {
 
     @Query(value = "SELECT steam_id AS steamId, AVG(points) AS avgPoints, COUNT(*) AS rounds " +
             "FROM guesses GROUP BY steam_id HAVING COUNT(*) >= :minRounds " +
-            "ORDER BY avgPoints DESC, rounds DESC, steam_id ASC LIMIT :limit", nativeQuery = true)
-    List<AvgPointsRow> findUsersByAvgPointsDesc(@Param("minRounds") int minRounds,
-                                                @Param("limit") int limit);
+            "ORDER BY avgPoints DESC, rounds DESC, steam_id ASC", nativeQuery = true)
+    List<AvgPointsRow> findUsersByAvgPointsDesc(@Param("minRounds") int minRounds);
 
     // Most perfect rounds (points = 5)
     interface PerfectRoundsRow {
@@ -81,9 +78,8 @@ public interface GuessRepository extends JpaRepository<Guess, Long> {
             "SUM(CASE WHEN points = 5 THEN 1 ELSE 0 END) AS perfects, COUNT(*) AS rounds " +
             "FROM guesses GROUP BY steam_id " +
             "HAVING COUNT(*) >= :minRounds AND SUM(CASE WHEN points = 5 THEN 1 ELSE 0 END) > 0 " +
-            "ORDER BY perfects DESC, rounds DESC, steam_id ASC LIMIT :limit", nativeQuery = true)
-    List<PerfectRoundsRow> findUsersByPerfectRoundsDesc(@Param("minRounds") int minRounds,
-                                                        @Param("limit") int limit);
+            "ORDER BY perfects DESC, rounds DESC, steam_id ASC", nativeQuery = true)
+    List<PerfectRoundsRow> findUsersByPerfectRoundsDesc(@Param("minRounds") int minRounds);
 
     // Most perfect days (sum of points equals 5 * rounds_per_day)
     interface PerfectDaysRow {
@@ -111,10 +107,9 @@ public interface GuessRepository extends JpaRepository<Guess, Long> {
             "SELECT p.steam_id AS steamId, p.perfect_days AS perfectDays, uc.rounds AS rounds\n" +
             "FROM perfects p JOIN user_counts uc ON uc.steam_id = p.steam_id\n" +
             "WHERE uc.rounds >= :minRounds\n" +
-            "ORDER BY p.perfect_days DESC, uc.rounds DESC, p.steam_id ASC\n" +
-            "LIMIT :limit", nativeQuery = true)
-    List<PerfectDaysRow> findUsersByPerfectDaysDesc(@Param("minRounds") int minRounds,
-                                                    @Param("limit") int limit);
+            "ORDER BY p.perfect_days DESC, uc.rounds DESC, p.steam_id ASC"
+            , nativeQuery = true)
+    List<PerfectDaysRow> findUsersByPerfectDaysDesc(@Param("minRounds") int minRounds);
 
     interface LeaderboardRow {
         String getSteamId();
