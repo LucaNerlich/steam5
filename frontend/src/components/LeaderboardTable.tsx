@@ -58,6 +58,38 @@ export default function LeaderboardTable(props: {
         revalidateOnFocus: true,
     });
 
+    const endpointAchievements = '/api/leaderboard/achievements';
+
+    type UserAchievement = {
+        steamId: string;
+        userAchievement: string;
+    };
+
+    const ACHIEVEMENT_LABELS: Record<string, string> = {
+        EARLY_BIRD: 'Early Bird',
+        NIGHT_OWL: 'Night Owl',
+    };
+
+    const { data: achievements } = useSWR<UserAchievement[]>(endpointAchievements, fetcher, {
+        refreshInterval: props.refreshMs ?? (props.mode === 'today' ? 5000 : 10000),
+        revalidateOnFocus: true,
+    });
+
+    const achievementBySteamId = useMemo(() => {
+        const m = new Map<string, string>();
+        if (Array.isArray(achievements)) {
+            for (const a of achievements) {
+                if (a?.steamId && a?.userAchievement) m.set(a.steamId, a.userAchievement);
+            }
+        }
+        return m;
+    }, [achievements]);
+
+    const getAchievementLabel = useCallback((key: string | null | undefined) => {
+        if (!key) return null;
+        return ACHIEVEMENT_LABELS[key] ?? key.split('_').map(s => s.charAt(0) + s.slice(1).toLowerCase()).join(' ');
+    }, []);
+
     type SortKey = 'personaName' | 'totalPoints' | 'rounds' | 'streak' | 'hits' | 'tooHigh' | 'tooLow' | 'avgPoints';
     type SortDir = 'asc' | 'desc';
 
@@ -99,6 +131,8 @@ export default function LeaderboardTable(props: {
             }
             return av < bv ? -1 * dir : 1 * dir;
         });
+
+        console.log(sortedCopy);
         return sortedCopy;
     }, [data, sortDir, sortKey]);
 
@@ -170,6 +204,27 @@ export default function LeaderboardTable(props: {
                                        className="leaderboard__profile-link">
                                         <strong>{entry.personaName || 'no-name'}</strong>
                                     </a>
+                                    {(() => {
+                                        const k = achievementBySteamId.get(entry.steamId);
+                                        const lbl = getAchievementLabel(k);
+                                        return lbl ? (
+                                            <span
+                                                className="leaderboard__achievement"
+                                                title={k}
+                                                style={{
+                                                    marginLeft: 8,
+                                                    padding: '2px 6px',
+                                                    borderRadius: 999,
+                                                    backgroundColor: '#eef2ff',
+                                                    color: '#1e3a8a',
+                                                    fontSize: '0.75rem',
+                                                    fontWeight: 600,
+                                                }}
+                                            >
+                                                {lbl}
+                                            </span>
+                                        ) : null;
+                                    })()}
                                 </div>
                             </td>
                             <td className="num">{entry.totalPoints}</td>

@@ -36,6 +36,27 @@ public interface GuessRepository extends JpaRepository<Guess, Long> {
     List<LocalDate> findDistinctDatesUpTo(@Param("steamId") String steamId,
                                           @Param("asOfDate") LocalDate asOfDate);
 
+    // Average submission time per user (in minutes since midnight)
+    interface AvgTimeRow {
+        String getSteamId();
+        Double getAvgMinutes();
+        Long getRounds();
+    }
+
+    @Query(value = "SELECT steam_id AS steamId, COUNT(*) AS rounds, " +
+            "AVG(EXTRACT(HOUR FROM created_at) * 60 + EXTRACT(MINUTE FROM created_at)) AS avgMinutes " +
+            "FROM guesses GROUP BY steam_id HAVING COUNT(*) >= :minRounds " +
+            "ORDER BY avgMinutes ASC LIMIT :limit", nativeQuery = true)
+    List<AvgTimeRow> findUsersByAvgSubmissionTimeAsc(@Param("minRounds") int minRounds,
+                                                     @Param("limit") int limit);
+
+    @Query(value = "SELECT steam_id AS steamId, COUNT(*) AS rounds, " +
+            "AVG(EXTRACT(HOUR FROM created_at) * 60 + EXTRACT(MINUTE FROM created_at)) AS avgMinutes " +
+            "FROM guesses GROUP BY steam_id HAVING COUNT(*) >= :minRounds " +
+            "ORDER BY avgMinutes DESC LIMIT :limit", nativeQuery = true)
+    List<AvgTimeRow> findUsersByAvgSubmissionTimeDesc(@Param("minRounds") int minRounds,
+                                                      @Param("limit") int limit);
+
     interface LeaderboardRow {
         String getSteamId();
 

@@ -29,6 +29,7 @@ public class StatisticsController {
         links.put("genres", "/api/stats/genres");
         links.put("categories", "/api/stats/categories");
         links.put("reviewBuckets", "/api/stats/reviews/buckets");
+        links.put("userAchievements", "/api/stats/users/achievements");
         return ResponseEntity.ok(links);
     }
 
@@ -51,6 +52,14 @@ public class StatisticsController {
     @GetMapping(value = "/reviews/buckets", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<StatisticsService.Bucket>> reviewBuckets(@RequestParam(name = "mode", defaultValue = "LOG_SPACE") StatisticsService.BucketMode mode) {
         final List<StatisticsService.Bucket> result = statisticsService.reviewBuckets(mode);
+        return ResponseEntity.ok()
+                .header("Cache-Control", "public, s-maxage=604800, max-age=86400, stale-while-revalidate=604800")
+                .body(result);
+    }
+
+    @GetMapping(value = "/users/achievements", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<StatisticsService.UserLabel>> userAchievements() {
+        final List<StatisticsService.UserLabel> result = statisticsService.getUserAchievements();
         return ResponseEntity.ok()
                 .header("Cache-Control", "public, s-maxage=604800, max-age=86400, stale-while-revalidate=604800")
                 .body(result);

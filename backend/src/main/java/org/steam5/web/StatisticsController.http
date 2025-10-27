@@ -34,4 +34,6 @@ Accept: application/json
 GET {{host}}/api/stats/reviews/buckets?mode=LINEAR_WINSORIZED
 Accept: application/json
 
-
+### User achievements
+GET {{host}}/api/stats/users/achievements
+Accept: application/json
