@@ -68,6 +68,17 @@ export default function LeaderboardTable(props: {
     const ACHIEVEMENT_LABELS: Record<string, string> = {
         EARLY_BIRD: 'Early Bird',
         NIGHT_OWL: 'Night Owl',
+        SHARPSHOOTER: 'Sharpshooter',
+        BULLSEYE: 'Bullseye',
+        PERFECT_DAY: 'Perfect Day',
+    };
+
+    const ACHIEVEMENT_TITLES: Record<string, string> = {
+        EARLY_BIRD: 'Plays the earliest ☀',
+        NIGHT_OWL: 'Plays the latest 🌙',
+        SHARPSHOOTER: 'Highest average points per guess 🔫',
+        BULLSEYE: 'Most perfect rounds (points = 5) 🎯',
+        PERFECT_DAY: 'Most days with perfect total points 🎩',
     };
 
     const { data: achievements } = useSWR<UserAchievement[]>(endpointAchievements, fetcher, {
@@ -88,6 +99,11 @@ export default function LeaderboardTable(props: {
     const getAchievementLabel = useCallback((key: string | null | undefined) => {
         if (!key) return null;
         return ACHIEVEMENT_LABELS[key] ?? key.split('_').map(s => s.charAt(0) + s.slice(1).toLowerCase()).join(' ');
+    }, []);
+
+    const getAchievementTitle = useCallback((key: string | null | undefined) => {
+        if (!key) return undefined;
+        return ACHIEVEMENT_TITLES[key] ?? undefined;
     }, []);
 
     type SortKey = 'personaName' | 'totalPoints' | 'rounds' | 'streak' | 'hits' | 'tooHigh' | 'tooLow' | 'avgPoints';
@@ -210,7 +226,7 @@ export default function LeaderboardTable(props: {
                                         return lbl ? (
                                             <span
                                                 className="leaderboard__achievement"
-                                                title={k}
+                                                title={getAchievementTitle(k) ?? lbl ?? undefined}
                                                 style={{
                                                     marginLeft: 8,
                                                     padding: '2px 6px',

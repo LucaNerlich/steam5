@@ -60,35 +60,64 @@ public class StatisticsService {
         final List<UserLabel> result = new ArrayList<>();
 
         // Strategy:
-        // - Compute average submission time (minutes since midnight) per user across all guesses
-        // - Only consider users with at least MIN_ROUNDS guesses
-        // - Award EARLY_BIRD to the user with the smallest average time
-        // - Award NIGHT_OWL to the user with the largest average time
-        // - Ensure a single user cannot get more than one achievement label
+        // - Maintain uniqueness: one achievement per user. If a user would win multiple,
+        //   assign the first by priority and skip them for subsequent labels.
+        // - Use a minimum participation threshold to avoid flukes.
         final int MIN_ROUNDS = 25;
-
-        // Fetch a few candidates to handle the case where the same user would top both lists
-        final List<GuessRepository.AvgTimeRow> earliest = guessRepository.findUsersByAvgSubmissionTimeAsc(MIN_ROUNDS, 5);
-        final List<GuessRepository.AvgTimeRow> latest = guessRepository.findUsersByAvgSubmissionTimeDesc(MIN_ROUNDS, 5);
 
         final Set<String> alreadyAwarded = new HashSet<>();
 
-        if (!earliest.isEmpty()) {
-            final String steamId = earliest.get(0).getSteamId();
-            result.add(new UserLabel(steamId, UserAchievement.EARLY_BIRD));
-            alreadyAwarded.add(steamId);
-        }
+        // 1) Time-of-day based
+        final List<GuessRepository.AvgTimeRow> earliest = guessRepository.findUsersByAvgSubmissionTimeAsc(MIN_ROUNDS, 5);
+        final List<GuessRepository.AvgTimeRow> latest = guessRepository.findUsersByAvgSubmissionTimeDesc(MIN_ROUNDS, 5);
 
-        if (!latest.isEmpty()) {
-            String nightOwlId = null;
-            for (GuessRepository.AvgTimeRow row : latest) {
-                if (!alreadyAwarded.contains(row.getSteamId())) {
-                    nightOwlId = row.getSteamId();
+        if (!earliest.isEmpty()) {
+            for (GuessRepository.AvgTimeRow row : earliest) {
+                final String steamId = row.getSteamId();
+                if (alreadyAwarded.add(steamId)) {
+                    result.add(new UserLabel(steamId, UserAchievement.EARLY_BIRD));
                     break;
                 }
             }
-            if (nightOwlId != null) {
-                result.add(new UserLabel(nightOwlId, UserAchievement.NIGHT_OWL));
+        }
+
+        if (!latest.isEmpty()) {
+            for (GuessRepository.AvgTimeRow row : latest) {
+                final String steamId = row.getSteamId();
+                if (alreadyAwarded.add(steamId)) {
+                    result.add(new UserLabel(steamId, UserAchievement.NIGHT_OWL));
+                    break;
+                }
+            }
+        }
+
+        // 2) Accuracy/skill based — Sharpshooter (highest average points)
+        final List<GuessRepository.AvgPointsRow> sharp = guessRepository.findUsersByAvgPointsDesc(MIN_ROUNDS, 5);
+        for (GuessRepository.AvgPointsRow row : sharp) {
+            final String steamId = row.getSteamId();
+            if (alreadyAwarded.add(steamId)) {
+                result.add(new UserLabel(steamId, UserAchievement.SHARPSHOOTER));
+                break;
+            }
+        }
+
+        // 3) Accuracy/skill based — Bullseye (most perfect rounds)
+        final List<GuessRepository.PerfectRoundsRow> bulls = guessRepository.findUsersByPerfectRoundsDesc(MIN_ROUNDS, 5);
+        for (GuessRepository.PerfectRoundsRow row : bulls) {
+            final String steamId = row.getSteamId();
+            if (alreadyAwarded.add(steamId)) {
+                result.add(new UserLabel(steamId, UserAchievement.BULLSEYE));
+                break;
+            }
+        }
+
+        // 4) Accuracy/skill based — Perfect Day (most perfect days)
+        final List<GuessRepository.PerfectDaysRow> pdays = guessRepository.findUsersByPerfectDaysDesc(MIN_ROUNDS, 5);
+        for (GuessRepository.PerfectDaysRow row : pdays) {
+            final String steamId = row.getSteamId();
+            if (alreadyAwarded.add(steamId)) {
+                result.add(new UserLabel(steamId, UserAchievement.PERFECT_DAY));
+                break;
             }
         }
 
@@ -104,8 +133,11 @@ public class StatisticsService {
     }
 
     public enum UserAchievement {
-        EARLY_BIRD, // plays the earliest, on avg
-        NIGHT_OWL // plays the latest, on avg
+        EARLY_BIRD,    // plays the earliest, on avg
+        NIGHT_OWL,    // plays the latest, on avg
+        SHARPSHOOTER, // highest average points per guess
+        BULLSEYE,     // most perfect rounds (points = 5)
+        PERFECT_DAY   // most days with perfect total points
     }
 
     // "Achievement" Labels
