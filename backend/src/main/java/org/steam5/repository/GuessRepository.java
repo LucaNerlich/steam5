@@ -93,7 +93,7 @@ public interface GuessRepository extends JpaRepository<Guess, Long> {
     }
 
     @Query(value = "WITH day_rounds AS (\n" +
-            "  SELECT game_date, MAX(round_index) + 1 AS rounds_per_day\n" +
+            "  SELECT game_date, MAX(round_index) AS rounds_per_day\n" +
             "  FROM guesses\n" +
             "  GROUP BY game_date\n" +
             "), user_day AS (\n" +
