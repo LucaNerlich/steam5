@@ -13,13 +13,31 @@ export async function GET(request: Request) {
                        86400;  // 1 day for all-time
     
     const url = `${BACKEND_ORIGIN}/api/stats/users/achievements?timeframe=${encodeURIComponent(timeframe)}`;
+    console.log(`[Achievements API] Fetching: ${url}`);
+    
     const res = await fetch(url, {
       headers: { accept: "application/json" },
       next: { revalidate, tags: [`leaderboard:achievements:${timeframe}`, "leaderboard"] },
     });
     const data = await res.json();
-    return NextResponse.json(data, { status: res.status });
-  } catch {
+    
+    console.log(`[Achievements API] Response status: ${res.status}, data length: ${Array.isArray(data) ? data.length : 'not an array'}`);
+    
+    // Add cache control headers to the response
+    const cacheControl = timeframe === 'daily' || timeframe === 'today' 
+      ? 'public, s-maxage=300, max-age=60, stale-while-revalidate=600'
+      : timeframe === 'weekly'
+      ? 'public, s-maxage=3600, max-age=600, stale-while-revalidate=7200'
+      : 'public, s-maxage=86400, max-age=3600, stale-while-revalidate=172800';
+    
+    return NextResponse.json(data, { 
+      status: res.status,
+      headers: {
+        'Cache-Control': cacheControl,
+      }
+    });
+  } catch (error) {
+    console.error('[Achievements API] Error:', error);
     return NextResponse.json({ error: "Failed to load achievements" }, { status: 502 });
   }
 }

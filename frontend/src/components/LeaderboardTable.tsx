@@ -89,17 +89,23 @@ export default function LeaderboardTable(props: {
     const { data: achievements } = useSWR<UserAchievement[]>(endpointAchievements, fetcher, {
         refreshInterval: props.refreshMs ?? (props.mode === 'today' ? 5000 : 10000),
         revalidateOnFocus: true,
+        dedupingInterval: 2000, // Allow refetch after 2 seconds
     });
 
     const achievementBySteamId = useMemo(() => {
         const m = new Map<string, string>();
+        console.log(`[LeaderboardTable] Processing achievements for ${props.mode}:`, achievements);
         if (Array.isArray(achievements)) {
             for (const a of achievements) {
-                if (a?.steamId && a?.userAchievement) m.set(a.steamId, a.userAchievement);
+                if (a?.steamId && a?.userAchievement) {
+                    console.log(`[LeaderboardTable] Adding achievement: ${a.steamId} -> ${a.userAchievement}`);
+                    m.set(a.steamId, a.userAchievement);
+                }
             }
         }
+        console.log(`[LeaderboardTable] Achievement map size: ${m.size}`);
         return m;
-    }, [achievements]);
+    }, [achievements, props.mode]);
 
     const getAchievementLabel = useCallback((key: string | null | undefined) => {
         if (!key) return null;
