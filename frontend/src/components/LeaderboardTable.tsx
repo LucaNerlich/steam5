@@ -58,7 +58,12 @@ export default function LeaderboardTable(props: {
         revalidateOnFocus: true,
     });
 
-    const endpointAchievements = '/api/leaderboard/achievements';
+    // Determine timeframe for achievements based on leaderboard mode
+    const achievementTimeframe = props.mode === 'today' ? 'daily' : 
+                                  props.mode === 'weekly' ? 'weekly' : 
+                                  'all';
+    
+    const endpointAchievements = `/api/leaderboard/achievements?timeframe=${achievementTimeframe}`;
 
     type UserAchievement = {
         steamId: string;

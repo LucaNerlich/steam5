@@ -8,6 +8,7 @@ import org.steam5.repository.ReviewGamePickRepository;
 import org.steam5.repository.ReviewsBucketRepository;
 import org.steam5.repository.details.SteamAppDetailRepository;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -57,19 +58,77 @@ public class StatisticsService {
 
     @Cacheable(value = "one-day", key = "'stats-user-labels'", unless = "#result == null")
     public List<UserLabel> getUserAchievements() {
+        return getUserAchievementsForTimeframe(Timeframe.ALL_TIME);
+    }
+
+    @Cacheable(value = "stats-hourly", key = "'stats-user-labels-weekly'", unless = "#result == null")
+    public List<UserLabel> getUserAchievementsWeekly() {
+        return getUserAchievementsForTimeframe(Timeframe.WEEKLY);
+    }
+
+    @Cacheable(value = "stats-short", key = "'stats-user-labels-daily'", unless = "#result == null")
+    public List<UserLabel> getUserAchievementsDaily() {
+        return getUserAchievementsForTimeframe(Timeframe.DAILY);
+    }
+
+    private List<UserLabel> getUserAchievementsForTimeframe(Timeframe timeframe) {
         final List<UserLabel> result = new ArrayList<>();
 
         // Strategy:
         // - Maintain uniqueness: one achievement per user. If a user would win multiple,
         //   assign the first by priority and skip them for subsequent labels.
         // - Use a minimum participation threshold to avoid flukes.
-        final int MIN_ROUNDS = 25;
+        final int MIN_ROUNDS = switch (timeframe) {
+            case ALL_TIME -> 35;
+            case WEEKLY -> 15;
+            case DAILY -> 5;
+        };
 
         final Set<String> alreadyAwarded = new HashSet<>();
 
+        // Calculate date range for timeframe
+        final LocalDate today = LocalDate.now();
+        final LocalDate startDate;
+        final LocalDate endDate;
+
+        switch (timeframe) {
+            case ALL_TIME -> {
+                // Use all-time queries (no date range)
+                processAchievements(result, alreadyAwarded, MIN_ROUNDS, null, null);
+                return Collections.unmodifiableList(result);
+            }
+            case WEEKLY -> {
+                // Last 7 days including today
+                startDate = today.minusDays(6);
+                endDate = today;
+            }
+            case DAILY -> {
+                // Just today
+                startDate = today;
+                endDate = today;
+            }
+            default -> {
+                return Collections.emptyList();
+            }
+        }
+
+        processAchievements(result, alreadyAwarded, MIN_ROUNDS, startDate, endDate);
+        return Collections.unmodifiableList(result);
+    }
+
+    private void processAchievements(List<UserLabel> result, Set<String> alreadyAwarded,
+                                     int minRounds, LocalDate startDate, LocalDate endDate) {
         // 1) Time-of-day based
-        final List<GuessRepository.AvgTimeRow> earliest = guessRepository.findUsersByAvgSubmissionTimeAsc(MIN_ROUNDS);
-        final List<GuessRepository.AvgTimeRow> latest = guessRepository.findUsersByAvgSubmissionTimeDesc(MIN_ROUNDS);
+        final List<GuessRepository.AvgTimeRow> earliest;
+        final List<GuessRepository.AvgTimeRow> latest;
+
+        if (startDate == null) {
+            earliest = guessRepository.findUsersByAvgSubmissionTimeAsc(minRounds);
+            latest = guessRepository.findUsersByAvgSubmissionTimeDesc(minRounds);
+        } else {
+            earliest = guessRepository.findUsersByAvgSubmissionTimeAscInRange(startDate, endDate, minRounds);
+            latest = guessRepository.findUsersByAvgSubmissionTimeDescInRange(startDate, endDate, minRounds);
+        }
 
         if (!earliest.isEmpty()) {
             for (GuessRepository.AvgTimeRow row : earliest) {
@@ -92,7 +151,10 @@ public class StatisticsService {
         }
 
         // 2) Accuracy/skill based — Sharpshooter (highest average points)
-        final List<GuessRepository.AvgPointsRow> sharp = guessRepository.findUsersByAvgPointsDesc(MIN_ROUNDS);
+        final List<GuessRepository.AvgPointsRow> sharp = startDate == null
+                ? guessRepository.findUsersByAvgPointsDesc(minRounds)
+                : guessRepository.findUsersByAvgPointsDescInRange(startDate, endDate, minRounds);
+
         for (GuessRepository.AvgPointsRow row : sharp) {
             final String steamId = row.getSteamId();
             if (alreadyAwarded.add(steamId)) {
@@ -102,7 +164,10 @@ public class StatisticsService {
         }
 
         // 3) Accuracy/skill based — Bullseye (most perfect rounds)
-        final List<GuessRepository.PerfectRoundsRow> bulls = guessRepository.findUsersByPerfectRoundsDesc(MIN_ROUNDS);
+        final List<GuessRepository.PerfectRoundsRow> bulls = startDate == null
+                ? guessRepository.findUsersByPerfectRoundsDesc(minRounds)
+                : guessRepository.findUsersByPerfectRoundsDescInRange(startDate, endDate, minRounds);
+
         for (GuessRepository.PerfectRoundsRow row : bulls) {
             final String steamId = row.getSteamId();
             if (alreadyAwarded.add(steamId)) {
@@ -112,7 +177,10 @@ public class StatisticsService {
         }
 
         // 4) Accuracy/skill based — Perfect Day (most perfect days)
-        final List<GuessRepository.PerfectDaysRow> pdays = guessRepository.findUsersByPerfectDaysDesc(MIN_ROUNDS);
+        final List<GuessRepository.PerfectDaysRow> pdays = startDate == null
+                ? guessRepository.findUsersByPerfectDaysDesc(minRounds)
+                : guessRepository.findUsersByPerfectDaysDescInRange(startDate, endDate, minRounds);
+
         for (GuessRepository.PerfectDaysRow row : pdays) {
             final String steamId = row.getSteamId();
             if (alreadyAwarded.add(steamId)) {
@@ -120,8 +188,12 @@ public class StatisticsService {
                 break;
             }
         }
+    }
 
-        return Collections.unmodifiableList(result);
+    public enum Timeframe {
+        ALL_TIME,
+        WEEKLY,
+        DAILY
     }
 
     public enum BucketMode {EQUAL_WIDTH, EQUAL_COUNT, LINEAR_WINSORIZED, LOG_SPACE}

@@ -2,11 +2,20 @@ import { NextResponse } from "next/server";
 
 const BACKEND_ORIGIN = process.env.NEXT_PUBLIC_API_DOMAIN || "http://localhost:8080";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const res = await fetch(`${BACKEND_ORIGIN}/api/stats/users/achievements`, {
+    const { searchParams } = new URL(request.url);
+    const timeframe = searchParams.get('timeframe') || 'all';
+    
+    // Determine revalidation time based on timeframe
+    const revalidate = timeframe === 'daily' || timeframe === 'today' ? 300 :  // 5 minutes
+                       timeframe === 'weekly' ? 3600 :  // 1 hour
+                       86400;  // 1 day for all-time
+    
+    const url = `${BACKEND_ORIGIN}/api/stats/users/achievements?timeframe=${encodeURIComponent(timeframe)}`;
+    const res = await fetch(url, {
       headers: { accept: "application/json" },
-      next: { revalidate: 60, tags: ["leaderboard:achievements", "leaderboard"] },
+      next: { revalidate, tags: [`leaderboard:achievements:${timeframe}`, "leaderboard"] },
     });
     const data = await res.json();
     return NextResponse.json(data, { status: res.status });

@@ -51,12 +51,32 @@ public class CacheConfig {
                         .build()
         );
 
+        final CaffeineCache cacheStatsHourly = new CaffeineCache(
+                "stats-hourly",
+                Caffeine.newBuilder()
+                        .expireAfterWrite(1, TimeUnit.HOURS)
+                        .maximumSize(500)
+                        .recordStats()
+                        .build()
+        );
+
+        final CaffeineCache cacheStatsShort = new CaffeineCache(
+                "stats-short",
+                Caffeine.newBuilder()
+                        .expireAfterWrite(5, TimeUnit.MINUTES)
+                        .maximumSize(500)
+                        .recordStats()
+                        .build()
+        );
+
         final SimpleCacheManager cacheManager = new SimpleCacheManager();
         cacheManager.setCaches(List.of(
                 cacheOneHour,
                 cacheOneDay,
                 cacheReviewGame,
-                cacheStatsLong
+                cacheStatsLong,
+                cacheStatsHourly,
+                cacheStatsShort
         ));
         return cacheManager;
     }

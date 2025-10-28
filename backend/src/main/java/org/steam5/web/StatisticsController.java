@@ -58,10 +58,22 @@ public class StatisticsController {
     }
 
     @GetMapping(value = "/users/achievements", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<List<StatisticsService.UserLabel>> userAchievements() {
-        final List<StatisticsService.UserLabel> result = statisticsService.getUserAchievements();
+    public ResponseEntity<List<StatisticsService.UserLabel>> userAchievements(
+            @RequestParam(name = "timeframe", defaultValue = "all") String timeframe) {
+        final List<StatisticsService.UserLabel> result = switch (timeframe.toLowerCase()) {
+            case "weekly" -> statisticsService.getUserAchievementsWeekly();
+            case "daily", "today" -> statisticsService.getUserAchievementsDaily();
+            default -> statisticsService.getUserAchievements();
+        };
+
+        final String cacheControl = switch (timeframe.toLowerCase()) {
+            case "weekly" -> "public, s-maxage=3600, max-age=600";  // 1 hour server, 10 min client
+            case "daily", "today" -> "public, s-maxage=300, max-age=60";  // 5 min server, 1 min client
+            default -> "public, s-maxage=86400, max-age=3600";  // 1 day server, 1 hour client
+        };
+
         return ResponseEntity.ok()
-                .header("Cache-Control", "public, s-maxage=604800, max-age=86400, stale-while-revalidate=604800")
+                .header("Cache-Control", cacheControl)
                 .body(result);
     }
 }

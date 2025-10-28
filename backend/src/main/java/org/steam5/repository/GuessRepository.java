@@ -51,9 +51,27 @@ public interface GuessRepository extends JpaRepository<Guess, Long> {
 
     @Query(value = "SELECT steam_id AS steamId, COUNT(*) AS rounds, " +
             "AVG(EXTRACT(HOUR FROM created_at) * 60 + EXTRACT(MINUTE FROM created_at)) AS avgMinutes " +
+            "FROM guesses WHERE game_date BETWEEN :startDate AND :endDate " +
+            "GROUP BY steam_id HAVING COUNT(*) >= :minRounds " +
+            "ORDER BY avgMinutes ASC", nativeQuery = true)
+    List<AvgTimeRow> findUsersByAvgSubmissionTimeAscInRange(@Param("startDate") LocalDate startDate,
+                                                             @Param("endDate") LocalDate endDate,
+                                                             @Param("minRounds") int minRounds);
+
+    @Query(value = "SELECT steam_id AS steamId, COUNT(*) AS rounds, " +
+            "AVG(EXTRACT(HOUR FROM created_at) * 60 + EXTRACT(MINUTE FROM created_at)) AS avgMinutes " +
             "FROM guesses GROUP BY steam_id HAVING COUNT(*) >= :minRounds " +
             "ORDER BY avgMinutes DESC", nativeQuery = true)
     List<AvgTimeRow> findUsersByAvgSubmissionTimeDesc(@Param("minRounds") int minRounds);
+
+    @Query(value = "SELECT steam_id AS steamId, COUNT(*) AS rounds, " +
+            "AVG(EXTRACT(HOUR FROM created_at) * 60 + EXTRACT(MINUTE FROM created_at)) AS avgMinutes " +
+            "FROM guesses WHERE game_date BETWEEN :startDate AND :endDate " +
+            "GROUP BY steam_id HAVING COUNT(*) >= :minRounds " +
+            "ORDER BY avgMinutes DESC", nativeQuery = true)
+    List<AvgTimeRow> findUsersByAvgSubmissionTimeDescInRange(@Param("startDate") LocalDate startDate,
+                                                              @Param("endDate") LocalDate endDate,
+                                                              @Param("minRounds") int minRounds);
 
     // Highest average points per guess
     interface AvgPointsRow {
@@ -66,6 +84,14 @@ public interface GuessRepository extends JpaRepository<Guess, Long> {
             "FROM guesses GROUP BY steam_id HAVING COUNT(*) >= :minRounds " +
             "ORDER BY avgPoints DESC, rounds DESC, steam_id ASC", nativeQuery = true)
     List<AvgPointsRow> findUsersByAvgPointsDesc(@Param("minRounds") int minRounds);
+
+    @Query(value = "SELECT steam_id AS steamId, AVG(points) AS avgPoints, COUNT(*) AS rounds " +
+            "FROM guesses WHERE game_date BETWEEN :startDate AND :endDate " +
+            "GROUP BY steam_id HAVING COUNT(*) >= :minRounds " +
+            "ORDER BY avgPoints DESC, rounds DESC, steam_id ASC", nativeQuery = true)
+    List<AvgPointsRow> findUsersByAvgPointsDescInRange(@Param("startDate") LocalDate startDate,
+                                                        @Param("endDate") LocalDate endDate,
+                                                        @Param("minRounds") int minRounds);
 
     // Most perfect rounds (points = 5)
     interface PerfectRoundsRow {
@@ -80,6 +106,16 @@ public interface GuessRepository extends JpaRepository<Guess, Long> {
             "HAVING COUNT(*) >= :minRounds AND SUM(CASE WHEN points = 5 THEN 1 ELSE 0 END) > 0 " +
             "ORDER BY perfects DESC, rounds DESC, steam_id ASC", nativeQuery = true)
     List<PerfectRoundsRow> findUsersByPerfectRoundsDesc(@Param("minRounds") int minRounds);
+
+    @Query(value = "SELECT steam_id AS steamId, " +
+            "SUM(CASE WHEN points = 5 THEN 1 ELSE 0 END) AS perfects, COUNT(*) AS rounds " +
+            "FROM guesses WHERE game_date BETWEEN :startDate AND :endDate " +
+            "GROUP BY steam_id " +
+            "HAVING COUNT(*) >= :minRounds AND SUM(CASE WHEN points = 5 THEN 1 ELSE 0 END) > 0 " +
+            "ORDER BY perfects DESC, rounds DESC, steam_id ASC", nativeQuery = true)
+    List<PerfectRoundsRow> findUsersByPerfectRoundsDescInRange(@Param("startDate") LocalDate startDate,
+                                                                @Param("endDate") LocalDate endDate,
+                                                                @Param("minRounds") int minRounds);
 
     // Most perfect days (sum of points equals 5 * rounds_per_day)
     interface PerfectDaysRow {
@@ -110,6 +146,33 @@ public interface GuessRepository extends JpaRepository<Guess, Long> {
             "ORDER BY p.perfect_days DESC, uc.rounds DESC, p.steam_id ASC"
             , nativeQuery = true)
     List<PerfectDaysRow> findUsersByPerfectDaysDesc(@Param("minRounds") int minRounds);
+
+    @Query(value = "WITH day_rounds AS (\n" +
+            "  SELECT game_date, MAX(round_index) AS rounds_per_day\n" +
+            "  FROM guesses\n" +
+            "  WHERE game_date BETWEEN :startDate AND :endDate\n" +
+            "  GROUP BY game_date\n" +
+            "), user_day AS (\n" +
+            "  SELECT g.steam_id, g.game_date, SUM(g.points) AS day_points, MAX(dr.rounds_per_day) AS rounds_per_day\n" +
+            "  FROM guesses g JOIN day_rounds dr USING (game_date)\n" +
+            "  WHERE g.game_date BETWEEN :startDate AND :endDate\n" +
+            "  GROUP BY g.steam_id, g.game_date\n" +
+            "), user_counts AS (\n" +
+            "  SELECT steam_id, COUNT(*) AS rounds FROM guesses WHERE game_date BETWEEN :startDate AND :endDate GROUP BY steam_id\n" +
+            "), perfects AS (\n" +
+            "  SELECT steam_id, COUNT(*) AS perfect_days\n" +
+            "  FROM user_day\n" +
+            "  WHERE day_points = 5 * rounds_per_day\n" +
+            "  GROUP BY steam_id\n" +
+            ")\n" +
+            "SELECT p.steam_id AS steamId, p.perfect_days AS perfectDays, uc.rounds AS rounds\n" +
+            "FROM perfects p JOIN user_counts uc ON uc.steam_id = p.steam_id\n" +
+            "WHERE uc.rounds >= :minRounds\n" +
+            "ORDER BY p.perfect_days DESC, uc.rounds DESC, p.steam_id ASC"
+            , nativeQuery = true)
+    List<PerfectDaysRow> findUsersByPerfectDaysDescInRange(@Param("startDate") LocalDate startDate,
+                                                            @Param("endDate") LocalDate endDate,
+                                                            @Param("minRounds") int minRounds);
 
     interface LeaderboardRow {
         String getSteamId();
