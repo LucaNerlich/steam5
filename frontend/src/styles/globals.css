@@ -134,8 +134,8 @@ button.theme-toggle:hover {
         content: attr(title);
         position: absolute;
         top: 90%;
-        color: #000;
-        background-color: #fff;
+        color: var(--color-text);
+        background-color: var(--color-background);
         border: 1px solid;
         width: fit-content;
         padding: 3px;
