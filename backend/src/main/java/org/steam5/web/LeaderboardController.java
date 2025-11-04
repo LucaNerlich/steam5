@@ -77,6 +77,19 @@ public class LeaderboardController {
         return getGuessResponse(guesses);
     }
 
+    @GetMapping("/monthly")
+    public ResponseEntity<List<LeaderEntry>> monthly() {
+        final List<ReviewGamePick> picks = reviewGameStateService.generateDailyPicks();
+        final LocalDate today = picks.isEmpty() ? LocalDate.now() : picks.getFirst().getPickDate();
+        
+        // Last 30 days including today
+        final LocalDate start = today.minusDays(29);
+        final LocalDate end = today;
+
+        final List<Guess> guesses = guessRepository.findAllBetween(start, end);
+        return getGuessResponse(guesses);
+    }
+
     @GetMapping(value = {"", "/", "/all"})
     public ResponseEntity<List<LeaderEntry>> allTime() {
         final List<Guess> guesses = guessRepository.findAll();

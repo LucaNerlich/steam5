@@ -71,6 +71,11 @@ public class StatisticsService {
         return getUserAchievementsForTimeframe(Timeframe.DAILY);
     }
 
+    @Cacheable(value = "stats-hourly", key = "'stats-user-labels-monthly'", unless = "#result == null")
+    public List<UserLabel> getUserAchievementsMonthly() {
+        return getUserAchievementsForTimeframe(Timeframe.MONTHLY);
+    }
+
     private List<UserLabel> getUserAchievementsForTimeframe(Timeframe timeframe) {
         final List<UserLabel> result = new ArrayList<>();
 
@@ -80,6 +85,7 @@ public class StatisticsService {
         // - Use a minimum participation threshold to avoid flukes.
         final int MIN_ROUNDS = switch (timeframe) {
             case ALL_TIME -> 35;
+            case MONTHLY -> 25;
             case WEEKLY -> 15;
             case DAILY -> 5;
         };
@@ -96,6 +102,11 @@ public class StatisticsService {
                 // Use all-time queries (no date range)
                 processAchievements(result, alreadyAwarded, MIN_ROUNDS, null, null);
                 return Collections.unmodifiableList(result);
+            }
+            case MONTHLY -> {
+                // Last 30 days including today
+                startDate = today.minusDays(29);
+                endDate = today;
             }
             case WEEKLY -> {
                 // Last 7 days including today
@@ -192,6 +203,7 @@ public class StatisticsService {
 
     public enum Timeframe {
         ALL_TIME,
+        MONTHLY,
         WEEKLY,
         DAILY
     }

@@ -61,12 +61,14 @@ public class StatisticsController {
     public ResponseEntity<List<StatisticsService.UserLabel>> userAchievements(
             @RequestParam(name = "timeframe", defaultValue = "all") String timeframe) {
         final List<StatisticsService.UserLabel> result = switch (timeframe.toLowerCase()) {
+            case "monthly" -> statisticsService.getUserAchievementsMonthly();
             case "weekly" -> statisticsService.getUserAchievementsWeekly();
             case "daily", "today" -> statisticsService.getUserAchievementsDaily();
             default -> statisticsService.getUserAchievements();
         };
 
         final String cacheControl = switch (timeframe.toLowerCase()) {
+            case "monthly" -> "public, s-maxage=3600, max-age=600";  // 1 hour server, 10 min client
             case "weekly" -> "public, s-maxage=3600, max-age=600";  // 1 hour server, 10 min client
             case "daily", "today" -> "public, s-maxage=300, max-age=60";  // 5 min server, 1 min client
             default -> "public, s-maxage=86400, max-age=3600";  // 1 day server, 1 hour client

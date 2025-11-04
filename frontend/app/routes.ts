@@ -7,6 +7,7 @@ export const Routes = {
     reviewGuesser4: '/review-guesser/4',
     reviewGuesser5: '/review-guesser/5',
     leaderboard: '/review-guesser/leaderboard',
+    leaderboardMonthly: '/review-guesser/leaderboard/monthly',
     leaderboardWeekly: '/review-guesser/leaderboard/weekly',
     leaderboardToday: '/review-guesser/leaderboard/today',
     archive: '/review-guesser/archive',

@@ -35,7 +35,7 @@ export default function Header() {
                     Archive
                 </Link>
                 <div className="header-actions">
-                    <Link href="/review-guesser/leaderboard" className="btn leaderboard-link"
+                    <Link href="/review-guesser/leaderboard/today" className="btn leaderboard-link"
                           title="Leaderboard"
                           aria-label="Open leaderboard">
                         <span className="mobile__show">Scores</span>

@@ -26,7 +26,7 @@ const fetcher = (url: string) => fetch(url, {headers: {accept: 'application/json
 });
 
 export default function LeaderboardTable(props: {
-    mode: 'today' | 'weekly' | 'weekly-floating' | 'all';
+    mode: 'today' | 'monthly' | 'weekly' | 'weekly-floating' | 'all';
     refreshMs?: number;
     ariaLabel?: string
 }) {
@@ -37,6 +37,10 @@ export default function LeaderboardTable(props: {
         case 'today':
             endpoint = '/api/leaderboard/today';
             aria = props.ariaLabel ?? 'Today Leaderboard';
+            break;
+        case 'monthly':
+            endpoint = '/api/leaderboard/monthly';
+            aria = props.ariaLabel ?? 'Monthly Leaderboard';
             break;
         case 'weekly':
             endpoint = '/api/leaderboard/weekly';
@@ -60,6 +64,7 @@ export default function LeaderboardTable(props: {
 
     // Determine timeframe for achievements based on leaderboard mode
     const achievementTimeframe = props.mode === 'today' ? 'daily' : 
+                                  props.mode === 'monthly' ? 'monthly' :
                                   props.mode === 'weekly' ? 'weekly' : 
                                   'all';
     
