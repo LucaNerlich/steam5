@@ -151,3 +151,27 @@ header .archive-link:hover {
     }
 }
 
+/* Donate link in header */
+header .header__donate-link {
+    color: var(--color-text);
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+    padding: 0.3rem 0.75rem;
+    border-radius: 4px;
+    transition: background-color 0.2s ease, color 0.2s ease;
+    white-space: nowrap;
+}
+
+header .header__donate-link:hover {
+    background-color: var(--color-surface);
+    color: var(--color-text);
+}
+
+@media (max-width: 480px) {
+    header .header__donate-link {
+        font-size: 0.85rem;
+        padding: 0.25rem 0.5rem;
+    }
+}
+

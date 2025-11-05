@@ -41,6 +41,16 @@ export default function Header() {
                         <span className="mobile__show">Scores</span>
                         <span className="mobile__hide">Leaderboard</span>
                     </Link>
+                    <a
+                        href="https://paypal.me/lucanerlich"
+                        className="header__donate-link"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="Support the project on PayPal"
+                        aria-label="Donate via PayPal"
+                    >
+                        Donate
+                    </a>
                     <SteamLoginButton/>
                 </div>
             </div>
