@@ -52,7 +52,7 @@ export default function SteamLoginButton(): React.ReactElement {
     if (steamId) {
         return (
             <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
-                <span className="text-muted">Signed in</span>
+                <span className="text-muted mobile__hide">Signed in</span>
             </div>
         );
     }
