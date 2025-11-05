@@ -35,6 +35,17 @@ export default function Header() {
                     Archive
                 </Link>
                 <div className="header-actions">
+                    <a
+                        href="https://paypal.me/lucanerlich"
+                        className="btn-cta donate-link"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="Support Steam5 via PayPal"
+                        aria-label="Donate via PayPal"
+                    >
+                        <span className="mobile__hide">Donate</span>
+                        <span className="mobile__show">Tip</span>
+                    </a>
                     <Link href="/review-guesser/leaderboard/today" className="btn leaderboard-link"
                           title="Leaderboard"
                           aria-label="Open leaderboard">

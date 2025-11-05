@@ -49,6 +49,23 @@ header .header-actions {
     }
 }
 
+header .donate-link {
+    font-size: 0.95rem;
+    padding: 0.45rem 0.85rem;
+    font-weight: 600;
+}
+
+header .donate-link:hover {
+    filter: brightness(1.08);
+}
+
+@media (max-width: 640px) {
+    header .donate-link {
+        padding: 0.35rem 0.65rem;
+        font-size: 0.85rem;
+    }
+}
+
 /* Narrow dropdown for font selection */
 header .font-select {
     max-width: 120px;

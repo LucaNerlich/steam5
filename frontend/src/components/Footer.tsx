@@ -11,9 +11,6 @@ export default function Footer() {
         <footer>
             <div className="container">
                 <FooterNavRow/>
-                <small className="text-muted" style={{display: 'block', fontSize: '0.8rem'}}>
-                    <Link href="/imprint">Imprint</Link> · <Link href="/privacy">Privacy</Link>
-                </small>
                 <div className="controls">
                     <a
                         href="https://github.com/LucaNerlich/steam5"
@@ -32,6 +29,12 @@ export default function Footer() {
                     <ResetTodayButton/>
                     <AuthLogoutLink/>
                 </div>
+                <small className="text-muted">
+                    Enjoying Steam5? <a href="https://paypal.me/lucanerlich" target="_blank" rel="noopener noreferrer">Donate via PayPal</a> · <a href="https://github.com/sponsors/LucaNerlich" target="_blank" rel="noopener noreferrer">GitHub Sponsors</a>
+                </small>
+                <small className="text-muted">
+                    <Link href="/imprint">Imprint</Link> · <Link href="/privacy">Privacy</Link>
+                </small>
             </div>
         </footer>
     );
