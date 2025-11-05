@@ -46,10 +46,16 @@ footer .controls .font-select {
     color: var(--color-text);
     display: inline-flex;
     align-items: center;
+    transition: color 0.2s ease, opacity 0.2s ease;
 }
 
 .footer__icon-link:hover {
     opacity: 0.85;
+}
+
+.footer__icon-link--paypal:hover svg,
+.footer__icon-link--sponsors:hover svg {
+    color: var(--color-primary);
 }
 
 /* Make icon buttons larger and consistent */

@@ -49,6 +49,30 @@ header .header-actions {
     }
 }
 
+header .btn-donate {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.4rem 0.75rem;
+    font-size: 0.9rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    color: var(--color-text);
+    text-decoration: none;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+header .btn-donate:hover {
+    background: var(--color-primary);
+    color: white;
+    border-color: var(--color-primary);
+}
+
+header .btn-donate svg {
+    flex-shrink: 0;
+}
+
 /* Narrow dropdown for font selection */
 header .font-select {
     max-width: 120px;
@@ -97,6 +121,17 @@ header .steam-login-btn:hover {
     header img[alt="Sign in through Steam"] {
         height: 24px;
         width: auto;
+    }
+
+    header .btn-donate {
+        padding: 0.35rem 0.5rem;
+        font-size: 0.85rem;
+        gap: 0.25rem;
+    }
+
+    header .btn-donate svg {
+        width: 14px;
+        height: 14px;
     }
 }
 
