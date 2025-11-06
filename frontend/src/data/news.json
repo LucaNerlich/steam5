@@ -14,6 +14,13 @@
         "footer": "This makes it easier to see your recent performance at any time!"
     },
     {
+        "start": "2025-11-05",
+        "end": "2025-11-09",
+        "title": "New Achievements",
+        "text": "<p>We've added <strong>achievements</strong> to the leaderboards! Top players can earn special badges:</p><ul><li><strong>Early Bird</strong> ☀: Plays the earliest on average</li><li><strong>Night Owl</strong> 🌙: Plays the latest on average</li><li><strong>Sharpshooter</strong> 🔫: Highest average points per guess</li><li><strong>Bullseye</strong> 🎯: Most perfect rounds (points = 5)</li><li><strong>Perfect Day</strong> 🎩: Most days with perfect total points</li></ul>",
+        "footer": "Check the leaderboards to see who earned these achievements!"
+    },
+    {
         "start": "2025-08-19",
         "end": "2025-08-25",
         "title": "Why Sign In?",
