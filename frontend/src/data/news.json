@@ -7,6 +7,13 @@
         "footer": "Thank you for your support! <3"
     },
     {
+        "start": "2025-11-05",
+        "end": "2025-11-07",
+        "title": "New Monthly Leaderboard",
+        "text": "<p>We've added a new <strong>monthly leaderboard</strong>! Check out how you rank over the past 30 days.</p><p>Both monthly and weekly leaderboards now use <strong>rolling periods</strong> instead of calendar periods:</p><ul><li><strong>Monthly</strong>: Last 30 days</li><li><strong>Weekly</strong>: Last 7 days (previously calendar week)</li></ul>",
+        "footer": "This makes it easier to see your recent performance at any time!"
+    },
+    {
         "start": "2025-08-19",
         "end": "2025-08-25",
         "title": "Why Sign In?",
