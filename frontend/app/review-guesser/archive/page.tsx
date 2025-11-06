@@ -2,6 +2,7 @@ export const revalidate = 600;
 import type {Metadata} from "next";
 import "@/styles/components/archive-list.css";
 import ArchiveSummary from "@/components/ArchiveSummary";
+import GameStatistics from "@/components/GameStatistics";
 
 async function loadDays(): Promise<string[]> {
     const backend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
@@ -32,6 +33,7 @@ export default async function ArchiveIndexPage() {
     return (
         <section className="container">
             <h1>Archive</h1>
+            <GameStatistics/>
             {bucketData.buckets.length > 0 && (
                 <ArchiveSummary
                     bucketLabels={bucketData.buckets}

@@ -227,6 +227,44 @@ public class StatisticsService {
     // "Achievement" Labels
     public record UserLabel(String steamId, UserAchievement userAchievement) {
     }
+
+    @Cacheable(value = "stats-hourly", key = "'top-games-by-reviews-' + #limit", unless = "#result == null")
+    public List<TopGameByReviews> getTopGamesByReviewCount(int limit) {
+        return reviewGamePickRepository.findTopGamesByReviewCount(limit).stream()
+                .map(row -> new TopGameByReviews(
+                        row.getAppId(),
+                        row.getName() != null ? row.getName() : "Unknown",
+                        row.getTotalReviews() != null ? row.getTotalReviews() : 0L
+                ))
+                .toList();
+    }
+
+    @Cacheable(value = "stats-hourly", key = "'daily-avg-scores'", unless = "#result == null")
+    public DailyAvgScoreStats getDailyAvgScoreStats() {
+        final List<GuessRepository.DailyAvgScoreRow> allScores = guessRepository.findDailyAvgScoresDesc();
+        if (allScores.isEmpty()) {
+            return new DailyAvgScoreStats(null, null);
+        }
+        final GuessRepository.DailyAvgScoreRow highest = allScores.get(0);
+        final List<GuessRepository.DailyAvgScoreRow> lowestScores = guessRepository.findDailyAvgScoresAsc();
+        final GuessRepository.DailyAvgScoreRow lowest = lowestScores.isEmpty() ? null : lowestScores.get(0);
+        return new DailyAvgScoreStats(
+                highest != null ? new DailyAvgScore(highest.getGameDate(), highest.getAvgScore(), highest.getPlayerCount()) : null,
+                lowest != null ? new DailyAvgScore(lowest.getGameDate(), lowest.getAvgScore(), lowest.getPlayerCount()) : null
+        );
+    }
+
+    public record TopGameByReviews(Long appId, String name, Long totalReviews) {
+    }
+
+    public record DailyAvgScore(LocalDate date, Double avgScore, Long playerCount) {
+    }
+
+    public record DailyAvgScoreStats(DailyAvgScore highest, DailyAvgScore lowest) {
+    }
+
+    public record GameStatistics(List<TopGameByReviews> topGamesByReviewCount, DailyAvgScoreStats dailyAvgScores) {
+    }
 }
 
 

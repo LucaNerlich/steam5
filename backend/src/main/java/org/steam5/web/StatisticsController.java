@@ -1,6 +1,7 @@
 package org.steam5.web;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -30,6 +31,7 @@ public class StatisticsController {
         links.put("categories", "/api/stats/categories");
         links.put("reviewBuckets", "/api/stats/reviews/buckets");
         links.put("userAchievements", "/api/stats/users/achievements");
+        links.put("gameStatistics", "/api/stats/game");
         return ResponseEntity.ok(links);
     }
 
@@ -77,6 +79,19 @@ public class StatisticsController {
         return ResponseEntity.ok()
                 .header("Cache-Control", cacheControl)
                 .body(result);
+    }
+
+    @GetMapping(value = "/game", produces = MediaType.APPLICATION_JSON_VALUE)
+    @Cacheable(value = "stats-hourly", key = "'game-statistics-' + #topGamesLimit", unless = "#result == null || #result.body == null")
+    public ResponseEntity<StatisticsService.GameStatistics> gameStatistics(
+            @RequestParam(name = "topGamesLimit", defaultValue = "10") int topGamesLimit) {
+        final int normalizedLimit = Math.max(1, Math.min(topGamesLimit, 50));
+        final List<StatisticsService.TopGameByReviews> topGames = statisticsService.getTopGamesByReviewCount(normalizedLimit);
+        final StatisticsService.DailyAvgScoreStats dailyStats = statisticsService.getDailyAvgScoreStats();
+        final StatisticsService.GameStatistics stats = new StatisticsService.GameStatistics(topGames, dailyStats);
+        return ResponseEntity.ok()
+                .header("Cache-Control", "public, s-maxage=3600, max-age=600")
+                .body(stats);
     }
 }
 

@@ -26,6 +26,24 @@ public interface ReviewGamePickRepository extends JpaRepository<ReviewGamePick, 
 
     @Query("select distinct p.pickDate from ReviewGamePick p order by p.pickDate desc")
     List<LocalDate> listDistinctPickDates(Pageable pageable);
+
+    // Top games by review count
+    interface TopGameByReviewsRow {
+        Long getAppId();
+        String getName();
+        Long getTotalReviews();
+    }
+
+    @Query(value = "SELECT p.app_id AS appId, MAX(d.name) AS name, " +
+            "MAX(r.total_positive + r.total_negative) AS totalReviews " +
+            "FROM review_game_pick p " +
+            "JOIN steam_app_reviews r ON r.app_id = p.app_id " +
+            "LEFT JOIN steam_app_details d ON d.app_id = p.app_id " +
+            "WHERE (r.total_positive + r.total_negative) > 0 " +
+            "GROUP BY p.app_id " +
+            "ORDER BY MAX(r.total_positive + r.total_negative) DESC " +
+            "LIMIT :limit", nativeQuery = true)
+    List<TopGameByReviewsRow> findTopGamesByReviewCount(@Param("limit") int limit);
 }
 
 

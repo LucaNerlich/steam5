@@ -1,0 +1,55 @@
+.game-statistics {
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background: var(--bg-secondary, #f5f5f5);
+    border-radius: 8px;
+}
+
+.game-statistics h2 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    font-size: 1.5rem;
+}
+
+.game-statistics dl {
+    margin: 0;
+}
+
+.game-statistics dt {
+    font-weight: 600;
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.game-statistics dt:first-child {
+    margin-top: 0;
+}
+
+.game-statistics dd {
+    margin: 0;
+    margin-bottom: 0.5rem;
+}
+
+.game-statistics ol {
+    margin: 0;
+    padding-left: 3rem;
+}
+
+.game-statistics li {
+    margin-bottom: 0.25rem;
+}
+
+.game-statistics .text-muted {
+    color: var(--text-muted, #666);
+    font-size: 0.9em;
+}
+
+.game-statistics a {
+    color: var(--link-color, #0066cc);
+    text-decoration: none;
+}
+
+.game-statistics a:hover {
+    text-decoration: underline;
+}
+

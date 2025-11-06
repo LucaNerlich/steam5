@@ -174,6 +174,27 @@ public interface GuessRepository extends JpaRepository<Guess, Long> {
                                                             @Param("endDate") LocalDate endDate,
                                                             @Param("minRounds") int minRounds);
 
+    // Daily average scores
+    interface DailyAvgScoreRow {
+        LocalDate getGameDate();
+        Double getAvgScore();
+        Long getPlayerCount();
+    }
+
+    @Query(value = "SELECT game_date AS gameDate, AVG(points) AS avgScore, COUNT(DISTINCT steam_id) AS playerCount " +
+            "FROM guesses " +
+            "GROUP BY game_date " +
+            "HAVING COUNT(*) >= 5 " +
+            "ORDER BY avgScore DESC", nativeQuery = true)
+    List<DailyAvgScoreRow> findDailyAvgScoresDesc();
+
+    @Query(value = "SELECT game_date AS gameDate, AVG(points) AS avgScore, COUNT(DISTINCT steam_id) AS playerCount " +
+            "FROM guesses " +
+            "GROUP BY game_date " +
+            "HAVING COUNT(*) >= 5 " +
+            "ORDER BY avgScore ASC", nativeQuery = true)
+    List<DailyAvgScoreRow> findDailyAvgScoresAsc();
+
     interface LeaderboardRow {
         String getSteamId();
 

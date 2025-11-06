@@ -49,3 +49,11 @@ Accept: application/json
 ### User achievements (daily - today only)
 GET {{host}}/api/stats/users/achievements?timeframe=daily
 Accept: application/json
+
+### Game statistics (default topGamesLimit=10)
+GET {{host}}/api/stats/game
+Accept: application/json
+
+### Game statistics with custom topGamesLimit
+GET {{host}}/api/stats/game?topGamesLimit=20
+Accept: application/json
