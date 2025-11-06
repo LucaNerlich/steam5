@@ -53,3 +53,15 @@
     text-decoration: underline;
 }
 
+.game-statistics .archive-link {
+    color: var(--text-muted, #666);
+    font-size: 0.85em;
+    font-weight: normal;
+    opacity: 0.7;
+}
+
+.game-statistics .archive-link:hover {
+    opacity: 1;
+    text-decoration: underline;
+}
+

@@ -9,6 +9,8 @@ interface TopGameByReviews {
     appId: number;
     name: string;
     totalReviews: number;
+    pickDate: string | null;
+    roundIndex: number | null;
 }
 
 interface DailyAvgScore {
@@ -40,6 +42,7 @@ export default function GameStatistics() {
                 const statsRes = await fetch('/api/stats/game');
                 if (statsRes.ok) {
                     const statsData: GameStatistics = await statsRes.json();
+                    console.log('Game stats data:', statsData);
                     setStats(statsData);
                 }
 
@@ -87,15 +90,29 @@ export default function GameStatistics() {
                 <dt>Top 10 Games by Review Count</dt>
                 <dd>
                     <ol>
-                        {stats.topGamesByReviewCount.map((game) => (
-                            <li key={game.appId}>
-                                <Link href={`https://store.steampowered.com/app/${game.appId}`} target="_blank" rel="noopener noreferrer">
-                                    {game.name}
-                                </Link>
-                                {' '}
-                                <span className="text-muted">({game.totalReviews.toLocaleString()} reviews)</span>
-                            </li>
-                        ))}
+                        {stats.topGamesByReviewCount.map((game) => {
+                            const archiveUrl = game.pickDate 
+                                ? `/review-guesser/archive/${game.pickDate}${game.roundIndex ? `#round-${game.roundIndex}` : ''}`
+                                : null;
+                            console.log('Game:', game.name, 'pickDate:', game.pickDate, 'roundIndex:', game.roundIndex, 'archiveUrl:', archiveUrl);
+                            return (
+                                <li key={game.appId}>
+                                    <Link href={`https://store.steampowered.com/app/${game.appId}`} target="_blank" rel="noopener noreferrer">
+                                        {game.name}
+                                    </Link>
+                                    {' '}
+                                    <span className="text-muted">({game.totalReviews.toLocaleString()} reviews)</span>
+                                    {archiveUrl && (
+                                        <>
+                                            {' '}
+                                            <Link href={archiveUrl} className="archive-link">
+                                                archive
+                                            </Link>
+                                        </>
+                                    )}
+                                </li>
+                            );
+                        })}
                     </ol>
                 </dd>
                 {stats.dailyAvgScores.highest && (

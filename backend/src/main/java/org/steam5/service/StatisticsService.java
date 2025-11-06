@@ -3,6 +3,7 @@ package org.steam5.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
+import org.steam5.domain.ReviewGamePick;
 import org.steam5.repository.GuessRepository;
 import org.steam5.repository.ReviewGamePickRepository;
 import org.steam5.repository.ReviewsBucketRepository;
@@ -230,12 +231,34 @@ public class StatisticsService {
 
     @Cacheable(value = "stats-hourly", key = "'top-games-by-reviews-' + #limit", unless = "#result == null")
     public List<TopGameByReviews> getTopGamesByReviewCount(int limit) {
-        return reviewGamePickRepository.findTopGamesByReviewCount(limit).stream()
-                .map(row -> new TopGameByReviews(
-                        row.getAppId(),
-                        row.getName() != null ? row.getName() : "Unknown",
-                        row.getTotalReviews() != null ? row.getTotalReviews() : 0L
-                ))
+        final List<ReviewGamePickRepository.TopGameByReviewsRow> rows = reviewGamePickRepository.findTopGamesByReviewCount(limit);
+        return rows.stream()
+                .map(row -> {
+                    final LocalDate pickDate = row.getPickDate();
+                    // Calculate round index for the most recent pick date
+                    Integer roundIndex = null;
+                    if (pickDate != null && row.getAppId() != null) {
+                        final List<ReviewGamePick> picksForDate = reviewGamePickRepository.findByPickDate(pickDate);
+                        // Sort by created_at to get the order
+                        final List<ReviewGamePick> sortedPicks = picksForDate.stream()
+                                .sorted((a, b) -> a.getCreatedAt().compareTo(b.getCreatedAt()))
+                                .toList();
+                        // Find the index of the pick for this app
+                        for (int i = 0; i < sortedPicks.size(); i++) {
+                            if (sortedPicks.get(i).getAppId().equals(row.getAppId())) {
+                                roundIndex = i + 1; // 1-based index
+                                break;
+                            }
+                        }
+                    }
+                    return new TopGameByReviews(
+                            row.getAppId(),
+                            row.getName() != null ? row.getName() : "Unknown",
+                            row.getTotalReviews() != null ? row.getTotalReviews() : 0L,
+                            pickDate != null ? pickDate.toString() : null,
+                            roundIndex
+                    );
+                })
                 .toList();
     }
 
@@ -254,7 +277,7 @@ public class StatisticsService {
         );
     }
 
-    public record TopGameByReviews(Long appId, String name, Long totalReviews) {
+    public record TopGameByReviews(Long appId, String name, Long totalReviews, String pickDate, Integer roundIndex) {
     }
 
     public record DailyAvgScore(LocalDate date, Double avgScore, Long playerCount) {

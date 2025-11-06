@@ -32,10 +32,13 @@ public interface ReviewGamePickRepository extends JpaRepository<ReviewGamePick, 
         Long getAppId();
         String getName();
         Long getTotalReviews();
+        LocalDate getPickDate();
     }
 
-    @Query(value = "SELECT p.app_id AS appId, MAX(d.name) AS name, " +
-            "MAX(r.total_positive + r.total_negative) AS totalReviews " +
+    @Query(value = "SELECT p.app_id AS appId, " +
+            "MAX(d.name) AS name, " +
+            "MAX(r.total_positive + r.total_negative) AS totalReviews, " +
+            "MAX(p.pick_date) AS pickDate " +
             "FROM review_game_pick p " +
             "JOIN steam_app_reviews r ON r.app_id = p.app_id " +
             "LEFT JOIN steam_app_details d ON d.app_id = p.app_id " +
