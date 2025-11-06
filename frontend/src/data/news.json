@@ -1,5 +1,12 @@
 [
     {
+        "start": "2025-11-05",
+        "end": "2025-11-19",
+        "title": "Support Steam5",
+        "text": "<p>Enjoying Steam5? Consider supporting the project! Your contributions help keep the game running and enable new features.</p><p>You can support via <a href='https://paypal.me/lucanerlich' target='_blank' rel='noopener noreferrer' data-umami-event='donate-paypal-news'>PayPal</a> or <a href='https://github.com/sponsors/LucaNerlich' target='_blank' rel='noopener noreferrer' data-umami-event='donate-github-news'>GitHub Sponsors</a>.</p>",
+        "footer": "Thank you for your support! <3"
+    },
+    {
         "start": "2025-08-19",
         "end": "2025-08-25",
         "title": "Why Sign In?",

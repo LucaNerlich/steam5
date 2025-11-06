@@ -48,6 +48,7 @@ export default function Header() {
                         rel="noopener noreferrer"
                         title="Support the project on PayPal"
                         aria-label="Donate via PayPal"
+                        data-umami-event="donate-paypal-header"
                     >
                         Donate
                     </a>
