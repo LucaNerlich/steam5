@@ -37,7 +37,7 @@ export default function Header() {
                 </Link>
                 <div className="header-actions">
                     <Link href="/review-guesser/leaderboard/today"
-                          style={{display: 'flex'}}
+                          style={{display: 'flex', alignItems: 'center', gap: '0.15rem'}}
                           title="Leaderboard"
                           aria-label="Open leaderboard">
                         <span className="mobile__hide">Leaderboard</span> <PresentationChartIcon size={22}/>
@@ -45,7 +45,7 @@ export default function Header() {
                     <Link
                         href="https://paypal.me/lucanerlich"
                         className="header__donate-link"
-                        style={{display: 'flex'}}
+                        style={{display: 'flex', alignItems: 'center', gap: '0.15rem'}}
                         target="_blank"
                         rel="noopener noreferrer"
                         title="Support the project on PayPal"

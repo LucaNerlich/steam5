@@ -54,8 +54,10 @@ export default function SteamLoginButton(): React.ReactElement {
     if (steamId) {
         return (
             <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
-                <Link href={`/profile/${steamId}`}>
-                    <UserCheckIcon size={22}/>
+                <Link href={`/profile/${steamId}`}
+                      style={{display: 'flex', alignItems: 'center', gap: '0.15rem'}}
+                      title="Your Profile">
+                    <span className="mobile__hide">Profile</span><UserCheckIcon size={22}/>
                 </Link>
             </div>
         );

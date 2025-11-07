@@ -52,13 +52,12 @@ header .brand__logo-icon {
 header .header-actions {
     display: inline-flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 1rem;
     margin-left: auto;
 
     a {
         text-decoration: none;
         color: var(--color-text);
-        margin-right: 0.5rem;
     }
 
     @media (max-width: 640px) {
