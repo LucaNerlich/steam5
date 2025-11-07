@@ -140,16 +140,9 @@ header .archive-link {
     text-decoration: none;
     font-size: 0.9rem;
     font-weight: 400;
-    white-space: nowrap;
-    transition: color 0.2s ease;
     display: flex;
     align-items: center;
     gap: 0.15rem;
-}
-
-header .archive-link:hover {
-    color: var(--color-text);
-    text-decoration: underline;
 }
 
 @media (min-width: 641px) {
