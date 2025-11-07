@@ -55,7 +55,7 @@ export default function ReviewGuesserHero(props: Readonly<ReviewGuesserHeroProps
     return (
         <section className='review-guesser-hero'>
             <h1 className="game-title">{pick.name}</h1>
-            <p>Round <strong>{props.roundIndex}</strong> of <strong>{totalRounds}</strong> | {formatDate(today.date, props.locale)}
+            <p>Round <strong>{props.roundIndex}</strong> of <strong>{totalRounds}</strong>
             </p>
             <p className="meta">
                 {pick.developers && pick.developers.length > 0 && (
