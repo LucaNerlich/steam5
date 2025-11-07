@@ -4,6 +4,8 @@ import React, {useEffect, useState} from "react";
 import {clearAll} from "@/lib/storage";
 import Image from "next/image";
 import SignInImage from "../../public/sign-in-through-steam.png"
+import {UserCheckIcon} from "@phosphor-icons/react/ssr";
+import Link from "next/link";
 
 export function buildSteamLoginUrl(): string {
     const backend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
@@ -52,7 +54,9 @@ export default function SteamLoginButton(): React.ReactElement {
     if (steamId) {
         return (
             <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
-                <span className="text-muted mobile__hide">Signed in</span>
+                <Link href={`/profile/${steamId}`}>
+                    <UserCheckIcon size={22}/>
+                </Link>
             </div>
         );
     }

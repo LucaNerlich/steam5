@@ -10,6 +10,7 @@
     },
     "dependencies": {
         "@fancyapps/ui": "^6.1.4",
+        "@phosphor-icons/react": "^2.1.10",
         "babel-plugin-react-compiler": "^1.0.0",
         "html-react-parser": "^5.2.8",
         "next": "^16.0.1",
