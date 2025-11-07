@@ -26,28 +26,27 @@ header .container {
 
 header .brand {
     display: inline-flex;
-    gap: 8px;
     align-items: center;
 }
 
 /* New: responsive brand icon handling */
-header .brand__logo-full {
-    display: none;
-}
+/*header .brand__logo-full {*/
+/*    display: none;*/
+/*}*/
 
-header .brand__logo-icon {
-    display: inline-block;
-}
+/*header .brand__logo-icon {*/
+/*    display: inline-block;*/
+/*}*/
 
-@media (min-width: 451px) {
-    header .brand__logo-full {
-        display: inline-block;
-    }
+/*@media (min-width: 451px) {*/
+/*    header .brand__logo-full {*/
+/*        display: inline-block;*/
+/*    }*/
 
-    header .brand__logo-icon {
-        display: none;
-    }
-}
+/*    header .brand__logo-icon {*/
+/*        display: none;*/
+/*    }*/
+/*}*/
 
 header .header-actions {
     display: inline-flex;
@@ -88,16 +87,12 @@ header .steam-login-btn:hover {
 
 /* Make header less cramped on small screens */
 @media (max-width: 480px) {
-    header .container {
-        gap: 0.5rem;
-    }
-
     header .brand span {
         display: none; /* hide brand text, keep logo */
     }
 
     header .header-actions {
-        gap: 0.25rem;
+        gap: 0.5rem;
     }
 
     header .font-select {
@@ -129,15 +124,11 @@ header .steam-login-btn:hover {
 
 /* Inline page title for current game (e.g., Review Guesser) */
 header .game-title {
-    display: block;
+    display: flex;
     font-weight: 600;
-    font-size: 1rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
 }
 
-@media (min-width: 641px) {
+@media (min-width: 770px) {
     header .game-title {
         margin-left: 1rem;
     }
@@ -151,6 +142,9 @@ header .archive-link {
     font-weight: 400;
     white-space: nowrap;
     transition: color 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.15rem;
 }
 
 header .archive-link:hover {
@@ -161,12 +155,5 @@ header .archive-link:hover {
 @media (min-width: 641px) {
     header .archive-link {
         margin-left: 0.75rem;
-    }
-}
-
-/* Hide archive link on very small screens to save space */
-@media (max-width: 480px) {
-    header .archive-link {
-        display: none;
     }
 }
