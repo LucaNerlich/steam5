@@ -5,6 +5,7 @@ import "@/styles/components/header.css";
 import SteamLoginButton from "@/components/SteamLoginButton";
 import IconImage from "../../app/icon.svg"
 import IconFullImage from "../../public/icon-full.svg"
+import {PresentationChartIcon, TipJarIcon} from "@phosphor-icons/react/ssr";
 
 export default function Header() {
     return (
@@ -35,23 +36,23 @@ export default function Header() {
                     Archive
                 </Link>
                 <div className="header-actions">
-                    <Link href="/review-guesser/leaderboard/today" className="btn leaderboard-link"
+                    <Link href="/review-guesser/leaderboard/today"
+                          style={{display: 'flex'}}
                           title="Leaderboard"
                           aria-label="Open leaderboard">
-                        <span className="mobile__show">Scores</span>
-                        <span className="mobile__hide">Leaderboard</span>
+                        <span className="mobile__hide">Leaderboard</span> <PresentationChartIcon size={22}/>
                     </Link>
-                    <a
+                    <Link
                         href="https://paypal.me/lucanerlich"
                         className="header__donate-link"
+                        style={{display: 'flex'}}
                         target="_blank"
                         rel="noopener noreferrer"
                         title="Support the project on PayPal"
                         aria-label="Donate via PayPal"
-                        data-umami-event="donate-paypal-header"
-                    >
-                        Donate
-                    </a>
+                        data-umami-event="donate-paypal-header">
+                        <span className="mobile__hide">Donate</span> <TipJarIcon size={22}/>
+                    </Link>
                     <SteamLoginButton/>
                 </div>
             </div>

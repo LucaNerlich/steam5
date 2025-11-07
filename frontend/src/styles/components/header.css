@@ -31,12 +31,22 @@ header .brand {
 }
 
 /* New: responsive brand icon handling */
-header .brand__logo-full { display: none; }
-header .brand__logo-icon { display: inline-block; }
+header .brand__logo-full {
+    display: none;
+}
+
+header .brand__logo-icon {
+    display: inline-block;
+}
 
 @media (min-width: 451px) {
-    header .brand__logo-full { display: inline-block; }
-    header .brand__logo-icon { display: none; }
+    header .brand__logo-full {
+        display: inline-block;
+    }
+
+    header .brand__logo-icon {
+        display: none;
+    }
 }
 
 header .header-actions {
@@ -44,6 +54,13 @@ header .header-actions {
     align-items: center;
     gap: 0.5rem;
     margin-left: auto;
+
+    a {
+        text-decoration: none;
+        color: var(--color-text);
+        margin-right: 0.5rem;
+    }
+
     @media (max-width: 640px) {
         justify-self: end;
     }
@@ -80,11 +97,6 @@ header .steam-login-btn:hover {
         display: none; /* hide brand text, keep logo */
     }
 
-    header .leaderboard-link {
-        padding: 0.3rem 0.5rem;
-        font-size: 0.9rem;
-    }
-
     header .header-actions {
         gap: 0.25rem;
     }
@@ -97,6 +109,15 @@ header .steam-login-btn:hover {
     header img[alt="Sign in through Steam"] {
         height: 24px;
         width: auto;
+    }
+}
+
+@media (min-width: 481px) {
+    header .header-actions {
+
+        a > svg {
+            margin-left: 0.25rem;
+        }
     }
 }
 
@@ -150,28 +171,3 @@ header .archive-link:hover {
         display: none;
     }
 }
-
-/* Donate link in header */
-header .header__donate-link {
-    color: var(--color-text);
-    text-decoration: none;
-    font-size: 0.9rem;
-    font-weight: 500;
-    padding: 0.3rem 0.75rem;
-    border-radius: 4px;
-    transition: background-color 0.2s ease, color 0.2s ease;
-    white-space: nowrap;
-}
-
-header .header__donate-link:hover {
-    background-color: var(--color-surface);
-    color: var(--color-text);
-}
-
-@media (max-width: 480px) {
-    header .header__donate-link {
-        font-size: 0.85rem;
-        padding: 0.25rem 0.5rem;
-    }
-}
-
