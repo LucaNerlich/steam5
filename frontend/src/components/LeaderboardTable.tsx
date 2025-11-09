@@ -81,6 +81,8 @@ export default function LeaderboardTable(props: {
         SHARPSHOOTER: 'Sharpshooter',
         BULLSEYE: 'Bullseye',
         PERFECT_DAY: 'Perfect Day',
+        CHEETAH: 'Cheetah',
+        SLOTH: 'Sloth',
     };
 
     const ACHIEVEMENT_TITLES: Record<string, string> = {
@@ -89,6 +91,8 @@ export default function LeaderboardTable(props: {
         SHARPSHOOTER: 'Highest average points per guess 🔫',
         BULLSEYE: 'Most perfect rounds (points = 5) 🎯',
         PERFECT_DAY: 'Most days with perfect total points 🎩',
+        CHEETAH: 'Least time between first and last guess per day 🐆',
+        SLOTH: 'Most time between first and last guess per day 🐌',
     };
 
     const { data: achievements } = useSWR<UserAchievement[]>(endpointAchievements, fetcher, {

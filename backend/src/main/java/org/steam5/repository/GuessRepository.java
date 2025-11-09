@@ -195,6 +195,95 @@ public interface GuessRepository extends JpaRepository<Guess, Long> {
             "ORDER BY avgScore ASC", nativeQuery = true)
     List<DailyAvgScoreRow> findDailyAvgScoresAsc();
 
+    // Sum of daily time differences (time between first and last guess per day)
+    interface DailyTimeDiffRow {
+        String getSteamId();
+        Long getTotalSeconds();  // Sum of daily time differences in seconds
+        Long getRounds();
+    }
+
+    @Query(value = "WITH daily_diffs AS (\n" +
+            "  SELECT steam_id, game_date,\n" +
+            "    EXTRACT(EPOCH FROM (MAX(created_at) - MIN(created_at))) AS diff_seconds\n" +
+            "  FROM guesses\n" +
+            "  GROUP BY steam_id, game_date\n" +
+            "  HAVING COUNT(*) >= 2\n" +  // At least 2 guesses per day
+            "), user_totals AS (\n" +
+            "  SELECT steam_id, SUM(diff_seconds)::BIGINT AS total_seconds\n" +
+            "  FROM daily_diffs\n" +
+            "  GROUP BY steam_id\n" +
+            "), user_counts AS (\n" +
+            "  SELECT steam_id, COUNT(*) AS rounds FROM guesses GROUP BY steam_id\n" +
+            ")\n" +
+            "SELECT ut.steam_id AS steamId, ut.total_seconds AS totalSeconds, uc.rounds AS rounds\n" +
+            "FROM user_totals ut JOIN user_counts uc ON uc.steam_id = ut.steam_id\n" +
+            "WHERE uc.rounds >= :minRounds\n" +
+            "ORDER BY ut.total_seconds ASC, uc.rounds DESC, ut.steam_id ASC", nativeQuery = true)
+    List<DailyTimeDiffRow> findUsersByDailyTimeDiffAsc(@Param("minRounds") int minRounds);
+
+    @Query(value = "WITH daily_diffs AS (\n" +
+            "  SELECT steam_id, game_date,\n" +
+            "    EXTRACT(EPOCH FROM (MAX(created_at) - MIN(created_at))) AS diff_seconds\n" +
+            "  FROM guesses\n" +
+            "  WHERE game_date BETWEEN :startDate AND :endDate\n" +
+            "  GROUP BY steam_id, game_date\n" +
+            "  HAVING COUNT(*) >= 2\n" +  // At least 2 guesses per day
+            "), user_totals AS (\n" +
+            "  SELECT steam_id, SUM(diff_seconds)::BIGINT AS total_seconds\n" +
+            "  FROM daily_diffs\n" +
+            "  GROUP BY steam_id\n" +
+            "), user_counts AS (\n" +
+            "  SELECT steam_id, COUNT(*) AS rounds FROM guesses WHERE game_date BETWEEN :startDate AND :endDate GROUP BY steam_id\n" +
+            ")\n" +
+            "SELECT ut.steam_id AS steamId, ut.total_seconds AS totalSeconds, uc.rounds AS rounds\n" +
+            "FROM user_totals ut JOIN user_counts uc ON uc.steam_id = ut.steam_id\n" +
+            "WHERE uc.rounds >= :minRounds\n" +
+            "ORDER BY ut.total_seconds ASC, uc.rounds DESC, ut.steam_id ASC", nativeQuery = true)
+    List<DailyTimeDiffRow> findUsersByDailyTimeDiffAscInRange(@Param("startDate") LocalDate startDate,
+                                                               @Param("endDate") LocalDate endDate,
+                                                               @Param("minRounds") int minRounds);
+
+    @Query(value = "WITH daily_diffs AS (\n" +
+            "  SELECT steam_id, game_date,\n" +
+            "    EXTRACT(EPOCH FROM (MAX(created_at) - MIN(created_at))) AS diff_seconds\n" +
+            "  FROM guesses\n" +
+            "  GROUP BY steam_id, game_date\n" +
+            "  HAVING COUNT(*) >= 2\n" +  // At least 2 guesses per day
+            "), user_totals AS (\n" +
+            "  SELECT steam_id, SUM(diff_seconds)::BIGINT AS total_seconds\n" +
+            "  FROM daily_diffs\n" +
+            "  GROUP BY steam_id\n" +
+            "), user_counts AS (\n" +
+            "  SELECT steam_id, COUNT(*) AS rounds FROM guesses GROUP BY steam_id\n" +
+            ")\n" +
+            "SELECT ut.steam_id AS steamId, ut.total_seconds AS totalSeconds, uc.rounds AS rounds\n" +
+            "FROM user_totals ut JOIN user_counts uc ON uc.steam_id = ut.steam_id\n" +
+            "WHERE uc.rounds >= :minRounds\n" +
+            "ORDER BY ut.total_seconds DESC, uc.rounds DESC, ut.steam_id ASC", nativeQuery = true)
+    List<DailyTimeDiffRow> findUsersByDailyTimeDiffDesc(@Param("minRounds") int minRounds);
+
+    @Query(value = "WITH daily_diffs AS (\n" +
+            "  SELECT steam_id, game_date,\n" +
+            "    EXTRACT(EPOCH FROM (MAX(created_at) - MIN(created_at))) AS diff_seconds\n" +
+            "  FROM guesses\n" +
+            "  WHERE game_date BETWEEN :startDate AND :endDate\n" +
+            "  GROUP BY steam_id, game_date\n" +
+            "  HAVING COUNT(*) >= 2\n" +  // At least 2 guesses per day
+            "), user_totals AS (\n" +
+            "  SELECT steam_id, SUM(diff_seconds)::BIGINT AS total_seconds\n" +
+            "  FROM daily_diffs\n" +
+            "  GROUP BY steam_id\n" +
+            "), user_counts AS (\n" +
+            "  SELECT steam_id, COUNT(*) AS rounds FROM guesses WHERE game_date BETWEEN :startDate AND :endDate GROUP BY steam_id\n" +
+            ")\n" +
+            "SELECT ut.steam_id AS steamId, ut.total_seconds AS totalSeconds, uc.rounds AS rounds\n" +
+            "FROM user_totals ut JOIN user_counts uc ON uc.steam_id = ut.steam_id\n" +
+            "WHERE uc.rounds >= :minRounds\n" +
+            "ORDER BY ut.total_seconds DESC, uc.rounds DESC, ut.steam_id ASC", nativeQuery = true)
+    List<DailyTimeDiffRow> findUsersByDailyTimeDiffDescInRange(@Param("startDate") LocalDate startDate,
+                                                                @Param("endDate") LocalDate endDate,
+                                                                @Param("minRounds") int minRounds);
+
     interface LeaderboardRow {
         String getSteamId();
 

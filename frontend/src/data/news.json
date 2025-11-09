@@ -1,5 +1,12 @@
 [
     {
+        "start": "2025-11-20",
+        "end": "2025-11-27",
+        "title": "Understanding Bucket Pick Strategies",
+        "text": "<p>Each day, Steam5 randomly selects a <strong>bucket pick strategy</strong> that determines which review count ranges the games will come from. Here's how each strategy works:</p><ul><li><strong>RANDOM</strong>: Each bucket has an equal chance of being picked for each round.</li><li><strong>EQUAL</strong>: Picks are evenly distributed across all buckets (one per bucket when rounds match bucket count).</li><li><strong>LEAN_HIGH</strong>: Higher probability of picking games from buckets with more reviews.</li><li><strong>LEAN_LOW</strong>: Higher probability of picking games from buckets with fewer reviews.</li><li><strong>LEAN_CENTER</strong>: Higher probability of picking games from the middle bucket.</li><li><strong>HIGH</strong>: Multiple picks are reserved from the top two buckets (high review counts).</li><li><strong>LOW</strong>: Multiple picks are reserved from the bottom two buckets (low review counts).</li><li><strong>CENTER</strong>: Multiple picks are reserved from the center bucket.</li></ul><p>The strategy chosen each day is hidden, so you'll need to adapt your guessing strategy based on the games you see!</p>",
+        "footer": "Tip: Pay attention to the review counts of games each day to infer which strategy might be active."
+    },
+    {
         "start": "2025-11-05",
         "end": "2025-11-19",
         "title": "Support Steam5",
@@ -8,10 +15,17 @@
     },
     {
         "start": "2025-11-05",
-        "end": "2025-11-19",
+        "end": "2025-11-13",
         "title": "Game Statistics",
         "text": "<p>We've added a new <strong>Game Statistics</strong> section to the <a href='/review-guesser/archive'>archive page</a>! Check out interesting stats about the game:</p><ul><li><strong>Total rounds played</strong>: See how many rounds we've completed together</li><li><strong>Top 10 games by review count</strong>: Discover which games had the most reviews</li><li><strong>Best and worst days</strong>: Find out which days had the highest and lowest average user scores</li></ul>",
         "footer": "Explore the archive to see all the statistics!"
+    },
+    {
+        "start": "2025-11-05",
+        "end": "2025-11-12",
+        "title": "New Speed Achievements",
+        "text": "<p>We've added two new <strong>speed-based achievements</strong> to the leaderboards:</p><ul><li><strong>Cheetah</strong> 🐆: Least time between first and last guess per day (summed across the timeframe)</li><li><strong>Sloth</strong> 🐌: Most time between first and last guess per day (summed across the timeframe)</li></ul><p>These achievements measure how quickly (or slowly) you complete all rounds each day. For weekly, monthly, and all-time leaderboards, we sum up the daily time differences.</p>",
+        "footer": "Check the leaderboards to see who earned these new achievements!"
     },
     {
         "start": "2025-11-05",

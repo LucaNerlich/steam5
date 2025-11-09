@@ -200,6 +200,32 @@ public class StatisticsService {
                 break;
             }
         }
+
+        // 5) Speed based — Cheetah (least time between first and last guess per day, summed)
+        final List<GuessRepository.DailyTimeDiffRow> cheetahs = startDate == null
+                ? guessRepository.findUsersByDailyTimeDiffAsc(minRounds)
+                : guessRepository.findUsersByDailyTimeDiffAscInRange(startDate, endDate, minRounds);
+
+        for (GuessRepository.DailyTimeDiffRow row : cheetahs) {
+            final String steamId = row.getSteamId();
+            if (alreadyAwarded.add(steamId)) {
+                result.add(new UserLabel(steamId, UserAchievement.CHEETAH));
+                break;
+            }
+        }
+
+        // 6) Speed based — Sloth (most time between first and last guess per day, summed)
+        final List<GuessRepository.DailyTimeDiffRow> sloths = startDate == null
+                ? guessRepository.findUsersByDailyTimeDiffDesc(minRounds)
+                : guessRepository.findUsersByDailyTimeDiffDescInRange(startDate, endDate, minRounds);
+
+        for (GuessRepository.DailyTimeDiffRow row : sloths) {
+            final String steamId = row.getSteamId();
+            if (alreadyAwarded.add(steamId)) {
+                result.add(new UserLabel(steamId, UserAchievement.SLOTH));
+                break;
+            }
+        }
     }
 
     public enum Timeframe {
@@ -222,7 +248,9 @@ public class StatisticsService {
         NIGHT_OWL,    // plays the latest, on avg
         SHARPSHOOTER, // highest average points per guess
         BULLSEYE,     // most perfect rounds (points = 5)
-        PERFECT_DAY   // most days with perfect total points
+        PERFECT_DAY,  // most days with perfect total points
+        CHEETAH,      // least time between first and last guess per day (summed)
+        SLOTH         // most time between first and last guess per day (summed)
     }
 
     // "Achievement" Labels
