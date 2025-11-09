@@ -92,7 +92,7 @@ export default function LeaderboardTable(props: {
         BULLSEYE: 'Most perfect rounds (points = 5) 🎯',
         PERFECT_DAY: 'Most days with perfect total points 🎩',
         CHEETAH: 'Least time between first and last guess per day 🐆',
-        SLOTH: 'Most time between first and last guess per day 🐌',
+        SLOTH: 'Most time between first and last guess per day 🦥',
     };
 
     const { data: achievements } = useSWR<UserAchievement[]>(endpointAchievements, fetcher, {
