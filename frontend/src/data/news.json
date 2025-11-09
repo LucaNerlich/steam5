@@ -24,14 +24,14 @@
         "start": "2025-11-09",
         "end": "2025-11-13",
         "title": "Achievements",
-        "text": "<p>We've added <strong>achievements</strong> to the leaderboards! Top players can earn special badges:</p><ul><li><strong>Bullseye</strong> 🎯: Most perfect rounds (points = 5)</li><li><strong>Cheetah</strong> 🐆: Least time between first and last guess per day (summed across the timeframe)</li><li><strong>Early Bird</strong> ☀: Plays the earliest on average</li><li><strong>Night Owl</strong> 🌙: Plays the latest on average</li><li><strong>Perfect Day</strong> 🎩: Most days with perfect total points</li><li><strong>Sharpshooter</strong> 🔫: Highest average points per guess</li><li><strong>Sloth</strong> 🐌: Most time between first and last guess per day (summed across the timeframe)</li></ul><p>The speed-based achievements (Cheetah and Sloth) measure how quickly (or slowly) you complete all rounds each day. For weekly, monthly, and all-time leaderboards, we sum up the daily time differences.</p>",
+        "text": "<p>We've added <strong>achievements</strong> to the leaderboards! Top players can earn special badges:</p><ul><li><strong>Bullseye</strong> 🎯: Most perfect rounds (points = 5)</li><li><strong>Cheetah</strong> 🐆: Least time between first and last guess per day (summed across the timeframe)</li><li><strong>Early Bird</strong> ☀: Plays the earliest on average</li><li><strong>Night Owl</strong> 🌙: Plays the latest on average</li><li><strong>Perfect Day</strong> 🎩: Most days with perfect total points</li><li><strong>Sharpshooter</strong> 🔫: Highest average points per guess</li><li><strong>Sloth</strong> 🦥: Most time between first and last guess per day (summed across the timeframe)</li></ul><p>The speed-based achievements (Cheetah and Sloth) measure how quickly (or slowly) you complete all rounds each day. For weekly, monthly, and all-time leaderboards, we sum up the daily time differences.</p>",
         "footer": "Check the leaderboards to see who earned these achievements!"
     },
     {
         "start": "2025-11-01",
         "end": "2025-11-05",
         "title": "New Speed Achievements",
-        "text": "<p>We've added two new <strong>speed-based achievements</strong> to the leaderboards:</p><ul><li><strong>Cheetah</strong> 🐆: Least time between first and last guess per day (summed across the timeframe)</li><li><strong>Sloth</strong> 🐌: Most time between first and last guess per day (summed across the timeframe)</li></ul><p>These achievements measure how quickly (or slowly) you complete all rounds each day. For weekly, monthly, and all-time leaderboards, we sum up the daily time differences.</p>",
+        "text": "<p>We've added two new <strong>speed-based achievements</strong> to the leaderboards:</p><ul><li><strong>Cheetah</strong> 🐆: Least time between first and last guess per day (summed across the timeframe)</li><li><strong>Sloth</strong> 🦥: Most time between first and last guess per day (summed across the timeframe)</li></ul><p>These achievements measure how quickly (or slowly) you complete all rounds each day. For weekly, monthly, and all-time leaderboards, we sum up the daily time differences.</p>",
         "footer": "Check the leaderboards to see who earned these new achievements!"
     },
     {
