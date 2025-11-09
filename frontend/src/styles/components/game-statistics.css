@@ -1,8 +1,9 @@
 .game-statistics {
-    margin-bottom: 2rem;
-    padding: 1.5rem;
-    background: var(--bg-secondary, #f5f5f5);
+    background: var(--color-surface-variant);
+    border: 1px solid var(--color-border);
     border-radius: 8px;
+    margin: 1.5rem 0;
+    padding: 1.5rem;
 }
 
 .game-statistics h2 {
@@ -40,12 +41,10 @@
 }
 
 .game-statistics .text-muted {
-    color: var(--text-muted, #666);
     font-size: 0.9em;
 }
 
 .game-statistics a {
-    color: var(--link-color, #0066cc);
     text-decoration: none;
 }
 
@@ -54,7 +53,6 @@
 }
 
 .game-statistics .archive-link {
-    color: var(--text-muted, #666);
     font-size: 0.85em;
     font-weight: normal;
     opacity: 0.7;
@@ -64,4 +62,3 @@
     opacity: 1;
     text-decoration: underline;
 }
-
