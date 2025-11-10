@@ -22,7 +22,7 @@ export type LeaderEntry = {
 
 const fetcher = (url: string) => fetch(url, {
     headers: {accept: 'application/json'},
-    cache: 'no-store' // disable caching for leaderboards
+    cache: 'no-cache' // Revalidate with server but allow caching for performance
 }).then(r => {
     if (!r.ok) throw new Error(`Failed to load ${url}: ${r.status}`);
     return r.json();
