@@ -1,0 +1,31 @@
+type: http_request
+model: http_request
+id: rq_7Fda6Xh5dc
+createdAt: 2025-11-10T18:44:54.206265
+updatedAt: 2025-11-10T18:44:54.206265
+workspaceId: wk_ecNXfSaJZU
+folderId: fl_vXayLwNni7
+authentication: {}
+authenticationType: null
+body:
+  text: |-
+    {
+        "appId": 1040370,
+        "bucketGuess": "1-100"
+    }
+bodyType: application/json
+description: ''
+headers:
+- enabled: true
+  name: Content-Type
+  value: application/json
+  id: null
+- enabled: true
+  name: Accept
+  value: application/json
+  id: null
+method: POST
+name: Submit a guess for a game's review bucket
+sortPriority: 28.0
+url: ${[host]}/api/review-game/guess
+urlParameters: []

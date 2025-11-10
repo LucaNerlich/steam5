@@ -1,0 +1,22 @@
+type: http_request
+model: http_request
+id: rq_wEKztGSVBb
+createdAt: 2025-11-10T18:44:54.205838
+updatedAt: 2025-11-10T18:44:54.205838
+workspaceId: wk_ecNXfSaJZU
+folderId: fl_Zbo6tk8ysU
+authentication: {}
+authenticationType: null
+body: {}
+bodyType: null
+description: ''
+headers:
+- enabled: true
+  name: Accept
+  value: application/json
+  id: null
+method: GET
+name: Get Steam App Details by appId
+sortPriority: 23.0
+url: ${[host]}/api/details/${[appId]}
+urlParameters: []

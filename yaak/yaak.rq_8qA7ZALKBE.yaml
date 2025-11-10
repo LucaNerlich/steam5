@@ -1,0 +1,22 @@
+type: http_request
+model: http_request
+id: rq_8qA7ZALKBE
+createdAt: 2025-11-10T18:44:54.207095
+updatedAt: 2025-11-10T18:44:54.207095
+workspaceId: wk_ecNXfSaJZU
+folderId: fl_TQ5ndJBB3U
+authentication: {}
+authenticationType: null
+body: {}
+bodyType: null
+description: ''
+headers:
+- enabled: true
+  name: Accept
+  value: application/json
+  id: null
+method: GET
+name: Get configured bucket labels
+sortPriority: 38.0
+url: ${[host]}/api/metrics/thresholds
+urlParameters: []

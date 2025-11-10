@@ -1,0 +1,38 @@
+type: http_request
+model: http_request
+id: rq_FQFmkKzJuY
+createdAt: 2025-11-10T18:44:54.207489
+updatedAt: 2025-11-10T18:44:54.207489
+workspaceId: wk_ecNXfSaJZU
+folderId: fl_RStKurFj3V
+authentication: {}
+authenticationType: null
+body: {}
+bodyType: null
+description: ''
+headers: []
+method: GET
+name: Get Game Reviews
+sortPriority: 44.0
+url: https://store.steampowered.com/appreviews/${[appId]}
+urlParameters:
+- enabled: true
+  name: json
+  value: '1'
+  id: null
+- enabled: true
+  name: num_per_page
+  value: '0'
+  id: null
+- enabled: true
+  name: language
+  value: all
+  id: null
+- enabled: true
+  name: purchase_type
+  value: all
+  id: null
+- enabled: true
+  name: key
+  value: ${[apikey]}
+  id: null

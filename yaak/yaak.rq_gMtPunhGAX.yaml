@@ -1,0 +1,26 @@
+type: http_request
+model: http_request
+id: rq_gMtPunhGAX
+createdAt: 2025-11-10T18:44:54.207567
+updatedAt: 2025-11-10T18:44:54.207568
+workspaceId: wk_ecNXfSaJZU
+folderId: fl_RStKurFj3V
+authentication: {}
+authenticationType: null
+body: {}
+bodyType: null
+description: ''
+headers: []
+method: GET
+name: Get Player Summaries
+sortPriority: 45.0
+url: https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/
+urlParameters:
+- enabled: true
+  name: key
+  value: ${[appId]}
+  id: null
+- enabled: true
+  name: steamids
+  value: ${[steamId]}
+  id: null

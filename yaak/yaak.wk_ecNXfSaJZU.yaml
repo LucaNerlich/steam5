@@ -1,0 +1,14 @@
+type: workspace
+model: workspace
+id: wk_ecNXfSaJZU
+createdAt: 2025-11-10T18:44:54.203162
+updatedAt: 2025-11-10T18:44:54.203162
+authentication: {}
+authenticationType: null
+description: API collection for Steam5 application
+headers: []
+name: Steam5 API
+encryptionKeyChallenge: null
+settingValidateCertificates: true
+settingFollowRedirects: true
+settingRequestTimeout: 0

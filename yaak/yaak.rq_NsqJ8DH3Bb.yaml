@@ -1,0 +1,30 @@
+type: http_request
+model: http_request
+id: rq_NsqJ8DH3Bb
+createdAt: 2025-11-10T18:44:54.207329
+updatedAt: 2025-11-10T18:44:54.207329
+workspaceId: wk_ecNXfSaJZU
+folderId: fl_RStKurFj3V
+authentication: {}
+authenticationType: null
+body: {}
+bodyType: null
+description: ''
+headers: []
+method: GET
+name: Get Game List
+sortPriority: 42.0
+url: https://api.steampowered.com/IStoreService/GetAppList/v1/
+urlParameters:
+- enabled: true
+  name: include_games
+  value: 'true'
+  id: null
+- enabled: true
+  name: key
+  value: ${[apikey]}
+  id: null
+- enabled: true
+  name: max_results
+  value: '50000'
+  id: null

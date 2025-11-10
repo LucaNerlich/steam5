@@ -1,0 +1,22 @@
+type: http_request
+model: http_request
+id: rq_Xsfr4CTRkH
+createdAt: 2025-11-10T18:44:54.205990
+updatedAt: 2025-11-10T18:44:54.205991
+workspaceId: wk_ecNXfSaJZU
+folderId: fl_vXayLwNni7
+authentication: {}
+authenticationType: null
+body: {}
+bodyType: null
+description: ''
+headers:
+- enabled: true
+  name: Accept
+  value: application/json
+  id: null
+method: GET
+name: Get today's review-game picks details
+sortPriority: 26.0
+url: ${[host]}/api/review-game/today/details
+urlParameters: []

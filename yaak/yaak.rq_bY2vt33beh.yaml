@@ -1,0 +1,26 @@
+type: http_request
+model: http_request
+id: rq_bY2vt33beh
+createdAt: 2025-11-10T18:44:54.207176
+updatedAt: 2025-11-10T18:44:54.207176
+workspaceId: wk_ecNXfSaJZU
+folderId: fl_RStKurFj3V
+authentication: {}
+authenticationType: null
+body: {}
+bodyType: null
+description: ''
+headers: []
+method: GET
+name: Get App List
+sortPriority: 40.0
+url: https://api.steampowered.com/ISteamApps/GetAppList/v0002/
+urlParameters:
+- enabled: true
+  name: key
+  value: ${[steamKey]}
+  id: null
+- enabled: true
+  name: format
+  value: json
+  id: null

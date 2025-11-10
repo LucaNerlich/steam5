@@ -1,0 +1,22 @@
+type: http_request
+model: http_request
+id: rq_CXwUehZ4CY
+createdAt: 2025-11-10T18:44:54.204301
+updatedAt: 2025-11-10T18:44:54.204301
+workspaceId: wk_ecNXfSaJZU
+folderId: fl_n8HUn3fmxk
+authentication: {}
+authenticationType: null
+body: {}
+bodyType: null
+description: ''
+headers:
+- enabled: true
+  name: Accept
+  value: application/json
+  id: null
+method: GET
+name: All-time leaderboard (explicit alias)
+sortPriority: 5.0
+url: ${[host]}/api/leaderboard/all
+urlParameters: []

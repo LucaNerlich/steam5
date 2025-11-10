@@ -1,0 +1,907 @@
+{
+	"info": {
+		"_postman_id": "steam5-api-collection",
+		"name": "Steam5 API",
+		"description": "API collection for Steam5 application",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Leaderboard",
+			"item": [
+				{
+					"name": "Today leaderboard",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{host}}/api/leaderboard/today",
+							"host": ["{{host}}"],
+							"path": ["api", "leaderboard", "today"]
+						}
+					}
+				},
+				{
+					"name": "Weekly leaderboard (last full week)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{host}}/api/leaderboard/weekly",
+							"host": ["{{host}}"],
+							"path": ["api", "leaderboard", "weekly"]
+						}
+					}
+				},
+				{
+					"name": "Weekly leaderboard (floating last 7 days)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{host}}/api/leaderboard/weekly?floating=true",
+							"host": ["{{host}}"],
+							"path": ["api", "leaderboard", "weekly"],
+							"query": [
+								{
+									"key": "floating",
+									"value": "true"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "All-time leaderboard",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{host}}/api/leaderboard",
+							"host": ["{{host}}"],
+							"path": ["api", "leaderboard"]
+						}
+					}
+				},
+				{
+					"name": "All-time leaderboard (explicit alias)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{host}}/api/leaderboard/all",
+							"host": ["{{host}}"],
+							"path": ["api", "leaderboard", "all"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Statistics",
+			"item": [
+				{
+					"name": "Index of statistics endpoints",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{host}}/api/stats",
+							"host": ["{{host}}"],
+							"path": ["api", "stats"]
+						}
+					}
+				},
+				{
+					"name": "List top genres (default limit=100)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{host}}/api/stats/genres",
+							"host": ["{{host}}"],
+							"path": ["api", "stats", "genres"]
+						}
+					}
+				},
+				{
+					"name": "List top genres with limit",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{host}}/api/stats/genres?limit=50",
+							"host": ["{{host}}"],
+							"path": ["api", "stats", "genres"],
+							"query": [
+								{
+									"key": "limit",
+									"value": "50"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "List top categories (default limit=100)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{host}}/api/stats/categories",
+							"host": ["{{host}}"],
+							"path": ["api", "stats", "categories"]
+						}
+					}
+				},
+				{
+					"name": "List top categories with limit",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{host}}/api/stats/categories?limit=50",
+							"host": ["{{host}}"],
+							"path": ["api", "stats", "categories"],
+							"query": [
+								{
+									"key": "limit",
+									"value": "50"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Review buckets (log-space default)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{host}}/api/stats/reviews/buckets",
+							"host": ["{{host}}"],
+							"path": ["api", "stats", "reviews", "buckets"]
+						}
+					}
+				},
+				{
+					"name": "Review buckets (equal-width)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{host}}/api/stats/reviews/buckets?mode=EQUAL_WIDTH",
+							"host": ["{{host}}"],
+							"path": ["api", "stats", "reviews", "buckets"],
+							"query": [
+								{
+									"key": "mode",
+									"value": "EQUAL_WIDTH"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Review buckets (equal-count)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{host}}/api/stats/reviews/buckets?mode=EQUAL_COUNT",
+							"host": ["{{host}}"],
+							"path": ["api", "stats", "reviews", "buckets"],
+							"query": [
+								{
+									"key": "mode",
+									"value": "EQUAL_COUNT"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Review buckets (linear winsorized)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{host}}/api/stats/reviews/buckets?mode=LINEAR_WINSORIZED",
+							"host": ["{{host}}"],
+							"path": ["api", "stats", "reviews", "buckets"],
+							"query": [
+								{
+									"key": "mode",
+									"value": "LINEAR_WINSORIZED"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "User achievements (all-time, default)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{host}}/api/stats/users/achievements",
+							"host": ["{{host}}"],
+							"path": ["api", "stats", "users", "achievements"]
+						}
+					}
+				},
+				{
+					"name": "User achievements (all-time, explicit)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{host}}/api/stats/users/achievements?timeframe=all",
+							"host": ["{{host}}"],
+							"path": ["api", "stats", "users", "achievements"],
+							"query": [
+								{
+									"key": "timeframe",
+									"value": "all"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "User achievements (weekly - last 7 days)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{host}}/api/stats/users/achievements?timeframe=weekly",
+							"host": ["{{host}}"],
+							"path": ["api", "stats", "users", "achievements"],
+							"query": [
+								{
+									"key": "timeframe",
+									"value": "weekly"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "User achievements (daily - today only)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{host}}/api/stats/users/achievements?timeframe=daily",
+							"host": ["{{host}}"],
+							"path": ["api", "stats", "users", "achievements"],
+							"query": [
+								{
+									"key": "timeframe",
+									"value": "daily"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Game statistics (default topGamesLimit=10)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{host}}/api/stats/game",
+							"host": ["{{host}}"],
+							"path": ["api", "stats", "game"]
+						}
+					}
+				},
+				{
+					"name": "Game statistics with custom topGamesLimit",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{host}}/api/stats/game?topGamesLimit=20",
+							"host": ["{{host}}"],
+							"path": ["api", "stats", "game"],
+							"query": [
+								{
+									"key": "topGamesLimit",
+									"value": "20"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Steam App Details",
+			"item": [
+				{
+					"name": "Get Steam App Details by appId",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{host}}/api/details/{{appId}}",
+							"host": ["{{host}}"],
+							"path": ["api", "details", "{{appId}}"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Review Game",
+			"item": [
+				{
+					"name": "Get today's review-game picks",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{host}}/api/review-game/today",
+							"host": ["{{host}}"],
+							"path": ["api", "review-game", "today"]
+						}
+					}
+				},
+				{
+					"name": "Get today's review-game picks details",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{host}}/api/review-game/today/details",
+							"host": ["{{host}}"],
+							"path": ["api", "review-game", "today", "details"]
+						}
+					}
+				},
+				{
+					"name": "Get configured bucket labels",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{host}}/api/review-game/buckets",
+							"host": ["{{host}}"],
+							"path": ["api", "review-game", "buckets"]
+						}
+					}
+				},
+				{
+					"name": "Submit a guess for a game's review bucket",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"appId\": 1040370,\n    \"bucketGuess\": \"1-100\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{host}}/api/review-game/guess",
+							"host": ["{{host}}"],
+							"path": ["api", "review-game", "guess"]
+						}
+					}
+				},
+				{
+					"name": "Submit guess (alternative example)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"appId\": 440,\n    \"bucketGuess\": \"50k-100k\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{host}}/api/review-game/guess",
+							"host": ["{{host}}"],
+							"path": ["api", "review-game", "guess"]
+						}
+					}
+				},
+				{
+					"name": "Submit guess (invalid body example)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"appId\": null,\n    \"bucketGuess\": null\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{host}}/api/review-game/guess",
+							"host": ["{{host}}"],
+							"path": ["api", "review-game", "guess"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Metrics",
+			"item": [
+				{
+					"name": "Index of metrics endpoints (JSON)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{host}}/api/metrics",
+							"host": ["{{host}}"],
+							"path": ["api", "metrics"]
+						}
+					}
+				},
+				{
+					"name": "Index of metrics endpoints (HTML)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "text/html"
+							}
+						],
+						"url": {
+							"raw": "{{host}}/api/metrics",
+							"host": ["{{host}}"],
+							"path": ["api", "metrics"]
+						}
+					}
+				},
+				{
+					"name": "Get entity counts",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{host}}/api/metrics/counts",
+							"host": ["{{host}}"],
+							"path": ["api", "metrics", "counts"]
+						}
+					}
+				},
+				{
+					"name": "Get coverage of reviews/details over index",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{host}}/api/metrics/coverage",
+							"host": ["{{host}}"],
+							"path": ["api", "metrics", "coverage"]
+						}
+					}
+				},
+				{
+					"name": "Get details breakdown",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{host}}/api/metrics/details/breakdown",
+							"host": ["{{host}}"],
+							"path": ["api", "metrics", "details", "breakdown"]
+						}
+					}
+				},
+				{
+					"name": "Get picks summary",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{host}}/api/metrics/picks/summary",
+							"host": ["{{host}}"],
+							"path": ["api", "metrics", "picks", "summary"]
+						}
+					}
+				},
+				{
+					"name": "Get configured bucket labels",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{host}}/api/metrics/thresholds",
+							"host": ["{{host}}"],
+							"path": ["api", "metrics", "thresholds"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Steam API (External)",
+			"item": [
+				{
+					"name": "Get App List",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://api.steampowered.com/ISteamApps/GetAppList/v0002/?key={{steamKey}}&format=json",
+							"protocol": "https",
+							"host": ["api", "steampowered", "com"],
+							"path": ["ISteamApps", "GetAppList", "v0002", ""],
+							"query": [
+								{
+									"key": "key",
+									"value": "{{steamKey}}"
+								},
+								{
+									"key": "format",
+									"value": "json"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Single Steam App",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://store.steampowered.com/api/appdetails?appids={{appId}}&key={{apikey}}",
+							"protocol": "https",
+							"host": ["store", "steampowered", "com"],
+							"path": ["api", "appdetails"],
+							"query": [
+								{
+									"key": "appids",
+									"value": "{{appId}}"
+								},
+								{
+									"key": "key",
+									"value": "{{apikey}}"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Game List",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://api.steampowered.com/IStoreService/GetAppList/v1/?include_games=true&key={{apikey}}&max_results=50000",
+							"protocol": "https",
+							"host": ["api", "steampowered", "com"],
+							"path": ["IStoreService", "GetAppList", "v1", ""],
+							"query": [
+								{
+									"key": "include_games",
+									"value": "true"
+								},
+								{
+									"key": "key",
+									"value": "{{apikey}}"
+								},
+								{
+									"key": "max_results",
+									"value": "50000"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Game List (paging)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://api.steampowered.com/IStoreService/GetAppList/v1/?include_games=true&key={{apikey}}&max_results=50000&last_appid=1533580",
+							"protocol": "https",
+							"host": ["api", "steampowered", "com"],
+							"path": ["IStoreService", "GetAppList", "v1", ""],
+							"query": [
+								{
+									"key": "include_games",
+									"value": "true"
+								},
+								{
+									"key": "key",
+									"value": "{{apikey}}"
+								},
+								{
+									"key": "max_results",
+									"value": "50000"
+								},
+								{
+									"key": "last_appid",
+									"value": "1533580"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Game Reviews",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://store.steampowered.com/appreviews/{{appId}}?json=1&num_per_page=0&language=all&purchase_type=all&key={{apikey}}",
+							"protocol": "https",
+							"host": ["store", "steampowered", "com"],
+							"path": ["appreviews", "{{appId}}"],
+							"query": [
+								{
+									"key": "json",
+									"value": "1"
+								},
+								{
+									"key": "num_per_page",
+									"value": "0"
+								},
+								{
+									"key": "language",
+									"value": "all"
+								},
+								{
+									"key": "purchase_type",
+									"value": "all"
+								},
+								{
+									"key": "key",
+									"value": "{{apikey}}"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Player Summaries",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key={{appId}}&steamids={{steamId}}",
+							"protocol": "https",
+							"host": ["api", "steampowered", "com"],
+							"path": ["ISteamUser", "GetPlayerSummaries", "v0002", ""],
+							"query": [
+								{
+									"key": "key",
+									"value": "{{appId}}"
+								},
+								{
+									"key": "steamids",
+									"value": "{{steamId}}"
+								}
+							]
+						}
+					}
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "host",
+			"value": "http://localhost:8080",
+			"type": "string"
+		},
+		{
+			"key": "appId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "steamKey",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "apikey",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "steamId",
+			"value": "",
+			"type": "string"
+		}
+	]
+}
+

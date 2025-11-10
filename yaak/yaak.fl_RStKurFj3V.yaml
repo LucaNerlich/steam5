@@ -1,0 +1,13 @@
+type: folder
+model: folder
+id: fl_RStKurFj3V
+createdAt: 2025-11-10T18:44:54.207954
+updatedAt: 2025-11-10T18:44:54.207954
+workspaceId: wk_ecNXfSaJZU
+folderId: null
+authentication: {}
+authenticationType: null
+description: ''
+headers: []
+name: Steam API (External)
+sortPriority: 39.0

@@ -1,0 +1,26 @@
+type: http_request
+model: http_request
+id: rq_XSmeTigQvs
+createdAt: 2025-11-10T18:44:54.207254
+updatedAt: 2025-11-10T18:44:54.207254
+workspaceId: wk_ecNXfSaJZU
+folderId: fl_RStKurFj3V
+authentication: {}
+authenticationType: null
+body: {}
+bodyType: null
+description: ''
+headers: []
+method: GET
+name: Get Single Steam App
+sortPriority: 41.0
+url: https://store.steampowered.com/api/appdetails
+urlParameters:
+- enabled: true
+  name: appids
+  value: ${[appId]}
+  id: null
+- enabled: true
+  name: key
+  value: ${[apikey]}
+  id: null
