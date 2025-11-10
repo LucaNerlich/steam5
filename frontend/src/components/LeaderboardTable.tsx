@@ -20,7 +20,10 @@ export type LeaderEntry = {
     profileUrl?: string | null;
 };
 
-const fetcher = (url: string) => fetch(url, {headers: {accept: 'application/json'}}).then(r => {
+const fetcher = (url: string) => fetch(url, {
+    headers: {accept: 'application/json'},
+    cache: 'no-store' // Temporarily disable cache to debug
+}).then(r => {
     if (!r.ok) throw new Error(`Failed to load ${url}: ${r.status}`);
     return r.json();
 });
@@ -73,6 +76,11 @@ export default function LeaderboardTable(props: {
     type UserAchievement = {
         steamId: string;
         userAchievement: string;
+        avgMinutes?: number;      // Early Bird / Night Owl
+        avgPoints?: number;       // Sharpshooter
+        perfectRounds?: number;  // Bullseye
+        perfectDays?: number;     // Perfect Day
+        totalSeconds?: number;    // Cheetah / Sloth
     };
 
     const ACHIEVEMENT_LABELS: Record<string, string> = {
@@ -101,18 +109,20 @@ export default function LeaderboardTable(props: {
         dedupingInterval: 2000, // Allow refetch after 2 seconds
     });
 
+    // Temporary debug to check what we're receiving
+    if (achievements && achievements.length > 0) {
+        console.log('[LeaderboardTable] Received achievements:', achievements[0]);
+    }
+
     const achievementBySteamId = useMemo(() => {
-        const m = new Map<string, string>();
-        console.log(`[LeaderboardTable] Processing achievements for ${props.mode}:`, achievements);
+        const m = new Map<string, UserAchievement>();
         if (Array.isArray(achievements)) {
             for (const a of achievements) {
                 if (a?.steamId && a?.userAchievement) {
-                    console.log(`[LeaderboardTable] Adding achievement: ${a.steamId} -> ${a.userAchievement}`);
-                    m.set(a.steamId, a.userAchievement);
+                    m.set(a.steamId, a);
                 }
             }
         }
-        console.log(`[LeaderboardTable] Achievement map size: ${m.size}`);
         return m;
     }, [achievements, props.mode]);
 
@@ -121,10 +131,58 @@ export default function LeaderboardTable(props: {
         return ACHIEVEMENT_LABELS[key] ?? key.split('_').map(s => s.charAt(0) + s.slice(1).toLowerCase()).join(' ');
     }, []);
 
-    const getAchievementTitle = useCallback((key: string | null | undefined) => {
-        if (!key) return undefined;
-        return ACHIEVEMENT_TITLES[key] ?? undefined;
+    const formatDuration = useCallback((seconds: number): string => {
+        if (seconds < 60) return `${seconds}s`;
+        const minutes = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        if (minutes < 60) return `${minutes}m ${secs}s`;
+        const hours = Math.floor(minutes / 60);
+        const mins = minutes % 60;
+        return `${hours}h ${mins}m`;
     }, []);
+
+    const formatTimeOfDay = useCallback((minutesSinceMidnight: number): string => {
+        const hours = Math.floor(minutesSinceMidnight / 60);
+        const mins = Math.floor(minutesSinceMidnight % 60);
+        const period = hours >= 12 ? 'PM' : 'AM';
+        const displayHours = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+        return `${displayHours}:${mins.toString().padStart(2, '0')} ${period}`;
+    }, []);
+
+    const getAchievementTitle = useCallback((key: string | null | undefined, achievement?: UserAchievement) => {
+        if (!key) return undefined;
+        
+        const baseTitle = ACHIEVEMENT_TITLES[key];
+        if (!achievement) return baseTitle;
+        
+        // Add metric information to tooltip
+        switch (key) {
+            case 'EARLY_BIRD':
+            case 'NIGHT_OWL':
+                return (achievement.avgMinutes !== undefined && achievement.avgMinutes !== null)
+                    ? `${baseTitle} (avg: ${formatTimeOfDay(achievement.avgMinutes)})`
+                    : baseTitle;
+            case 'SHARPSHOOTER':
+                return (achievement.avgPoints !== undefined && achievement.avgPoints !== null)
+                    ? `${baseTitle} (${achievement.avgPoints.toFixed(2)} pts/guess)`
+                    : baseTitle;
+            case 'BULLSEYE':
+                return (achievement.perfectRounds !== undefined && achievement.perfectRounds !== null)
+                    ? `${baseTitle} (${achievement.perfectRounds} perfect rounds)`
+                    : baseTitle;
+            case 'PERFECT_DAY':
+                return (achievement.perfectDays !== undefined && achievement.perfectDays !== null)
+                    ? `${baseTitle} (${achievement.perfectDays} perfect days)`
+                    : baseTitle;
+            case 'CHEETAH':
+            case 'SLOTH':
+                return (achievement.totalSeconds !== undefined && achievement.totalSeconds !== null)
+                    ? `${baseTitle} (${formatDuration(achievement.totalSeconds)})`
+                    : baseTitle;
+            default:
+                return baseTitle;
+        }
+    }, [formatDuration, formatTimeOfDay]);
 
     type SortKey = 'personaName' | 'totalPoints' | 'rounds' | 'streak' | 'hits' | 'tooHigh' | 'tooLow' | 'avgPoints';
     type SortDir = 'asc' | 'desc';
@@ -168,7 +226,6 @@ export default function LeaderboardTable(props: {
             return av < bv ? -1 * dir : 1 * dir;
         });
 
-        console.log(sortedCopy);
         return sortedCopy;
     }, [data, sortDir, sortKey]);
 
@@ -241,12 +298,13 @@ export default function LeaderboardTable(props: {
                                         <strong>{entry.personaName || 'no-name'}</strong>
                                     </a>
                                     {(() => {
-                                        const k = achievementBySteamId.get(entry.steamId);
+                                        const achievement = achievementBySteamId.get(entry.steamId);
+                                        const k = achievement?.userAchievement;
                                         const lbl = getAchievementLabel(k);
                                         return lbl ? (
                                             <span
                                                 className="leaderboard__achievement"
-                                                title={getAchievementTitle(k) ?? lbl ?? undefined}
+                                                title={getAchievementTitle(k, achievement) ?? lbl ?? undefined}
                                                 style={{
                                                     marginLeft: 8,
                                                     padding: '2px 6px',
@@ -278,6 +336,93 @@ export default function LeaderboardTable(props: {
             <div className="leaderboard__subline" aria-live="polite">
                 Average points:&nbsp;<strong>{avgTotalPoints.toFixed(2)}</strong>
             </div>
+            
+            {achievements && achievements.length > 0 && (
+                <div className="leaderboard__achievements">
+                    <h3 className="leaderboard__achievements-title">Achievements</h3>
+                    <div className="leaderboard__achievements-grid">
+                        {Object.entries(ACHIEVEMENT_LABELS).map(([key, label]) => {
+                            const achievement = achievements.find(a => a.userAchievement === key);
+                            if (!achievement) return null;
+                            
+                            const entry = data?.find(e => e.steamId === achievement.steamId);
+                            const metricText = (() => {
+                                switch (key) {
+                                    case 'EARLY_BIRD':
+                                    case 'NIGHT_OWL':
+                                        if (achievement.avgMinutes !== undefined && achievement.avgMinutes !== null) {
+                                            try {
+                                                return `Avg: ${formatTimeOfDay(achievement.avgMinutes)}`;
+                                            } catch (e) {
+                                                console.error('Error formatting time:', e, achievement);
+                                                return `Avg: ${Math.round(achievement.avgMinutes)} min`;
+                                            }
+                                        }
+                                        return null;
+                                    case 'SHARPSHOOTER':
+                                        return (achievement.avgPoints !== undefined && achievement.avgPoints !== null)
+                                            ? `${achievement.avgPoints.toFixed(2)} pts/guess`
+                                            : null;
+                                    case 'BULLSEYE':
+                                        return (achievement.perfectRounds !== undefined && achievement.perfectRounds !== null)
+                                            ? `${achievement.perfectRounds} perfect rounds`
+                                            : null;
+                                    case 'PERFECT_DAY':
+                                        return (achievement.perfectDays !== undefined && achievement.perfectDays !== null)
+                                            ? `${achievement.perfectDays} perfect days`
+                                            : null;
+                                    case 'CHEETAH':
+                                    case 'SLOTH':
+                                        return (achievement.totalSeconds !== undefined && achievement.totalSeconds !== null)
+                                            ? formatDuration(achievement.totalSeconds)
+                                            : null;
+                                    default:
+                                        return null;
+                                }
+                            })();
+                            
+                            return (
+                                <div key={key} className="leaderboard__achievement-card">
+                                    <div className="leaderboard__achievement-header">
+                                        <span className="leaderboard__achievement-badge">{label}</span>
+                                        <span className="leaderboard__achievement-icon">
+                                            {key === 'EARLY_BIRD' && '☀'}
+                                            {key === 'NIGHT_OWL' && '🌙'}
+                                            {key === 'SHARPSHOOTER' && '🔫'}
+                                            {key === 'BULLSEYE' && '🎯'}
+                                            {key === 'PERFECT_DAY' && '🎩'}
+                                            {key === 'CHEETAH' && '🐆'}
+                                            {key === 'SLOTH' && '🦥'}
+                                        </span>
+                                    </div>
+                                    <div className="leaderboard__achievement-winner">
+                                        {entry?.avatar && (
+                                            <div className="leaderboard__achievement-avatar-wrap"
+                                                 style={{backgroundImage: entry.avatarBlurdata ? `url(${entry.avatarBlurdata})` : undefined}}>
+                                                <Image className="leaderboard__achievement-avatar"
+                                                       src={entry.avatar}
+                                                       placeholder={'empty'}
+                                                       alt=""
+                                                       width={32}
+                                                       height={32}/>
+                                            </div>
+                                        )}
+                                        <a href={`/profile/${encodeURIComponent(achievement.steamId)}`}
+                                           className="leaderboard__achievement-name">
+                                            {entry?.personaName || achievement.steamId}
+                                        </a>
+                                    </div>
+                                    {metricText && (
+                                        <div className="leaderboard__achievement-metric">
+                                            {metricText}
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

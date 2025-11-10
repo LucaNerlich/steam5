@@ -146,7 +146,8 @@ public class StatisticsService {
             for (GuessRepository.AvgTimeRow row : earliest) {
                 final String steamId = row.getSteamId();
                 if (alreadyAwarded.add(steamId)) {
-                    result.add(new UserLabel(steamId, UserAchievement.EARLY_BIRD));
+                    result.add(new UserLabel(steamId, UserAchievement.EARLY_BIRD,
+                            row.getAvgMinutes(), null, null, null, null));
                     break;
                 }
             }
@@ -156,7 +157,8 @@ public class StatisticsService {
             for (GuessRepository.AvgTimeRow row : latest) {
                 final String steamId = row.getSteamId();
                 if (alreadyAwarded.add(steamId)) {
-                    result.add(new UserLabel(steamId, UserAchievement.NIGHT_OWL));
+                    result.add(new UserLabel(steamId, UserAchievement.NIGHT_OWL,
+                            row.getAvgMinutes(), null, null, null, null));
                     break;
                 }
             }
@@ -170,7 +172,8 @@ public class StatisticsService {
         for (GuessRepository.AvgPointsRow row : sharp) {
             final String steamId = row.getSteamId();
             if (alreadyAwarded.add(steamId)) {
-                result.add(new UserLabel(steamId, UserAchievement.SHARPSHOOTER));
+                result.add(new UserLabel(steamId, UserAchievement.SHARPSHOOTER,
+                        null, row.getAvgPoints(), null, null, null));
                 break;
             }
         }
@@ -183,7 +186,8 @@ public class StatisticsService {
         for (GuessRepository.PerfectRoundsRow row : bulls) {
             final String steamId = row.getSteamId();
             if (alreadyAwarded.add(steamId)) {
-                result.add(new UserLabel(steamId, UserAchievement.BULLSEYE));
+                result.add(new UserLabel(steamId, UserAchievement.BULLSEYE,
+                        null, null, row.getPerfects(), null, null));
                 break;
             }
         }
@@ -196,7 +200,8 @@ public class StatisticsService {
         for (GuessRepository.PerfectDaysRow row : pdays) {
             final String steamId = row.getSteamId();
             if (alreadyAwarded.add(steamId)) {
-                result.add(new UserLabel(steamId, UserAchievement.PERFECT_DAY));
+                result.add(new UserLabel(steamId, UserAchievement.PERFECT_DAY,
+                        null, null, null, row.getPerfectDays(), null));
                 break;
             }
         }
@@ -209,7 +214,8 @@ public class StatisticsService {
         for (GuessRepository.DailyTimeDiffRow row : cheetahs) {
             final String steamId = row.getSteamId();
             if (alreadyAwarded.add(steamId)) {
-                result.add(new UserLabel(steamId, UserAchievement.CHEETAH));
+                result.add(new UserLabel(steamId, UserAchievement.CHEETAH,
+                        null, null, null, null, row.getTotalSeconds()));
                 break;
             }
         }
@@ -222,7 +228,8 @@ public class StatisticsService {
         for (GuessRepository.DailyTimeDiffRow row : sloths) {
             final String steamId = row.getSteamId();
             if (alreadyAwarded.add(steamId)) {
-                result.add(new UserLabel(steamId, UserAchievement.SLOTH));
+                result.add(new UserLabel(steamId, UserAchievement.SLOTH,
+                        null, null, null, null, row.getTotalSeconds()));
                 break;
             }
         }
@@ -253,8 +260,17 @@ public class StatisticsService {
         SLOTH         // most time between first and last guess per day (summed)
     }
 
-    // "Achievement" Labels
-    public record UserLabel(String steamId, UserAchievement userAchievement) {
+    // "Achievement" Labels with metrics
+    public record UserLabel(
+            String steamId,
+            UserAchievement userAchievement,
+            // Metrics - only one will be populated based on achievement type
+            Double avgMinutes,      // For EARLY_BIRD, NIGHT_OWL
+            Double avgPoints,       // For SHARPSHOOTER
+            Long perfectRounds,      // For BULLSEYE
+            Long perfectDays,        // For PERFECT_DAY
+            Long totalSeconds        // For CHEETAH, SLOTH
+    ) {
     }
 
     @Cacheable(value = "stats-hourly", key = "'top-games-by-reviews-' + #limit", unless = "#result == null")

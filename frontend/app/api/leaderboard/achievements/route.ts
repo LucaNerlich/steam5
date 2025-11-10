@@ -13,15 +13,12 @@ export async function GET(request: Request) {
                        86400;  // 1 day for all-time
     
     const url = `${BACKEND_ORIGIN}/api/stats/users/achievements?timeframe=${encodeURIComponent(timeframe)}`;
-    console.log(`[Achievements API] Fetching: ${url}`);
     
     const res = await fetch(url, {
       headers: { accept: "application/json" },
-      next: { revalidate, tags: [`leaderboard:achievements:${timeframe}`, "leaderboard"] },
+      next: { revalidate: 0, tags: [`leaderboard:achievements:${timeframe}`, "leaderboard"] }, // Temporarily disable cache
     });
     const data = await res.json();
-    
-    console.log(`[Achievements API] Response status: ${res.status}, data length: ${Array.isArray(data) ? data.length : 'not an array'}`);
     
     // Add cache control headers to the response
     const cacheControl = timeframe === 'daily' || timeframe === 'today' 
