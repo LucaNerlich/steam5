@@ -84,11 +84,14 @@ public class StatisticsService {
         // - Maintain uniqueness: one achievement per user. If a user would win multiple,
         //   assign the first by priority and skip them for subsequent labels.
         // - Use a minimum participation threshold to avoid flukes.
+        // - Note: Achievements are filtered on the frontend to only show users who appear
+        //   on the leaderboard, so this threshold should be low enough to not exclude
+        //   legitimate leaderboard participants.
         final int MIN_ROUNDS = switch (timeframe) {
-            case ALL_TIME -> 35;
-            case MONTHLY -> 25;
-            case WEEKLY -> 15;
-            case DAILY -> 5;
+            case ALL_TIME -> 10;  // Reduced from 35 - leaderboard has no minimum
+            case MONTHLY -> 5;    // Reduced from 25 - leaderboard has no minimum
+            case WEEKLY -> 3;     // Reduced from 15 - leaderboard has no minimum
+            case DAILY -> 1;      // Reduced from 5 - leaderboard has no minimum
         };
 
         final Set<String> alreadyAwarded = new HashSet<>();

@@ -22,7 +22,7 @@ export type LeaderEntry = {
 
 const fetcher = (url: string) => fetch(url, {
     headers: {accept: 'application/json'},
-    cache: 'no-store' // Temporarily disable cache to debug
+    cache: 'no-store' // disable caching for leaderboards
 }).then(r => {
     if (!r.ok) throw new Error(`Failed to load ${url}: ${r.status}`);
     return r.json();
@@ -109,11 +109,6 @@ export default function LeaderboardTable(props: {
         dedupingInterval: 2000, // Allow refetch after 2 seconds
     });
 
-    // Temporary debug to check what we're receiving
-    if (achievements && achievements.length > 0) {
-        console.log('[LeaderboardTable] Received achievements:', achievements[0]);
-    }
-
     const achievementBySteamId = useMemo(() => {
         const m = new Map<string, UserAchievement>();
         if (Array.isArray(achievements)) {
@@ -177,7 +172,7 @@ export default function LeaderboardTable(props: {
             case 'CHEETAH':
             case 'SLOTH':
                 return (achievement.totalSeconds !== undefined && achievement.totalSeconds !== null)
-                    ? `${baseTitle} (${formatDuration(achievement.totalSeconds)})`
+                    ? `${baseTitle} (total: ${formatDuration(achievement.totalSeconds)})`
                     : baseTitle;
             default:
                 return baseTitle;
@@ -345,7 +340,9 @@ export default function LeaderboardTable(props: {
                             const achievement = achievements.find(a => a.userAchievement === key);
                             if (!achievement) return null;
                             
+                            // Only show achievements for users who are in the current leaderboard
                             const entry = data?.find(e => e.steamId === achievement.steamId);
+                            if (!entry) return null;
                             const metricText = (() => {
                                 switch (key) {
                                     case 'EARLY_BIRD':
@@ -374,7 +371,7 @@ export default function LeaderboardTable(props: {
                                     case 'CHEETAH':
                                     case 'SLOTH':
                                         return (achievement.totalSeconds !== undefined && achievement.totalSeconds !== null)
-                                            ? formatDuration(achievement.totalSeconds)
+                                            ? `Total: ${formatDuration(achievement.totalSeconds)}`
                                             : null;
                                     default:
                                         return null;
