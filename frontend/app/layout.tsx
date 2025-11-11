@@ -49,6 +49,14 @@ const xenon = localFont({
     preload: false,
 });
 
+const space = localFont({
+    src: [
+        {path: "./fonts/SpaceMono-Regular.woff2"},
+    ],
+    display: 'swap',
+    variable: '--font-space',
+    preload: false,
+});
 
 const description = 'Daily Steam review guessing game — guess review counts, climb leaderboards, and share your results.';
 
@@ -120,7 +128,7 @@ export default function RootLayout({
 }>) {
     return (
         <html lang="en"
-              className={`${krypton.variable} ${neon.variable} ${argon.variable} ${radon.variable} ${xenon.variable}`}>
+              className={`${krypton.variable} ${neon.variable} ${argon.variable} ${radon.variable} ${xenon.variable} ${space.variable}`}>
         <body>
         <Header/>
         <main>

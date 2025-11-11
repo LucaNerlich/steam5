@@ -2,7 +2,7 @@
 
 import {useEffect, useState} from "react";
 
-type FontChoice = "krypton" | "neon" | 'argon' | 'radon' | 'xenon';
+type FontChoice = "krypton" | "neon" | 'argon' | 'radon' | 'xenon' | 'space';
 
 export default function FontToggle() {
     const [mounted, setMounted] = useState(false);
@@ -14,6 +14,7 @@ export default function FontToggle() {
             case 'argon':
             case 'radon':
             case 'xenon':
+            case 'space':
             case 'krypton':
                 return stored as FontChoice;
             default:
@@ -86,6 +87,12 @@ export default function FontToggle() {
                 style={{fontFamily: 'var(--font-xenon), system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif'}}
             >
                 Xenon
+            </option>
+            <option
+                value="space"
+                style={{fontFamily: 'var(--font-space), system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif'}}
+            >
+                Space
             </option>
         </select>
     );

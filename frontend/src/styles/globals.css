@@ -80,6 +80,11 @@ html[data-font='xenon'] body {
     font-family: var(--font-xenon), system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif;
 }
 
+html[data-font='space'],
+html[data-font='space'] body {
+    font-family: var(--font-space), system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif;
+}
+
 main {
     width: 100%;
 }
