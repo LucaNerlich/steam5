@@ -80,6 +80,10 @@ footer .controls .footer__icon-link svg {
     display: block;
 }
 
+.footer__next-challenge {
+    display: inline;
+}
+
 @media (max-width: 640px) {
     footer .container {
         flex-direction: column;
@@ -94,6 +98,11 @@ footer .controls .footer__icon-link svg {
     footer .container .text-muted {
         text-align: center;
         width: 100%;
+    }
+
+    .footer__next-challenge {
+        display: block;
+        margin-top: 0.25rem;
     }
 }
 

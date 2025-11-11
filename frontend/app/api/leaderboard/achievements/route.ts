@@ -16,11 +16,18 @@ export async function GET(request: Request) {
     });
     const data = await res.json();
     
+    // Pass through server timezone offset header
+    const serverOffsetHeader = res.headers.get('X-Server-Timezone-Offset');
+    const headers: HeadersInit = {
+      'Cache-Control': 'public, s-maxage=60, max-age=30', // Light client-side cache, Spring handles server-side
+    };
+    if (serverOffsetHeader) {
+      headers['X-Server-Timezone-Offset'] = serverOffsetHeader;
+    }
+    
     return NextResponse.json(data, { 
       status: res.status,
-      headers: {
-        'Cache-Control': 'public, s-maxage=60, max-age=30', // Light client-side cache, Spring handles server-side
-      }
+      headers,
     });
   } catch (error) {
     console.error('[Achievements API] Error:', error);

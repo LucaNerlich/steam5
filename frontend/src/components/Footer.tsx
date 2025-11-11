@@ -5,6 +5,7 @@ import AuthLogoutLink from "@/components/AuthLogoutLink";
 import "@/styles/components/footer.css";
 import FooterNavRow from "@/components/FooterNavRow";
 import Link from "next/link";
+import NextChallengeTime from "@/components/NextChallengeTime";
 
 export default function Footer() {
     return (
@@ -13,6 +14,7 @@ export default function Footer() {
                 <FooterNavRow/>
                 <small className="text-muted" style={{display: 'block', fontSize: '0.8rem'}}>
                     <Link href="/imprint">Imprint</Link> · <Link href="/privacy">Privacy</Link>
+                    <span className="footer__next-challenge"><NextChallengeTime/></span>
                 </small>
                 <div className="controls">
                     <a

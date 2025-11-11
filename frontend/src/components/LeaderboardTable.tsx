@@ -103,23 +103,33 @@ export default function LeaderboardTable(props: {
         SLOTH: 'Most time between first and last guess per day 🦥',
     };
 
-    const { data: achievements } = useSWR<UserAchievement[]>(endpointAchievements, fetcher, {
+    const { data: achievementsData } = useSWR<{data: UserAchievement[], serverOffsetMinutes: number}>(endpointAchievements, async (url) => {
+        const response = await fetch(url, {headers: {accept: 'application/json'}});
+        if (!response.ok) throw new Error(`Failed to load ${url}: ${response.status}`);
+        const data = await response.json();
+        const serverOffsetMinutes = parseInt(response.headers.get('X-Server-Timezone-Offset') || '0', 10);
+        return { data, serverOffsetMinutes };
+    }, {
         refreshInterval: props.refreshMs ?? (props.mode === 'today' ? 5000 : 10000),
         revalidateOnFocus: true,
         dedupingInterval: 2000, // Allow refetch after 2 seconds
     });
 
+    // Extract achievements array and server offset
+    const achievementsList = achievementsData?.data || [];
+    const serverOffsetMinutes = achievementsData?.serverOffsetMinutes ?? 0;
+
     const achievementBySteamId = useMemo(() => {
         const m = new Map<string, UserAchievement>();
-        if (Array.isArray(achievements)) {
-            for (const a of achievements) {
+        if (Array.isArray(achievementsList)) {
+            for (const a of achievementsList) {
                 if (a?.steamId && a?.userAchievement) {
                     m.set(a.steamId, a);
                 }
             }
         }
         return m;
-    }, [achievements, props.mode]);
+    }, [achievementsList, props.mode]);
 
     const getAchievementLabel = useCallback((key: string | null | undefined) => {
         if (!key) return null;
@@ -136,12 +146,26 @@ export default function LeaderboardTable(props: {
         return `${hours}h ${mins}m`;
     }, []);
 
-    const formatTimeOfDay = useCallback((minutesSinceMidnight: number): string => {
-        const hours = Math.floor(minutesSinceMidnight / 60);
-        const mins = Math.floor(minutesSinceMidnight % 60);
-        const period = hours >= 12 ? 'PM' : 'AM';
-        const displayHours = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
-        return `${displayHours}:${mins.toString().padStart(2, '0')} ${period}`;
+    const formatTimeOfDay = useCallback((minutesSinceMidnightServer: number, serverOffsetMinutes: number = 0): string => {
+        // Convert server time (minutes since midnight in server timezone) to local time
+        // 1. Server minutes since midnight -> UTC minutes since midnight
+        const utcMinutesSinceMidnight = minutesSinceMidnightServer - serverOffsetMinutes;
+        // 2. Get current date in UTC to establish a reference point
+        const now = new Date();
+        const utcDate = new Date(Date.UTC(
+            now.getUTCFullYear(),
+            now.getUTCMonth(),
+            now.getUTCDate(),
+            0, 0, 0, 0
+        ));
+        // 3. Add UTC minutes to get UTC time
+        const utcTime = new Date(utcDate.getTime() + utcMinutesSinceMidnight * 60000);
+        // 4. Convert to local time
+        const localHours = utcTime.getHours();
+        const localMins = utcTime.getMinutes();
+        const period = localHours >= 12 ? 'PM' : 'AM';
+        const displayHours = localHours === 0 ? 12 : localHours > 12 ? localHours - 12 : localHours;
+        return `${displayHours}:${localMins.toString().padStart(2, '0')} ${period}`;
     }, []);
 
     const getAchievementTitle = useCallback((key: string | null | undefined, achievement?: UserAchievement) => {
@@ -155,7 +179,7 @@ export default function LeaderboardTable(props: {
             case 'EARLY_BIRD':
             case 'NIGHT_OWL':
                 return (achievement.avgMinutes !== undefined && achievement.avgMinutes !== null)
-                    ? `${baseTitle} (avg: ${formatTimeOfDay(achievement.avgMinutes)})`
+                    ? `${baseTitle} (avg: ${formatTimeOfDay(achievement.avgMinutes, serverOffsetMinutes)})`
                     : baseTitle;
             case 'SHARPSHOOTER':
                 return (achievement.avgPoints !== undefined && achievement.avgPoints !== null)
@@ -332,12 +356,12 @@ export default function LeaderboardTable(props: {
                 Average points:&nbsp;<strong>{avgTotalPoints.toFixed(2)}</strong>
             </div>
             
-            {achievements && achievements.length > 0 && (
+            {achievementsList && achievementsList.length > 0 && (
                 <div className="leaderboard__achievements">
                     <h3 className="leaderboard__achievements-title">Achievements</h3>
                     <div className="leaderboard__achievements-grid">
                         {Object.entries(ACHIEVEMENT_LABELS).map(([key, label]) => {
-                            const achievement = achievements.find(a => a.userAchievement === key);
+                            const achievement = achievementsList.find(a => a.userAchievement === key);
                             if (!achievement) return null;
                             
                             // Only show achievements for users who are in the current leaderboard
@@ -349,7 +373,7 @@ export default function LeaderboardTable(props: {
                                     case 'NIGHT_OWL':
                                         if (achievement.avgMinutes !== undefined && achievement.avgMinutes !== null) {
                                             try {
-                                                return `Avg: ${formatTimeOfDay(achievement.avgMinutes)}`;
+                                                return `Avg: ${formatTimeOfDay(achievement.avgMinutes, serverOffsetMinutes)}`;
                                             } catch (e) {
                                                 console.error('Error formatting time:', e, achievement);
                                                 return `Avg: ${Math.round(achievement.avgMinutes)} min`;
