@@ -17,9 +17,13 @@ import org.steam5.repository.UserRepository;
 import org.steam5.repository.details.SteamAppDetailRepository;
 import org.steam5.service.AuthTokenService;
 import org.steam5.service.ReviewGameStateService;
+import org.quartz.Scheduler;
+import org.quartz.SchedulerException;
+import org.quartz.TriggerKey;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,6 +43,7 @@ public class ReviewGameStateController {
     private final UserRepository userRepository;
     private final AuthTokenService authTokenService;
     private final org.steam5.repository.ReviewGamePickRepository pickRepository;
+    private final Scheduler scheduler;
 
     private static int scorePoints(List<String> buckets, String selected, String actual) {
         int si = buckets.indexOf(selected);
@@ -319,6 +324,50 @@ public class ReviewGameStateController {
 
     public record ReviewGameStateDto(LocalDate date, List<String> buckets, List<String> bucketTitles,
                                      List<SteamAppDetail> picks) {
+    }
+
+    @GetMapping("/next-challenge-time")
+    public ResponseEntity<Map<String, Object>> getNextChallengeTime() {
+        final Map<String, Object> result = new HashMap<>();
+        final OffsetDateTime now = OffsetDateTime.now();
+        
+        try {
+            // Query Quartz scheduler for the actual next fire time
+            final TriggerKey triggerKey = new TriggerKey("ReviewGameStateJob_Trigger");
+            final var trigger = scheduler.getTrigger(triggerKey);
+            if (trigger == null) {
+                throw new SchedulerException("Trigger not found");
+            }
+            final Date nextFireTime = trigger.getNextFireTime();
+            
+            if (nextFireTime != null) {
+                // Quartz Date represents an instant in time (UTC epoch milliseconds)
+                // Convert to OffsetDateTime in UTC explicitly
+                final OffsetDateTime nextChallenge = OffsetDateTime.ofInstant(
+                    nextFireTime.toInstant(),
+                    java.time.ZoneOffset.UTC
+                );
+                result.put("nextChallengeTime", nextChallenge.toString()); // ISO-8601 format in UTC (e.g., "2024-01-15T00:01:00Z")
+            } else {
+                // Fallback: calculate manually if trigger not found
+                final OffsetDateTime todayAt010 = now.toLocalDate().atStartOfDay().atOffset(now.getOffset()).plusMinutes(1);
+                final OffsetDateTime nextChallenge = now.isBefore(todayAt010) ? todayAt010 : todayAt010.plusDays(1);
+                result.put("nextChallengeTime", nextChallenge.toString());
+            }
+        } catch (SchedulerException e) {
+            // Fallback: calculate manually if scheduler query fails
+            // Note: This assumes the cron runs at 00:01 UTC (which is 01:01 CET or 02:01 CEST)
+            final java.time.ZonedDateTime nowUtc = java.time.ZonedDateTime.now(java.time.ZoneOffset.UTC);
+            final java.time.ZonedDateTime todayAt010Utc = nowUtc.toLocalDate().atStartOfDay(java.time.ZoneOffset.UTC).plusMinutes(1);
+            final java.time.ZonedDateTime nextChallengeUtc = nowUtc.isBefore(todayAt010Utc) ? todayAt010Utc : todayAt010Utc.plusDays(1);
+            result.put("nextChallengeTime", nextChallengeUtc.toOffsetDateTime().toString());
+        }
+        
+        result.put("serverTimezoneOffset", now.getOffset().getTotalSeconds() / 60); // minutes from UTC
+        
+        return ResponseEntity.ok()
+                .header("Cache-Control", "public, s-maxage=60, max-age=30")
+                .body(result);
     }
 
     public record BucketMeta(List<String> buckets, List<String> bucketTitles) {

@@ -76,8 +76,15 @@ public class StatisticsController {
             default -> "public, s-maxage=86400, max-age=3600";  // 1 day server, 1 hour client
         };
 
+        // Add server timezone offset header for client-side time conversion
+        final int serverOffsetMinutes = java.time.ZoneId.systemDefault()
+                .getRules()
+                .getOffset(java.time.Instant.now())
+                .getTotalSeconds() / 60;
+
         return ResponseEntity.ok()
                 .header("Cache-Control", cacheControl)
+                .header("X-Server-Timezone-Offset", String.valueOf(serverOffsetMinutes))
                 .body(result);
     }
 

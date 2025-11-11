@@ -49,8 +49,9 @@ public class QuartzConfig {
     public Trigger triggerReviewGameStateJob(@Qualifier("ReviewGameStateJob") JobDetail job) {
         return TriggerBuilder.newTrigger().forJob(job)
                 .withIdentity("ReviewGameStateJob_Trigger")
-                // every day at 00:01am
-                .withSchedule(CronScheduleBuilder.cronSchedule("0 1 0 * * ?"))
+                // every day at 00:01 UTC (which is 01:01 CET / 02:01 CEST in Germany)
+                .withSchedule(CronScheduleBuilder.cronSchedule("0 1 0 * * ?")
+                        .inTimeZone(java.util.TimeZone.getTimeZone("UTC")))
                 .build();
     }
 
