@@ -42,7 +42,7 @@ export default function NextChallengeTime() {
     if (!nextChallengeTimeLocal) return null;
 
     return (
-        <> · Next daily challenge at: <span style={{opacity: 0.7}}>{nextChallengeTimeLocal}</span></>
+        <>Next daily challenge at: <span style={{opacity: 0.7}}>{nextChallengeTimeLocal}</span></>
     );
 }
 

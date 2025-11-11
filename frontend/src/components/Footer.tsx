@@ -14,6 +14,7 @@ export default function Footer() {
                 <FooterNavRow/>
                 <small className="text-muted" style={{display: 'block', fontSize: '0.8rem'}}>
                     <Link href="/imprint">Imprint</Link> · <Link href="/privacy">Privacy</Link>
+                    <span className="footer__next-challenge-separator"> · </span>
                     <span className="footer__next-challenge"><NextChallengeTime/></span>
                 </small>
                 <div className="controls">
