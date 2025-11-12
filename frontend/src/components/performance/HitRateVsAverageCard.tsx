@@ -3,11 +3,18 @@
 import React, {useMemo} from "react";
 import useSWR from "swr";
 
-type Round = { selectedBucket: string; actualBucket: string };
+type Round = { selectedBucket: string; actualBucket: string; date?: string };
 
 export default function HitRateVsAverageCard({rounds}: { rounds: Round[] }): React.ReactElement {
-    const WINDOW_ROUNDS = 35;
-    const last = useMemo(() => rounds.slice(-WINDOW_ROUNDS), [rounds]);
+    const DAYS_WINDOW = 30;
+    const last = useMemo(() => {
+        if (rounds.length === 0) return [];
+        const now = new Date();
+        const cutoffDate = new Date(now);
+        cutoffDate.setDate(cutoffDate.getDate() - DAYS_WINDOW);
+        const cutoffStr = cutoffDate.toISOString().slice(0, 10);
+        return rounds.filter(r => r.date && r.date >= cutoffStr);
+    }, [rounds]);
     const width = 600;
     const padding = 24;
 
@@ -41,7 +48,7 @@ export default function HitRateVsAverageCard({rounds}: { rounds: Round[] }): Rea
         <div className="perf-card">
             <div className="perf-card__title">Hit rate vs average</div>
             <svg viewBox={`0 0 ${width} 96`} className="perf-line" role="img" aria-label="Your hit rate vs global average">
-                <Row y={22} label={'You (last 35)'} pct={myHitRate} color={'var(--color-primary, #6366f1)'} />
+                <Row y={22} label={`You (last ${DAYS_WINDOW} days)`} pct={myHitRate} color={'var(--color-primary, #6366f1)'} />
                 <Row y={52} label={'All players'} pct={globalAvg ?? myHitRate} color={'var(--color-success, #16a34a)'} />
             </svg>
         </div>
