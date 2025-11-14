@@ -68,7 +68,7 @@ export default function LeaderboardTable(props: {
     // Determine timeframe for achievements based on leaderboard mode
     const achievementTimeframe = props.mode === 'today' ? 'daily' : 
                                   props.mode === 'monthly' ? 'monthly' :
-                                  props.mode === 'weekly' ? 'weekly' : 
+                                  (props.mode === 'weekly' || props.mode === 'weekly-floating') ? 'weekly' : 
                                   'all';
     
     const endpointAchievements = `/api/leaderboard/achievements?timeframe=${achievementTimeframe}`;

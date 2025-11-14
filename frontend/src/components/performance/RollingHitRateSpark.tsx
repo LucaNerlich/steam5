@@ -2,19 +2,29 @@
 
 import React, {useCallback, useMemo} from "react";
 
-type Round = { selectedBucket: string; actualBucket: string };
+type Round = { selectedBucket: string; actualBucket: string; date?: string };
 
 export default function RollingHitRateSpark({rounds}: { rounds: Round[] }): React.ReactElement {
-    const WINDOW_ROUNDS = 35;
-    const last = useMemo(() => rounds.slice(-WINDOW_ROUNDS), [rounds]);
+    const DAYS_WINDOW = 30;
+    const last = useMemo(() => {
+        if (rounds.length === 0) return [];
+        const now = new Date();
+        const cutoffDate = new Date(now);
+        cutoffDate.setDate(cutoffDate.getDate() - DAYS_WINDOW);
+        const cutoffStr = cutoffDate.toISOString().slice(0, 10);
+        return rounds.filter(r => r.date && r.date >= cutoffStr);
+    }, [rounds]);
     const width = 600;
     const height = 140;
     const padding = 24;
 
     const series = useMemo(() => {
         const values: number[] = [];
+        const ROLLING_WINDOW_ROUNDS = 35;
+        // Rolling window: for each position, calculate hit rate over the last ROLLING_WINDOW_ROUNDS rounds
+        // Only showing rounds from the last 30 days, but using a rolling window of 35 rounds for calculation
         for (let i = 0; i < last.length; i++) {
-            const s = Math.max(0, i - WINDOW_ROUNDS + 1);
+            const s = Math.max(0, i - ROLLING_WINDOW_ROUNDS + 1);
             const slice = last.slice(s, i + 1);
             const hits = slice.filter(r => r.selectedBucket === r.actualBucket).length;
             values.push(Math.round((hits / slice.length) * 100));
@@ -32,7 +42,7 @@ export default function RollingHitRateSpark({rounds}: { rounds: Round[] }): Reac
 
     return (
         <div className="perf-card">
-            <div className="perf-card__title">Hit rate (rolling last {WINDOW_ROUNDS})</div>
+            <div className="perf-card__title">Hit rate (rolling last {DAYS_WINDOW} days)</div>
             <svg viewBox={`0 0 ${width} ${height}`} className="perf-spark" role="img" aria-label="Rolling hit rate with axes">
                 {([0,25,50,75,100] as const).map(p => (
                     <g key={p}>

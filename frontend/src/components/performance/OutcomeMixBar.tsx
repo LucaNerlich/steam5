@@ -2,11 +2,18 @@
 
 import React, {useMemo} from "react";
 
-type Round = { selectedBucket: string; actualBucket: string };
+type Round = { selectedBucket: string; actualBucket: string; date?: string };
 
 export default function OutcomeMixBar({rounds}: { rounds: Round[] }): React.ReactElement {
-    const WINDOW_ROUNDS = 35;
-    const last = useMemo(() => rounds.slice(-WINDOW_ROUNDS), [rounds]);
+    const DAYS_WINDOW = 30;
+    const last = useMemo(() => {
+        if (rounds.length === 0) return [];
+        const now = new Date();
+        const cutoffDate = new Date(now);
+        cutoffDate.setDate(cutoffDate.getDate() - DAYS_WINDOW);
+        const cutoffStr = cutoffDate.toISOString().slice(0, 10);
+        return rounds.filter(r => r.date && r.date >= cutoffStr);
+    }, [rounds]);
     const bars = useMemo(() => {
         const counts = {hit: 0, high: 0, low: 0};
         for (const r of last) {
@@ -24,7 +31,7 @@ export default function OutcomeMixBar({rounds}: { rounds: Round[] }): React.Reac
 
     return (
         <div className="perf-card">
-            <div className="perf-card__title">Outcome mix (last {WINDOW_ROUNDS})</div>
+            <div className="perf-card__title">Outcome mix (last {DAYS_WINDOW} days)</div>
             <div className="perf-stacked" role="img" aria-label="Distribution of outcomes">
                 {bars.map(part => (
                     <div key={part.key} className="perf-stacked__part" style={{width: `${part.pct * 100}%`, background: part.color}}/>
