@@ -130,7 +130,7 @@ public class SteamAppDetailService {
         for (JsonNode devNode : safeArray(data.path("developers"))) {
             final String rawName = devNode.asText(null);
             final String trimmedName = rawName == null ? null : rawName.trim();
-            if (trimmedName == null || trimmedName.isBlank()) continue;
+            if (StringUtils.isBlank(trimmedName)) continue;
             final String normalizedKey = trimmedName.toLowerCase();
             if (!seenDevelopers.add(normalizedKey)) continue;
             final Developer dev = developerRepository
@@ -144,7 +144,7 @@ public class SteamAppDetailService {
         for (JsonNode pubNode : safeArray(data.path("publishers"))) {
             final String rawName = pubNode.asText(null);
             final String trimmedName = rawName == null ? null : rawName.trim();
-            if (trimmedName == null || trimmedName.isBlank()) continue;
+            if (StringUtils.isBlank(trimmedName)) continue;
             final String normalizedKey = trimmedName.toLowerCase();
             if (!seenPublishers.add(normalizedKey)) continue;
             final Publisher pub = publisherRepository
@@ -158,7 +158,7 @@ public class SteamAppDetailService {
         for (JsonNode genreNode : safeArray(data.path("categories"))) {
             final String rawDesc = genreNode.path("description").asText(null);
             final String trimmedDesc = rawDesc == null ? null : rawDesc.trim();
-            if (trimmedDesc == null || trimmedDesc.isBlank()) continue;
+            if (StringUtils.isBlank(trimmedDesc)) continue;
             final String normalizedKey = trimmedDesc.toLowerCase();
             if (!seenCategories.add(normalizedKey)) continue;
             final Category g = categoryRepository
@@ -172,7 +172,7 @@ public class SteamAppDetailService {
         for (JsonNode genreNode : safeArray(data.path("genres"))) {
             final String rawDesc = genreNode.path("description").asText(null);
             final String trimmedDesc = rawDesc == null ? null : rawDesc.trim();
-            if (trimmedDesc == null || trimmedDesc.isBlank()) continue;
+            if (StringUtils.isBlank(trimmedDesc)) continue;
             final String normalizedKey = trimmedDesc.toLowerCase();
             if (!seenGenres.add(normalizedKey)) continue;
             final Genre g = genreRepository
@@ -200,7 +200,7 @@ public class SteamAppDetailService {
             }
             webm = normalizeToHttps(webm);
             String mp4 = mvNode.path("mp4").path("max").asText(null);
-            if (mp4 == null || mp4.isBlank()) {
+            if (StringUtils.isBlank(mp4)) {
                 mp4 = mvNode.path("mp4").path("480").asText(null);
             }
             mp4 = normalizeToHttps(mp4);
