@@ -1,6 +1,5 @@
 package org.steam5.service;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -14,6 +13,7 @@ import org.steam5.domain.details.SteamAppDetailService;
 import org.steam5.http.JsonHttpClient;
 import org.steam5.repository.IngestStateRepository;
 import org.steam5.repository.SteamAppIndexRepository;
+import tools.jackson.databind.JsonNode;
 
 import java.io.IOException;
 import java.time.OffsetDateTime;

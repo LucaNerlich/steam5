@@ -1,7 +1,5 @@
 package org.steam5.service;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,6 +12,8 @@ import org.steam5.http.SteamHttpClient;
 import org.steam5.job.blurhash.BlurhashEnqueueListener;
 import org.steam5.job.events.BlurhashEncodeRequested;
 import org.steam5.repository.UserRepository;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 import java.util.Objects;
 

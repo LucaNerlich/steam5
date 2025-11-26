@@ -13,7 +13,6 @@ spring:
   jackson:
     serialization:
       indent-output: true
-      write-dates-as-timestamps: false
       order-map-entries-by-keys: true
   sql:
     init:
@@ -35,10 +34,11 @@ spring:
       order_inserts: true
       order_updates: true
       order_deletes: true
+  web:
+    error:
+      include-message: always
 server:
   port: ${SERVER_PORT:8080}
-  error:
-    include-message: always
   forward-headers-strategy: framework
   compression:
     enabled: true

@@ -1,13 +1,16 @@
 package org.steam5.domain.details;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.steam5.repository.details.*;
+import tools.jackson.databind.JsonNode;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 @Service
 public class SteamAppDetailService {
@@ -37,8 +40,7 @@ public class SteamAppDetailService {
             return List.of();
         }
         List<JsonNode> list = new ArrayList<>();
-        Iterator<JsonNode> it = node.elements();
-        while (it.hasNext()) list.add(it.next());
+        for (JsonNode jsonNode : node) list.add(jsonNode);
         return list;
     }
 
