@@ -1,13 +1,17 @@
 package org.steam5.domain.details;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.steam5.repository.details.*;
+import tools.jackson.databind.JsonNode;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 @Service
 public class SteamAppDetailService {
@@ -37,8 +41,7 @@ public class SteamAppDetailService {
             return List.of();
         }
         List<JsonNode> list = new ArrayList<>();
-        Iterator<JsonNode> it = node.elements();
-        while (it.hasNext()) list.add(it.next());
+        for (JsonNode jsonNode : node) list.add(jsonNode);
         return list;
     }
 
@@ -182,7 +185,7 @@ public class SteamAppDetailService {
         for (JsonNode ssNode : safeArray(data.path("screenshots"))) {
             final String thumb = normalizeToHttps(ssNode.path("path_thumbnail").asText(null));
             final String full = normalizeToHttps(ssNode.path("path_full").asText(null));
-            if (thumb != null || full != null) {
+            if (StringUtils.isNoneBlank(thumb, full)) {
                 detail.getScreenshots().add(new Screenshot(null, detail, thumb, full, null, null, null, null));
             }
         }
@@ -192,7 +195,7 @@ public class SteamAppDetailService {
             final String name = mvNode.path("name").asText(null);
             final String thumbnail = normalizeToHttps(mvNode.path("thumbnail").asText(null));
             String webm = mvNode.path("webm").path("max").asText(null);
-            if (webm == null || webm.isBlank()) {
+            if (StringUtils.isBlank(webm)) {
                 webm = mvNode.path("webm").path("480").asText(null);
             }
             webm = normalizeToHttps(webm);
@@ -201,7 +204,7 @@ public class SteamAppDetailService {
                 mp4 = mvNode.path("mp4").path("480").asText(null);
             }
             mp4 = normalizeToHttps(mp4);
-            if (name != null || thumbnail != null || webm != null || mp4 != null) {
+            if (StringUtils.isNoneBlank(name, thumbnail, webm, mp4)) {
                 detail.getMovies().add(new Movie(null, name, thumbnail, webm, mp4, detail));
             }
         }
