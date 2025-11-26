@@ -191,6 +191,7 @@ export default function GameInfoSection({pick}: Props): React.ReactElement | nul
                         {pick.movies.map((m, i) => {
                             const videoSrc = normalizeUrl(m.mp4 || m.webm);
                             const thumbSrc = normalizeUrl(m.thumbnail);
+                            if (!videoSrc || !thumbSrc) return null;
                             return (
                                 <div key={`mov-${m.id}-${i}`} className="game-info__video">
                                     <a
