@@ -84,7 +84,7 @@ public class SteamAppDetailsFetcher implements Fetcher {
 
         final JsonNode root = jsonHttpClient.getJson(url);
         final JsonNode appNode = root.path(String.valueOf(appId));
-        if (appNode.path("success").asInt(0) != 1) {
+        if (!"true".equals(appNode.path("success").asString())) {
             log.debug("Details API returned non-success for appId {}", appId);
             return false;
         }
