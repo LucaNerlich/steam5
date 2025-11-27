@@ -1,12 +1,12 @@
 package org.steam5.domain.details;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.steam5.repository.details.*;
-import tools.jackson.databind.JsonNode;
 
 import java.util.ArrayList;
 import java.util.HashSet;
