@@ -159,7 +159,7 @@ export default function ShareControls(props: {
         lines.push('');
         lines.push('---');
         lines.push('');
-        lines.push('Play: https://steam5.org/review-guesser');
+        lines.push('Play: https://steam5.org');
         lines.push('Leaderboard: https://steam5.org/leaderboard');
         return lines.join('\n');
     }
