@@ -80,7 +80,18 @@ public class QuartzConfig {
     public Trigger triggerSeasonFinalizerJob(@Qualifier("SeasonFinalizerJob") JobDetail job) {
         return TriggerBuilder.newTrigger().forJob(job)
                 .withIdentity("SeasonFinalizerJob_Trigger")
-                // daily at 00:05 UTC to close finished seasons
+                // daily at 00:10 UTC to close finished seasons
+                .withSchedule(CronScheduleBuilder.cronSchedule("0 10 0 * * ?")
+                        .inTimeZone(java.util.TimeZone.getTimeZone("UTC")))
+                .build();
+    }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "jobs.seasons-backfill", name = "enabled", havingValue = "true", matchIfMissing = true)
+    public Trigger triggerSeasonBackfillJob(@Qualifier("SeasonBackfillJob") JobDetail job) {
+        return TriggerBuilder.newTrigger().forJob(job)
+                .withIdentity("SeasonBackfillJob_Trigger")
+                // daily at 00:05 UTC, after the finalizer
                 .withSchedule(CronScheduleBuilder.cronSchedule("0 5 0 * * ?")
                         .inTimeZone(java.util.TimeZone.getTimeZone("UTC")))
                 .build();

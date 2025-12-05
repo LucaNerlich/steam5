@@ -93,4 +93,6 @@ jobs:
     nightly-limit: ${JOB_REVIEWS_REFRESH_LIMIT:15000}
   seasons-finalizer:
     enabled: ${JOB_SEASONS_FINALIZER:true}
+  seasons-backfill:
+    enabled: ${JOB_SEASONS_BACKFILL:false}
 

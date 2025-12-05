@@ -30,3 +30,7 @@ jobs:
     enabled: true
   reviews-refresh:
     enabled: true
+  seasons-finalizer:
+    enabled: true
+  seasons-backfill:
+    enabled: true
