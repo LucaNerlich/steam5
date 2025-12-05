@@ -74,4 +74,15 @@ public class QuartzConfig {
                 .withSchedule(CronScheduleBuilder.cronSchedule("0 0 2 * * ?"))
                 .build();
     }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "jobs.seasons-finalizer", name = "enabled", havingValue = "true", matchIfMissing = true)
+    public Trigger triggerSeasonFinalizerJob(@Qualifier("SeasonFinalizerJob") JobDetail job) {
+        return TriggerBuilder.newTrigger().forJob(job)
+                .withIdentity("SeasonFinalizerJob_Trigger")
+                // daily at 00:05 UTC to close finished seasons
+                .withSchedule(CronScheduleBuilder.cronSchedule("0 5 0 * * ?")
+                        .inTimeZone(java.util.TimeZone.getTimeZone("UTC")))
+                .build();
+    }
 }

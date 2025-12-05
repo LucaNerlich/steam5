@@ -64,6 +64,12 @@ header .header-actions {
     }
 }
 
+header .header-actions__link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
 /* Narrow dropdown for font selection */
 header .font-select {
     max-width: 120px;

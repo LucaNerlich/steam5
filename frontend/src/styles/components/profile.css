@@ -60,6 +60,59 @@
     font-weight: 700;
 }
 
+.profile__awards {
+    display: grid;
+    gap: 1rem;
+}
+
+.profile__award-card {
+    border: 1px solid var(--color-border);
+    border-radius: 0.75rem;
+    padding: 1rem;
+    background: var(--color-surface);
+}
+
+.profile__award-card-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+    align-items: baseline;
+    flex-wrap: wrap;
+}
+
+.profile__award-card-dates {
+    margin: 0;
+    color: var(--color-muted);
+    font-size: 0.9rem;
+}
+
+.profile__award-list {
+    list-style: none;
+    margin: 0.5rem 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.profile__award-list li {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.profile__award-label {
+    margin: 0;
+    font-weight: 600;
+}
+
+.profile__award-metric {
+    margin: 0;
+    color: var(--color-muted);
+    font-size: 0.85rem;
+}
+
 .profile__day {
     margin-top: 0.75rem;
 }

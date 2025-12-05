@@ -5,7 +5,7 @@ import "@/styles/components/header.css";
 import SteamLoginButton from "@/components/SteamLoginButton";
 import IconImage from "../../app/icon.svg"
 import IconFullImage from "../../public/icon-full.svg"
-import {ArchiveIcon, PresentationChartIcon, TipJarIcon} from "@phosphor-icons/react/ssr";
+import {ArchiveIcon, PresentationChartIcon, TipJarIcon, TrophyIcon} from "@phosphor-icons/react/ssr";
 
 export default function Header() {
     return (
@@ -39,15 +39,20 @@ export default function Header() {
 
                 <div className="header-actions">
                     <Link href="/review-guesser/leaderboard/today"
-                          style={{display: 'flex', alignItems: 'center', gap: '0.15rem'}}
+                          className="header-actions__link"
                           title="Leaderboard"
                           aria-label="Open leaderboard">
                         <span className="mobile__hide">Leaderboard</span> <PresentationChartIcon size={28}/>
                     </Link>
+                    <Link href={Routes.seasons}
+                          className="header-actions__link"
+                          title="Seasons"
+                          aria-label="Open seasons overview">
+                        <span className="mobile__hide">Seasons</span> <TrophyIcon size={28}/>
+                    </Link>
                     <Link
                         href="https://paypal.me/lucanerlich"
-                        className="header__donate-link"
-                        style={{display: 'flex', alignItems: 'center', gap: '0.15rem'}}
+                        className="header__donate-link header-actions__link"
                         target="_blank"
                         rel="noopener noreferrer"
                         title="Support the project on PayPal"
