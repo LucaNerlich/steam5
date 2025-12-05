@@ -29,7 +29,7 @@ public class SeasonProperties {
         /**
          * Maximum number of placement levels to award per category (1 = winner only).
          */
-        private int maxPlacements = 1;
+        private int maxPlacements = 3;
 
         /**
          * Categories evaluated for each season.
