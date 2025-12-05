@@ -1,5 +1,6 @@
 import type {Metadata} from "next";
 import Image from "next/image";
+import Link from "next/link";
 import {formatDate} from "@/lib/format";
 import "@/styles/components/seasons.css";
 
@@ -110,7 +111,9 @@ export default async function SeasonsPage() {
                                                 {group.awards.map(award => (
                                                     <li className="season-card__placement" key={`${group.category}-${award.steamId}-${award.placementLevel}`}>
                                                         <span className="season-card__rank">#{award.placementLevel}</span>
-                                                        <div className="season-card__player">
+                                                        <Link href={`/profile/${encodeURIComponent(award.steamId)}`}
+                                                              className="season-card__player"
+                                                              aria-label={`Open profile for ${award.personaName}`}>
                                                             <div className="season-card__avatar-wrap" aria-hidden={award.avatar ? "false" : "true"}>
                                                                 {award.avatar && (
                                                                     <Image
@@ -129,7 +132,7 @@ export default async function SeasonsPage() {
                                                                     {new Intl.NumberFormat().format(award.metricValue)} {metricLabels[award.category] || ''}
                                                                 </p>
                                                             </div>
-                                                        </div>
+                                                        </Link>
                                                     </li>
                                                 ))}
                                             </ol>

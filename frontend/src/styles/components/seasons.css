@@ -176,6 +176,12 @@
     gap: 0.75rem;
     align-items: center;
     flex: 1;
+    text-decoration: none;
+    color: var(--color-text);
+}
+
+.season-card__player:hover .season-card__name {
+    text-decoration: underline;
 }
 
 .season-card__avatar-wrap {

@@ -116,15 +116,18 @@ export default async function ProfilePage({params}: { params: { steamId: string 
                                     </div>
                                     <ul className="profile__award-list">
                                         {season.awards.map(award => (
-                                            <li key={`${season.seasonNumber}-${award.category}-${award.placementLevel}`}>
-                                                <div>
-                                                    <p className="profile__award-label">
-                                                        {ordinal(award.placementLevel)} · {award.categoryLabel}
+                                            <li
+                                                className="profile__award-row"
+                                                key={`${season.seasonNumber}-${award.category}-${award.placementLevel}`}>
+                                                <span className={`profile__award-badge ${placementBadgeClass(award.placementLevel)}`}>
+                                                    {ordinal(award.placementLevel)}
+                                                </span>
+                                                <div className="profile__award-content">
+                                                    <p className="profile__award-category">{award.categoryLabel}</p>
+                                                    <p className="profile__award-metric">
+                                                        {award.metricValue.toLocaleString()} {metricLabel(award.category)}
                                                     </p>
                                                 </div>
-                                                <p className="profile__award-metric">
-                                                    {award.metricValue.toLocaleString()} {metricLabel(award.category)}
-                                                </p>
                                             </li>
                                         ))}
                                     </ul>
@@ -265,6 +268,13 @@ function metricLabel(category: string): string {
         default:
             return "";
     }
+}
+
+function placementBadgeClass(level: number): string {
+    if (level === 1) return "profile__award-badge--gold";
+    if (level === 2) return "profile__award-badge--silver";
+    if (level === 3) return "profile__award-badge--bronze";
+    return "profile__award-badge--neutral";
 }
 
 export const revalidate = 300;
