@@ -167,8 +167,19 @@
 .season-card__rank {
     font-family: var(--font-mono);
     font-weight: 700;
-    color: var(--color-accent);
     min-width: 2.5rem;
+}
+
+.season-card__rank--gold {
+    color: oklch(0.82 0.14 85);
+}
+
+.season-card__rank--silver {
+    color: oklch(0.85 0.05 260);
+}
+
+.season-card__rank--bronze {
+    color: oklch(0.72 0.12 40);
 }
 
 .season-card__player {

@@ -105,7 +105,7 @@ export default async function SeasonsPage() {
                                             <ol className="season-card__placements">
                                                 {group.awards.map(award => (
                                                     <li className="season-card__placement" key={`${group.category}-${award.steamId}-${award.placementLevel}`}>
-                                                        <span className="season-card__rank">#{award.placementLevel}</span>
+                                                        <span className={rankClassName(award.placementLevel)}>#{award.placementLevel}</span>
                                                         <Link href={`/profile/${encodeURIComponent(award.steamId)}`}
                                                               className="season-card__player"
                                                               aria-label={`Open profile for ${award.personaName}`}>
@@ -178,6 +178,13 @@ function formatAwardMetric(award: AwardView): string {
         default:
             return formatter.format(award.metricValue);
     }
+}
+
+function rankClassName(level: number): string {
+    if (level === 1) return "season-card__rank season-card__rank--gold";
+    if (level === 2) return "season-card__rank season-card__rank--silver";
+    if (level === 3) return "season-card__rank season-card__rank--bronze";
+    return "season-card__rank";
 }
 
 export const metadata: Metadata = {
