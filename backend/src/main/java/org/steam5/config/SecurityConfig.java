@@ -21,6 +21,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/leaderboard/**").permitAll()
                         .requestMatchers("/api/profile/**").permitAll()
                         .requestMatchers("/api/seasons/**").permitAll()
+                        .requestMatchers("/api/steam/themes/**").permitAll()
                         .requestMatchers("/api/stats/**").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
                         .anyRequest().authenticated()

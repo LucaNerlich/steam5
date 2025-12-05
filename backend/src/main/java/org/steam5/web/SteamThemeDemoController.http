@@ -1,0 +1,17 @@
+### Sample themed games by genre (defaults to 5 results)
+GET {{host}}/api/steam/themes/demo?genre=Horror
+Accept: application/json
+
+### Sample themed games by category
+GET {{host}}/api/steam/themes/demo?category=Single%20player&limit=5
+Accept: application/json
+
+### Sample directly from Steam (SteamSpy) using built-in genres
+GET {{host}}/api/steam/themes/demo/steam?genre=action&limit=5
+Accept: application/json
+
+### List available SteamSpy genres
+GET {{host}}/api/steam/themes/demo/steam/genres
+Accept: application/json
+
+

@@ -67,6 +67,22 @@ public interface SteamAppDetailRepository extends JpaRepository<SteamAppDetail, 
     }, type = org.springframework.data.jpa.repository.EntityGraph.EntityGraphType.LOAD)
     @Query("select distinct d from SteamAppDetail d where d.appId in :ids")
     List<SteamAppDetail> findAllByAppIdIn(@Param("ids") Collection<Long> ids);
+
+    @Query(value = """
+            SELECT DISTINCT d.app_id
+            FROM steam_app_details d
+            LEFT JOIN steam_app_genre sag ON d.app_id = sag.app_id
+            LEFT JOIN genre g ON sag.genre_id = g.id
+            LEFT JOIN steam_app_category sac ON d.app_id = sac.app_id
+            LEFT JOIN category c ON sac.category_id = c.id
+            WHERE (:genre IS NULL OR lower(g.description) = lower(:genre))
+              AND (:category IS NULL OR lower(c.description) = lower(:category))
+            ORDER BY random()
+            LIMIT :limit
+            """, nativeQuery = true)
+    List<Long> pickRandomAppIds(@Param("genre") String genre,
+                                @Param("category") String category,
+                                @Param("limit") int limit);
 }
 
 
