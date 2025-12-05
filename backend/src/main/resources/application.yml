@@ -68,7 +68,7 @@ season:
   length-days: ${SEASON_LENGTH_DAYS:30}
   awards:
     # how many placement levels to award per category (e.g., 1=winner only, 3=top three)
-    max-placements: ${SEASON_AWARDS_MAX_PLACEMENTS:1}
+    max-placements: ${SEASON_AWARDS_MAX_PLACEMENTS:3}
     # categories evaluated per season; names must match SeasonAwardCategory enum
     categories:
       - MOST_POINTS
