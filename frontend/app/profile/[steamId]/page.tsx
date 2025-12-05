@@ -125,7 +125,7 @@ export default async function ProfilePage({params}: { params: { steamId: string 
                                                 <div className="profile__award-content">
                                                     <p className="profile__award-category">{award.categoryLabel}</p>
                                                     <p className="profile__award-metric">
-                                                        {award.metricValue.toLocaleString()} {metricLabel(award.category)}
+                                                        {formatAwardMetric(award)}
                                                     </p>
                                                 </div>
                                             </li>
@@ -259,22 +259,27 @@ function ordinal(value: number): string {
     }
 }
 
-function metricLabel(category: string): string {
-    switch (category) {
-        case "MOST_POINTS":
-            return "pts";
-        case "MOST_HITS":
-            return "hits";
-        default:
-            return "";
-    }
-}
-
 function placementBadgeClass(level: number): string {
     if (level === 1) return "profile__award-badge--gold";
     if (level === 2) return "profile__award-badge--silver";
     if (level === 3) return "profile__award-badge--bronze";
     return "profile__award-badge--neutral";
+}
+
+function formatAwardMetric(award: ProfileResponse["awards"][number]): string {
+    const formatter = new Intl.NumberFormat();
+    switch (award.category) {
+        case "MOST_POINTS":
+            return `${formatter.format(award.metricValue)} pts`;
+        case "MOST_HITS":
+            return `${formatter.format(award.metricValue)} hits`;
+        case "HIGHEST_AVG_POINTS_PER_DAY":
+            return `${(award.metricValue / 100).toFixed(2)} avg pts/day`;
+        case "LONGEST_STREAK":
+            return `${award.metricValue} ${award.metricValue === 1 ? "day" : "days"}`;
+        default:
+            return formatter.format(award.metricValue);
+    }
 }
 
 export const revalidate = 300;

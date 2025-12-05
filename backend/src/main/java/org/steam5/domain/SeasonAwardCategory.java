@@ -5,7 +5,9 @@ import lombok.Getter;
 @Getter
 public enum SeasonAwardCategory {
     MOST_POINTS("Most Points"),
-    MOST_HITS("Most Hits");
+    MOST_HITS("Most Hits"),
+    HIGHEST_AVG_POINTS_PER_DAY("Highest Avg Points / Day"),
+    LONGEST_STREAK("Longest Streak");
 
     private final String label;
 

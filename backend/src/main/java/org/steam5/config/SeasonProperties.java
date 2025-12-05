@@ -36,7 +36,9 @@ public class SeasonProperties {
          */
         private List<SeasonAwardCategory> categories = List.of(
                 SeasonAwardCategory.MOST_POINTS,
-                SeasonAwardCategory.MOST_HITS
+                SeasonAwardCategory.MOST_HITS,
+                SeasonAwardCategory.HIGHEST_AVG_POINTS_PER_DAY,
+                SeasonAwardCategory.LONGEST_STREAK
         );
     }
 }

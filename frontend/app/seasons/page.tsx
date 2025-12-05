@@ -34,11 +34,6 @@ type CurrentSeasonResponse = {
 };
 
 const backend = process.env.NEXT_PUBLIC_API_DOMAIN || "http://localhost:8080";
-const metricLabels: Record<string, string> = {
-    MOST_POINTS: "pts",
-    MOST_HITS: "hits"
-};
-
 export default async function SeasonsPage() {
     const [currentRes, seasonsRes] = await Promise.all([
         fetch(`${backend}/api/seasons/current`, {next: {revalidate: 300, tags: ["seasons-current"]}}),
@@ -129,7 +124,7 @@ export default async function SeasonsPage() {
                                                             <div>
                                                                 <p className="season-card__name">{award.personaName}</p>
                                                                 <p className="season-card__metric">
-                                                                    {new Intl.NumberFormat().format(award.metricValue)} {metricLabels[award.category] || ''}
+                                                                    {formatAwardMetric(award)}
                                                                 </p>
                                                             </div>
                                                         </Link>
@@ -167,6 +162,22 @@ function groupAwardsByCategory(awards: AwardView[]): AwardGroup[] {
         grouped[award.category].awards.push(award);
     }
     return Object.values(grouped);
+}
+
+function formatAwardMetric(award: AwardView): string {
+    const formatter = new Intl.NumberFormat();
+    switch (award.category) {
+        case "MOST_POINTS":
+            return `${formatter.format(award.metricValue)} pts`;
+        case "MOST_HITS":
+            return `${formatter.format(award.metricValue)} hits`;
+        case "HIGHEST_AVG_POINTS_PER_DAY":
+            return `${(award.metricValue / 100).toFixed(2)} avg pts/day`;
+        case "LONGEST_STREAK":
+            return `${award.metricValue} ${award.metricValue === 1 ? "day" : "days"}`;
+        default:
+            return formatter.format(award.metricValue);
+    }
 }
 
 export const metadata: Metadata = {

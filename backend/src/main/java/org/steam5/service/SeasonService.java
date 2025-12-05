@@ -132,8 +132,9 @@ public class SeasonService {
         log.info("Finalizing season #{} ({} - {})", managed.getSeasonNumber(), managed.getStartDate(), managed.getEndDate());
 
         List<GuessRepository.SeasonStatRow> rows = guessRepository.findSeasonStats(managed.getStartDate(), managed.getEndDate());
+        Map<String, List<LocalDate>> participationDates = buildSeasonParticipationDates(managed.getStartDate(), managed.getEndDate());
         Map<String, SeasonStats> statsByPlayer = rows.stream()
-                .map(row -> new SeasonStats(row.getSteamId(), coerce(row.getTotalPoints()), coerce(row.getHits()), coerce(row.getRounds())))
+                .map(row -> buildSeasonStats(row, participationDates.getOrDefault(row.getSteamId(), List.of())))
                 .collect(Collectors.toMap(SeasonStats::steamId, Function.identity()));
 
         awardResultRepository.deleteAllBySeasonId(managed.getId());
@@ -178,6 +179,52 @@ public class SeasonService {
         season.setCreatedAt(OffsetDateTime.now());
         season.setUpdatedAt(OffsetDateTime.now());
         return season;
+    }
+
+    private SeasonStats buildSeasonStats(GuessRepository.SeasonStatRow row, List<LocalDate> participationDates) {
+        long totalPoints = coerce(row.getTotalPoints());
+        long hits = coerce(row.getHits());
+        long rounds = coerce(row.getRounds());
+        long activeDays = row.getActiveDays() != null ? row.getActiveDays() : participationDates.size();
+        double avgPointsPerDay = activeDays > 0 ? (double) totalPoints / activeDays : 0d;
+        long longestStreak = calculateLongestStreak(participationDates);
+        return new SeasonStats(row.getSteamId(), totalPoints, hits, rounds, activeDays, avgPointsPerDay, longestStreak);
+    }
+
+    private Map<String, List<LocalDate>> buildSeasonParticipationDates(LocalDate startDate, LocalDate endDate) {
+        List<GuessRepository.SeasonDateRow> rows = guessRepository.findSeasonDates(startDate, endDate);
+        Map<String, List<LocalDate>> map = new HashMap<>();
+        for (GuessRepository.SeasonDateRow row : rows) {
+            map.computeIfAbsent(row.getSteamId(), key -> new ArrayList<>());
+            List<LocalDate> dates = map.get(row.getSteamId());
+            LocalDate date = row.getGameDate();
+            if (dates.isEmpty() || !dates.get(dates.size() - 1).equals(date)) {
+                dates.add(date);
+            }
+        }
+        return map;
+    }
+
+    private static long calculateLongestStreak(List<LocalDate> dates) {
+        long best = 0;
+        long current = 0;
+        LocalDate previous = null;
+        for (LocalDate date : dates) {
+            if (previous == null) {
+                current = 1;
+            } else if (date.equals(previous.plusDays(1))) {
+                current += 1;
+            } else if (date.equals(previous)) {
+                continue;
+            } else {
+                current = 1;
+            }
+            previous = date;
+            if (current > best) {
+                best = current;
+            }
+        }
+        return best;
     }
 
     private List<SeasonAwardResult> generateAwardsForCategory(Season season,
@@ -229,6 +276,8 @@ public class SeasonService {
         return switch (category) {
             case MOST_POINTS -> stats.totalPoints();
             case MOST_HITS -> stats.hits();
+            case HIGHEST_AVG_POINTS_PER_DAY -> Math.round(stats.avgPointsPerDay() * 100.0d);
+            case LONGEST_STREAK -> stats.longestStreak();
         };
     }
 
@@ -246,7 +295,13 @@ public class SeasonService {
         return value == null ? 0 : value;
     }
 
-    private record SeasonStats(String steamId, long totalPoints, long hits, long rounds) {
+    private record SeasonStats(String steamId,
+                               long totalPoints,
+                               long hits,
+                               long rounds,
+                               long activeDays,
+                               double avgPointsPerDay,
+                               long longestStreak) {
     }
 }
 

@@ -69,6 +69,15 @@ public class CacheConfig {
                         .build()
         );
 
+        final CaffeineCache cacheStatsEndpoint = new CaffeineCache(
+                "cache-stats",
+                Caffeine.newBuilder()
+                        .expireAfterWrite(1, TimeUnit.MINUTES)
+                        .maximumSize(5)
+                        .recordStats()
+                        .build()
+        );
+
         final CaffeineCache seasonCurrent = new CaffeineCache(
                 "season-current-response",
                 Caffeine.newBuilder()
@@ -122,6 +131,7 @@ public class CacheConfig {
                 cacheStatsLong,
                 cacheStatsHourly,
                 cacheStatsShort,
+                cacheStatsEndpoint,
                 seasonCurrent,
                 seasonList,
                 seasonAwardsResponse,

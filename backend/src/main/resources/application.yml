@@ -54,7 +54,7 @@ auth:
 review:
   game:
     # days to avoid reusing an appid after it was picked; increase for fewer repeats
-    do-not-repeat-days: 3650
+    do-not-repeat-days: 720
     # dynamic bucket boundaries for guessing game (inclusive upper bounds in ascending order)
     bucket-boundaries: [ 13, 111, 855, 6467 ]
     bucketTitles: [ 'unknown', 'niche', 'rising', 'popular', 'star' ]
@@ -73,6 +73,8 @@ season:
     categories:
       - MOST_POINTS
       - MOST_HITS
+      - HIGHEST_AVG_POINTS_PER_DAY
+      - LONGEST_STREAK
 
 # per-job enable/disable toggles
 jobs:

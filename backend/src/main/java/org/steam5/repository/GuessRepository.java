@@ -43,18 +43,35 @@ public interface GuessRepository extends JpaRepository<Guess, Long> {
         Long getTotalPoints();
         Long getHits();
         Long getRounds();
+        Long getActiveDays();
     }
 
     @Query("""
             select g.steamId as steamId,
                    sum(g.points) as totalPoints,
                    sum(case when g.selectedBucket = g.actualBucket then 1 else 0 end) as hits,
-                   count(g) as rounds
+                   count(g) as rounds,
+                   count(distinct g.gameDate) as activeDays
             from Guess g
             where g.gameDate between :startDate and :endDate
             group by g.steamId
             """)
     List<SeasonStatRow> findSeasonStats(@Param("startDate") LocalDate startDate,
+                                        @Param("endDate") LocalDate endDate);
+
+    interface SeasonDateRow {
+        String getSteamId();
+        LocalDate getGameDate();
+    }
+
+    @Query("""
+            select g.steamId as steamId,
+                   g.gameDate as gameDate
+            from Guess g
+            where g.gameDate between :startDate and :endDate
+            order by g.steamId asc, g.gameDate asc
+            """)
+    List<SeasonDateRow> findSeasonDates(@Param("startDate") LocalDate startDate,
                                         @Param("endDate") LocalDate endDate);
 
     @Query("select distinct g.gameDate from Guess g where g.steamId = :steamId and g.gameDate <= :asOfDate order by g.gameDate desc")
