@@ -118,6 +118,9 @@ public class SteamAppDetailController {
                     add.accept(m.getThumbnail());
                     add.accept(m.getWebm());
                     add.accept(m.getMp4());
+                    add.accept(m.getDashAv1());
+                    add.accept(m.getDashH264());
+                    add.accept(m.getHlsH264());
                 }
             }
             byte[] digest = md.digest();

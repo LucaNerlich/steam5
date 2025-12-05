@@ -97,6 +97,9 @@ export interface Movie {
     thumbnail: string;
     webm: string | null;
     mp4: string | null;
+    dashAv1?: string | null;
+    dashH264?: string | null;
+    hlsH264?: string | null;
 }
 
 

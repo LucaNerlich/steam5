@@ -11,7 +11,7 @@ import parse, {
     type Element,
     type HTMLReactParserOptions
 } from "html-react-parser";
-import type {SteamAppDetail} from "@/types/review-game";
+import type {SteamAppDetail, Movie as SteamMovie} from "@/types/review-game";
 import "@/styles/components/gameInfoSection.css";
 
 interface Props {
@@ -124,30 +124,93 @@ export default function GameInfoSection({pick}: Props): React.ReactElement | nul
 
     // Helper to ensure URLs are absolute
     const normalizeUrl = (url: string | null | undefined): string => {
-        if (!url) return '';
-        if (url.startsWith('http://') || url.startsWith('https://')) return url;
-        if (url.startsWith('//')) return `https:${url}`;
+        if (!url) return "";
+        if (url.startsWith("http://") || url.startsWith("https://")) return url;
+        if (url.startsWith("//")) return `https:${url}`;
         return url;
+    };
+
+    const resolveMovieSource = (movie: SteamMovie) => {
+        const ordered = [movie.dashAv1, movie.dashH264, movie.hlsH264, movie.mp4, movie.webm];
+        const rawSrc = ordered.find((entry) => Boolean(entry));
+        const normalizedSrc = normalizeUrl(rawSrc as string | null | undefined);
+        if (!normalizedSrc) {
+            return {src: "", type: undefined as string | undefined, format: undefined as string | undefined};
+        }
+        const lower = normalizedSrc.toLowerCase();
+        if (lower.includes(".mpd")) {
+            return {src: normalizedSrc, type: "html5video", format: "application/dash+xml"};
+        }
+        if (lower.includes(".m3u8")) {
+            return {src: normalizedSrc, type: "html5video", format: "application/vnd.apple.mpegurl"};
+        }
+        return {src: normalizedSrc, type: undefined as string | undefined, format: undefined as string | undefined};
     };
 
     React.useEffect(() => {
         if (!hasMovies) return;
 
-        // Initialize Fancybox for videos
-        // @ts-ignore
-        Fancybox.bind(`[data-fancybox="videos-${pick.appId}"]`, {
+        let dashModulePromise: Promise<any> | null = null;
+        const dashPlayers: Array<{ reset: () => void }> = [];
+        const selector = `[data-fancybox="videos-${pick.appId}"]`;
+
+        const loadDashModule = (): Promise<any> => {
+            if (dashModulePromise) return dashModulePromise;
+            dashModulePromise = import("dashjs")
+                .then((mod) => mod ?? null)
+                .catch((err) => {
+                console.error("Failed to load dash.js", err);
+                return null;
+            });
+            return dashModulePromise;
+        };
+
+        const disposePlayers = () => {
+            while (dashPlayers.length > 0) {
+                const player = dashPlayers.pop();
+                try {
+                    player?.reset();
+                } catch {
+                    // ignore cleanup failures
+                }
+            }
+        };
+
+        // @ts-ignore Fancybox global binding
+        Fancybox.bind(selector, {
             Toolbar: {
                 display: {
                     left: ["infobar"],
                     middle: [],
                     right: ["close"]
                 }
+            },
+            on: {
+                "Carousel.attachSlideEl": (_fancyboxRef: unknown, _carouselRef: unknown, slide: { src?: string; el?: HTMLElement }) => {
+                    const src = typeof slide?.src === "string" ? slide.src : "";
+                    if (!src.toLowerCase().includes(".mpd")) return;
+                    const videoEl = slide.el?.querySelector("video") as HTMLVideoElement | null;
+                    if (!videoEl) return;
+                    void loadDashModule().then((dashjsModule) => {
+                        if (!dashjsModule) return;
+                        const dashLib = dashjsModule.default ?? dashjsModule;
+                        if (!dashLib?.MediaPlayer) return;
+                        const player = dashLib.MediaPlayer().create();
+                        player.initialize(videoEl, src, true);
+                        player.setMute(true);
+                        dashPlayers.push(player);
+                    });
+                },
+                destroy: () => {
+                    disposePlayers();
+                }
             }
         });
 
         return () => {
-            Fancybox.unbind(`[data-fancybox="videos-${pick.appId}"]`);
+            Fancybox.unbind(selector);
             Fancybox.close();
+            disposePlayers();
         };
     }, [hasMovies, pick.appId]);
 
@@ -189,16 +252,18 @@ export default function GameInfoSection({pick}: Props): React.ReactElement | nul
                     <h3>Videos</h3>
                     <div className="game-info__videos">
                         {pick.movies.map((m, i) => {
-                            const videoSrc = normalizeUrl(m.mp4 || m.webm);
+                            const {src: videoSrc, type: fancyboxType, format: fancyboxFormat} = resolveMovieSource(m);
                             const thumbSrc = normalizeUrl(m.thumbnail);
                             if (!videoSrc || !thumbSrc) return null;
                             return (
                                 <div key={`mov-${m.id}-${i}`} className="game-info__video">
                                     <a
-                                        href={videoSrc || '#'}
+                                        href={videoSrc || "#"}
                                         data-fancybox={`videos-${pick.appId}`}
                                         data-caption={m.name}
                                         data-thumb={thumbSrc}
+                                        data-type={fancyboxType}
+                                        data-html5video-format={fancyboxFormat}
                                         className="video-link"
                                     >
                                         <div className="video-thumbnail">

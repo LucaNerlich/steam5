@@ -204,8 +204,18 @@ public class SteamAppDetailService {
                 mp4 = mvNode.path("mp4").path("480").asText(null);
             }
             mp4 = normalizeToHttps(mp4);
-            if (StringUtils.isNoneBlank(name, thumbnail, webm, mp4)) {
-                detail.getMovies().add(new Movie(null, name, thumbnail, webm, mp4, detail));
+            final String dashAv1 = normalizeToHttps(mvNode.path("dash_av1").asText(null));
+            final String dashH264 = normalizeToHttps(mvNode.path("dash_h264").asText(null));
+            final String hlsH264 = normalizeToHttps(mvNode.path("hls_h264").asText(null));
+
+            final boolean hasStream = StringUtils.isNotBlank(webm)
+                    || StringUtils.isNotBlank(mp4)
+                    || StringUtils.isNotBlank(dashAv1)
+                    || StringUtils.isNotBlank(dashH264)
+                    || StringUtils.isNotBlank(hlsH264);
+
+            if (StringUtils.isNoneBlank(name, thumbnail) && hasStream) {
+                detail.getMovies().add(new Movie(null, name, thumbnail, webm, mp4, dashAv1, dashH264, hlsH264, detail));
             }
         }
 

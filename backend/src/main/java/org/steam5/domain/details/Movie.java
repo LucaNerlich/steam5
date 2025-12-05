@@ -20,6 +20,9 @@ public class Movie {
     private String thumbnail;
     private String webm;
     private String mp4;
+    private String dashAv1;
+    private String dashH264;
+    private String hlsH264;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "app_id")
