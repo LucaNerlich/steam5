@@ -88,11 +88,10 @@ public class QuartzConfig {
         return TriggerBuilder.newTrigger().forJob(job)
                 .withIdentity("SeasonFinalizerJob_Trigger")
                 // daily at 00:10 to close finished seasons
-                .startNow()
-//                .withSchedule(
-//                        CronScheduleBuilder.cronSchedule("0 10 0 * * ?")
-//                                .inTimeZone(TimeZone.getTimeZone("UTC"))
-//                )
+                .withSchedule(
+                        CronScheduleBuilder.cronSchedule("0 10 0 * * ?")
+                                .inTimeZone(TimeZone.getTimeZone("UTC"))
+                )
                 .build();
     }
 
@@ -101,7 +100,6 @@ public class QuartzConfig {
     public Trigger triggerSeasonBackfillJob(@Qualifier("SeasonBackfillJob") JobDetail job) {
         return TriggerBuilder.newTrigger().forJob(job)
                 .withIdentity("SeasonBackfillJob_Trigger")
-//                .startNow()
                 // daily at 00:05
                 .withSchedule(
                         CronScheduleBuilder.cronSchedule("0 5 0 * * ?")
