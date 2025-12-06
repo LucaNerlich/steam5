@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import {formatDate} from "@/lib/format";
 import "@/styles/components/seasons.css";
+import {Routes} from "../../routes";
 
 type AwardView = {
     category: string;
@@ -188,12 +189,12 @@ export const metadata: Metadata = {
     title: "Seasons — Steam Review Guesser",
     description: "Track the current season schedule and browse past Steam Review Guesser award winners.",
     alternates: {
-        canonical: "/seasons"
+        canonical: Routes.seasons
     },
     openGraph: {
         title: "Steam Review Guesser Seasons",
         description: "Track the current season schedule and browse past award winners.",
-        url: "/seasons",
+        url: Routes.seasons,
         images: ["/opengraph-image"]
     },
     twitter: {
@@ -205,5 +206,3 @@ export const metadata: Metadata = {
 };
 
 export const revalidate = 300;
-
-
