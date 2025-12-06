@@ -9,6 +9,8 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.util.TimeZone;
+
 import static org.quartz.SimpleScheduleBuilder.simpleSchedule;
 
 @Configuration
@@ -51,7 +53,7 @@ public class QuartzConfig {
                 .withIdentity("ReviewGameStateJob_Trigger")
                 // every day at 00:01 UTC (which is 01:01 CET / 02:01 CEST in Germany)
                 .withSchedule(CronScheduleBuilder.cronSchedule("0 1 0 * * ?")
-                        .inTimeZone(java.util.TimeZone.getTimeZone("UTC")))
+                        .inTimeZone(TimeZone.getTimeZone("UTC")))
                 .build();
     }
 
@@ -82,7 +84,7 @@ public class QuartzConfig {
                 .withIdentity("SeasonFinalizerJob_Trigger")
                 // daily at 00:10 UTC to close finished seasons
                 .withSchedule(CronScheduleBuilder.cronSchedule("0 10 0 * * ?")
-                        .inTimeZone(java.util.TimeZone.getTimeZone("UTC")))
+                        .inTimeZone(TimeZone.getTimeZone("UTC")))
                 .build();
     }
 
@@ -93,7 +95,7 @@ public class QuartzConfig {
                 .withIdentity("SeasonBackfillJob_Trigger")
                 // daily at 00:05 UTC, after the finalizer
                 .withSchedule(CronScheduleBuilder.cronSchedule("0 5 0 * * ?")
-                        .inTimeZone(java.util.TimeZone.getTimeZone("UTC")))
+                        .inTimeZone(TimeZone.getTimeZone("UTC")))
                 .build();
     }
 }
