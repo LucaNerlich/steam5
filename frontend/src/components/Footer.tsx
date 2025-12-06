@@ -6,17 +6,26 @@ import "@/styles/components/footer.css";
 import FooterNavRow from "@/components/FooterNavRow";
 import Link from "next/link";
 import NextChallengeTime from "@/components/NextChallengeTime";
+import SeasonCountdown from "@/components/SeasonCountdown";
 
 export default function Footer() {
     return (
         <footer>
             <div className="container">
                 <FooterNavRow/>
-                <small className="text-muted" style={{display: 'block', fontSize: '0.8rem'}}>
-                    <Link href="/imprint">Imprint</Link> · <Link href="/privacy">Privacy</Link>
-                    <span className="footer__next-challenge-separator"> · </span>
-                    <span className="footer__next-challenge"><NextChallengeTime/></span>
-                </small>
+                <div className="footer__meta">
+                    <small className="footer__meta-line text-muted">
+                        <NextChallengeTime/>
+                    </small>
+                    <small className="footer__meta-line text-muted">
+                        <SeasonCountdown/>
+                    </small>
+                    <small className="footer__meta-line footer__meta-links text-muted">
+                        <Link href="/imprint">Imprint</Link>
+                        <span>·</span>
+                        <Link href="/privacy">Privacy</Link>
+                    </small>
+                </div>
                 <div className="controls">
                     <a
                         href="https://github.com/LucaNerlich/steam5"

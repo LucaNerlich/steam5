@@ -118,6 +118,7 @@
     justify-content: space-between;
     gap: 0.75rem;
     flex-wrap: wrap;
+    z-index: auto;
 }
 
 .season-card__eyebrow {

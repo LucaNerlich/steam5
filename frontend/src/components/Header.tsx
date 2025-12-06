@@ -3,7 +3,6 @@ import Image from "next/image";
 import {Routes} from "../../app/routes";
 import "@/styles/components/header.css";
 import SteamLoginButton from "@/components/SteamLoginButton";
-import IconImage from "../../app/icon.svg"
 import IconFullImage from "../../public/icon-full.svg"
 import {ArchiveIcon, PresentationChartIcon, TipJarIcon, TrophyIcon} from "@phosphor-icons/react/ssr";
 
@@ -31,10 +30,10 @@ export default function Header() {
                     {/*/>*/}
                 </Link>
                 <span className="game-title" aria-hidden="true">
-                    <Link href={Routes.reviewGuesser1} className="mobile__hide">Review Guesser</Link>
-                    <Link href="/review-guesser/archive" className="archive-link" title="Archive" aria-label="Open archive">
+                    <Link href="/review-guesser/archive" className="archive-link" title="Archive"
+                          aria-label="Open archive">
                     <span className="mobile__hide">Archive</span> <ArchiveIcon size={28}/>
-                </Link>
+                    </Link>
                 </span>
 
                 <div className="header-actions">

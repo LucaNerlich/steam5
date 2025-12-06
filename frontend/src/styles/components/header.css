@@ -134,12 +134,6 @@ header .game-title {
     font-weight: 600;
 }
 
-@media (min-width: 770px) {
-    header .game-title {
-        margin-left: 1rem;
-    }
-}
-
 /* Archive link - subtle, secondary navigation */
 header .archive-link {
     color: var(--color-muted);
