@@ -119,6 +119,7 @@
     gap: 0.75rem;
     flex-wrap: wrap;
     z-index: auto;
+    padding: 0;
 }
 
 .season-card__eyebrow {
@@ -156,19 +157,19 @@
     padding: 0;
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    gap: 0.5rem;
 }
 
 .season-card__placement {
     display: flex;
-    gap: 0.75rem;
+    gap: 0.1rem;
     align-items: center;
 }
 
 .season-card__rank {
-    font-family: var(--font-mono);
     font-weight: 700;
-    min-width: 2.5rem;
+    min-width: 2rem;
+    font-size: 1.1rem;
 }
 
 .season-card__rank--gold {
