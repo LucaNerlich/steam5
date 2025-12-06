@@ -9,9 +9,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.steam5.domain.Guess;
 import org.steam5.domain.User;
+import org.steam5.domain.SeasonAwardResult;
 import org.steam5.repository.GuessRepository;
 import org.steam5.repository.UserRepository;
 import org.steam5.repository.SteamAppIndexRepository;
+import org.steam5.service.SeasonService;
 
 import java.time.LocalDate;
 import java.util.Comparator;
@@ -29,6 +31,7 @@ public class ProfileController {
     private final UserRepository userRepository;
     private final GuessRepository guessRepository;
     private final SteamAppIndexRepository appIndexRepository;
+    private final SeasonService seasonService;
 
     @GetMapping("/{steamId}")
     public ResponseEntity<?> getProfile(@PathVariable("steamId") String steamId) {
@@ -98,6 +101,21 @@ public class ProfileController {
                                 )).toList()
                         ))
                         .toList());
+
+        final List<SeasonAwardResult> awards = seasonService.listAwardsForPlayer(steamId);
+        out.put("awards", awards.stream()
+                .map(result -> Map.of(
+                        "seasonId", result.getSeason().getId(),
+                        "seasonNumber", result.getSeason().getSeasonNumber(),
+                        "seasonStart", result.getSeason().getStartDate().toString(),
+                        "seasonEnd", result.getSeason().getEndDate().toString(),
+                        "category", result.getCategory().name(),
+                        "categoryLabel", result.getCategory().getLabel(),
+                        "placementLevel", result.getPlacementLevel(),
+                        "metricValue", result.getMetricValue(),
+                        "tiebreakRoll", result.getTiebreakRoll()
+                ))
+                .toList());
 
         return ResponseEntity.ok(out);
     }

@@ -54,7 +54,7 @@ auth:
 review:
   game:
     # days to avoid reusing an appid after it was picked; increase for fewer repeats
-    do-not-repeat-days: 3650
+    do-not-repeat-days: 720
     # dynamic bucket boundaries for guessing game (inclusive upper bounds in ascending order)
     bucket-boundaries: [ 13, 111, 855, 6467 ]
     bucketTitles: [ 'unknown', 'niche', 'rising', 'popular', 'star' ]
@@ -62,6 +62,21 @@ review:
     high-percentile: ${HIGH_PERCENTILE:0.95}
     # refresh reviews for picked apps when older than N days
     min-reviews-fresh-days: ${MIN_REVIEWS_FRESH_DAYS:7}
+
+season:
+  # default season length in days; persisted seasons keep their own dates if this changes mid-season
+  length-days: ${SEASON_LENGTH_DAYS:30}
+  awards:
+    # how many placement levels to award per category (e.g., 1=winner only, 3=top three)
+    max-placements: ${SEASON_AWARDS_MAX_PLACEMENTS:3}
+    # minimum number of rounds a player must have during a season to be eligible for awards
+    min-rounds: ${SEASON_AWARDS_MIN_ROUNDS:15}
+    # categories evaluated per season; names must match SeasonAwardCategory enum
+    categories:
+      - MOST_POINTS
+      - MOST_HITS
+      - HIGHEST_AVG_POINTS_PER_DAY
+      - LONGEST_STREAK
 
 # per-job enable/disable toggles
 jobs:
@@ -80,4 +95,8 @@ jobs:
   reviews-refresh:
     enabled: ${JOB_REVIEWS_REFRESH:false}
     nightly-limit: ${JOB_REVIEWS_REFRESH_LIMIT:15000}
+  seasons-finalizer:
+    enabled: ${JOB_SEASONS_FINALIZER:true}
+  seasons-backfill:
+    enabled: ${JOB_SEASONS_BACKFILL:false}
 

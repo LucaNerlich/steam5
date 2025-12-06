@@ -1,0 +1,5 @@
+### Cache stats overview
+GET {{host}}/api/cache/stats
+Accept: application/json
+
+

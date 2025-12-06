@@ -60,6 +60,101 @@
     font-weight: 700;
 }
 
+.profile__awards {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.profile__award-card {
+    border: 1px solid var(--color-border);
+    border-radius: 0.6rem;
+    padding: 0.85rem;
+    background: var(--color-surface);
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+}
+
+.profile__award-card-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+    align-items: baseline;
+    flex-wrap: wrap;
+}
+
+.profile__award-card-dates {
+    margin: 0;
+    color: var(--color-muted);
+    font-size: 0.9rem;
+}
+
+.profile__award-list {
+    list-style: none;
+    margin: 0.5rem 0 0;
+    padding: 0;
+}
+
+.profile__award-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.45rem 0.25rem;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.profile__award-row:last-child {
+    border-bottom: none;
+}
+
+.profile__award-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 999px;
+    font-weight: 700;
+    color: #111;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+}
+
+.profile__award-badge--gold {
+    background: linear-gradient(135deg, #fcd34d, #fbbf24);
+}
+
+.profile__award-badge--silver {
+    background: linear-gradient(135deg, #e5e7eb, #d1d5db);
+}
+
+.profile__award-badge--bronze {
+    background: linear-gradient(135deg, #f97316, #ea580c);
+}
+
+.profile__award-badge--neutral {
+    background: var(--color-border);
+    color: var(--color-text);
+}
+
+.profile__award-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+}
+
+.profile__award-category {
+    margin: 0;
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+.profile__award-metric {
+    margin: 0;
+    color: var(--color-muted);
+    font-size: 0.85rem;
+}
+
+
 .profile__day {
     margin-top: 0.75rem;
 }

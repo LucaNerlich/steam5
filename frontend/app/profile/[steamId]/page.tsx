@@ -4,6 +4,7 @@ import type {Metadata} from "next";
 import "@/styles/components/profile.css";
 import PerformanceSection from "@/components/PerformanceSection";
 import {Suspense} from "react";
+import {formatDate} from "@/lib/format";
 
 type ProfileResponse = {
     steamId: string;
@@ -30,6 +31,17 @@ type ProfileResponse = {
             points: number;
         }>;
     }>;
+    awards: Array<{
+        seasonId: number;
+        seasonNumber: number;
+        seasonStart: string;
+        seasonEnd: string;
+        category: string;
+        categoryLabel: string;
+        placementLevel: number;
+        metricValue: number;
+        tiebreakRoll?: number | null;
+    }>;
 };
 
 export default async function ProfilePage({params}: { params: { steamId: string } }) {
@@ -46,6 +58,9 @@ export default async function ProfilePage({params}: { params: { steamId: string 
     const allDays = (data.days || []);
     const todayStr = new Date().toISOString().slice(0, 10);
     const days = allDays.filter(d => d.date !== todayStr);
+
+    const awards = data.awards ?? [];
+    const awardSeasons = groupAwardsBySeason(awards);
 
     return (
         <section className="container">
@@ -83,6 +98,43 @@ export default async function ProfilePage({params}: { params: { steamId: string 
                         <div><dt>Too Low</dt><dd>{data.stats.tooLow}</dd></div>
                         <div><dt>Avg</dt><dd>{data.stats.avgPoints.toFixed(2)}</dd></div>
                     </dl>
+                </section>
+
+                <section aria-labelledby="awards-title">
+                    <h2 id="awards-title">Season awards</h2>
+                    {awardSeasons.length === 0 ? (
+                        <p className="muted">No season awards yet.</p>
+                    ) : (
+                        <div className="profile__awards">
+                            {awardSeasons.map(season => (
+                                <article key={season.seasonId ?? season.seasonNumber} className="profile__award-card">
+                                    <div className="profile__award-card-header">
+                                        <h3>Season #{season.seasonNumber}</h3>
+                                        <p className="profile__award-card-dates">
+                                            {formatDate(season.seasonStart)} – {formatDate(season.seasonEnd)}
+                                        </p>
+                                    </div>
+                                    <ul className="profile__award-list">
+                                        {season.awards.map(award => (
+                                            <li
+                                                className="profile__award-row"
+                                                key={`${season.seasonNumber}-${award.category}-${award.placementLevel}`}>
+                                                <span className={`profile__award-badge ${placementBadgeClass(award.placementLevel)}`}>
+                                                    {ordinal(award.placementLevel)}
+                                                </span>
+                                                <div className="profile__award-content">
+                                                    <p className="profile__award-category">{award.categoryLabel}</p>
+                                                    <p className="profile__award-metric">
+                                                        {formatAwardMetric(award)}
+                                                    </p>
+                                                </div>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </article>
+                            ))}
+                        </div>
+                    )}
                 </section>
 
                 <Suspense fallback={<div style={{height: 160, background: 'var(--color-border)', borderRadius: 8}}/>}>
@@ -162,6 +214,72 @@ export default async function ProfilePage({params}: { params: { steamId: string 
             </section>
         </section>
     );
+}
+
+type AwardSeason = {
+    seasonId?: number;
+    seasonNumber: number;
+    seasonStart: string;
+    seasonEnd: string;
+    awards: ProfileResponse["awards"];
+};
+
+function groupAwardsBySeason(awards: ProfileResponse["awards"]): AwardSeason[] {
+    if (!awards || awards.length === 0) return [];
+    const grouped = new Map<number, AwardSeason>();
+    awards.forEach(award => {
+        const existing = grouped.get(award.seasonNumber);
+        if (existing) {
+            existing.awards.push(award);
+        } else {
+            grouped.set(award.seasonNumber, {
+                seasonId: award.seasonId,
+                seasonNumber: award.seasonNumber,
+                seasonStart: award.seasonStart,
+                seasonEnd: award.seasonEnd,
+                awards: [award]
+            });
+        }
+    });
+    return Array.from(grouped.values()).sort((a, b) => b.seasonNumber - a.seasonNumber);
+}
+
+function ordinal(value: number): string {
+    const mod100 = value % 100;
+    if (mod100 >= 11 && mod100 <= 13) return `${value}th`;
+    switch (value % 10) {
+        case 1:
+            return `${value}st`;
+        case 2:
+            return `${value}nd`;
+        case 3:
+            return `${value}rd`;
+        default:
+            return `${value}th`;
+    }
+}
+
+function placementBadgeClass(level: number): string {
+    if (level === 1) return "profile__award-badge--gold";
+    if (level === 2) return "profile__award-badge--silver";
+    if (level === 3) return "profile__award-badge--bronze";
+    return "profile__award-badge--neutral";
+}
+
+function formatAwardMetric(award: ProfileResponse["awards"][number]): string {
+    const formatter = new Intl.NumberFormat();
+    switch (award.category) {
+        case "MOST_POINTS":
+            return `${formatter.format(award.metricValue)} pts`;
+        case "MOST_HITS":
+            return `${formatter.format(award.metricValue)} hits`;
+        case "HIGHEST_AVG_POINTS_PER_DAY":
+            return `${(award.metricValue / 100).toFixed(2)} avg pts/day`;
+        case "LONGEST_STREAK":
+            return `${award.metricValue} ${award.metricValue === 1 ? "day" : "days"}`;
+        default:
+            return formatter.format(award.metricValue);
+    }
 }
 
 export const revalidate = 300;

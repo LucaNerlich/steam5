@@ -3,9 +3,8 @@ import Image from "next/image";
 import {Routes} from "../../app/routes";
 import "@/styles/components/header.css";
 import SteamLoginButton from "@/components/SteamLoginButton";
-import IconImage from "../../app/icon.svg"
 import IconFullImage from "../../public/icon-full.svg"
-import {ArchiveIcon, PresentationChartIcon, TipJarIcon} from "@phosphor-icons/react/ssr";
+import {ArchiveIcon, PresentationChartIcon, TipJarIcon, TrophyIcon} from "@phosphor-icons/react/ssr";
 
 export default function Header() {
     return (
@@ -31,23 +30,28 @@ export default function Header() {
                     {/*/>*/}
                 </Link>
                 <span className="game-title" aria-hidden="true">
-                    <Link href={Routes.reviewGuesser1} className="mobile__hide">Review Guesser</Link>
-                    <Link href="/review-guesser/archive" className="archive-link" title="Archive" aria-label="Open archive">
+                    <Link href={Routes.archive} className="archive-link" title="Archive"
+                          aria-label="Open archive">
                     <span className="mobile__hide">Archive</span> <ArchiveIcon size={28}/>
-                </Link>
+                    </Link>
                 </span>
 
                 <div className="header-actions">
-                    <Link href="/review-guesser/leaderboard/today"
-                          style={{display: 'flex', alignItems: 'center', gap: '0.15rem'}}
+                    <Link href={Routes.leaderboardToday}
+                          className="header-actions__link"
                           title="Leaderboard"
                           aria-label="Open leaderboard">
                         <span className="mobile__hide">Leaderboard</span> <PresentationChartIcon size={28}/>
                     </Link>
+                    <Link href={Routes.seasons}
+                          className="header-actions__link"
+                          title="Seasons"
+                          aria-label="Open seasons overview">
+                        <span className="mobile__hide">Seasons</span> <TrophyIcon size={28}/>
+                    </Link>
                     <Link
                         href="https://paypal.me/lucanerlich"
-                        className="header__donate-link"
-                        style={{display: 'flex', alignItems: 'center', gap: '0.15rem'}}
+                        className="header__donate-link header-actions__link"
                         target="_blank"
                         rel="noopener noreferrer"
                         title="Support the project on PayPal"

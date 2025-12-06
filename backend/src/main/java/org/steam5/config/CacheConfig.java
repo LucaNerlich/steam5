@@ -69,6 +69,60 @@ public class CacheConfig {
                         .build()
         );
 
+        final CaffeineCache cacheStatsEndpoint = new CaffeineCache(
+                "cache-stats",
+                Caffeine.newBuilder()
+                        .expireAfterWrite(1, TimeUnit.MINUTES)
+                        .maximumSize(5)
+                        .recordStats()
+                        .build()
+        );
+
+        final CaffeineCache seasonCurrent = new CaffeineCache(
+                "season-current-response",
+                Caffeine.newBuilder()
+                        .expireAfterWrite(15, TimeUnit.MINUTES)
+                        .maximumSize(50)
+                        .recordStats()
+                        .build()
+        );
+
+        final CaffeineCache seasonList = new CaffeineCache(
+                "season-list-response",
+                Caffeine.newBuilder()
+                        .expireAfterWrite(30, TimeUnit.MINUTES)
+                        .maximumSize(200)
+                        .recordStats()
+                        .build()
+        );
+
+        final CaffeineCache seasonAwardsResponse = new CaffeineCache(
+                "season-awards-response",
+                Caffeine.newBuilder()
+                        .expireAfterWrite(1, TimeUnit.HOURS)
+                        .maximumSize(200)
+                        .recordStats()
+                        .build()
+        );
+
+        final CaffeineCache seasonAwards = new CaffeineCache(
+                "season-awards",
+                Caffeine.newBuilder()
+                        .expireAfterWrite(1, TimeUnit.HOURS)
+                        .maximumSize(200)
+                        .recordStats()
+                        .build()
+        );
+
+        final CaffeineCache playerAwards = new CaffeineCache(
+                "player-awards",
+                Caffeine.newBuilder()
+                        .expireAfterWrite(1, TimeUnit.HOURS)
+                        .maximumSize(500)
+                        .recordStats()
+                        .build()
+        );
+
         final SimpleCacheManager cacheManager = new SimpleCacheManager();
         cacheManager.setCaches(List.of(
                 cacheOneHour,
@@ -76,7 +130,13 @@ public class CacheConfig {
                 cacheReviewGame,
                 cacheStatsLong,
                 cacheStatsHourly,
-                cacheStatsShort
+                cacheStatsShort,
+                cacheStatsEndpoint,
+                seasonCurrent,
+                seasonList,
+                seasonAwardsResponse,
+                seasonAwards,
+                playerAwards
         ));
         return cacheManager;
     }
