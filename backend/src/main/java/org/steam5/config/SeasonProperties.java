@@ -32,6 +32,11 @@ public class SeasonProperties {
         private int maxPlacements = 3;
 
         /**
+         * Minimum number of rounds a player must complete in a season to be considered for awards.
+         */
+        private int minRounds = 15;
+
+        /**
          * Categories evaluated for each season.
          */
         private List<SeasonAwardCategory> categories = List.of(

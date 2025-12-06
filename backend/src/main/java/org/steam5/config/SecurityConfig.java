@@ -10,7 +10,7 @@ import org.springframework.security.web.SecurityFilterChain;
 public class SecurityConfig {
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
@@ -20,6 +20,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/cache/**").permitAll()
                         .requestMatchers("/api/leaderboard/**").permitAll()
                         .requestMatchers("/api/profile/**").permitAll()
+//                        .requestMatchers("/api/admin/seasons/**").permitAll()
                         .requestMatchers("/api/seasons/**").permitAll()
                         .requestMatchers("/api/stats/**").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()

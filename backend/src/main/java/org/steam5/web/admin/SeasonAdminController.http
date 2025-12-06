@@ -1,0 +1,25 @@
+### Backfill seasons over entire guess history and auto-finalize closed ones
+POST {{host}}/api/admin/seasons/backfill
+Content-Type: application/json
+Accept: application/json
+
+{
+  "finalizeClosedSeasons": true
+}
+
+### Backfill specific date range without finalizing yet
+POST {{host}}/api/admin/seasons/backfill
+Content-Type: application/json
+Accept: application/json
+
+{
+  "startDate": "2025-08-15",
+  "endDate": "2025-11-01",
+  "finalizeClosedSeasons": false
+}
+
+### Finalize a single season (replace {seasonId})
+POST {{host}}/api/admin/seasons/3/finalize
+Accept: application/json
+
+

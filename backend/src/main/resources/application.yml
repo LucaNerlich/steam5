@@ -69,6 +69,8 @@ season:
   awards:
     # how many placement levels to award per category (e.g., 1=winner only, 3=top three)
     max-placements: ${SEASON_AWARDS_MAX_PLACEMENTS:3}
+    # minimum number of rounds a player must have during a season to be eligible for awards
+    min-rounds: ${SEASON_AWARDS_MIN_ROUNDS:15}
     # categories evaluated per season; names must match SeasonAwardCategory enum
     categories:
       - MOST_POINTS

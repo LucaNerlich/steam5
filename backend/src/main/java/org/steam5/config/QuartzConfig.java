@@ -52,8 +52,10 @@ public class QuartzConfig {
         return TriggerBuilder.newTrigger().forJob(job)
                 .withIdentity("ReviewGameStateJob_Trigger")
                 // every day at 00:01 UTC (which is 01:01 CET / 02:01 CEST in Germany)
-                .withSchedule(CronScheduleBuilder.cronSchedule("0 1 0 * * ?")
-                        .inTimeZone(TimeZone.getTimeZone("UTC")))
+                .withSchedule(
+                        CronScheduleBuilder.cronSchedule("0 1 0 * * ?")
+                                .inTimeZone(TimeZone.getTimeZone("UTC"))
+                )
                 .build();
     }
 
@@ -73,7 +75,10 @@ public class QuartzConfig {
         return TriggerBuilder.newTrigger().forJob(job)
                 .withIdentity("SteamAppReviewsRefreshJob_Trigger")
                 // nightly at 02:00
-                .withSchedule(CronScheduleBuilder.cronSchedule("0 0 2 * * ?"))
+                .withSchedule(
+                        CronScheduleBuilder.cronSchedule("0 0 2 * * ?")
+                                .inTimeZone(TimeZone.getTimeZone("UTC"))
+                )
                 .build();
     }
 
@@ -82,9 +87,11 @@ public class QuartzConfig {
     public Trigger triggerSeasonFinalizerJob(@Qualifier("SeasonFinalizerJob") JobDetail job) {
         return TriggerBuilder.newTrigger().forJob(job)
                 .withIdentity("SeasonFinalizerJob_Trigger")
-                // daily at 00:10 UTC to close finished seasons
-                .withSchedule(CronScheduleBuilder.cronSchedule("0 10 0 * * ?")
-                        .inTimeZone(TimeZone.getTimeZone("UTC")))
+                // daily at 00:10 to close finished seasons
+                .withSchedule(
+                        CronScheduleBuilder.cronSchedule("0 10 0 * * ?")
+                                .inTimeZone(TimeZone.getTimeZone("UTC"))
+                )
                 .build();
     }
 
@@ -93,9 +100,12 @@ public class QuartzConfig {
     public Trigger triggerSeasonBackfillJob(@Qualifier("SeasonBackfillJob") JobDetail job) {
         return TriggerBuilder.newTrigger().forJob(job)
                 .withIdentity("SeasonBackfillJob_Trigger")
-                // daily at 00:05 UTC, after the finalizer
-                .withSchedule(CronScheduleBuilder.cronSchedule("0 5 0 * * ?")
-                        .inTimeZone(TimeZone.getTimeZone("UTC")))
+                .startNow()
+                // daily at 00:05
+                .withSchedule(
+                        CronScheduleBuilder.cronSchedule("0 5 0 * * ?")
+                                .inTimeZone(TimeZone.getTimeZone("UTC"))
+                )
                 .build();
     }
 }

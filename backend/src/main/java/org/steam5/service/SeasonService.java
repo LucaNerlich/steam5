@@ -136,12 +136,14 @@ public class SeasonService {
         Map<String, SeasonStats> statsByPlayer = rows.stream()
                 .map(row -> buildSeasonStats(row, participationDates.getOrDefault(row.getSteamId(), List.of())))
                 .collect(Collectors.toMap(SeasonStats::steamId, Function.identity()));
+        final int minRoundsRequired = Math.max(1, seasonProperties.getAwards().getMinRounds());
+        statsByPlayer.entrySet().removeIf(entry -> entry.getValue().rounds() < minRoundsRequired);
 
         awardResultRepository.deleteAllBySeasonId(managed.getId());
 
         List<SeasonAwardResult> newResults = new ArrayList<>();
         for (SeasonAwardCategory category : seasonProperties.getAwards().getCategories()) {
-            newResults.addAll(generateAwardsForCategory(managed, category, statsByPlayer));
+            newResults.addAll(generateAwardsForCategory(managed, category, statsByPlayer, minRoundsRequired));
         }
         awardResultRepository.saveAll(newResults);
 
@@ -229,7 +231,8 @@ public class SeasonService {
 
     private List<SeasonAwardResult> generateAwardsForCategory(Season season,
                                                               SeasonAwardCategory category,
-                                                              Map<String, SeasonStats> statsByPlayer) {
+                                                              Map<String, SeasonStats> statsByPlayer,
+                                                              int minRoundsRequired) {
         if (statsByPlayer.isEmpty()) {
             return List.of();
         }
@@ -241,6 +244,7 @@ public class SeasonService {
                 .thenComparingInt(stats -> tieBreakRoll(season, category, stats.steamId()));
 
         List<SeasonStats> ordered = statsByPlayer.values().stream()
+                .filter(stats -> stats.rounds() >= minRoundsRequired)
                 .filter(stats -> metricValue(category, stats) > 0)
                 .sorted(comparator)
                 .limit(maxPlacements)
