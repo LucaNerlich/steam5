@@ -30,14 +30,14 @@ export default function Header() {
                     {/*/>*/}
                 </Link>
                 <span className="game-title" aria-hidden="true">
-                    <Link href="/review-guesser/archive" className="archive-link" title="Archive"
+                    <Link href={Routes.archive} className="archive-link" title="Archive"
                           aria-label="Open archive">
                     <span className="mobile__hide">Archive</span> <ArchiveIcon size={28}/>
                     </Link>
                 </span>
 
                 <div className="header-actions">
-                    <Link href="/review-guesser/leaderboard/today"
+                    <Link href={Routes.leaderboardToday}
                           className="header-actions__link"
                           title="Leaderboard"
                           aria-label="Open leaderboard">

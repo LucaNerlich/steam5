@@ -55,10 +55,6 @@ export default async function SeasonsPage() {
             <header className="seasons__hero">
                 <div className="seasons__pill">Season #{currentData.season.seasonNumber}</div>
                 <h1>Seasons</h1>
-                <p className="seasons__intro">
-                    Seasons reset the playing field every few weeks so new challengers can climb to the top.
-                    Awards are handed out the day after a season ends, then the next race begins.
-                </p>
                 <dl className="seasons__meta">
                     <div>
                         <dt>Runs</dt>
@@ -73,6 +69,10 @@ export default async function SeasonsPage() {
                         <dd>{formatDate(currentData.nextSeasonStart)}</dd>
                     </div>
                 </dl>
+                <p className="seasons__intro">
+                    Seasons reset the playing field every few weeks so new challengers can climb to the top.
+                    Awards are handed out the day after a season ends, then the next race begins.
+                </p>
             </header>
 
             <section className="seasons__section" aria-labelledby="past-seasons-title">
@@ -94,9 +94,6 @@ export default async function SeasonsPage() {
                                         <p className="season-card__eyebrow">Season #{season.seasonNumber}</p>
                                         <h3>{formatDate(season.startDate)} – {formatDate(season.endDate)}</h3>
                                     </div>
-                                    <p className="season-card__subtext">
-                                        Awards sent {season.awardsFinalizedAt ? formatDate(season.awardsFinalizedAt) : "—"}
-                                    </p>
                                 </header>
                                 <div className="season-card__awards">
                                     {groupAwardsByCategory(season.awards).map(group => (
