@@ -102,10 +102,10 @@ public class QuartzConfig {
                 .withIdentity("SeasonBackfillJob_Trigger")
                 .startNow()
                 // daily at 00:05
-                .withSchedule(
-                        CronScheduleBuilder.cronSchedule("0 5 0 * * ?")
-                                .inTimeZone(TimeZone.getTimeZone("UTC"))
-                )
+//                .withSchedule(
+//                        CronScheduleBuilder.cronSchedule("0 5 0 * * ?")
+//                                .inTimeZone(TimeZone.getTimeZone("UTC"))
+//                )
                 .build();
     }
 }
