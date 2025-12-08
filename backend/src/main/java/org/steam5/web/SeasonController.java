@@ -22,9 +22,13 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @RestController
@@ -35,6 +39,7 @@ public class SeasonController {
 
     private final SeasonService seasonService;
     private final UserRepository userRepository;
+    private static final int SEASON_TOP_PLAYERS_LIMIT = 15;
 
     @GetMapping("/current")
     @Cacheable(value = "season-current-response", key = "'current'", unless = "#result == null || #result.body == null")
@@ -79,6 +84,29 @@ public class SeasonController {
         return ResponseEntity.ok()
                 .header("Cache-Control", "public, s-maxage=1800, max-age=600")
                 .body(response);
+    }
+
+    @GetMapping("/{seasonIdentifier}")
+    @Cacheable(value = "season-detail-response", key = "#seasonIdentifier", unless = "#result == null || #result.body == null")
+    public ResponseEntity<SeasonDetailView> seasonDetail(@PathVariable String seasonIdentifier) {
+        Season season = resolveSeason(seasonIdentifier);
+        List<SeasonAwardResult> awards = season.getStatus() == SeasonStatus.FINALIZED
+                ? seasonService.listAwardsForSeason(season.getId())
+                : List.of();
+        SeasonView seasonView = mapSeason(season, awards);
+        SeasonService.SeasonReport report = seasonService.buildSeasonReport(season);
+        SeasonSummaryView summary = mapSummary(report.summary());
+        List<PlayerHighlight> players = mapTopPlayers(report.players());
+        SeasonDailyHighlightsView highlights = mapHighlights(seasonService.buildSeasonHighlights(season));
+        SeasonDetailView view = new SeasonDetailView(seasonView, summary, players, highlights);
+        LocalDate today = OffsetDateTime.now(ZoneOffset.UTC).toLocalDate();
+        boolean isCurrentSeason = !today.isBefore(season.getStartDate()) && !today.isAfter(season.getEndDate());
+        String cacheControl = isCurrentSeason
+                ? "public, s-maxage=900, max-age=300"
+                : "public, s-maxage=604800, max-age=86400";
+        return ResponseEntity.ok()
+                .header("Cache-Control", cacheControl)
+                .body(view);
     }
 
     @GetMapping("/{seasonId}/awards")
@@ -134,6 +162,101 @@ public class SeasonController {
                 .toList();
     }
 
+    private Season resolveSeason(String identifier) {
+        if (identifier == null || identifier.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Season identifier is required");
+        }
+        try {
+            int seasonNumber = Integer.parseInt(identifier);
+            Optional<Season> byNumber = seasonService.findSeasonByNumber(seasonNumber);
+            if (byNumber.isPresent()) {
+                return byNumber.get();
+            }
+        } catch (NumberFormatException ignored) {
+        }
+        try {
+            long seasonId = Long.parseLong(identifier);
+            return seasonService.findSeason(seasonId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Season not found"));
+        } catch (NumberFormatException ex) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Season not found");
+        }
+    }
+
+    private SeasonSummaryView mapSummary(SeasonService.SeasonSummary summary) {
+        if (summary == null) {
+            return new SeasonSummaryView(0, 0, 0, 0, 0d, 0d, 0d, 0d, 0L, 0, 0, null);
+        }
+        return new SeasonSummaryView(
+                summary.totalPlayers(),
+                summary.totalRounds(),
+                summary.totalPoints(),
+                summary.totalHits(),
+                summary.averagePointsPerRound(),
+                summary.averagePointsPerPlayer(),
+                summary.hitRate(),
+                summary.averageActiveDays(),
+                summary.longestStreak(),
+                summary.durationDays(),
+                summary.completedDays(),
+                summary.dataThrough()
+        );
+    }
+
+    private List<PlayerHighlight> mapTopPlayers(List<SeasonService.PlayerSeasonStat> playerStats) {
+        if (playerStats == null || playerStats.isEmpty()) {
+            return List.of();
+        }
+        int limit = Math.min(SEASON_TOP_PLAYERS_LIMIT, playerStats.size());
+        List<SeasonService.PlayerSeasonStat> subset = playerStats.subList(0, limit);
+        List<String> ids = subset.stream().map(SeasonService.PlayerSeasonStat::steamId).toList();
+        Map<String, User> users = userRepository.findAllById(ids).stream()
+                .collect(Collectors.toMap(User::getSteamId, user -> user));
+        List<PlayerHighlight> highlights = new ArrayList<>(subset.size());
+        for (int i = 0; i < subset.size(); i++) {
+            SeasonService.PlayerSeasonStat stat = subset.get(i);
+            User user = users.get(stat.steamId());
+            highlights.add(new PlayerHighlight(
+                    i + 1,
+                    stat.steamId(),
+                    userDisplayName(user, stat.steamId()),
+                    user != null ? user.getAvatarFull() : null,
+                    user != null ? user.getBlurdataAvatarFull() : null,
+                    user != null ? user.getProfileUrl() : null,
+                    stat.totalPoints(),
+                    stat.rounds(),
+                    stat.hits(),
+                    stat.avgPointsPerRound(),
+                    stat.avgPointsPerDay(),
+                    stat.activeDays(),
+                    stat.longestStreak()
+            ));
+        }
+        return highlights;
+    }
+
+    private SeasonDailyHighlightsView mapHighlights(SeasonService.SeasonDailyHighlights highlights) {
+        if (highlights == null) {
+            return new SeasonDailyHighlightsView(null, null, null);
+        }
+        return new SeasonDailyHighlightsView(
+                mapDailyHighlight(highlights.highestAvg()),
+                mapDailyHighlight(highlights.lowestAvg()),
+                mapDailyHighlight(highlights.busiest())
+        );
+    }
+
+    private DailyHighlightView mapDailyHighlight(SeasonService.SeasonDailyHighlights.DailyHighlight highlight) {
+        if (highlight == null) {
+            return null;
+        }
+        return new DailyHighlightView(
+                highlight.date(),
+                highlight.avgScore(),
+                highlight.playerCount()
+        );
+    }
+
     private static String userDisplayName(User user, String fallback) {
         if (user == null) return fallback;
         if (user.getPersonaName() != null && !user.getPersonaName().isBlank()) {
@@ -170,6 +293,51 @@ public class SeasonController {
                             String avatarBlurHash,
                             long metricValue,
                             Integer tiebreakRoll) {
+    }
+
+    public record SeasonDetailView(SeasonView season,
+                                   SeasonSummaryView summary,
+                                   List<PlayerHighlight> topPlayers,
+                                   SeasonDailyHighlightsView highlights) {
+    }
+
+    public record SeasonSummaryView(long totalPlayers,
+                                    long totalRounds,
+                                    long totalPoints,
+                                    long totalHits,
+                                    double averagePointsPerRound,
+                                    double averagePointsPerPlayer,
+                                    double hitRate,
+                                    double averageActiveDays,
+                                    long longestStreak,
+                                    int durationDays,
+                                    int completedDays,
+                                    LocalDate dataThrough) {
+    }
+
+    public record PlayerHighlight(int rank,
+                                  String steamId,
+                                  String personaName,
+                                  String avatar,
+                                  String avatarBlurHash,
+                                  String profileUrl,
+                                  long totalPoints,
+                                  long rounds,
+                                  long hits,
+                                  double avgPointsPerRound,
+                                  double avgPointsPerDay,
+                                  long activeDays,
+                                  long longestStreak) {
+    }
+
+    public record SeasonDailyHighlightsView(DailyHighlightView highestAvg,
+                                            DailyHighlightView lowestAvg,
+                                            DailyHighlightView busiest) {
+    }
+
+    public record DailyHighlightView(LocalDate date,
+                                     double avgScore,
+                                     long playerCount) {
     }
 }
 

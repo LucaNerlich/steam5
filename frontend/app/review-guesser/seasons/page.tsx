@@ -2,30 +2,10 @@ import type {Metadata} from "next";
 import Image from "next/image";
 import Link from "next/link";
 import {formatDate} from "@/lib/format";
+import {groupAwardsByCategory, formatAwardMetric, rankClassName} from "@/lib/seasons";
+import type {SeasonView} from "@/types/seasons";
 import "@/styles/components/seasons.css";
 import {Routes} from "../../routes";
-
-type AwardView = {
-    category: string;
-    categoryLabel: string;
-    placementLevel: number;
-    steamId: string;
-    personaName: string;
-    avatar?: string | null;
-    avatarBlurHash?: string | null;
-    metricValue: number;
-    tiebreakRoll?: number | null;
-};
-
-type SeasonView = {
-    id: number;
-    seasonNumber: number;
-    startDate: string;
-    endDate: string;
-    status: "PLANNED" | "ACTIVE" | "FINALIZED";
-    awardsFinalizedAt?: string | null;
-    awards: AwardView[];
-};
 
 type CurrentSeasonResponse = {
     season: SeasonView;
@@ -93,7 +73,13 @@ export default async function SeasonsPage() {
                                 <header className="season-card__header">
                                     <div>
                                         <p className="season-card__eyebrow">Season #{season.seasonNumber}</p>
-                                        <h3>{formatDate(season.startDate)} – {formatDate(season.endDate)}</h3>
+                                        <h3>
+                                            <Link href={Routes.seasonDetail(season.seasonNumber)}
+                                                  className="season-card__title-link"
+                                                  aria-label={`Open recap for season #${season.seasonNumber}`}>
+                                                {formatDate(season.startDate)} – {formatDate(season.endDate)}
+                                            </Link>
+                                        </h3>
                                     </div>
                                 </header>
                                 <div className="season-card__awards">
@@ -132,6 +118,13 @@ export default async function SeasonsPage() {
                                         </section>
                                     ))}
                                 </div>
+                                <div className="season-card__footer">
+                                    <Link href={Routes.seasonDetail(season.seasonNumber)}
+                                          className="season-card__link"
+                                          aria-label={`View detailed recap for season #${season.seasonNumber}`}>
+                                        View season recap →
+                                    </Link>
+                                </div>
                             </article>
                         ))}
                     </div>
@@ -139,50 +132,6 @@ export default async function SeasonsPage() {
             </section>
         </section>
     );
-}
-
-type AwardGroup = {
-    category: string;
-    label: string;
-    awards: AwardView[];
-};
-
-function groupAwardsByCategory(awards: AwardView[]): AwardGroup[] {
-    const grouped: Record<string, AwardGroup> = {};
-    for (const award of awards) {
-        if (!grouped[award.category]) {
-            grouped[award.category] = {
-                category: award.category,
-                label: award.categoryLabel,
-                awards: []
-            };
-        }
-        grouped[award.category].awards.push(award);
-    }
-    return Object.values(grouped);
-}
-
-function formatAwardMetric(award: AwardView): string {
-    const formatter = new Intl.NumberFormat();
-    switch (award.category) {
-        case "MOST_POINTS":
-            return `${formatter.format(award.metricValue)} pts`;
-        case "MOST_HITS":
-            return `${formatter.format(award.metricValue)} hits`;
-        case "HIGHEST_AVG_POINTS_PER_DAY":
-            return `${(award.metricValue / 100).toFixed(2)} avg pts/day`;
-        case "LONGEST_STREAK":
-            return `${award.metricValue} ${award.metricValue === 1 ? "day" : "days"}`;
-        default:
-            return formatter.format(award.metricValue);
-    }
-}
-
-function rankClassName(level: number): string {
-    if (level === 1) return "season-card__rank season-card__rank--gold";
-    if (level === 2) return "season-card__rank season-card__rank--silver";
-    if (level === 3) return "season-card__rank season-card__rank--bronze";
-    return "season-card__rank";
 }
 
 export const metadata: Metadata = {

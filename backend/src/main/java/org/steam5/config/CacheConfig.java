@@ -105,6 +105,15 @@ public class CacheConfig {
                         .build()
         );
 
+        final CaffeineCache seasonDetailResponse = new CaffeineCache(
+                "season-detail-response",
+                Caffeine.newBuilder()
+                        .expireAfterWrite(30, TimeUnit.MINUTES)
+                        .maximumSize(200)
+                        .recordStats()
+                        .build()
+        );
+
         final CaffeineCache seasonAwards = new CaffeineCache(
                 "season-awards",
                 Caffeine.newBuilder()
@@ -135,6 +144,7 @@ public class CacheConfig {
                 seasonCurrent,
                 seasonList,
                 seasonAwardsResponse,
+                seasonDetailResponse,
                 seasonAwards,
                 playerAwards
         ));

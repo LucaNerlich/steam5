@@ -224,4 +224,30 @@
     color: var(--color-muted);
 }
 
+.season-card__title-link {
+    color: inherit;
+    text-decoration: none;
+}
+
+.season-card__title-link:hover {
+    text-decoration: underline;
+}
+
+.season-card__footer {
+    margin-top: auto;
+}
+
+.season-card__link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-weight: 600;
+    text-decoration: none;
+    color: var(--color-accent);
+}
+
+.season-card__link:hover {
+    text-decoration: underline;
+}
+
 

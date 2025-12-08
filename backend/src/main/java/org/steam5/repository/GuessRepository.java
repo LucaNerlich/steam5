@@ -237,6 +237,15 @@ public interface GuessRepository extends JpaRepository<Guess, Long> {
             "ORDER BY avgScore ASC", nativeQuery = true)
     List<DailyAvgScoreRow> findDailyAvgScoresAsc();
 
+    @Query(value = "SELECT game_date AS gameDate, AVG(points) AS avgScore, COUNT(DISTINCT steam_id) AS playerCount " +
+            "FROM guesses " +
+            "WHERE game_date BETWEEN :startDate AND :endDate " +
+            "GROUP BY game_date " +
+            "HAVING COUNT(*) >= 5 " +
+            "ORDER BY game_date ASC", nativeQuery = true)
+    List<DailyAvgScoreRow> findDailyAvgScoresInRange(@Param("startDate") LocalDate startDate,
+                                                     @Param("endDate") LocalDate endDate);
+
     // Sum of daily time differences (time between first and last guess per day)
     interface DailyTimeDiffRow {
         String getSteamId();

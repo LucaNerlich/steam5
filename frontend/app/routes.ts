@@ -12,6 +12,7 @@ export const Routes = {
     leaderboardToday: '/review-guesser/leaderboard/today',
     archive: '/review-guesser/archive',
     seasons: '/review-guesser/seasons',
+    seasonDetail: (seasonNumber: number | string) => `/review-guesser/seasons/${seasonNumber}`,
     imprint: '/imprint',
     privacy: '/privacy',
 }

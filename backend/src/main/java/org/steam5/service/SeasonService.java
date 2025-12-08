@@ -17,6 +17,8 @@ import org.steam5.repository.SeasonRepository;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Function;
@@ -42,6 +44,11 @@ public class SeasonService {
     @Transactional(readOnly = true)
     public Optional<Season> findSeason(Long id) {
         return seasonRepository.findById(id);
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<Season> findSeasonByNumber(int seasonNumber) {
+        return seasonRepository.findBySeasonNumber(seasonNumber);
     }
 
     @Transactional(readOnly = true)
@@ -71,8 +78,55 @@ public class SeasonService {
         return awardResultRepository.findAllBySteamIdOrderBySeasonSeasonNumberDescPlacementLevelAsc(steamId);
     }
 
+    @Transactional(readOnly = true)
+    public SeasonReport buildSeasonReport(Season season) {
+        Objects.requireNonNull(season, "season");
+        LocalDate today = todayUtc();
+        LocalDate candidateEnd = season.getEndDate().isBefore(today) ? season.getEndDate() : today;
+        boolean hasStats = !candidateEnd.isBefore(season.getStartDate());
+        List<PlayerSeasonStat> players = hasStats
+                ? buildPlayerSeasonStats(season, candidateEnd)
+                : List.of();
+        LocalDate dataThrough = hasStats ? candidateEnd : null;
+        SeasonSummary summary = summarizeSeason(season, dataThrough, players);
+        return new SeasonReport(summary, players);
+    }
+
+    @Transactional(readOnly = true)
+    public SeasonDailyHighlights buildSeasonHighlights(Season season) {
+        Objects.requireNonNull(season, "season");
+        LocalDate today = todayUtc();
+        LocalDate candidateEnd = season.getEndDate().isBefore(today) ? season.getEndDate() : today;
+        if (candidateEnd.isBefore(season.getStartDate())) {
+            return new SeasonDailyHighlights(null, null, null);
+        }
+        List<GuessRepository.DailyAvgScoreRow> rows = guessRepository.findDailyAvgScoresInRange(season.getStartDate(), candidateEnd);
+        if (rows.isEmpty()) {
+            return new SeasonDailyHighlights(null, null, null);
+        }
+
+        GuessRepository.DailyAvgScoreRow highest = rows.stream()
+                .filter(row -> row.getAvgScore() != null)
+                .max(Comparator.comparing(GuessRepository.DailyAvgScoreRow::getAvgScore))
+                .orElse(null);
+        GuessRepository.DailyAvgScoreRow lowest = rows.stream()
+                .filter(row -> row.getAvgScore() != null)
+                .min(Comparator.comparing(GuessRepository.DailyAvgScoreRow::getAvgScore))
+                .orElse(null);
+        GuessRepository.DailyAvgScoreRow busiest = rows.stream()
+                .filter(row -> row.getPlayerCount() != null)
+                .max(Comparator.comparing(GuessRepository.DailyAvgScoreRow::getPlayerCount))
+                .orElse(null);
+
+        return new SeasonDailyHighlights(
+                toDailyHighlight(highest),
+                toDailyHighlight(lowest),
+                toDailyHighlight(busiest)
+        );
+    }
+
     @Transactional
-    @CacheEvict(value = {"season-current-response", "season-list-response"}, allEntries = true)
+    @CacheEvict(value = {"season-current-response", "season-list-response", "season-detail-response"}, allEntries = true)
     public Season ensureSeasonForDate(LocalDate date) {
         Objects.requireNonNull(date, "date");
 
@@ -81,7 +135,7 @@ public class SeasonService {
     }
 
     @Transactional
-    @CacheEvict(value = {"season-current-response", "season-list-response"}, allEntries = true)
+    @CacheEvict(value = {"season-current-response", "season-list-response", "season-detail-response"}, allEntries = true)
     public List<Season> backfillHistoricalSeasons() {
         final Optional<LocalDate> earliestOpt = guessRepository.findEarliestGameDate();
         if (earliestOpt.isEmpty()) {
@@ -94,7 +148,7 @@ public class SeasonService {
     }
 
     @Transactional
-    @CacheEvict(value = {"season-current-response", "season-list-response"}, allEntries = true)
+    @CacheEvict(value = {"season-current-response", "season-list-response", "season-detail-response"}, allEntries = true)
     public List<Season> backfillRange(LocalDate startInclusive, LocalDate endInclusive) {
         if (startInclusive == null || endInclusive == null) {
             throw new IllegalArgumentException("startDate and endDate must be provided");
@@ -125,7 +179,7 @@ public class SeasonService {
     }
 
     @Transactional
-    @CacheEvict(value = {"season-current-response", "season-list-response", "season-awards-response", "season-awards", "player-awards"}, allEntries = true)
+    @CacheEvict(value = {"season-current-response", "season-list-response", "season-awards-response", "season-awards", "player-awards", "season-detail-response"}, allEntries = true)
     public Season finalizeSeason(Season season) {
         Objects.requireNonNull(season, "season");
         Season managed = seasonRepository.findById(season.getId()).orElse(season);
@@ -285,6 +339,84 @@ public class SeasonService {
         };
     }
 
+    private List<PlayerSeasonStat> buildPlayerSeasonStats(Season season, LocalDate statsEnd) {
+        List<GuessRepository.SeasonStatRow> rows = guessRepository.findSeasonStats(season.getStartDate(), statsEnd);
+        Map<String, List<LocalDate>> participationDates = buildSeasonParticipationDates(season.getStartDate(), statsEnd);
+        return rows.stream()
+                .map(row -> buildSeasonStats(row, participationDates.getOrDefault(row.getSteamId(), List.of())))
+                .map(this::mapPlayerSeasonStat)
+                .sorted(Comparator.comparingLong(PlayerSeasonStat::totalPoints)
+                        .reversed()
+                        .thenComparing(PlayerSeasonStat::steamId))
+                .toList();
+    }
+
+    private PlayerSeasonStat mapPlayerSeasonStat(SeasonStats stats) {
+        double avgPointsPerRound = stats.rounds() > 0
+                ? (double) stats.totalPoints() / stats.rounds()
+                : 0d;
+        return new PlayerSeasonStat(
+                stats.steamId(),
+                stats.totalPoints(),
+                stats.hits(),
+                stats.rounds(),
+                stats.activeDays(),
+                stats.avgPointsPerDay(),
+                avgPointsPerRound,
+                stats.longestStreak()
+        );
+    }
+
+    private SeasonSummary summarizeSeason(Season season,
+                                          LocalDate dataThrough,
+                                          List<PlayerSeasonStat> players) {
+        final int durationDays = (int) Math.max(0, ChronoUnit.DAYS.between(season.getStartDate(), season.getEndDate()) + 1);
+        int completedDays = 0;
+        if (dataThrough != null) {
+            completedDays = (int) (ChronoUnit.DAYS.between(season.getStartDate(), dataThrough) + 1);
+            if (completedDays < 0) {
+                completedDays = 0;
+            } else if (completedDays > durationDays) {
+                completedDays = durationDays;
+            }
+        }
+
+        long totalPlayers = players.size();
+        long totalRounds = players.stream().mapToLong(PlayerSeasonStat::rounds).sum();
+        long totalPoints = players.stream().mapToLong(PlayerSeasonStat::totalPoints).sum();
+        long totalHits = players.stream().mapToLong(PlayerSeasonStat::hits).sum();
+        double avgPointsPerRound = totalRounds > 0 ? (double) totalPoints / totalRounds : 0d;
+        double avgPointsPerPlayer = totalPlayers > 0 ? (double) totalPoints / totalPlayers : 0d;
+        double hitRate = totalRounds > 0 ? (double) totalHits / totalRounds : 0d;
+        double avgActiveDays = totalPlayers > 0
+                ? players.stream().mapToLong(PlayerSeasonStat::activeDays).average().orElse(0d)
+                : 0d;
+        long longestStreak = players.stream().mapToLong(PlayerSeasonStat::longestStreak).max().orElse(0L);
+
+        return new SeasonSummary(
+                totalPlayers,
+                totalRounds,
+                totalPoints,
+                totalHits,
+                avgPointsPerRound,
+                avgPointsPerPlayer,
+                hitRate,
+                avgActiveDays,
+                longestStreak,
+                durationDays,
+                completedDays,
+                dataThrough
+        );
+    }
+
+    private static SeasonDailyHighlights.DailyHighlight toDailyHighlight(GuessRepository.DailyAvgScoreRow row) {
+        if (row == null || row.getGameDate() == null || row.getAvgScore() == null) {
+            return null;
+        }
+        long players = row.getPlayerCount() == null ? 0L : row.getPlayerCount();
+        return new SeasonDailyHighlights.DailyHighlight(row.getGameDate(), row.getAvgScore(), players);
+    }
+
     private int tieBreakRoll(Season season, SeasonAwardCategory category, String steamId) {
         int hash = Objects.hash(season.getAwardSeed(), category, steamId);
         int roll = Math.floorMod(hash, TIE_ROLL_MAX);
@@ -293,6 +425,10 @@ public class SeasonService {
 
     private int seasonLengthDays() {
         return Math.max(1, seasonProperties.getLengthDays());
+    }
+
+    private static LocalDate todayUtc() {
+        return OffsetDateTime.now(ZoneOffset.UTC).toLocalDate();
     }
 
     private static long coerce(Long value) {
@@ -306,6 +442,44 @@ public class SeasonService {
                                long activeDays,
                                double avgPointsPerDay,
                                long longestStreak) {
+    }
+
+    public record SeasonReport(SeasonSummary summary,
+                               List<PlayerSeasonStat> players) {
+    }
+
+    public record SeasonSummary(long totalPlayers,
+                                long totalRounds,
+                                long totalPoints,
+                                long totalHits,
+                                double averagePointsPerRound,
+                                double averagePointsPerPlayer,
+                                double hitRate,
+                                double averageActiveDays,
+                                long longestStreak,
+                                int durationDays,
+                                int completedDays,
+                                LocalDate dataThrough) {
+    }
+
+    public record PlayerSeasonStat(String steamId,
+                                   long totalPoints,
+                                   long hits,
+                                   long rounds,
+                                   long activeDays,
+                                   double avgPointsPerDay,
+                                   double avgPointsPerRound,
+                                   long longestStreak) {
+    }
+
+    public record SeasonDailyHighlights(DailyHighlight highestAvg,
+                                        DailyHighlight lowestAvg,
+                                        DailyHighlight busiest) {
+
+        public record DailyHighlight(LocalDate date,
+                                     double avgScore,
+                                     long playerCount) {
+        }
     }
 }
 

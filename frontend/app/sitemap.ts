@@ -4,7 +4,7 @@ import {MetadataRoute} from 'next';
 export default function sitemap(): MetadataRoute.Sitemap {
     const baseUrl = (process.env.NEXT_PUBLIC_DOMAIN || 'https://steam5.org').replace(/\/$/, '');
 
-    const routes = Object.values(Routes);
+    const routes = Object.values(Routes).filter((route): route is string => typeof route === 'string');
     const now = new Date();
     const staticPageFrequency = 'weekly' as const;
 
