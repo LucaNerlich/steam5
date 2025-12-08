@@ -34,7 +34,7 @@ export default async function SeasonsPage() {
     return (
         <section className="container seasons">
             <header className="seasons__hero">
-                <div className="seasons__pill">Season #{currentData.season.seasonNumber}</div>
+                <Link href={`/review-guesser/seasons/${currentData.season.seasonNumber}`} className="seasons__pill">Season #{currentData.season.seasonNumber}</Link>
                 <h1>Seasons</h1>
                 <dl className="seasons__meta">
                     <div>
@@ -72,7 +72,7 @@ export default async function SeasonsPage() {
                             <article className="season-card" key={season.id}>
                                 <header className="season-card__header">
                                     <div>
-                                        <p className="season-card__eyebrow">Season #{season.seasonNumber}</p>
+                                        <Link href={Routes.seasonDetail(season.seasonNumber)} className="season-card__eyebrow">Season #{season.seasonNumber}</Link>
                                         <h3>
                                             <Link href={Routes.seasonDetail(season.seasonNumber)}
                                                   className="season-card__title-link"
