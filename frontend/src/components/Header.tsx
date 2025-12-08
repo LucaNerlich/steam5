@@ -20,21 +20,7 @@ export default function Header() {
                         title="Steam5"
                         className="brand__logo-full"
                     />
-                    {/*<Image*/}
-                    {/*    src={IconImage}*/}
-                    {/*    alt=""*/}
-                    {/*    width={20}*/}
-                    {/*    height={20}*/}
-                    {/*    priority*/}
-                    {/*    className="brand__logo-icon"*/}
-                    {/*/>*/}
                 </Link>
-                <span className="game-title" aria-hidden="true">
-                    <Link href={Routes.archive} className="archive-link" title="Archive"
-                          aria-label="Open archive">
-                    <span className="mobile__hide">Archive</span> <ArchiveIcon size={28}/>
-                    </Link>
-                </span>
 
                 <div className="header-actions">
                     <Link href={Routes.leaderboardToday}
