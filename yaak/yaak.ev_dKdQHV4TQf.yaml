@@ -1,0 +1,18 @@
+type: environment
+model: environment
+id: ev_dKdQHV4TQf
+workspaceId: wk_ecNXfSaJZU
+createdAt: 2025-12-10T08:37:19.611155
+updatedAt: 2025-12-10T08:37:36.197759
+name: Production
+public: true
+base: false
+parentModel: environment
+parentId: null
+variables:
+- enabled: true
+  name: host
+  value: https://api.steam5.org
+  id: TYCbc9a3qV
+color: var(--danger)
+sortPriority: 0.0
