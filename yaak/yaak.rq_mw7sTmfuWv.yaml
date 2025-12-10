@@ -1,0 +1,34 @@
+type: http_request
+model: http_request
+id: rq_mw7sTmfuWv
+createdAt: 2025-12-10T08:19:35.525176
+updatedAt: 2025-12-10T08:19:48.535308
+workspaceId: wk_ecNXfSaJZU
+folderId: fl_tQWJJfKsff
+authentication: {}
+authenticationType: null
+body: {}
+bodyType: null
+description: ''
+headers:
+- enabled: true
+  name: Content-Type
+  value: application/json
+  id: FPJAKBrJJ5
+- enabled: true
+  name: Accept
+  value: application/json
+  id: skfD7hqMKP
+- enabled: true
+  name: X-Admin-Token
+  value: ${[ secure(value=b64'WUVOQ19lVUUwYXpOdVF3Rjg1TUJwN1ZMTjZJd3BCTlMyR0wxSk14QTdUU2s5VkZOUXBDVCt0S0ZScmZaV0RLZEhRZkJaTWgreEVsMDcza0JCNDBySnhFVEVpOUNjM0dvPQ') ]}
+  id: sxGRrGIUcx
+- enabled: true
+  name: ''
+  value: ''
+  id: hCStHwq7Ej
+method: POST
+name: Finalize Season
+sortPriority: 1.0009
+url: ${[host]}/api/admin/seasons/3/finalize
+urlParameters: []

@@ -51,6 +51,8 @@ logging:
     org.hibernate: WARN
 auth:
   redirectBase: ${REDIRECT_BASE:http://localhost:3000}
+admin:
+  api-token: ${ADMIN_API_TOKEN:}
 review:
   game:
     # days to avoid reusing an appid after it was picked; increase for fewer repeats
