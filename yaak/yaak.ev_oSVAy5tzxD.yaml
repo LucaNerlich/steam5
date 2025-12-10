@@ -3,7 +3,7 @@ model: environment
 id: ev_oSVAy5tzxD
 workspaceId: wk_ecNXfSaJZU
 createdAt: 2025-11-10T18:44:54.208020
-updatedAt: 2025-11-10T18:54:34.736139
+updatedAt: 2025-12-10T08:34:24.323991
 name: Global Variables
 public: true
 base: true
@@ -30,5 +30,9 @@ variables:
   name: steamId
   value: ''
   id: PpQh0xGHCw
+- enabled: true
+  name: ADMIN_TOKEN
+  value: ${[ secure(value=b64'WUVOQ19lVUUwYXpOdVF3RUVCc0pxZlZvZnN1bDkyc1lWaEMveDBQWE1ZRFJvL1pEOGdnSFlCemJBMXNnYnl2Y3p5bVlYMGdWdDBQZSt4SWkxODRiQW04b2ZFZmxGNC80PQ') ]}
+  id: 7NughDrPgj
 color: null
 sortPriority: 0.0

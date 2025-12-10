@@ -2,7 +2,7 @@ type: http_request
 model: http_request
 id: rq_mw7sTmfuWv
 createdAt: 2025-12-10T08:19:35.525176
-updatedAt: 2025-12-10T08:31:34.095642
+updatedAt: 2025-12-10T08:35:42.444895
 workspaceId: wk_ecNXfSaJZU
 folderId: fl_tQWJJfKsff
 authentication: {}
@@ -21,12 +21,12 @@ headers:
   id: skfD7hqMKP
 - enabled: true
   name: X-Admin-Token
-  value: ${[ secure(value=b64'WUVOQ19lVUUwYXpOdVF3Rjg1TUJwN1ZMTjZJd3BCTlMyR0wxSk14QTdUU2s5VkZOUXBDVCt0S0ZScmZaV0RLZEhRZkJaTWgreEVsMDcza0JCNDBySnhFVEVpOUNjM0dvPQ') ]}
+  value: ${[ secure(value=b64'WUVOQ19lVUUwYXpOdVF3SEwySGVVS0dkNGFjVEJvY01EQ0l1eHk2b2NNZ04xK0VlakVneGJNSUg1STRXK3B0MGY5dVNqV3NRZldvRjR1S2htT3JwdlJwN1FPc21S') ]}
   id: sxGRrGIUcx
 - enabled: true
   name: ''
   value: ''
-  id: hCStHwq7Ej
+  id: bPZcTu5rK7
 method: POST
 name: Finalize Season
 sortPriority: 1.0009

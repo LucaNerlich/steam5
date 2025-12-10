@@ -156,7 +156,26 @@
     border: 1px solid var(--color-border);
     border-radius: 1rem;
     background: var(--color-surface);
-    padding: 1.25rem;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    min-height: 100%;
+}
+
+.season-detail__highlight-card h3 {
+    margin: 0;
+}
+
+.season-detail__highlight-metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 0.5rem 1rem;
+    margin: 0;
+}
+
+.season-detail__highlight-link {
+    margin-top: auto;
 }
 
 .season-detail__table-wrap {
