@@ -1,9 +1,9 @@
 [
     {
         "start": "2025-12-05",
-        "end": "2026-12-08",
+        "end": "2025-12-10",
         "title": "Seasons Are Live! 🏁",
-        "text": "<p><strong>Seasons</strong> have arrived in Steam5! Leaderboards now reset on a schedule, giving new challengers a fresh shot at the podium while long-term players chase seasonal awards.</p><p>Here’s what’s new:</p><ul><li><strong>Time-gated Seasons</strong>: Every X days we close the season, hand out awards, and immediately kick off the next one.</li><li><strong>Auto Awards</strong>: Top performers earn badges for Most Points, Most Hits, Highest Avg Points/Day, and Longest Streak — with configurable podium depth.</li><li><strong>Retro Backfill</strong>: We can retroactively generate past seasons so historical play counts too.</li><li><strong>Seasons Page</strong>: Visit <a href=\"/seasons\">/seasons</a> to see the current timeline and all past winners.</li><li><strong>Profile Highlights</strong>: Player pages show every seasonal award you’ve earned.</li></ul><p>We’ll keep tuning categories, tie-breakers, and visuals based on your feedback. Jump in, push for a streak, and grab those medals!</p>",
+        "text": "<p><strong>Seasons</strong> have arrived in Steam5! Leaderboards now reset on a schedule, giving new challengers a fresh shot at the podium while long-term players chase seasonal awards.</p><p>Here’s what’s new:</p><ul><li><strong>Time-gated Seasons</strong>: Every X days we close the season, hand out awards, and immediately kick off the next one.</li><li><strong>Auto Awards</strong>: Top performers earn badges for Most Points, Most Hits, Highest Avg Points/Day, and Longest Streak — with configurable podium depth.</li><li><strong>Retro Backfill</strong>: We can retroactively generate past seasons so historical play counts too.</li><li><strong>Seasons Page</strong>: Visit <a href=\"/review-guesser/seasons\">/seasons</a> to see the current timeline and all past winners.</li><li><strong>Profile Highlights</strong>: Player pages show every seasonal award you’ve earned.</li></ul><p>We’ll keep tuning categories, tie-breakers, and visuals based on your feedback. Jump in, push for a streak, and grab those medals!</p>",
         "footer": "Thanks for testing Seasons early — let us know what awards you want to see next!"
     },
     {
