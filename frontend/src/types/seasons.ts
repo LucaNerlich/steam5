@@ -57,10 +57,21 @@ export type DailyHighlight = {
     playerCount: number;
 };
 
+export type RoundHighlight = {
+    date: string;
+    roundIndex: number;
+    appId: number;
+    appName: string;
+    avgScore: number;
+    playerCount: number;
+};
+
 export type SeasonDailyHighlights = {
     highestAvg?: DailyHighlight | null;
     lowestAvg?: DailyHighlight | null;
     busiest?: DailyHighlight | null;
+    easiestRound?: RoundHighlight | null;
+    hardestRound?: RoundHighlight | null;
 } | null;
 
 export type SeasonDetailResponse = {

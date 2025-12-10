@@ -18,9 +18,6 @@ import org.steam5.domain.User;
 import org.steam5.repository.UserRepository;
 import org.steam5.service.SeasonService;
 
-import java.time.LocalDate;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -237,12 +234,14 @@ public class SeasonController {
 
     private SeasonDailyHighlightsView mapHighlights(SeasonService.SeasonDailyHighlights highlights) {
         if (highlights == null) {
-            return new SeasonDailyHighlightsView(null, null, null);
+            return new SeasonDailyHighlightsView(null, null, null, null, null);
         }
         return new SeasonDailyHighlightsView(
                 mapDailyHighlight(highlights.highestAvg()),
                 mapDailyHighlight(highlights.lowestAvg()),
-                mapDailyHighlight(highlights.busiest())
+                mapDailyHighlight(highlights.busiest()),
+                mapRoundHighlight(highlights.easiestRound()),
+                mapRoundHighlight(highlights.hardestRound())
         );
     }
 
@@ -252,6 +251,20 @@ public class SeasonController {
         }
         return new DailyHighlightView(
                 highlight.date(),
+                highlight.avgScore(),
+                highlight.playerCount()
+        );
+    }
+
+    private RoundHighlightView mapRoundHighlight(SeasonService.SeasonDailyHighlights.RoundHighlight highlight) {
+        if (highlight == null) {
+            return null;
+        }
+        return new RoundHighlightView(
+                highlight.date(),
+                highlight.roundIndex(),
+                highlight.appId(),
+                highlight.appName(),
                 highlight.avgScore(),
                 highlight.playerCount()
         );
@@ -332,10 +345,20 @@ public class SeasonController {
 
     public record SeasonDailyHighlightsView(DailyHighlightView highestAvg,
                                             DailyHighlightView lowestAvg,
-                                            DailyHighlightView busiest) {
+                                            DailyHighlightView busiest,
+                                            RoundHighlightView easiestRound,
+                                            RoundHighlightView hardestRound) {
     }
 
     public record DailyHighlightView(LocalDate date,
+                                     double avgScore,
+                                     long playerCount) {
+    }
+
+    public record RoundHighlightView(LocalDate date,
+                                     int roundIndex,
+                                     long appId,
+                                     String appName,
                                      double avgScore,
                                      long playerCount) {
     }

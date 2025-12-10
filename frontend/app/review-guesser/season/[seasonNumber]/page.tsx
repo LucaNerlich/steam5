@@ -5,7 +5,7 @@ import Link from "next/link";
 import {notFound} from "next/navigation";
 import {formatDate} from "@/lib/format";
 import {groupAwardsByCategory, formatAwardMetric, rankClassName} from "@/lib/seasons";
-import type {SeasonDetailResponse, DailyHighlight} from "@/types/seasons";
+import type {SeasonDetailResponse, DailyHighlight, RoundHighlight} from "@/types/seasons";
 import "@/styles/components/season-detail.css";
 import "@/styles/components/seasons.css";
 import {Routes} from "../../../routes";
@@ -181,6 +181,8 @@ export default async function SeasonDetailPage({params}: PageProps) {
                         {renderHighlightCard(highlights?.highestAvg, "Highest average score", "Players crushed the picks this day.")}
                         {renderHighlightCard(highlights?.lowestAvg, "Toughest challenge", "Lowest average score across the season.")}
                         {renderHighlightCard(highlights?.busiest, "Most active day", "Highest number of unique players.")}
+                        {renderRoundHighlightCard(highlights?.easiestRound, "Easiest round", "Highest average points in a single round.")}
+                        {renderRoundHighlightCard(highlights?.hardestRound, "Hardest round", "Lowest average points in a single round.")}
                     </div>
                 </section>
             )}
@@ -343,6 +345,41 @@ function renderHighlightCard(highlight: DailyHighlight | null | undefined, title
             <dl className="season-detail__highlight-metrics">
                 <div>
                     <dt>Avg score</dt>
+                    <dd>{decimalFormatter.format(highlight.avgScore)}</dd>
+                </div>
+                <div>
+                    <dt>Players</dt>
+                    <dd>{numberFormatter.format(highlight.playerCount)}</dd>
+                </div>
+            </dl>
+            <Link href={archiveLink} className="season-detail__highlight-link">
+                View archive →
+            </Link>
+        </article>
+    );
+}
+
+function renderRoundHighlightCard(highlight: RoundHighlight | null | undefined, title: string, description: string) {
+    if (!highlight) {
+        return (
+            <article className="season-detail__highlight-card" key={title}>
+                <p className="season-detail__muted">{title}</p>
+                <p className="season-detail__stat-value">—</p>
+                <p className="season-detail__muted">{description}</p>
+            </article>
+        );
+    }
+    const archiveLink = `${Routes.archive}/${highlight.date}#round-${highlight.roundIndex}`;
+    const appLabel = highlight.appName || `App ${highlight.appId}`;
+    return (
+        <article className="season-detail__highlight-card" key={title}>
+            <p className="season-detail__eyebrow">{title}</p>
+            <h3>{appLabel}</h3>
+            <p className="season-detail__muted">{description}</p>
+            <p className="season-detail__muted">{formatDate(highlight.date)} · Round {highlight.roundIndex}</p>
+            <dl className="season-detail__highlight-metrics">
+                <div>
+                    <dt>Avg points</dt>
                     <dd>{decimalFormatter.format(highlight.avgScore)}</dd>
                 </div>
                 <div>

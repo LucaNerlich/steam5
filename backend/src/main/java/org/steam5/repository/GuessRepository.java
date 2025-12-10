@@ -223,6 +223,15 @@ public interface GuessRepository extends JpaRepository<Guess, Long> {
         Long getPlayerCount();
     }
 
+    interface RoundAvgScoreRow {
+        LocalDate getGameDate();
+        Integer getRoundIndex();
+        Long getAppId();
+        Double getAvgScore();
+        Long getPlayerCount();
+        String getAppName();
+    }
+
     @Query(value = "SELECT game_date AS gameDate, AVG(points) AS avgScore, COUNT(DISTINCT steam_id) AS playerCount " +
             "FROM guesses " +
             "GROUP BY game_date " +
@@ -244,6 +253,20 @@ public interface GuessRepository extends JpaRepository<Guess, Long> {
             "HAVING COUNT(*) >= 5 " +
             "ORDER BY game_date ASC", nativeQuery = true)
     List<DailyAvgScoreRow> findDailyAvgScoresInRange(@Param("startDate") LocalDate startDate,
+                                                     @Param("endDate") LocalDate endDate);
+
+    @Query(value = "SELECT g.game_date AS gameDate, " +
+            "g.round_index AS roundIndex, " +
+            "g.app_id AS appId, " +
+            "AVG(g.points) AS avgScore, " +
+            "COUNT(DISTINCT g.steam_id) AS playerCount, " +
+            "COALESCE(MAX(sai.name), CAST(g.app_id AS TEXT)) AS appName " +
+            "FROM guesses g " +
+            "LEFT JOIN steam_app_index sai ON sai.app_id = g.app_id " +
+            "WHERE g.game_date BETWEEN :startDate AND :endDate " +
+            "GROUP BY g.game_date, g.round_index, g.app_id " +
+            "HAVING COUNT(*) >= 5", nativeQuery = true)
+    List<RoundAvgScoreRow> findRoundAvgScoresInRange(@Param("startDate") LocalDate startDate,
                                                      @Param("endDate") LocalDate endDate);
 
     // Sum of daily time differences (time between first and last guess per day)

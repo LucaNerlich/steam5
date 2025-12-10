@@ -2,7 +2,7 @@ type: http_request
 model: http_request
 id: rq_mw7sTmfuWv
 createdAt: 2025-12-10T08:19:35.525176
-updatedAt: 2025-12-10T08:19:48.535308
+updatedAt: 2025-12-10T08:31:34.095642
 workspaceId: wk_ecNXfSaJZU
 folderId: fl_tQWJJfKsff
 authentication: {}
@@ -30,5 +30,5 @@ headers:
 method: POST
 name: Finalize Season
 sortPriority: 1.0009
-url: ${[host]}/api/admin/seasons/3/finalize
+url: ${[host]}/api/admin/seasons/1/finalize
 urlParameters: []

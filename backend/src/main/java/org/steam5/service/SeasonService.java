@@ -98,12 +98,10 @@ public class SeasonService {
         LocalDate today = todayUtc();
         LocalDate candidateEnd = season.getEndDate().isBefore(today) ? season.getEndDate() : today;
         if (candidateEnd.isBefore(season.getStartDate())) {
-            return new SeasonDailyHighlights(null, null, null);
+            return new SeasonDailyHighlights(null, null, null, null, null);
         }
         List<GuessRepository.DailyAvgScoreRow> rows = guessRepository.findDailyAvgScoresInRange(season.getStartDate(), candidateEnd);
-        if (rows.isEmpty()) {
-            return new SeasonDailyHighlights(null, null, null);
-        }
+        List<GuessRepository.RoundAvgScoreRow> roundRows = guessRepository.findRoundAvgScoresInRange(season.getStartDate(), candidateEnd);
 
         GuessRepository.DailyAvgScoreRow highest = rows.stream()
                 .filter(row -> row.getAvgScore() != null)
@@ -118,10 +116,26 @@ public class SeasonService {
                 .max(Comparator.comparing(GuessRepository.DailyAvgScoreRow::getPlayerCount))
                 .orElse(null);
 
+        Comparator<GuessRepository.RoundAvgScoreRow> roundComparator = Comparator
+                .comparing(GuessRepository.RoundAvgScoreRow::getAvgScore)
+                .thenComparing(GuessRepository.RoundAvgScoreRow::getPlayerCount);
+
+        GuessRepository.RoundAvgScoreRow easiestRound = roundRows.stream()
+                .filter(row -> row.getAvgScore() != null)
+                .max(roundComparator)
+                .orElse(null);
+
+        GuessRepository.RoundAvgScoreRow hardestRound = roundRows.stream()
+                .filter(row -> row.getAvgScore() != null)
+                .min(roundComparator)
+                .orElse(null);
+
         return new SeasonDailyHighlights(
                 toDailyHighlight(highest),
                 toDailyHighlight(lowest),
-                toDailyHighlight(busiest)
+                toDailyHighlight(busiest),
+                toRoundHighlight(easiestRound),
+                toRoundHighlight(hardestRound)
         );
     }
 
@@ -417,6 +431,24 @@ public class SeasonService {
         return new SeasonDailyHighlights.DailyHighlight(row.getGameDate(), row.getAvgScore(), players);
     }
 
+    private static SeasonDailyHighlights.RoundHighlight toRoundHighlight(GuessRepository.RoundAvgScoreRow row) {
+        if (row == null || row.getGameDate() == null || row.getAvgScore() == null) {
+            return null;
+        }
+        long players = row.getPlayerCount() == null ? 0L : row.getPlayerCount();
+        String appName = row.getAppName() == null || row.getAppName().isBlank()
+                ? String.valueOf(row.getAppId())
+                : row.getAppName();
+        return new SeasonDailyHighlights.RoundHighlight(
+                row.getGameDate(),
+                row.getRoundIndex(),
+                row.getAppId(),
+                appName,
+                row.getAvgScore(),
+                players
+        );
+    }
+
     private int tieBreakRoll(Season season, SeasonAwardCategory category, String steamId) {
         int hash = Objects.hash(season.getAwardSeed(), category, steamId);
         int roll = Math.floorMod(hash, TIE_ROLL_MAX);
@@ -474,9 +506,19 @@ public class SeasonService {
 
     public record SeasonDailyHighlights(DailyHighlight highestAvg,
                                         DailyHighlight lowestAvg,
-                                        DailyHighlight busiest) {
+                                        DailyHighlight busiest,
+                                        RoundHighlight easiestRound,
+                                        RoundHighlight hardestRound) {
 
         public record DailyHighlight(LocalDate date,
+                                     double avgScore,
+                                     long playerCount) {
+        }
+
+        public record RoundHighlight(LocalDate date,
+                                     int roundIndex,
+                                     long appId,
+                                     String appName,
                                      double avgScore,
                                      long playerCount) {
         }
