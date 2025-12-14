@@ -20,6 +20,10 @@ body {
     color: var(--color-text);
 }
 
+a {
+    color: var(--color-primary);
+}
+
 a:visited {
     color: var(--color-text);
 }
