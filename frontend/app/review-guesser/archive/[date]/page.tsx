@@ -6,9 +6,11 @@ import ArchiveResetForDay from "@/components/ArchiveResetForDay";
 import ArchiveSummary from "@/components/ArchiveSummary";
 import Link from "next/link";
 import {formatDate} from "@/lib/format";
+import {buildBreadcrumbJsonLd} from "@/lib/seo";
 import "@/styles/components/archive.css";
 import GameInfoSection from "@/components/GameInfoSection";
 import React from "react";
+import {Routes} from "../../../routes";
 
 export const revalidate = 31536000;
 
@@ -52,6 +54,11 @@ async function loadAnswers(date: string, appIds: number[]): Promise<Record<numbe
 export default async function ArchivePage({params}: { params: Promise<{ date: string }> }) {
     const {date} = await params;
     const data = await loadArchived(date);
+    const breadcrumbJsonLd = buildBreadcrumbJsonLd([
+        {name: "Home", url: Routes.home},
+        {name: "Archive", url: Routes.archive},
+        {name: formatDate(date), url: `${Routes.archive}/${encodeURIComponent(date)}`},
+    ]);
     if (!data || !data.picks || data.picks.length === 0) {
         return (
             <section className="container">
@@ -67,6 +74,9 @@ export default async function ArchivePage({params}: { params: Promise<{ date: st
 
     return (
         <section className="container">
+            <script type="application/ld+json" dangerouslySetInnerHTML={{
+                __html: JSON.stringify(breadcrumbJsonLd)
+            }} />
             <h1>Archive — {formatDate(date)}</h1>
             <ArchiveSummary
                 date={date}

@@ -29,7 +29,12 @@ export const metadata: Metadata = {
         'guessing game',
         'daily game',
         'review counts',
-        'leaderboard'
+        'leaderboard',
+        'free',
+        'browser game',
+        'no download',
+        'web-based',
+        'daily puzzle'
     ],
     openGraph: {
         title: 'Steam5 — Daily Steam Review Guesser',

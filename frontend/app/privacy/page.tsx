@@ -2,12 +2,12 @@ import type {Metadata} from "next";
 
 export const metadata: Metadata = {
     title: "Privacy Policy",
-    description: "GDPR-compliant privacy policy for Steam5.org",
+    description: "GDPR-compliant privacy policy explaining data protection and your rights at Steam5.org.",
     alternates: {canonical: "/privacy"},
     robots: { index: false, follow: true },
     openGraph: {
         title: 'Privacy Policy',
-        description: 'GDPR-compliant privacy policy for Steam5.org',
+        description: 'GDPR-compliant privacy policy explaining data protection and your rights at Steam5.org.',
         url: '/privacy',
         images: ['/opengraph-image'],
     },

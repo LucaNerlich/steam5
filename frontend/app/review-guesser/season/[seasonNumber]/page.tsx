@@ -6,6 +6,7 @@ import {notFound} from "next/navigation";
 import {formatDate} from "@/lib/format";
 import {groupAwardsByCategory, formatAwardMetric, rankClassName} from "@/lib/seasons";
 import type {SeasonDetailResponse, DailyHighlight, RoundHighlight} from "@/types/seasons";
+import {buildBreadcrumbJsonLd} from "@/lib/seo";
 import "@/styles/components/season-detail.css";
 import "@/styles/components/seasons.css";
 import {Routes} from "../../../routes";
@@ -52,6 +53,15 @@ export async function generateMetadata({params}: PageProps): Promise<Metadata> {
     return {
         title,
         description,
+        keywords: [
+            "recap",
+            "statistics",
+            "winners",
+            "awards",
+            "season history",
+            "Steam Review Guesser",
+            `Season ${seasonLabel}`
+        ],
         alternates: {
             canonical
         },
@@ -87,9 +97,17 @@ export default async function SeasonDetailPage({params}: PageProps) {
             ? "Active"
             : "Planned";
     const statsUpdated = summary.dataThrough ? formatDate(summary.dataThrough) : null;
+    const breadcrumbJsonLd = buildBreadcrumbJsonLd([
+        {name: "Home", url: Routes.home},
+        {name: "Seasons", url: Routes.seasons},
+        {name: `Season #${season.seasonNumber}`, url: Routes.seasonDetail(season.seasonNumber)},
+    ]);
 
     return (
         <section className="container season-detail">
+            <script type="application/ld+json" dangerouslySetInnerHTML={{
+                __html: JSON.stringify(breadcrumbJsonLd)
+            }} />
             <nav aria-label="Breadcrumb" className="season-detail__breadcrumbs">
                 <Link href={Routes.seasons} className="season-detail__back-link">
                     ← Seasons overview

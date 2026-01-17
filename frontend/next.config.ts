@@ -45,12 +45,12 @@ const nextConfig: NextConfig = {
             {
                 source: '/',
                 destination: '/review-guesser',
-                permanent: false,
+                permanent: true,
             },
             {
                 source: '/leaderboard',
                 destination: '/review-guesser/leaderboard',
-                permanent: false,
+                permanent: true,
             },
 
         ];

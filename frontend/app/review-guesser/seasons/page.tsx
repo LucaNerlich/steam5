@@ -140,6 +140,14 @@ export const metadata: Metadata = {
     alternates: {
         canonical: Routes.seasons
     },
+    keywords: [
+        "seasons",
+        "awards",
+        "winners",
+        "Steam games",
+        "competition",
+        "schedule"
+    ],
     openGraph: {
         title: "Steam Review Guesser Seasons",
         description: "Track the current season schedule and browse past award winners.",

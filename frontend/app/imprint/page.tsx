@@ -2,12 +2,12 @@ import type {Metadata} from "next";
 
 export const metadata: Metadata = {
     title: "Imprint",
-    description: "Legal imprint for Steam5.org",
+    description: "Legal information and ownership details for Steam5.org.",
     alternates: {canonical: "/imprint"},
     robots: { index: false, follow: true },
     openGraph: {
         title: 'Imprint',
-        description: 'Legal imprint for Steam5.org',
+        description: 'Legal information and ownership details for Steam5.org.',
         url: '/imprint',
         images: ['/opengraph-image'],
     },
