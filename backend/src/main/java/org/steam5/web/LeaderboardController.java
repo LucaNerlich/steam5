@@ -2,6 +2,7 @@ package org.steam5.web;
 
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -18,6 +19,7 @@ import org.steam5.service.ReviewGameStateService;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @RestController
@@ -47,14 +49,16 @@ public class LeaderboardController {
     }
 
     @GetMapping("/today")
+    @Cacheable(value = "leaderboard-live", key = "'today:' + T(java.time.LocalDate).now()", unless = "#result == null || #result.body == null")
     public ResponseEntity<List<LeaderEntry>> today() {
         final List<ReviewGamePick> picks = reviewGameStateService.generateDailyPicks();
         final LocalDate date = picks.isEmpty() ? LocalDate.now() : picks.getFirst().getPickDate();
         final List<Guess> guesses = guessRepository.findAllByDate(date);
-        return getGuessResponse(guesses);
+        return getGuessResponse(guesses, date);
     }
 
     @GetMapping("/weekly")
+    @Cacheable(value = "leaderboard-static", key = "'weekly:' + #floating + ':' + T(java.time.LocalDate).now()", unless = "#result == null || #result.body == null")
     public ResponseEntity<List<LeaderEntry>> weekly(@RequestParam(name = "floating", required = false, defaultValue = "false") boolean floating) {
         final List<ReviewGamePick> picks = reviewGameStateService.generateDailyPicks();
 
@@ -74,10 +78,11 @@ public class LeaderboardController {
         }
 
         final List<Guess> guesses = guessRepository.findAllBetween(start, end);
-        return getGuessResponse(guesses);
+        return getGuessResponse(guesses, today);
     }
 
     @GetMapping("/monthly")
+    @Cacheable(value = "leaderboard-static", key = "'monthly:' + T(java.time.LocalDate).now()", unless = "#result == null || #result.body == null")
     public ResponseEntity<List<LeaderEntry>> monthly() {
         final List<ReviewGamePick> picks = reviewGameStateService.generateDailyPicks();
         final LocalDate today = picks.isEmpty() ? LocalDate.now() : picks.getFirst().getPickDate();
@@ -87,33 +92,52 @@ public class LeaderboardController {
         final LocalDate end = today;
 
         final List<Guess> guesses = guessRepository.findAllBetween(start, end);
-        return getGuessResponse(guesses);
+        return getGuessResponse(guesses, today);
     }
 
     @GetMapping(value = {"", "/", "/all"})
+    @Cacheable(value = "leaderboard-static", key = "'all-time:' + T(java.time.LocalDate).now()", unless = "#result == null || #result.body == null")
     public ResponseEntity<List<LeaderEntry>> allTime() {
         final List<Guess> guesses = guessRepository.findAll();
-        return getGuessResponse(guesses);
+        return getGuessResponse(guesses, LocalDate.now());
     }
 
     @NotNull
-    private ResponseEntity<List<LeaderEntry>> getGuessResponse(final List<Guess> guesses) {
+    private ResponseEntity<List<LeaderEntry>> getGuessResponse(final List<Guess> guesses, final LocalDate asOfDate) {
         final Map<String, List<Guess>> byUser = guesses.stream().collect(Collectors.groupingBy(Guess::getSteamId));
-        final List<LeaderEntry> out = byUser.entrySet().stream().map(this::buildEntries).sorted((a, b) -> Long.compare(b.totalPoints, a.totalPoints)).toList();
+        final Set<String> steamIds = byUser.keySet();
+        if (steamIds.isEmpty()) {
+            return ResponseEntity.ok(List.of());
+        }
+
+        final Map<String, User> usersById = userRepository.findAllById(steamIds).stream()
+                .collect(Collectors.toMap(User::getSteamId, user -> user));
+
+        final Map<String, List<LocalDate>> streakDatesById = guessRepository.findDistinctDatesUpToForUsers(List.copyOf(steamIds), asOfDate)
+                .stream()
+                .collect(Collectors.groupingBy(GuessRepository.UserDateRow::getSteamId,
+                        Collectors.mapping(GuessRepository.UserDateRow::getGameDate, Collectors.toList())));
+
+        final List<LeaderEntry> out = byUser.entrySet().stream()
+                .map(entry -> buildEntries(entry, usersById, streakDatesById, asOfDate))
+                .sorted((a, b) -> Long.compare(b.totalPoints, a.totalPoints))
+                .toList();
         return ResponseEntity.ok(out);
     }
 
     @NotNull
-    private LeaderboardController.LeaderEntry getLeaderEntry(final String steamId, final long totalPoints, final long rounds, final long hits, final long tooHigh, final long tooLow, final double avgPoints, final User user) {
+    private LeaderboardController.LeaderEntry getLeaderEntry(final String steamId, final long totalPoints, final long rounds, final long hits, final long tooHigh, final long tooLow, final double avgPoints, final int streak, final User user) {
         final String personaName = user != null && user.getPersonaName() != null && !user.getPersonaName().isBlank() ? user.getPersonaName() : steamId;
         final String avatar = user != null && user.getAvatarFull() != null && !user.getAvatarFull().isBlank() ? user.getAvatarFull() : null;
         final String avatarBlurdata = user != null && user.getBlurdataAvatarFull() != null && !user.getBlurdataAvatarFull().isBlank() ? user.getBlurdataAvatarFull() : null;
         final String profileUrl = user != null && user.getProfileUrl() != null && !user.getProfileUrl().isBlank() ? user.getProfileUrl() : null;
-        final int streak = calculateStreak(steamId);
         return new LeaderEntry(steamId, personaName, totalPoints, rounds, hits, tooHigh, tooLow, avgPoints, streak, avatar, avatarBlurdata, profileUrl);
     }
 
-    private LeaderEntry buildEntries(Map.Entry<String, List<Guess>> entry) {
+    private LeaderEntry buildEntries(final Map.Entry<String, List<Guess>> entry,
+                                     final Map<String, User> usersById,
+                                     final Map<String, List<LocalDate>> streakDatesById,
+                                     final LocalDate asOfDate) {
         final String steamId = entry.getKey();
         final List<Guess> list = entry.getValue();
         final long totalPoints = list.stream().mapToLong(Guess::getPoints).sum();
@@ -122,16 +146,17 @@ public class LeaderboardController {
         final long tooHigh = list.stream().filter(g -> bucketOrderFromLabel(g.getSelectedBucket()) > bucketOrderFromLabel(g.getActualBucket())).count();
         final long tooLow = list.stream().filter(g -> bucketOrderFromLabel(g.getSelectedBucket()) < bucketOrderFromLabel(g.getActualBucket())).count();
         final double avgPoints = rounds > 0 ? ((double) totalPoints) / rounds : 0.0;
-        final User user = userRepository.findById(steamId).orElse(null);
-        return getLeaderEntry(steamId, totalPoints, rounds, hits, tooHigh, tooLow, avgPoints, user);
+        final User user = usersById.get(steamId);
+        final List<LocalDate> dates = streakDatesById.getOrDefault(steamId, List.of());
+        final int streak = calculateStreak(dates, asOfDate);
+        return getLeaderEntry(steamId, totalPoints, rounds, hits, tooHigh, tooLow, avgPoints, streak, user);
     }
 
-    private int calculateStreak(String steamId) {
-        // Determine the current streak of consecutive days with at least one guess up to today.
-        final List<LocalDate> dates = guessRepository.findDistinctDatesUpTo(steamId, LocalDate.now());
+    private int calculateStreak(final List<LocalDate> dates, final LocalDate asOfDate) {
+        // Determine the current streak of consecutive days with at least one guess up to asOfDate.
         if (dates.isEmpty()) return 0;
         int streak = 0;
-        LocalDate expected = LocalDate.now();
+        LocalDate expected = asOfDate;
         for (LocalDate d : dates) {
             if (d.equals(expected)) {
                 streak++;

@@ -78,6 +78,22 @@ public interface GuessRepository extends JpaRepository<Guess, Long> {
     List<LocalDate> findDistinctDatesUpTo(@Param("steamId") String steamId,
                                           @Param("asOfDate") LocalDate asOfDate);
 
+    interface UserDateRow {
+        String getSteamId();
+        LocalDate getGameDate();
+    }
+
+    @Query("""
+            select distinct g.steamId as steamId,
+                   g.gameDate as gameDate
+            from Guess g
+            where g.steamId in :steamIds
+              and g.gameDate <= :asOfDate
+            order by g.steamId asc, g.gameDate desc
+            """)
+    List<UserDateRow> findDistinctDatesUpToForUsers(@Param("steamIds") List<String> steamIds,
+                                                    @Param("asOfDate") LocalDate asOfDate);
+
     // Average submission time per user (in minutes since midnight)
     interface AvgTimeRow {
         String getSteamId();

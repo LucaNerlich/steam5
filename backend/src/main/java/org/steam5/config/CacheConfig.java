@@ -69,6 +69,24 @@ public class CacheConfig {
                         .build()
         );
 
+        final CaffeineCache leaderboardLive = new CaffeineCache(
+                "leaderboard-live",
+                Caffeine.newBuilder()
+                        .expireAfterWrite(60, TimeUnit.SECONDS)
+                        .maximumSize(200)
+                        .recordStats()
+                        .build()
+        );
+
+        final CaffeineCache leaderboardStatic = new CaffeineCache(
+                "leaderboard-static",
+                Caffeine.newBuilder()
+                        .expireAfterWrite(10, TimeUnit.MINUTES)
+                        .maximumSize(200)
+                        .recordStats()
+                        .build()
+        );
+
         final CaffeineCache cacheStatsEndpoint = new CaffeineCache(
                 "cache-stats",
                 Caffeine.newBuilder()
@@ -140,6 +158,8 @@ public class CacheConfig {
                 cacheStatsLong,
                 cacheStatsHourly,
                 cacheStatsShort,
+                leaderboardLive,
+                leaderboardStatic,
                 cacheStatsEndpoint,
                 seasonCurrent,
                 seasonList,
