@@ -6,22 +6,48 @@ import GameStatistics from "@/components/GameStatistics";
 
 async function loadDays(): Promise<string[]> {
     const backend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
-    const res = await fetch(`${backend}/api/review-game/days?limit=120`, {
-        headers: {'accept': 'application/json'},
-        next: {revalidate: 600},
-    });
-    if (!res.ok) return [];
-    return res.json();
+    try {
+        const res = await fetch(`${backend}/api/review-game/days?limit=120`, {
+            headers: {'accept': 'application/json'},
+            next: {revalidate: 600},
+        });
+        if (!res.ok) return [];
+        return res.json();
+    } catch {
+        return [];
+    }
 }
 
 async function loadBuckets(): Promise<{ buckets: string[]; bucketTitles: string[] }> {
     const backend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
-    const res = await fetch(`${backend}/api/review-game/buckets`, {
-        headers: {'accept': 'application/json'},
-        next: {revalidate: 86400},
-    });
-    if (!res.ok) return {buckets: [], bucketTitles: []};
-    return res.json();
+    try {
+        const res = await fetch(`${backend}/api/review-game/buckets`, {
+            headers: {'accept': 'application/json'},
+            next: {revalidate: 86400},
+        });
+        if (!res.ok) return {buckets: [], bucketTitles: []};
+        return res.json();
+    } catch {
+        return {buckets: [], bucketTitles: []};
+    }
+}
+
+async function loadDaySummary(
+    date: string,
+    revalidateSeconds: number
+): Promise<Array<{ appId: number; name: string }>> {
+    const backend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
+    try {
+        const res = await fetch(`${backend}/api/review-game/day/${encodeURIComponent(date)}`, {
+            headers: {accept: 'application/json'},
+            next: {revalidate: revalidateSeconds},
+        });
+        if (!res.ok) return [];
+        const data: { picks?: Array<{ appId: number; name: string }> } = await res.json();
+        return Array.isArray(data?.picks) ? data.picks : [];
+    } catch {
+        return [];
+    }
 }
 
 export default async function ArchiveIndexPage() {
@@ -45,7 +71,6 @@ export default async function ArchiveIndexPage() {
             ) : (
                 <ul>
                     {await Promise.all(days.map(async (d) => {
-                        const backend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
                         const isToday = (() => {
                             try {
                                 const now = new Date();
@@ -55,14 +80,7 @@ export default async function ArchiveIndexPage() {
                                 return false;
                             }
                         })();
-                        const res = await fetch(`${backend}/api/review-game/day/${encodeURIComponent(d)}`, {
-                            headers: {accept: 'application/json'},
-                            next: {revalidate: isToday ? 60 : 31536000},
-                        });
-                        const data: {
-                            picks?: Array<{ appId: number; name: string }>
-                        } = res.ok ? await res.json() : {};
-                        const picks = Array.isArray(data?.picks) ? data.picks : [];
+                        const picks = await loadDaySummary(d, isToday ? 60 : 31536000);
                         const titles = picks.map((p, i) => ({round: i + 1, appId: p.appId, name: p.name}));
                         return (
                             <li key={d} className='archive-list__toc'>

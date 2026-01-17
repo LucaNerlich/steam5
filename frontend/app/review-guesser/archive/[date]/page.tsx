@@ -16,12 +16,16 @@ export const revalidate = 31536000;
 
 async function loadArchived(date: string): Promise<ReviewGameState | null> {
     const backend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
-    const res = await fetch(`${backend}/api/review-game/day/${encodeURIComponent(date)}`, {
-        headers: {"accept": "application/json"},
-        next: {revalidate: 31536000},
-    });
-    if (!res.ok) return null;
-    return res.json();
+    try {
+        const res = await fetch(`${backend}/api/review-game/day/${encodeURIComponent(date)}`, {
+            headers: {"accept": "application/json"},
+            next: {revalidate: 31536000},
+        });
+        if (!res.ok) return null;
+        return res.json();
+    } catch {
+        return null;
+    }
 }
 
 async function loadAnswers(date: string, appIds: number[]): Promise<Record<number, {
