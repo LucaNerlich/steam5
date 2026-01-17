@@ -7,7 +7,7 @@
         <outputRelativeToContentRoot value="true" />
         <processorPath useClasspath="false">
           <entry name="$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.projectlombok/lombok/1.18.42/8365263844ebb62398e0dc33057ba10ba472d3b8/lombok-1.18.42.jar" />
-          <entry name="$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.springframework.boot/spring-boot-configuration-processor/4.0.0/3b636bdd98db0073a39eb9794af75f05684c6598/spring-boot-configuration-processor-4.0.0.jar" />
+          <entry name="$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.springframework.boot/spring-boot-configuration-processor/4.0.1/a6d77ad038728f5497b218458a0c99c50a19b605/spring-boot-configuration-processor-4.0.1.jar" />
         </processorPath>
         <module name="org.steam5.steam5.main" />
       </profile>
