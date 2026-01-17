@@ -15,17 +15,49 @@ type CurrentSeasonResponse = {
 };
 
 const backend = process.env.NEXT_PUBLIC_API_DOMAIN || "http://localhost:8080";
+
+async function loadCurrentSeason(): Promise<CurrentSeasonResponse | null> {
+    try {
+        const res = await fetch(`${backend}/api/seasons/current`, {
+            next: {revalidate: 300, tags: ["seasons-current"]}
+        });
+        if (!res.ok) return null;
+        return await res.json() as CurrentSeasonResponse;
+    } catch {
+        return null;
+    }
+}
+
+async function loadSeasons(): Promise<SeasonView[]> {
+    try {
+        const res = await fetch(`${backend}/api/seasons?limit=8`, {
+            next: {revalidate: 600, tags: ["seasons-list"]}
+        });
+        if (!res.ok) return [];
+        return await res.json() as SeasonView[];
+    } catch {
+        return [];
+    }
+}
+
 export default async function SeasonsPage() {
-    const [currentRes, seasonsRes] = await Promise.all([
-        fetch(`${backend}/api/seasons/current`, {next: {revalidate: 300, tags: ["seasons-current"]}}),
-        fetch(`${backend}/api/seasons?limit=8`, {next: {revalidate: 600, tags: ["seasons-list"]}})
+    const [currentData, seasons] = await Promise.all([
+        loadCurrentSeason(),
+        loadSeasons()
     ]);
 
-    if (!currentRes.ok) throw new Error(`Failed to load current season (${currentRes.status})`);
-    if (!seasonsRes.ok) throw new Error(`Failed to load seasons (${seasonsRes.status})`);
-
-    const currentData = await currentRes.json() as CurrentSeasonResponse;
-    const seasons = await seasonsRes.json() as SeasonView[];
+    if (!currentData) {
+        return (
+            <section className="container seasons">
+                <header className="seasons__hero">
+                    <h1>Seasons</h1>
+                    <p className="seasons__intro">
+                        Seasons are temporarily unavailable. Please try again soon.
+                    </p>
+                </header>
+            </section>
+        );
+    }
 
     const previousSeasons = seasons.filter(season =>
         season.status === "FINALIZED" && season.id !== currentData.season.id
