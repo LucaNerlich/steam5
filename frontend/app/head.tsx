@@ -8,9 +8,11 @@ export default function Head(): React.ReactElement {
     } catch {
         // ignore, fallback to base as-is
     }
+    const logoUrl = `${origin}/icon.svg`;
 
     return (
         <>
+            <script src="/theme-init.js"/>
             {/* Preconnect/DNS-prefetch for Next.js static assets on our origin */}
             <link rel="preconnect" href={origin}/>
             <link rel="dns-prefetch" href={origin}/>
@@ -35,6 +37,10 @@ export default function Head(): React.ReactElement {
                     '@type': 'Organization',
                     name: 'Steam5',
                     url: origin,
+                    logo: logoUrl,
+                    sameAs: [
+                        'https://github.com/LucaNerlich/steam5'
+                    ],
                     email: 'luca.nerlich@gmail.com'
                 })
             }} />

@@ -132,13 +132,6 @@ export default function RootLayout({
             className={`${krypton.variable} ${neon.variable} ${argon.variable} ${radon.variable} ${xenon.variable} ${space.variable}`}
             suppressHydrationWarning
         >
-        <head>
-            <script
-                dangerouslySetInnerHTML={{
-                    __html: `(function(){try{var stored=localStorage.getItem("theme");var theme=stored==="light"||stored==="dark"?stored:(window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");if(theme==="dark"){document.documentElement.setAttribute("data-theme","dark");}else{document.documentElement.removeAttribute("data-theme");}}catch(e){}})();`,
-                }}
-            />
-        </head>
         <body>
         <Header/>
         <main>
