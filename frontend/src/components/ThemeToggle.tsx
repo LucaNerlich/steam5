@@ -4,6 +4,8 @@ import {useEffect, useState} from "react";
 
 function getPreferredTheme(): "light" | "dark" {
     if (typeof window === "undefined") return "light";
+    const rootTheme = document.documentElement.getAttribute("data-theme");
+    if (rootTheme === "dark") return "dark";
     const stored = window.localStorage.getItem("theme");
     if (stored === "light" || stored === "dark") return stored;
     return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
