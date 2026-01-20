@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import Form from "next/form";
 import {useFormStatus} from "react-dom";
 import "@/styles/components/reviewGuessButtons.css";
 
@@ -42,8 +41,19 @@ function BucketButton({label, title, selectedLabel, onSelect, submitted}: {
 
 export default function GuessButtons(props: Readonly<GuessButtonsProps>): React.ReactElement {
     const {appId, buckets, bucketTitles, selectedLabel, onSelect, submitted, formAction} = props;
+
+    const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        const submitter = (event.nativeEvent as SubmitEvent).submitter;
+        if (submitter instanceof HTMLButtonElement) {
+            formAction(new FormData(event.currentTarget, submitter));
+            return;
+        }
+        formAction(new FormData(event.currentTarget));
+    };
+
     return (
-        <Form action={formAction} className="review-round__buttons">
+        <form className="review-round__buttons" onSubmit={handleSubmit}>
             <input type="hidden" name="appId" value={appId}/>
             {buckets.map((label, i) => (
                 <BucketButton key={label}
@@ -54,7 +64,7 @@ export default function GuessButtons(props: Readonly<GuessButtonsProps>): React.
                               submitted={submitted}
                 />
             ))}
-        </Form>
+        </form>
     );
 }
 

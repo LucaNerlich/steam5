@@ -1,0 +1,25 @@
+.auth-warning-modal__backdrop {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 1000;
+}
+
+.auth-warning-modal__card {
+    width: min(92vw, 480px);
+    border: 1px solid var(--color-border);
+    padding: 16px;
+    background: var(--color-surface);
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.auth-warning-modal__actions {
+    margin-top: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+}
