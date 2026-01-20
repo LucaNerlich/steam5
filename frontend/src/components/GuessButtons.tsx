@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import Form from "next/form";
 import {useFormStatus} from "react-dom";
 import "@/styles/components/reviewGuessButtons.css";
 
@@ -12,19 +11,22 @@ type GuessButtonsProps = {
     selectedLabel: string | null;
     onSelect: (label: string) => void;
     submitted: boolean;
+    isPending: boolean;
     formAction: (formData: FormData) => void;
 };
 
-function BucketButton({label, title, selectedLabel, onSelect, submitted}: {
+function BucketButton({label, title, selectedLabel, onSelect, submitted, isPending}: {
     label: string;
     title?: string;
     selectedLabel: string | null;
     onSelect: (label: string) => void;
-    submitted: boolean
+    submitted: boolean;
+    isPending: boolean;
 }) {
     const {pending} = useFormStatus();
     const isSelected = selectedLabel === label;
-    const disabled = (pending || submitted);
+    const disabled = (pending || submitted || isPending);
+    const showLoading = isPending && isSelected;
     return (
         <button
             name="bucketGuess"
@@ -34,16 +36,28 @@ function BucketButton({label, title, selectedLabel, onSelect, submitted}: {
             className={`review-round__button${isSelected ? ' is-selected' : ''}`}
             onClick={() => onSelect(label)}
             title={title}
+            aria-busy={showLoading}
         >
-            {label}
+            {showLoading ? "Submitting..." : label}
         </button>
     );
 }
 
 export default function GuessButtons(props: Readonly<GuessButtonsProps>): React.ReactElement {
-    const {appId, buckets, bucketTitles, selectedLabel, onSelect, submitted, formAction} = props;
+    const {appId, buckets, bucketTitles, selectedLabel, onSelect, submitted, isPending, formAction} = props;
+
+    const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        const submitter = (event.nativeEvent as SubmitEvent).submitter;
+        if (submitter instanceof HTMLButtonElement) {
+            formAction(new FormData(event.currentTarget, submitter));
+            return;
+        }
+        formAction(new FormData(event.currentTarget));
+    };
+
     return (
-        <Form action={formAction} className="review-round__buttons">
+        <form className="review-round__buttons" onSubmit={handleSubmit} aria-busy={isPending}>
             <input type="hidden" name="appId" value={appId}/>
             {buckets.map((label, i) => (
                 <BucketButton key={label}
@@ -52,9 +66,10 @@ export default function GuessButtons(props: Readonly<GuessButtonsProps>): React.
                               selectedLabel={selectedLabel}
                               onSelect={onSelect}
                               submitted={submitted}
+                              isPending={isPending}
                 />
             ))}
-        </Form>
+        </form>
     );
 }
 

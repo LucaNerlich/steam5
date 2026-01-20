@@ -1,10 +1,11 @@
 "use client";
 
-import {useActionState, useEffect, useMemo, useState} from "react";
+import {useActionState, useEffect, useMemo, useState, useTransition} from "react";
 import type {GuessResponse} from "@/types/review-game";
 import type {GuessActionState} from "../../app/review-guesser/[round]/actions";
 import {submitGuessAction} from "../../app/review-guesser/[round]/actions";
 import GuessButtons from "@/components/GuessButtons";
+import AuthWarningModal from "@/components/AuthWarningModal";
 import RoundResultDialog from "@/components/RoundResultDialog";
 import RoundResultActions from "@/components/RoundResultActions";
 import RoundShareSummary from "@/components/RoundShareSummary";
@@ -57,7 +58,10 @@ export default function ReviewGuesserRound({
                                            }: Props) {
     const initial: GuessActionState = {ok: false};
     const [state, formAction] = useActionState<GuessActionState, FormData>(submitGuessAction, initial);
+    const [isPending, startTransition] = useTransition();
     const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
+    const [showAuthWarning, setShowAuthWarning] = useState(false);
+    const [pendingFormData, setPendingFormData] = useState<FormData | null>(null);
     const [selectionScopeKey, setSelectionScopeKey] = useState<string | null>(null);
     const [stored, setStored] = useState<StoredDay | null>(null);
     const disableClientFetch = Boolean(prefilled) || (allResults && Object.keys(allResults).length > 0);
@@ -209,6 +213,45 @@ export default function ReviewGuesserRound({
     // Determine auth state (client-side) to conditionally show the sign-in nudge
     const signedIn = useAuthSignedIn();
 
+    const cloneFormData = (formData: FormData) => {
+        const copy = new FormData();
+        formData.forEach((value, key) => {
+            copy.append(key, value);
+        });
+        return copy;
+    };
+
+    const submitGuess = (formData: FormData) => {
+        startTransition(() => {
+            formAction(formData);
+        });
+    };
+
+    const handleAuthGuardedSubmit = (formData: FormData) => {
+        if (roundIndex === 1 && signedIn === false) {
+            setPendingFormData(cloneFormData(formData));
+            setShowAuthWarning(true);
+            return;
+        }
+        submitGuess(formData);
+    };
+
+    const handleLogin = () => {
+        setShowAuthWarning(false);
+        setPendingFormData(null);
+        window.location.href = buildSteamLoginUrl();
+    };
+
+    const handleSkip = (reason?: "backdrop" | "button" | "escape") => {
+        setShowAuthWarning(false);
+        if (reason === "backdrop") return;
+        if (pendingFormData) {
+            const data = pendingFormData;
+            setPendingFormData(null);
+            submitGuess(data);
+        }
+    };
+
     const shouldShowGuessControls = !(effectiveResponse || storedThisRound || prefilled);
     return (
         <>
@@ -222,7 +265,8 @@ export default function ReviewGuesserRound({
                         selectedLabel={renderSelectedLabel}
                         onSelect={setSelectedLabel}
                         submitted={submittedFlag}
-                        formAction={formAction as unknown as (formData: FormData) => void}
+                        isPending={isPending}
+                        formAction={handleAuthGuardedSubmit}
                     />
                     {state && !state.ok && state.error && (
                         <p className="text-muted review-round__error">Error: {state.error}</p>
@@ -283,6 +327,11 @@ export default function ReviewGuesserRound({
             )}
 
             {/*{!signedIn && roundIndex === 1 && <ReviewRules/>}*/}
+            <AuthWarningModal
+                isOpen={showAuthWarning}
+                onLogin={handleLogin}
+                onSkip={handleSkip}
+            />
         </>
     );
 }
