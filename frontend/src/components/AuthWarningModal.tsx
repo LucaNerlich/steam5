@@ -107,10 +107,10 @@ export default function AuthWarningModal({
                     toward the leaderboard unless you sign in.
                 </p>
                 <div className="auth-warning-modal__actions">
-                    <button className="btn-cta" onClick={onLogin}>
+                    <button type="button" className="btn-cta" onClick={onLogin}>
                         Log In
                     </button>
-                    <button className="btn-ghost" onClick={() => onSkip("button")}>
+                    <button type="button" className="btn-ghost" onClick={() => onSkip("button")}>
                         Continue Anyway
                     </button>
                 </div>
