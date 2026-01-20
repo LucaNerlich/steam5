@@ -58,7 +58,7 @@ export default function ReviewGuesserRound({
                                            }: Props) {
     const initial: GuessActionState = {ok: false};
     const [state, formAction] = useActionState<GuessActionState, FormData>(submitGuessAction, initial);
-    const [, startTransition] = useTransition();
+    const [isPending, startTransition] = useTransition();
     const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
     const [showAuthWarning, setShowAuthWarning] = useState(false);
     const [pendingFormData, setPendingFormData] = useState<FormData | null>(null);
@@ -228,7 +228,7 @@ export default function ReviewGuesserRound({
     };
 
     const handleAuthGuardedSubmit = (formData: FormData) => {
-        if (roundIndex === 1 && signedIn !== true) {
+        if (roundIndex === 1 && signedIn === false) {
             setPendingFormData(cloneFormData(formData));
             setShowAuthWarning(true);
             return;
@@ -242,7 +242,7 @@ export default function ReviewGuesserRound({
         window.location.href = buildSteamLoginUrl();
     };
 
-    const handleSkip = (reason?: "backdrop" | "button") => {
+    const handleSkip = (reason?: "backdrop" | "button" | "escape") => {
         setShowAuthWarning(false);
         if (reason === "backdrop") return;
         if (pendingFormData) {
@@ -265,6 +265,7 @@ export default function ReviewGuesserRound({
                         selectedLabel={renderSelectedLabel}
                         onSelect={setSelectedLabel}
                         submitted={submittedFlag}
+                        isPending={isPending}
                         formAction={handleAuthGuardedSubmit}
                     />
                     {state && !state.ok && state.error && (
