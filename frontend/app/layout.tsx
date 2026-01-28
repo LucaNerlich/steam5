@@ -59,6 +59,38 @@ const space = localFont({
 });
 
 const description = 'Daily Steam review guessing game — guess review counts, climb leaderboards, and share your results.';
+const base = (process.env.NEXT_PUBLIC_DOMAIN || "https://steam5.org").replace(/\/$/, "");
+let origin = base;
+try {
+    origin = new URL(base).origin;
+} catch {
+    // ignore, fallback to base as-is
+}
+const logoUrl = `${origin}/icon.svg`;
+const websiteSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: 'Steam5',
+    url: origin,
+    description: 'Daily Steam review guessing game — guess review counts and climb the leaderboard.',
+    inLanguage: 'en',
+    publisher: {
+        '@type': 'Organization',
+        name: 'Steam5',
+        url: origin,
+    },
+};
+const organizationSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: 'Steam5',
+    url: origin,
+    logo: logoUrl,
+    sameAs: [
+        'https://github.com/LucaNerlich/steam5'
+    ],
+    email: 'luca.nerlich@gmail.com'
+};
 
 export const metadata: Metadata = {
     title: {
@@ -132,6 +164,19 @@ export default function RootLayout({
             className={`${krypton.variable} ${neon.variable} ${argon.variable} ${radon.variable} ${xenon.variable} ${space.variable}`}
             suppressHydrationWarning
         >
+        <head>
+            <script src="/theme-init.js"/>
+            <link rel="preconnect" href={origin}/>
+            <link rel="dns-prefetch" href={origin}/>
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{__html: JSON.stringify(websiteSchema)}}
+            />
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{__html: JSON.stringify(organizationSchema)}}
+            />
+        </head>
         <body>
         <Header/>
         <main>
