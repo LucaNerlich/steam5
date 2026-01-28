@@ -1,53 +1,48 @@
+import styles from "./loading.module.css";
+
 export default function Loading() {
     return (
-        <section className="container">
-            <div style={{height: 24}}/>
+        <section className={`container ${styles.loading}`}>
+            <div className={styles.spacerLg}/>
 
-            <div style={{display: 'flex', flexDirection: 'column', gap: 12}}>
-                <div style={{height: 28, width: 280, background: 'var(--color-border)', borderRadius: 8}}/>
-                <div style={{height: 18, width: 100, background: 'var(--color-border)', borderRadius: 6}}/>
-                <div style={{display: 'flex', gap: 8}}>
+            <div className={styles.heroMeta}>
+                <div className={styles.titleBar}/>
+                <div className={styles.subtitleBar}/>
+                <div className={styles.metaRow}>
                     {Array.from({length: 4}).map((_, i) => (
-                        <div key={i} style={{height: 18, width: 70, background: 'var(--color-border)', borderRadius: 6}}/>
+                        <div key={i} className={styles.metaItem}/>
                     ))}
                 </div>
-                <div style={{display: 'flex', gap: 8}}>
+                <div className={styles.pillRow}>
                     {Array.from({length: 4}).map((_, i) => (
-                        <div key={i} style={{height: 22, width: 72, background: 'var(--color-border)', borderRadius: 999}}/>
+                        <div key={i} className={styles.pill}/>
                     ))}
                 </div>
             </div>
 
-            <div style={{height: 24}}/>
+            <div className={styles.spacerLg}/>
 
-            <div style={{display: 'grid', gap: 8, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))'}}>
+            <div className={styles.shots}>
                 {Array.from({length: 4}).map((_, i) => (
-                    <div
-                        key={i}
-                        style={{
-                            aspectRatio: '16 / 9',
-                            background: 'var(--color-border)',
-                            borderRadius: 8,
-                            width: '100%',
-                            height: 'auto',
-                            maxHeight: 225,
-                        }}
-                    />
+                    <div key={i} className={styles.shot}/>
                 ))}
             </div>
 
-            <div style={{height: 24}}/>
+            <div className={styles.spacerLg}/>
 
-            <div style={{height: 20, width: 160, background: 'var(--color-border)', borderRadius: 6}}/>
-            <div style={{height: 12}}/>
-            <div style={{display: 'grid', gap: 8, gridTemplateColumns: '1fr'}}>
-                {Array.from({length: 5}).map((_, i) => (
-                    <div key={i} style={{height: 44, background: 'var(--color-border)', borderRadius: 8}}/>
-                ))}
+            <div className={styles.afterShots}>
+                <div className={styles.desktopCard}/>
+                <div className={styles.guessSection}>
+                    <div className={styles.subhead}/>
+                    <div className={styles.spacerSm}/>
+                    <div className={styles.guessList}>
+                        {Array.from({length: 5}).map((_, i) => (
+                            <div key={i} className={styles.guessItem}/>
+                        ))}
+                    </div>
+                </div>
+                <div className={styles.summaryCard}/>
             </div>
-
-            <div style={{height: 24}}/>
-            <div style={{height: 190, background: 'var(--color-border)', borderRadius: 8}}/>
         </section>
     );
 }
