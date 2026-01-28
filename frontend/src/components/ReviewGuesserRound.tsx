@@ -64,8 +64,8 @@ export default function ReviewGuesserRound({
     const [pendingFormData, setPendingFormData] = useState<FormData | null>(null);
     const [selectionScopeKey, setSelectionScopeKey] = useState<string | null>(null);
     const [stored, setStored] = useState<StoredDay | null>(null);
-    const disableClientFetch = Boolean(prefilled) || (allResults && Object.keys(allResults).length > 0);
-    const serverGuesses = useServerGuesses(disableClientFetch);
+    const disableClientFetch = Boolean(prefilled) || (allResults && Object.keys(allResults).length >= totalRounds);
+    const {guesses: serverGuesses, loading: serverGuessesLoading} = useServerGuesses(disableClientFetch);
 
     const scopeKey = `${gameDate ?? ''}:${roundIndex}:${appId}`;
 
@@ -132,16 +132,18 @@ export default function ReviewGuesserRound({
 
     // Determine completion and existing result for this round
     const storedResults = stored?.results || {};
-    const serverResults = (allResults && Object.keys(allResults).length > 0)
-        ? allResults
-        : Object.fromEntries(Object.entries(serverGuesses).map(([k, v]) => [Number(k), {
-            appId: v.appId,
-            pickName: undefined,
-            selectedLabel: v.selectedBucket,
-            actualBucket: v.actualBucket ?? '',
-            totalReviews: v.totalReviews ?? 0,
-            correct: v.actualBucket ? (v.actualBucket === v.selectedBucket) : false,
-        }])) as Record<number, StoredRoundResult>;
+    const clientResults = Object.fromEntries(Object.entries(serverGuesses).map(([k, v]) => [Number(k), {
+        appId: v.appId,
+        pickName: undefined,
+        selectedLabel: v.selectedBucket,
+        actualBucket: v.actualBucket ?? '',
+        totalReviews: v.totalReviews ?? 0,
+        correct: v.actualBucket ? (v.actualBucket === v.selectedBucket) : false,
+    }])) as Record<number, StoredRoundResult>;
+    const serverResults: Record<number, StoredRoundResult> = {
+        ...clientResults,
+        ...(allResults ?? {}),
+    };
     const storedThisRound = storedResults[roundIndex] || serverResults[roundIndex];
 
     // Prefer server response; fallback to stored round result; finally use prefilled from server (authenticated restore)
@@ -204,10 +206,11 @@ export default function ReviewGuesserRound({
     const submittedFlag = Boolean(state && (state.ok || state.error)) || Boolean(storedThisRound) || Boolean(prefilled);
 
     // Single source of truth: when to show ShareControls
+    const hasServerResults = Object.keys(serverResults).length > 0;
     const canShowShare = Boolean(
         effectiveResponse ||
         storedThisRound ||
-        Object.keys(serverResults).length > 0
+        (!serverGuessesLoading && hasServerResults)
     );
 
     // Determine auth state (client-side) to conditionally show the sign-in nudge
@@ -308,7 +311,7 @@ export default function ReviewGuesserRound({
                                             correct: effectiveResponse ? effectiveResponse.correct : (storedThisRound?.correct ?? false),
                                         }
                                     }
-                                    results={Object.keys(serverResults).length > 0 ? serverResults : undefined}
+                                    results={!serverGuessesLoading && hasServerResults ? serverResults : undefined}
                                     signedIn={signedIn}
                                 />
                                 {signedIn === false && (
