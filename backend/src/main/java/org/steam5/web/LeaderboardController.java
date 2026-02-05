@@ -2,6 +2,8 @@ package org.steam5.web;
 
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -11,12 +13,16 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.steam5.domain.Guess;
 import org.steam5.domain.ReviewGamePick;
+import org.steam5.domain.Season;
 import org.steam5.domain.User;
 import org.steam5.repository.GuessRepository;
 import org.steam5.repository.UserRepository;
 import org.steam5.service.ReviewGameStateService;
+import org.steam5.service.SeasonService;
 
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -31,6 +37,8 @@ public class LeaderboardController {
     private final GuessRepository guessRepository;
     private final ReviewGameStateService reviewGameStateService;
     private final UserRepository userRepository;
+    private final SeasonService seasonService;
+    private final CacheManager cacheManager;
 
     private static int bucketOrderFromLabel(String label) {
         if (label == null) return Integer.MIN_VALUE;
@@ -93,6 +101,31 @@ public class LeaderboardController {
 
         final List<Guess> guesses = guessRepository.findAllBetween(start, end);
         return getGuessResponse(guesses, today);
+    }
+
+    @GetMapping("/season")
+    public ResponseEntity<List<LeaderEntry>> season() {
+        final LocalDate today = OffsetDateTime.now(ZoneOffset.UTC).toLocalDate();
+        final Season season = seasonService.findSeasonContaining(today)
+                .orElseGet(() -> seasonService.ensureSeasonForDate(today));
+        final LocalDate asOfDate = season.getEndDate().isBefore(today) ? season.getEndDate() : today;
+        final String cacheKey = "season:" + season.getSeasonNumber() + ":" + asOfDate;
+        final Cache cache = cacheManager.getCache("leaderboard-static");
+        if (cache != null) {
+            final Cache.ValueWrapper wrapper = cache.get(cacheKey);
+            if (wrapper != null && wrapper.get() instanceof List<?> cached) {
+                @SuppressWarnings("unchecked")
+                final List<LeaderEntry> cachedEntries = (List<LeaderEntry>) cached;
+                return ResponseEntity.ok(cachedEntries);
+            }
+        }
+
+        final List<Guess> guesses = guessRepository.findAllBetween(season.getStartDate(), asOfDate);
+        final ResponseEntity<List<LeaderEntry>> response = getGuessResponse(guesses, asOfDate);
+        if (cache != null && response.getBody() != null) {
+            cache.put(cacheKey, response.getBody());
+        }
+        return response;
     }
 
     @GetMapping(value = {"", "/", "/all"})

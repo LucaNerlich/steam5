@@ -1,9 +1,12 @@
 package org.steam5.service;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.steam5.domain.ReviewGamePick;
+import org.steam5.domain.Season;
 import org.steam5.repository.GuessRepository;
 import org.steam5.repository.ReviewGamePickRepository;
 import org.steam5.repository.ReviewsBucketRepository;
@@ -15,6 +18,8 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 
 @Service
 @RequiredArgsConstructor
@@ -24,6 +29,8 @@ public class StatisticsService {
     private final ReviewsBucketRepository reviewsBucketRepository;
     private final ReviewGamePickRepository reviewGamePickRepository;
     private final GuessRepository guessRepository;
+    private final SeasonService seasonService;
+    private final CacheManager cacheManager;
 
     @Cacheable(value = "stats-long", key = "'stats-genres-'+#limit", unless = "#result == null")
     public List<LabelCount> topGenres(int limit) {
@@ -77,7 +84,34 @@ public class StatisticsService {
         return getUserAchievementsForTimeframe(Timeframe.MONTHLY);
     }
 
+    public List<UserLabel> getUserAchievementsSeason() {
+        final LocalDate today = OffsetDateTime.now(ZoneOffset.UTC).toLocalDate();
+        final Season season = seasonService.findSeasonContaining(today)
+                .orElseGet(() -> seasonService.ensureSeasonForDate(today));
+        final LocalDate asOfDate = season.getEndDate().isBefore(today) ? season.getEndDate() : today;
+        final String cacheKey = "stats-user-labels-season:" + season.getSeasonNumber() + ":" + asOfDate;
+        final Cache cache = cacheManager.getCache("stats-hourly");
+        if (cache != null) {
+            final Cache.ValueWrapper wrapper = cache.get(cacheKey);
+            if (wrapper != null && wrapper.get() instanceof List<?> cached) {
+                @SuppressWarnings("unchecked")
+                final List<UserLabel> cachedEntries = (List<UserLabel>) cached;
+                return cachedEntries;
+            }
+        }
+
+        final List<UserLabel> result = getUserAchievementsForTimeframe(Timeframe.SEASON, season.getStartDate(), asOfDate);
+        if (cache != null) {
+            cache.put(cacheKey, result);
+        }
+        return result;
+    }
+
     private List<UserLabel> getUserAchievementsForTimeframe(Timeframe timeframe) {
+        return getUserAchievementsForTimeframe(timeframe, null, null);
+    }
+
+    private List<UserLabel> getUserAchievementsForTimeframe(Timeframe timeframe, LocalDate startOverride, LocalDate endOverride) {
         final List<UserLabel> result = new ArrayList<>();
 
         // Strategy:
@@ -92,6 +126,7 @@ public class StatisticsService {
             case MONTHLY -> 5;    // Reduced from 25 - leaderboard has no minimum
             case WEEKLY -> 3;     // Reduced from 15 - leaderboard has no minimum
             case DAILY -> 1;      // Reduced from 5 - leaderboard has no minimum
+            case SEASON -> 5;
         };
 
         final Set<String> alreadyAwarded = new HashSet<>();
@@ -122,11 +157,21 @@ public class StatisticsService {
                 startDate = today;
                 endDate = today;
             }
+            case SEASON -> {
+                if (startOverride == null || endOverride == null) {
+                    return Collections.emptyList();
+                }
+                startDate = startOverride;
+                endDate = endOverride;
+            }
             default -> {
                 return Collections.emptyList();
             }
         }
 
+        if (endDate.isBefore(startDate)) {
+            return Collections.emptyList();
+        }
         processAchievements(result, alreadyAwarded, MIN_ROUNDS, startDate, endDate);
         return Collections.unmodifiableList(result);
     }
@@ -240,6 +285,7 @@ public class StatisticsService {
 
     public enum Timeframe {
         ALL_TIME,
+        SEASON,
         MONTHLY,
         WEEKLY,
         DAILY

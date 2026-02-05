@@ -2,7 +2,7 @@ import Link from "next/link";
 import {ReactNode} from "react";
 
 export default function LeaderboardSection(props: {
-    active: 'all' | 'monthly' | 'weekly' | 'today';
+    active: 'all' | 'season' | 'weekly' | 'today';
     title: string;
     subline: string;
     children: ReactNode;
@@ -15,8 +15,8 @@ export default function LeaderboardSection(props: {
                       className={`btn-ghost${props.active === 'today' ? ' is-active' : ''}`}>Today</Link>
                 <Link href="/review-guesser/leaderboard/weekly"
                       className={`btn-ghost${props.active === 'weekly' ? ' is-active' : ''}`}>Weekly</Link>
-                <Link href="/review-guesser/leaderboard/monthly"
-                      className={`btn-ghost${props.active === 'monthly' ? ' is-active' : ''}`}>Monthly</Link>
+                <Link href="/review-guesser/leaderboard/season"
+                      className={`btn-ghost${props.active === 'season' ? ' is-active' : ''}`}>Season</Link>
                 <Link href="/review-guesser/leaderboard"
                       className={`btn-ghost${props.active === 'all' ? ' is-active' : ''}`}>All-time</Link>
             </nav>

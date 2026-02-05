@@ -5,11 +5,11 @@ import LeaderboardSection from "@/components/LeaderboardSection";
 import {buildBreadcrumbJsonLd} from "@/lib/seo";
 import {Routes} from "../../../routes";
 
-export default async function LeaderboardMonthlyPage() {
+export default async function LeaderboardSeasonPage() {
     const breadcrumbJsonLd = buildBreadcrumbJsonLd([
         {name: "Home", url: Routes.home},
         {name: "Leaderboard", url: Routes.leaderboard},
-        {name: "Monthly", url: Routes.leaderboardMonthly},
+        {name: "Season", url: Routes.leaderboardSeason},
     ]);
 
     return (
@@ -17,11 +17,11 @@ export default async function LeaderboardMonthlyPage() {
             <script type="application/ld+json" dangerouslySetInnerHTML={{
                 __html: JSON.stringify(breadcrumbJsonLd)
             }} />
-            <LeaderboardSection active="monthly"
-                                title="Monthly"
-                                subline="Last thirty days">
+            <LeaderboardSection active="season"
+                                title="Season"
+                                subline="Current season standings">
                 <Suspense fallback={<div style={{height: 320, background: 'var(--color-border)', borderRadius: 8}}/>}>
-                    <LeaderboardTable mode="monthly" refreshMs={10000}/>
+                    <LeaderboardTable mode="season" refreshMs={10000}/>
                 </Suspense>
             </LeaderboardSection>
         </>
@@ -29,34 +29,32 @@ export default async function LeaderboardMonthlyPage() {
 }
 
 export const metadata: Metadata = {
-    title: 'Leaderboard — Monthly',
-    description: 'Last thirty days rankings and high scores for Steam Review Guesser. Monthly challenge standings.',
+    title: 'Leaderboard — Season',
+    description: 'Current season rankings and high scores for Steam Review Guesser.',
     alternates: {
-        canonical: '/review-guesser/leaderboard/monthly',
+        canonical: '/review-guesser/leaderboard/season',
     },
     keywords: [
         'Steam',
         'leaderboard',
-        'monthly',
+        'season',
         'review guessing game',
         'high scores',
         'rankings',
         'daily challenge',
         'weekly challenge',
-        'monthly challenge',
         'compete'
     ],
     openGraph: {
-        title: 'Leaderboard — Monthly',
-        description: 'Last thirty days rankings and high scores for Steam Review Guesser. Monthly challenge standings.',
-        url: '/review-guesser/leaderboard/monthly',
+        title: 'Leaderboard — Season',
+        description: 'Current season rankings and high scores for Steam Review Guesser.',
+        url: '/review-guesser/leaderboard/season',
         images: ['/opengraph-image'],
     },
     twitter: {
         card: 'summary_large_image',
-        title: 'Leaderboard — Monthly',
-        description: 'Last thirty days rankings and high scores for Steam Review Guesser. Monthly challenge standings.',
+        title: 'Leaderboard — Season',
+        description: 'Current season rankings and high scores for Steam Review Guesser.',
         images: ['/opengraph-image'],
     },
 };
-
