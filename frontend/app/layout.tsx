@@ -1,4 +1,5 @@
 import type {Metadata} from "next";
+import Script from "next/script";
 import "@/styles/globals.css";
 import UmamiAnalytics from "@/components/UmamiAnalytics";
 import Header from "@/components/Header";
@@ -165,7 +166,7 @@ export default function RootLayout({
             suppressHydrationWarning
         >
         <head>
-            <script src="/theme-init.js"/>
+            <Script src="/theme-init.js" strategy="beforeInteractive"/>
             <link rel="preconnect" href={origin}/>
             <link rel="dns-prefetch" href={origin}/>
             <script

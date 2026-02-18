@@ -1,11 +1,12 @@
 "use client";
 
-import React, {useEffect, useState} from "react";
+import React, {useEffect, useRef} from "react";
 import {clearAll} from "@/lib/storage";
 import Image from "next/image";
 import SignInImage from "../../public/sign-in-through-steam.png"
 import {UserCheckIcon} from "@phosphor-icons/react/ssr";
 import Link from "next/link";
+import {useAuthMe} from "@/lib/hooks/useAuthSignedIn";
 
 export function buildSteamLoginUrl(): string {
     const backend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
@@ -16,39 +17,19 @@ export function buildSteamLoginUrl(): string {
 }
 
 export default function SteamLoginButton(): React.ReactElement {
-    const [steamId, setSteamId] = useState<string | null>(null);
+    const {data} = useAuthMe();
+    const steamId = data?.signedIn ? (data.steamId ?? null) : null;
+    const clearedRef = useRef(false);
 
     useEffect(() => {
-        let active = true;
-
-        async function load() {
-            try {
-                const res = await fetch('/api/auth/me', {cache: 'no-store'});
-                if (!res.ok) return;
-                const data = await res.json();
-                if (active) setSteamId(data?.signedIn ? data.steamId : null);
-                // If just logged in, clear any local storage progress to avoid conflicts
-                try {
-                    if (data?.signedIn) clearAll();
-                } catch {
-                }
-            } catch {
-            }
+        if (data?.signedIn && !clearedRef.current) {
+            clearedRef.current = true;
+            try { clearAll(); } catch { /* ignore */ }
         }
-
-        load();
-        return () => {
-            active = false
-        };
-    }, []);
+    }, [data?.signedIn]);
 
     const onClick = () => {
-        const url = buildSteamLoginUrl();
-        try {
-            console.debug('steam5 login url', url);
-        } catch {
-        }
-        window.location.href = url;
+        window.location.href = buildSteamLoginUrl();
     };
 
     if (steamId) {

@@ -69,11 +69,13 @@ export default function ReviewGuesserRound({
 
     const scopeKey = `${gameDate ?? ''}:${roundIndex}:${appId}`;
 
-    // Reset any previous selection when round/app/date changes before applying stored/prefilled
-    useEffect(() => {
-        setSelectedLabel(null);
-        setSelectionScopeKey(null);
-    }, [roundIndex, appId, gameDate]);
+    // Derive a reset signal from scope changes instead of using an effect
+    const [prevScopeKey, setPrevScopeKey] = useState<string | null>(null);
+    if (prevScopeKey !== scopeKey) {
+        setPrevScopeKey(scopeKey);
+        if (selectedLabel !== null) setSelectedLabel(null);
+        if (selectionScopeKey !== null) setSelectionScopeKey(null);
+    }
 
     const nextHref = useMemo(() => {
         const next = roundIndex + 1;
@@ -316,10 +318,9 @@ export default function ReviewGuesserRound({
                                 />
                                 {signedIn === false && (
                                     <p className="text-muted review-round__signin-nudge">
-                                        <a href="#" onClick={(e) => {
-                                            e.preventDefault();
+                                        <button type="button" className="btn-link" onClick={() => {
                                             window.location.href = buildSteamLoginUrl();
-                                        }}>Sign in with Steam</a>
+                                        }}>Sign in with Steam</button>
                                         &nbsp;to save your results, track streaks, and appear on the leaderboard.
                                     </p>
                                 )}
@@ -329,7 +330,6 @@ export default function ReviewGuesserRound({
                 </RoundResultDialog>
             )}
 
-            {/*{!signedIn && roundIndex === 1 && <ReviewRules/>}*/}
             <AuthWarningModal
                 isOpen={showAuthWarning}
                 onLogin={handleLogin}

@@ -9,7 +9,7 @@ export type RoundResult = {
 
 export type StoredDay = { totalRounds: number; results: Record<number, RoundResult> };
 
-export function storageKeyForDate(gameDate: string): string {
+function storageKeyForDate(gameDate: string): string {
     return `review-guesser:${gameDate}`;
 }
 

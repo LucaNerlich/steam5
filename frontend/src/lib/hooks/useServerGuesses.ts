@@ -2,7 +2,7 @@
 
 import {useEffect, useState} from "react";
 
-export type ServerGuess = {
+type ServerGuess = {
     roundIndex: number;
     appId: number;
     selectedBucket: string;

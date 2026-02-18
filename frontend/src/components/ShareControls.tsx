@@ -1,6 +1,7 @@
 "use client";
 
-import React, {useEffect, useState} from "react";
+import React, {useMemo, useState} from "react";
+import useSWR from "swr";
 import "@/styles/components/reviewShareControls.css";
 import {scoreForRound} from "@/lib/scoring";
 import {ExportIcon} from "@phosphor-icons/react/ssr";
@@ -36,49 +37,33 @@ export default function ShareControls(props: {
     const {buckets, gameDate, totalRounds, latestRound, latest, inline, results} = props;
     const [copied, setCopied] = useState(false);
     const isLocalhost = typeof window !== 'undefined' && (location.hostname === 'localhost' || location.hostname === '127.0.0.1');
-    const [appNamesById, setAppNamesById] = useState<Record<number, string>>({});
-    const [namesLoading, setNamesLoading] = useState<boolean>(true);
 
     type Stored = { totalRounds: number; results: Record<number, RoundResult> };
 
-    // Fetch picks (for the same game date) to enrich app names for all rounds
-    useEffect(() => {
-        let cancelled = false;
+    const namesFetchUrl = gameDate
+        ? `/api/review-game/day/summary/${encodeURIComponent(gameDate)}`
+        : '/api/review-game/today';
 
-        async function loadNames() {
-            try {
-                setNamesLoading(true);
-                const url = gameDate
-                    ? `/api/review-game/day/summary/${encodeURIComponent(gameDate)}`
-                    : '/api/review-game/today';
-                const res = await fetch(url, {cache: 'no-store'});
-                if (!res.ok) return;
-                const json = await res.json();
-                if (cancelled || !json) return;
-                const map: Record<number, string> = {};
-                if (Array.isArray(json)) {
-                    // Day summary format: [{ round, appId, name }]
-                    for (const p of json as Array<{ appId: number; name?: string }>) {
-                        if (p && typeof p.appId === 'number' && p.name) map[p.appId] = p.name;
-                    }
-                } else if (json.picks && Array.isArray(json.picks)) {
-                    // Today format: { picks: [{ appId, name }] }
-                    for (const p of json.picks as Array<{ appId: number; name?: string }>) {
-                        if (p && typeof p.appId === 'number' && p.name) map[p.appId] = p.name;
-                    }
-                }
-                if (Object.keys(map).length > 0) setAppNamesById(map);
-            } catch {
-            } finally {
-                if (!cancelled) setNamesLoading(false);
+    const {data: namesData, isLoading: namesLoading} = useSWR(namesFetchUrl, (url: string) =>
+        fetch(url, {cache: 'no-store'}).then(r => {
+            if (!r.ok) return null;
+            return r.json();
+        }), {revalidateOnFocus: false});
+
+    const appNamesById = useMemo(() => {
+        const map: Record<number, string> = {};
+        if (!namesData) return map;
+        if (Array.isArray(namesData)) {
+            for (const p of namesData as Array<{ appId: number; name?: string }>) {
+                if (p && typeof p.appId === 'number' && p.name) map[p.appId] = p.name;
+            }
+        } else if (namesData.picks && Array.isArray(namesData.picks)) {
+            for (const p of namesData.picks as Array<{ appId: number; name?: string }>) {
+                if (p && typeof p.appId === 'number' && p.name) map[p.appId] = p.name;
             }
         }
-
-        loadNames();
-        return () => {
-            cancelled = true;
-        };
-    }, [gameDate]);
+        return map;
+    }, [namesData]);
 
     let data: Stored | null = null;
     if (results && Object.keys(results).length > 0) {

@@ -1,6 +1,6 @@
 "use client";
 
-import React, {useCallback, useEffect, useMemo, useState} from "react";
+import React, {useCallback, useMemo, useState} from "react";
 import RoundResultDialog from "@/components/RoundResultDialog";
 import RoundResultActions from "@/components/RoundResultActions";
 import type {GuessResponse} from "@/types/review-game";
@@ -22,15 +22,19 @@ type Props = {
 export default function ArchiveOfflineRound(props: Readonly<Props>): React.ReactElement {
     const {appId, buckets, bucketTitles, roundIndex, totalRounds, pickName, gameDate, offlineAnswer} = props;
 
-    const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
-    const [submitted, setSubmitted] = useState<boolean>(false);
-    const [stored, setStored] = useState<StoredDay | null>(null);
+    const [selectedLabel, setSelectedLabel] = useState<string | null>(() => {
+        const d = loadDay(gameDate);
+        return d?.results?.[roundIndex]?.selectedLabel ?? null;
+    });
+    const [submitted, setSubmitted] = useState<boolean>(() => {
+        const d = loadDay(gameDate);
+        return Boolean(d?.results?.[roundIndex]?.selectedLabel);
+    });
+    const [stored, setStored] = useState<StoredDay | null>(() => loadDay(gameDate));
 
-    // Prev/next anchors within the archive page
-    const prevHref = useMemo(() => (roundIndex > 1 ? `#round-${roundIndex - 1}` : null), [roundIndex]);
-    const nextHref = useMemo(() => (roundIndex < totalRounds ? `#round-${roundIndex + 1}` : null), [roundIndex, totalRounds]);
+    const prevHref = roundIndex > 1 ? `#round-${roundIndex - 1}` : null;
+    const nextHref = roundIndex < totalRounds ? `#round-${roundIndex + 1}` : null;
 
-    // Build a local GuessResponse when a choice is made
     const localResponse: GuessResponse | null = useMemo(() => {
         if (!offlineAnswer || !selectedLabel) return null;
         return {
@@ -41,36 +45,22 @@ export default function ArchiveOfflineRound(props: Readonly<Props>): React.React
         } as GuessResponse;
     }, [appId, offlineAnswer, selectedLabel]);
 
-    // Restore from local storage if already answered
-    useEffect(() => {
-        const d = loadDay(gameDate);
-        setStored(d);
-        const prev = d?.results?.[roundIndex];
-        if (prev && prev.selectedLabel) {
-            setSelectedLabel(prev.selectedLabel);
-            setSubmitted(true);
-        }
-    }, [gameDate, roundIndex]);
-
-    // Persist this round's result when available
-    useEffect(() => {
-        if (!localResponse || !selectedLabel) return;
-        const updated = saveRound(gameDate, roundIndex, totalRounds, {
-            appId,
-            pickName,
-            selectedLabel,
-            actualBucket: localResponse.actualBucket,
-            totalReviews: localResponse.totalReviews,
-            correct: localResponse.correct,
-        });
-        if (updated) setStored(updated);
-        setSubmitted(true);
-    }, [localResponse, selectedLabel, gameDate, roundIndex, totalRounds, appId, pickName]);
-
     const onSelect = useCallback((label: string) => {
         if (submitted) return;
         setSelectedLabel(label);
-    }, [submitted]);
+        if (!offlineAnswer) return;
+        const result = {
+            appId,
+            pickName,
+            selectedLabel: label,
+            actualBucket: offlineAnswer.actualBucket,
+            totalReviews: offlineAnswer.totalReviews,
+            correct: offlineAnswer.actualBucket === label,
+        };
+        const updated = saveRound(gameDate, roundIndex, totalRounds, result);
+        if (updated) setStored(updated);
+        setSubmitted(true);
+    }, [submitted, offlineAnswer, appId, pickName, gameDate, roundIndex, totalRounds]);
 
     return (
         <div className="archive-offline-round">

@@ -213,8 +213,8 @@ export default async function Image(req: Request) {
 
                 <div style={{ display: "flex", gap: 24, marginTop: 24 }}>
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 12, flex: 1 }}>
-                        {statsLines.map((s, i) => (
-                            <div key={i} style={{ background: "#0b1220", border: `1px solid ${panelBorder}`, borderRadius: 12, padding: 12 }}>
+                        {statsLines.map((s) => (
+                            <div key={s.label} style={{ background: "#0b1220", border: `1px solid ${panelBorder}`, borderRadius: 12, padding: 12 }}>
                                 <div style={{ color: "#9ca3af", fontSize: 18 }}>{s.label}</div>
                                 <div style={{ fontSize: 28, fontWeight: 700 }}>{s.value}</div>
                             </div>

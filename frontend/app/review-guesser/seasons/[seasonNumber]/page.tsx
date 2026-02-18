@@ -218,11 +218,11 @@ export default async function SeasonDetailPage({params}: {params: MaybePromise<P
                         <p className="season-detail__muted">Links jump to the archive for each day.</p>
                     </header>
                     <div className="season-detail__highlights">
-                        {renderHighlightCard(highlights?.highestAvg, "Highest average score", "Players crushed the picks this day.")}
-                        {renderHighlightCard(highlights?.lowestAvg, "Toughest challenge", "Lowest average score across the season.")}
-                        {renderHighlightCard(highlights?.busiest, "Most active day", "Highest number of unique players.")}
-                        {renderRoundHighlightCard(highlights?.easiestRound, "Easiest round", "Highest average points in a single round.")}
-                        {renderRoundHighlightCard(highlights?.hardestRound, "Hardest round", "Lowest average points in a single round.")}
+                        <HighlightCard highlight={highlights?.highestAvg} title="Highest average score" description="Players crushed the picks this day."/>
+                        <HighlightCard highlight={highlights?.lowestAvg} title="Toughest challenge" description="Lowest average score across the season."/>
+                        <HighlightCard highlight={highlights?.busiest} title="Most active day" description="Highest number of unique players."/>
+                        <RoundHighlightCard highlight={highlights?.easiestRound} title="Easiest round" description="Highest average points in a single round."/>
+                        <RoundHighlightCard highlight={highlights?.hardestRound} title="Hardest round" description="Lowest average points in a single round."/>
                     </div>
                 </section>
             )}
@@ -366,10 +366,10 @@ function StatsCard({label, value, subline}: {label: string; value: string; subli
     );
 }
 
-function renderHighlightCard(highlight: DailyHighlight | null | undefined, title: string, description: string) {
+function HighlightCard({highlight, title, description}: {highlight: DailyHighlight | null | undefined; title: string; description: string}) {
     if (!highlight) {
         return (
-            <article className="season-detail__highlight-card" key={title}>
+            <article className="season-detail__highlight-card">
                 <p className="season-detail__muted">{title}</p>
                 <p className="season-detail__stat-value">—</p>
                 <p className="season-detail__muted">{description}</p>
@@ -378,7 +378,7 @@ function renderHighlightCard(highlight: DailyHighlight | null | undefined, title
     }
     const archiveLink = `${Routes.archive}/${highlight.date}`;
     return (
-        <article className="season-detail__highlight-card" key={title}>
+        <article className="season-detail__highlight-card">
             <p className="season-detail__eyebrow">{title}</p>
             <h3>{formatDate(highlight.date)}</h3>
             <p className="season-detail__muted">{description}</p>
@@ -399,10 +399,10 @@ function renderHighlightCard(highlight: DailyHighlight | null | undefined, title
     );
 }
 
-function renderRoundHighlightCard(highlight: RoundHighlight | null | undefined, title: string, description: string) {
+function RoundHighlightCard({highlight, title, description}: {highlight: RoundHighlight | null | undefined; title: string; description: string}) {
     if (!highlight) {
         return (
-            <article className="season-detail__highlight-card" key={title}>
+            <article className="season-detail__highlight-card">
                 <p className="season-detail__muted">{title}</p>
                 <p className="season-detail__stat-value">—</p>
                 <p className="season-detail__muted">{description}</p>
@@ -412,7 +412,7 @@ function renderRoundHighlightCard(highlight: RoundHighlight | null | undefined, 
     const archiveLink = `${Routes.archive}/${highlight.date}#round-${highlight.roundIndex}`;
     const appLabel = highlight.appName || `App ${highlight.appId}`;
     return (
-        <article className="season-detail__highlight-card" key={title}>
+        <article className="season-detail__highlight-card">
             <p className="season-detail__eyebrow">{title}</p>
             <h3>{appLabel}</h3>
             <p className="season-detail__muted">{description}</p>

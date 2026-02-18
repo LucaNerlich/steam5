@@ -80,9 +80,10 @@ export default function RollingHitRateSpark({rounds}: { rounds: Round[] }): Reac
                 {(() => {
                     const len = Math.max(2, series.length);
                     const idxs = [0, Math.floor((len - 1) / 2), len - 1];
-                    return idxs.map((idx, i) => (
-                        <text key={i} x={padding + (idx / Math.max(1, len - 1)) * (width - padding * 2)} y={height - 2} fontSize="16" fill="var(--color-muted)" textAnchor={i === 0 ? 'start' : i === 2 ? 'end' : 'middle'}>
-                            {i === 0 ? 'older' : i === 1 ? 'mid' : 'newer'}
+                    const labels = ['older', 'mid', 'newer'] as const;
+                    return idxs.map((idx, pos) => (
+                        <text key={labels[pos]} x={padding + (idx / Math.max(1, len - 1)) * (width - padding * 2)} y={height - 2} fontSize="16" fill="var(--color-muted)" textAnchor={pos === 0 ? 'start' : pos === 2 ? 'end' : 'middle'}>
+                            {labels[pos]}
                         </text>
                     ));
                 })()}

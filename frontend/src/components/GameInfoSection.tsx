@@ -256,7 +256,7 @@ export default function GameInfoSection({pick}: Props): React.ReactElement | nul
                             const thumbSrc = normalizeUrl(m.thumbnail);
                             if (!videoSrc || !thumbSrc) return null;
                             return (
-                                <div key={`mov-${m.id}-${i}`} className="game-info__video">
+                                <div key={`mov-${m.id}`} className="game-info__video">
                                     <a
                                         href={videoSrc || "#"}
                                         data-fancybox={`videos-${pick.appId}`}

@@ -1,6 +1,6 @@
 'use client';
 
-import {useEffect, useState} from 'react';
+import useSWR from 'swr';
 import {scoreForRound} from '@/lib/scoring';
 import '@/styles/components/archive-summary.css';
 
@@ -26,52 +26,42 @@ interface MyGuessDto {
 }
 
 interface ArchiveSummaryProps {
-    date?: string; // If undefined, shows all-time stats
+    date?: string;
     bucketLabels: string[];
     bucketTitles: string[];
 }
 
+const jsonFetcher = (url: string) => fetch(url, {headers: {'accept': 'application/json'}}).then(r => {
+    if (!r.ok) return null;
+    return r.json();
+});
+
+const myGuessFetcher = (url: string) => fetch(url).then(r => {
+    if (r.status === 401) return {_unauthorized: true};
+    if (!r.ok) return null;
+    return r.json();
+});
+
+const backendBase = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
+
 export default function ArchiveSummary({date, bucketLabels, bucketTitles}: ArchiveSummaryProps) {
-    const [baseline, setBaseline] = useState<HistoricalAlwaysPickResponse | null>(null);
-    const [myGuesses, setMyGuesses] = useState<MyGuessDto[] | null>(null);
-    const [isSignedIn, setIsSignedIn] = useState(false);
-    const [loading, setLoading] = useState(true);
+    const baselineUrl = date
+        ? `${backendBase}/api/review-game/history/always-pick?from=${encodeURIComponent(date)}&to=${encodeURIComponent(date)}`
+        : `${backendBase}/api/review-game/history/always-pick`;
+    const myUrl = date
+        ? `/api/review-game/my/day/${encodeURIComponent(date)}`
+        : `/api/review-game/my/history`;
 
-    useEffect(() => {
-        const loadData = async () => {
-            setLoading(true);
-            try {
-                // Load baseline
-                const backend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
-                const baselineUrl = date
-                    ? `${backend}/api/review-game/history/always-pick?from=${encodeURIComponent(date)}&to=${encodeURIComponent(date)}`
-                    : `${backend}/api/review-game/history/always-pick`;
-                const baselineRes = await fetch(baselineUrl, {headers: {'accept': 'application/json'}});
-                if (baselineRes.ok) {
-                    const baselineData: HistoricalAlwaysPickResponse = await baselineRes.json();
-                    setBaseline(baselineData);
-                }
+    const {data: baseline, isLoading: baselineLoading} = useSWR<HistoricalAlwaysPickResponse | null>(
+        baselineUrl, jsonFetcher, {revalidateOnFocus: false}
+    );
+    const {data: myData, isLoading: myLoading} = useSWR(
+        myUrl, myGuessFetcher, {revalidateOnFocus: false}
+    );
 
-                // Check if signed in and load personal guesses
-                const myUrl = date
-                    ? `/api/review-game/my/day/${encodeURIComponent(date)}`
-                    : `/api/review-game/my/history`;
-                const myRes = await fetch(myUrl);
-                if (myRes.ok) {
-                    const myData: MyGuessDto[] = await myRes.json();
-                    setMyGuesses(myData);
-                    setIsSignedIn(true);
-                } else if (myRes.status === 401) {
-                    setIsSignedIn(false);
-                }
-            } catch (e) {
-                console.error('Failed to load archive summary data', e);
-            } finally {
-                setLoading(false);
-            }
-        };
-        loadData();
-    }, [date]);
+    const isSignedIn = myData && !myData._unauthorized && Array.isArray(myData);
+    const myGuesses: MyGuessDto[] | null = isSignedIn ? myData : null;
+    const loading = baselineLoading || myLoading;
 
     if (loading || !baseline) {
         return null;

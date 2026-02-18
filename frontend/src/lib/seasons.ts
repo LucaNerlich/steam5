@@ -1,6 +1,6 @@
 import type {AwardView} from "@/types/seasons";
 
-export type AwardGroup = {
+type AwardGroup = {
     category: string;
     label: string;
     awards: AwardView[];

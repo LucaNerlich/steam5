@@ -55,7 +55,7 @@ export default function PointsByRoundChart({rounds}: { rounds: Round[] }): React
                         points={last.map((r, i) => `${xScale(i)},${yScale(r.points)}`).join(" ")}
                     />
                     {last.map((r, i) => (
-                        <circle key={i} cx={xScale(i)} cy={yScale(r.points)} r="2.5" fill="var(--color-primary, #6366f1)"/>
+                        <circle key={`pt-${r.date}-${r.selectedBucket}-${r.actualBucket}`} cx={xScale(i)} cy={yScale(r.points)} r="2.5" fill="var(--color-primary, #6366f1)"/>
                     ))}
                 </g>
                 <g>
@@ -74,9 +74,10 @@ export default function PointsByRoundChart({rounds}: { rounds: Round[] }): React
                     {(() => {
                         const len = Math.max(2, last.length);
                         const idxs = [0, Math.floor((len - 1) / 2), len - 1];
-                        return idxs.map((idx, i) => (
-                            <text key={i} x={xScale(idx)} y={height - padding + 14} fontSize="11" fill="var(--color-muted)" textAnchor={i === 0 ? 'start' : i === 2 ? 'end' : 'middle'}>
-                                {i === 0 ? 'older' : i === 1 ? 'mid' : 'newer'}
+                        const labels = ['older', 'mid', 'newer'] as const;
+                        return idxs.map((idx, pos) => (
+                            <text key={labels[pos]} x={xScale(idx)} y={height - padding + 14} fontSize="11" fill="var(--color-muted)" textAnchor={pos === 0 ? 'start' : pos === 2 ? 'end' : 'middle'}>
+                                {labels[pos]}
                             </text>
                         ));
                     })()}

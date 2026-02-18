@@ -28,8 +28,8 @@ export default function NewsBox(): React.ReactElement | null {
         <aside className="newsbox" aria-label="Latest updates">
             <p className="newsbox__subline"><Link href="#more-about-this-game"><em>jump to game info</em></Link></p>
             <h2>News</h2>
-            {items.map((news, idx) => (
-                <article className="newsbox__item" key={`${news.title}-${idx}`}>
+            {items.map((news) => (
+                <article className="newsbox__item" key={`${news.title}-${news.start}`}>
                     <div className="newsbox__header">
                         <h3 className="newsbox__title">{news.title}</h3>
                         {/*<span className="newsbox__dates">{n.start} – {n.end}</span>*/}

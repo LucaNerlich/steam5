@@ -1,8 +1,9 @@
 "use client";
 
-import {useCallback, useEffect, useState} from "react";
+import {useCallback} from "react";
 import {useRouter} from "next/navigation";
 import {Routes} from "../../app/routes";
+import useAuthSignedIn from "@/lib/hooks/useAuthSignedIn";
 
 function getLocalDateYYYYMMDD(): string {
     const now = new Date();
@@ -13,7 +14,7 @@ function getLocalDateYYYYMMDD(): string {
 }
 
 export default function ResetTodayButton() {
-    const [signedIn, setSignedIn] = useState<boolean>(false);
+    const signedIn = useAuthSignedIn();
     const router = useRouter()
 
     const onReset = useCallback(() => {
@@ -25,7 +26,6 @@ export default function ResetTodayButton() {
                 `${prefix}${utcToday}`,
                 `${prefix}${localToday}`,
             ]);
-            // Also try to remove the most recent matching key if present
             for (let i = 0; i < localStorage.length; i++) {
                 const key = localStorage.key(i);
                 if (key && key.startsWith(prefix)) {
@@ -36,31 +36,11 @@ export default function ResetTodayButton() {
         } catch {
             // ignore
         }
-        // Optionally refresh the page to reflect cleared progress
         try {
             router.push(Routes.reviewGuesser + '/1')
         } catch { /* noop */
         }
     }, [router]);
-
-    useEffect(() => {
-        let active = true;
-
-        async function load() {
-            try {
-                const res = await fetch('/api/auth/me', {cache: 'no-store'});
-                if (!res.ok) return;
-                const data = await res.json();
-                if (active) setSignedIn(Boolean(data?.signedIn));
-            } catch {
-            }
-        }
-
-        load();
-        return () => {
-            active = false
-        };
-    }, []);
 
     if (signedIn) return null;
 

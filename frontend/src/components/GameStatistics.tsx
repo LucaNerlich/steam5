@@ -1,8 +1,8 @@
 'use client';
 
-import {useEffect, useState} from 'react';
 import {formatDate} from '@/lib/format';
 import Link from 'next/link';
+import useSWR from 'swr';
 import '@/styles/components/game-statistics.css';
 
 interface TopGameByReviews {
@@ -24,45 +24,27 @@ interface DailyAvgScoreStats {
     lowest: DailyAvgScore | null;
 }
 
-interface GameStatistics {
+interface GameStatisticsData {
     topGamesByReviewCount: TopGameByReviews[];
     dailyAvgScores: DailyAvgScoreStats;
 }
 
+const jsonFetcher = (url: string) => fetch(url, {headers: {'accept': 'application/json'}}).then(r => {
+    if (!r.ok) return null;
+    return r.json();
+});
+
+const backend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
+
 export default function GameStatistics() {
-    const [stats, setStats] = useState<GameStatistics | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [totalRounds, setTotalRounds] = useState<number | null>(null);
-
-    useEffect(() => {
-        const loadData = async () => {
-            setLoading(true);
-            try {
-                // Load game statistics
-                const statsRes = await fetch('/api/stats/game');
-                if (statsRes.ok) {
-                    const statsData: GameStatistics = await statsRes.json();
-                    console.log('Game stats data:', statsData);
-                    setStats(statsData);
-                }
-
-                // Load total rounds from picks summary
-                const backend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
-                const picksRes = await fetch(`${backend}/api/metrics/picks/summary`, {
-                    headers: {'accept': 'application/json'},
-                });
-                if (picksRes.ok) {
-                    const picksData: {totalPicks: number} = await picksRes.json();
-                    setTotalRounds(picksData.totalPicks);
-                }
-            } catch (e) {
-                console.error('Failed to load game statistics', e);
-            } finally {
-                setLoading(false);
-            }
-        };
-        loadData();
-    }, []);
+    const {data: stats, isLoading: statsLoading} = useSWR<GameStatisticsData | null>(
+        '/api/stats/game', jsonFetcher, {revalidateOnFocus: false}
+    );
+    const {data: picksData, isLoading: picksLoading} = useSWR<{totalPicks: number} | null>(
+        `${backend}/api/metrics/picks/summary`, jsonFetcher, {revalidateOnFocus: false}
+    );
+    const totalRounds = picksData?.totalPicks ?? null;
+    const loading = statsLoading || picksLoading;
 
     if (loading) {
         return (

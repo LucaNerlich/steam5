@@ -1,50 +1,71 @@
 "use client";
 
-import {useEffect, useState} from "react";
+import {useCallback, useEffect, useSyncExternalStore} from "react";
 
-function getPreferredTheme(): "light" | "dark" {
+type Theme = "light" | "dark";
+
+let currentTheme: Theme = "light";
+const listeners = new Set<() => void>();
+
+function notifyListeners() {
+    for (const l of listeners) l();
+}
+
+function readThemeFromDOM(): Theme {
     if (typeof window === "undefined") return "light";
     const rootTheme = document.documentElement.getAttribute("data-theme");
     if (rootTheme === "dark") return "dark";
     const stored = window.localStorage.getItem("theme");
     if (stored === "light" || stored === "dark") return stored;
-    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
-        ? "dark"
-        : "light";
+    return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? "dark" : "light";
+}
+
+function applyTheme(theme: Theme) {
+    currentTheme = theme;
+    const root = document.documentElement;
+    if (theme === "dark") {
+        root.setAttribute("data-theme", "dark");
+    } else {
+        root.removeAttribute("data-theme");
+    }
+    window.localStorage.setItem("theme", theme);
+    notifyListeners();
+}
+
+function subscribe(callback: () => void) {
+    listeners.add(callback);
+    return () => { listeners.delete(callback); };
+}
+
+function getSnapshot(): Theme {
+    return currentTheme;
+}
+
+function getServerSnapshot(): Theme {
+    return "light";
+}
+
+if (typeof window !== "undefined") {
+    currentTheme = readThemeFromDOM();
 }
 
 export default function ThemeToggle() {
-    const [theme, setTheme] = useState<"light" | "dark" | null>(null);
-
-    // Set initial theme on client to avoid SSR/CSR mismatch
-    useEffect(() => {
-        setTheme(getPreferredTheme());
-    }, []);
-
-    useEffect(() => {
-        if (!theme) return;
-        const root = document.documentElement;
-        if (theme === "dark") {
-            root.setAttribute("data-theme", "dark");
-        } else {
-            root.removeAttribute("data-theme");
-        }
-        window.localStorage.setItem("theme", theme);
-    }, [theme]);
+    const theme = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
     useEffect(() => {
         const media = window.matchMedia('(prefers-color-scheme: dark)');
         const handler = () => {
             const stored = window.localStorage.getItem("theme");
             if (stored !== "light" && stored !== "dark") {
-                setTheme(prev => {
-                    const next = media.matches ? "dark" : "light";
-                    return prev === next ? prev : next;
-                });
+                applyTheme(media.matches ? "dark" : "light");
             }
         };
         media.addEventListener("change", handler);
         return () => media.removeEventListener("change", handler);
+    }, []);
+
+    const toggle = useCallback(() => {
+        applyTheme(currentTheme === "dark" ? "light" : "dark");
     }, []);
 
     return (
@@ -52,7 +73,7 @@ export default function ThemeToggle() {
             title='Theme Toggle'
             className="theme-toggle"
             aria-label="Toggle color theme"
-            onClick={() => setTheme(prev => prev === "dark" ? "light" : "dark")}
+            onClick={toggle}
         >
             {theme === null ? null : theme === "dark" ? (
                 // Sun icon for switching to light

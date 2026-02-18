@@ -88,7 +88,9 @@ export default function AuthWarningModal({
     return (
         <div
             className="auth-warning-modal__backdrop"
+            role="presentation"
             onClick={() => onSkip("backdrop")}
+            onKeyDown={(e) => { if (e.key === "Escape") onSkip("escape"); }}
         >
             <div
                 className="auth-warning-modal__card"
@@ -98,6 +100,7 @@ export default function AuthWarningModal({
                 ref={modalRef}
                 tabIndex={-1}
                 onClick={(event) => event.stopPropagation()}
+                onKeyDown={(event) => event.stopPropagation()}
             >
                 <h2 id="auth-warning-title" tabIndex={-1}>
                     Log in to join the leaderboard

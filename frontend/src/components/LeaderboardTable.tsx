@@ -5,7 +5,7 @@ import Image from "next/image";
 import useSWR from "swr";
 import {useCallback, useMemo, useState} from "react";
 
-export type LeaderEntry = {
+type LeaderEntry = {
     steamId: string;
     personaName: string;
     totalPoints: number;
