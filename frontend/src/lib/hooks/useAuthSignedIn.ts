@@ -4,16 +4,18 @@ import useSWR from "swr";
 
 type AuthMeData = { signedIn?: boolean; steamId?: string | null };
 
-const authMeFetcher = (url: string) =>
-    fetch(url, {cache: 'no-store'}).then(r => {
-        if (!r.ok) return {signedIn: false} as AuthMeData;
-        return r.json() as Promise<AuthMeData>;
-    });
+const authMeFetcher = async (url: string): Promise<AuthMeData> => {
+    const r = await fetch(url, {cache: 'no-store'});
+    if (r.status === 401) return {signedIn: false};
+    if (!r.ok) throw new Error(`Auth check failed (${r.status})`);
+    return r.json();
+};
 
 export function useAuthMe(): { data: AuthMeData | undefined; isLoading: boolean } {
     const {data, isLoading} = useSWR<AuthMeData>('/api/auth/me', authMeFetcher, {
         revalidateOnFocus: false,
-        dedupingInterval: 60000,
+        dedupingInterval: 30000,
+        errorRetryCount: 2,
     });
     return {data, isLoading};
 }
