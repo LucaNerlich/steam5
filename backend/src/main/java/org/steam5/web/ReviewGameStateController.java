@@ -1,6 +1,7 @@
 package org.steam5.web;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
@@ -31,6 +32,7 @@ import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+@Slf4j
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/review-game")
@@ -111,6 +113,7 @@ public class ReviewGameStateController {
             for (byte b : digest) sb.append(String.format("%02x", b));
             return "W/\"" + sb + "\"";
         } catch (Exception ignored) {
+            log.debug("ETag generation failed for picks", ignored);
             return null;
         }
     }
@@ -131,6 +134,7 @@ public class ReviewGameStateController {
             for (byte b : digest) sb.append(String.format("%02x", b));
             return "W/\"" + sb + "\"";
         } catch (Exception ignored) {
+            log.debug("ETag generation failed for string lists", ignored);
             return null;
         }
     }

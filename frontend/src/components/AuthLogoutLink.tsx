@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import useAuthSignedIn from "@/lib/hooks/useAuthSignedIn";
+import {useAuthSignedIn} from "@/contexts/AuthContext";
 
 export default function AuthLogoutLink(): React.ReactElement | null {
     const signedIn = useAuthSignedIn();

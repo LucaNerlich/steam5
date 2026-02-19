@@ -56,8 +56,8 @@ public class SteamAppReviewsRefreshJob implements Job {
                     // Log concise message without large response bodies
                     log.warn("Failed refreshing reviews for appId {}: HTTP {}", appId, sae.getStatusCode());
                 } catch (Exception e) {
-                    // Avoid dumping entire exception body; keep it concise
-                    log.warn("Failed refreshing reviews for appId {}: {}", appId, e.getMessage());
+                    // Log with full exception for better debugging
+                    log.warn("Failed refreshing reviews for appId {}", appId, e);
                 }
             }
         } catch (Exception e) {

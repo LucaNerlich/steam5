@@ -4,6 +4,7 @@ import {Suspense} from "react";
 import LeaderboardSection from "@/components/LeaderboardSection";
 import {buildBreadcrumbJsonLd} from "@/lib/seo";
 import {Routes} from "../../../routes";
+import {fetchLeaderboardPageData} from "@/lib/leaderboard";
 
 export default async function LeaderboardTodayPage() {
     const breadcrumbJsonLd = buildBreadcrumbJsonLd([
@@ -11,6 +12,11 @@ export default async function LeaderboardTodayPage() {
         {name: "Leaderboard", url: Routes.leaderboard},
         {name: "Today", url: Routes.leaderboardToday},
     ]);
+
+    // Fetch both leaderboard and achievements data in parallel
+    const [leaderboardData, achievementsData] = await fetchLeaderboardPageData(
+        "today", "daily", 5
+    );
 
     return (
         <>
@@ -21,7 +27,12 @@ export default async function LeaderboardTodayPage() {
                                 title="Today"
                                 subline={"Today'" + 's total points by player'}>
                 <Suspense fallback={<div style={{height: 320, background: 'var(--color-border)', borderRadius: 8}}/>}>
-                    <LeaderboardTable mode="today" refreshMs={5000}/>
+                    <LeaderboardTable
+                        mode="today"
+                        refreshMs={5000}
+                        initialData={leaderboardData as any}
+                        initialAchievements={achievementsData as any}
+                    />
                 </Suspense>
             </LeaderboardSection>
         </>

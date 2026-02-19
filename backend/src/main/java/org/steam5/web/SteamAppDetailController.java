@@ -1,6 +1,7 @@
 package org.steam5.web;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -15,6 +16,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 
+@Slf4j
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/details")
@@ -128,6 +130,7 @@ public class SteamAppDetailController {
             for (byte b : digest) sb.append(String.format("%02x", b));
             return "W/\"" + sb + "\"";
         } catch (Exception ignored) {
+            log.debug("ETag generation failed for detail", ignored);
             return null;
         }
     }

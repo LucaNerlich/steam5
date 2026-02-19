@@ -76,7 +76,7 @@ public class BlurhashScreenshotsJob implements Job {
                     }
                     log.info("Targeted BlurhashScreenshotsJob finished for appId={} encoded={}", appId, encoded);
                 } catch (Exception e) {
-                    log.warn("Targeted BlurhashScreenshotsJob failed for appId {}: {}", appId, e.getMessage());
+                    log.warn("Targeted BlurhashScreenshotsJob failed for appId {}", appId, e);
                 }
                 return;
             }
@@ -127,6 +127,7 @@ public class BlurhashScreenshotsJob implements Job {
             if (obj instanceof Number) return ((Number) obj).longValue();
             if (obj instanceof String s) return Long.parseLong(s);
         } catch (Exception ignored) {
+            log.trace("Could not parse long from: {}", obj);
         }
         return null;
     }
@@ -184,7 +185,8 @@ public class BlurhashScreenshotsJob implements Job {
         if (changed) {
             try {
                 screenshotRepository.save(screenshot);
-            } catch (Exception ignored) {
+            } catch (Exception e) {
+                log.warn("Failed to save blurhash for screenshot id={}: {}", screenshot.getId(), e.getMessage());
             }
         }
         return counters;

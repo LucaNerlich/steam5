@@ -11,10 +11,8 @@ management:
       show-details: always
     quartz:
       access: unrestricted
-logging:
-  file:
-    name: ${LOG_FILE:steam5.log}
-    path: ${LOG_PATH:./logs}
+# Logging configuration is in logback-spring.xml
+# File logging can be enabled via LOG_FILE and LOG_PATH environment variables if needed
 jobs:
   steam-app-list:
     enabled: true

@@ -15,6 +15,12 @@ public class SteamApiException extends IOException {
         this.statusCode = statusCode;
         this.url = url;
     }
+
+    public SteamApiException(int statusCode, String url, String message, Throwable cause) {
+        super(message, cause);
+        this.statusCode = statusCode;
+        this.url = url;
+    }
 }
 
 

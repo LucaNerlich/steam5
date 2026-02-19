@@ -180,13 +180,13 @@ public class ReviewGameStateService {
                         }
                     }
                 } catch (Exception e) {
-                    log.warn("Failed to conditionally refresh reviews for picked appId {}: {}", p.getAppId(), e.getMessage());
+                    log.warn("Failed to conditionally refresh reviews for picked appId {}", p.getAppId(), e);
                 }
 
                 try {
                     detailsFetcher.fetchForAppId(p.getAppId());
                 } catch (Exception e) {
-                    log.warn("Failed to refresh details for picked appId {}: {}", p.getAppId(), e.getMessage());
+                    log.warn("Failed to refresh details for picked appId {}", p.getAppId(), e);
                 }
 
                 // Publish an event to enqueue BlurhashScreenshotsJob asynchronously for this appId

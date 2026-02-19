@@ -3,7 +3,7 @@
 import {useCallback} from "react";
 import {useRouter} from "next/navigation";
 import {Routes} from "../../app/routes";
-import useAuthSignedIn from "@/lib/hooks/useAuthSignedIn";
+import {useAuthSignedIn} from "@/contexts/AuthContext";
 
 function getLocalDateYYYYMMDD(): string {
     const now = new Date();

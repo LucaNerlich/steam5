@@ -4,6 +4,7 @@ import {Suspense} from "react";
 import LeaderboardSection from "@/components/LeaderboardSection";
 import {buildBreadcrumbJsonLd} from "@/lib/seo";
 import {Routes} from "../../../routes";
+import {fetchLeaderboardPageData} from "@/lib/leaderboard";
 
 export default async function LeaderboardWeeklyPage() {
     const breadcrumbJsonLd = buildBreadcrumbJsonLd([
@@ -11,6 +12,11 @@ export default async function LeaderboardWeeklyPage() {
         {name: "Leaderboard", url: Routes.leaderboard},
         {name: "Weekly", url: Routes.leaderboardWeekly},
     ]);
+
+    // Fetch both leaderboard and achievements data in parallel
+    const [leaderboardData, achievementsData] = await fetchLeaderboardPageData(
+        "weekly?floating=true", "weekly", 10
+    );
 
     return (
         <>
@@ -21,7 +27,12 @@ export default async function LeaderboardWeeklyPage() {
                                 title="Weekly"
                                 subline="Last seven days">
                 <Suspense fallback={<div style={{height: 320, background: 'var(--color-border)', borderRadius: 8}}/>}>
-                    <LeaderboardTable mode="weekly-floating" refreshMs={10000}/>
+                    <LeaderboardTable
+                        mode="weekly-floating"
+                        refreshMs={10000}
+                        initialData={leaderboardData as any}
+                        initialAchievements={achievementsData as any}
+                    />
                 </Suspense>
             </LeaderboardSection>
         </>

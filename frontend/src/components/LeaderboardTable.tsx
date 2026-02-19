@@ -20,6 +20,16 @@ type LeaderEntry = {
     profileUrl?: string | null;
 };
 
+type UserAchievement = {
+    steamId: string;
+    userAchievement: string;
+    avgMinutes?: number;      // Early Bird / Night Owl
+    avgPoints?: number;       // Sharpshooter
+    perfectRounds?: number;  // Bullseye
+    perfectDays?: number;     // Perfect Day
+    totalSeconds?: number;    // Cheetah / Sloth
+};
+
 const fetcher = (url: string) => fetch(url, {
     headers: {accept: 'application/json'},
     cache: 'no-cache' // Revalidate with server but allow caching for performance
@@ -31,7 +41,9 @@ const fetcher = (url: string) => fetch(url, {
 export default function LeaderboardTable(props: {
     mode: 'today' | 'weekly' | 'weekly-floating' | 'season' | 'all';
     refreshMs?: number;
-    ariaLabel?: string
+    ariaLabel?: string;
+    initialData?: LeaderEntry[] | null;
+    initialAchievements?: { data: UserAchievement[], serverOffsetMinutes: number } | null;
 }) {
 
     let aria;
@@ -63,6 +75,7 @@ export default function LeaderboardTable(props: {
     const {data, error, isLoading} = useSWR<LeaderEntry[]>(endpoint, fetcher, {
         refreshInterval: props.refreshMs ?? (props.mode === 'today' ? 5000 : 10000),
         revalidateOnFocus: true,
+        fallbackData: props.initialData || undefined,
     });
 
     // Determine timeframe for achievements based on leaderboard mode
@@ -70,18 +83,8 @@ export default function LeaderboardTable(props: {
                                   props.mode === 'season' ? 'season' :
                                   (props.mode === 'weekly' || props.mode === 'weekly-floating') ? 'weekly' :
                                   'all';
-    
-    const endpointAchievements = `/api/leaderboard/achievements?timeframe=${achievementTimeframe}`;
 
-    type UserAchievement = {
-        steamId: string;
-        userAchievement: string;
-        avgMinutes?: number;      // Early Bird / Night Owl
-        avgPoints?: number;       // Sharpshooter
-        perfectRounds?: number;  // Bullseye
-        perfectDays?: number;     // Perfect Day
-        totalSeconds?: number;    // Cheetah / Sloth
-    };
+    const endpointAchievements = `/api/leaderboard/achievements?timeframe=${achievementTimeframe}`;
 
     const ACHIEVEMENT_LABELS: Record<string, string> = {
         EARLY_BIRD: 'Early Bird',
@@ -113,6 +116,7 @@ export default function LeaderboardTable(props: {
         refreshInterval: props.refreshMs ?? (props.mode === 'today' ? 5000 : 10000),
         revalidateOnFocus: true,
         dedupingInterval: 2000, // Allow refetch after 2 seconds
+        fallbackData: props.initialAchievements || undefined,
     });
 
     // Extract achievements array and server offset
@@ -256,7 +260,8 @@ export default function LeaderboardTable(props: {
     }, [data]);
 
     if (error) return <p className="text-muted">Failed to load leaderboard. Please try again.</p>;
-    if (isLoading || !data) return <p className="text-muted">Loading leaderboard…</p>;
+    if (isLoading && !props.initialData) return <p className="text-muted">Loading leaderboard…</p>;
+    if (!data) return <p className="text-muted">Loading leaderboard…</p>;
 
     const SortableTH = ({
                             label,

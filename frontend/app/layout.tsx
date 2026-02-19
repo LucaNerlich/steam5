@@ -1,9 +1,11 @@
 import type {Metadata} from "next";
 import Script from "next/script";
+import { cookies } from "next/headers";
 import "@/styles/globals.css";
 import UmamiAnalytics from "@/components/UmamiAnalytics";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { AuthProvider } from "@/contexts/AuthContext";
 import localFont from "next/font/local";
 
 const krypton = localFont({
@@ -154,11 +156,59 @@ export const metadata: Metadata = {
     },
 }
 
-export default function RootLayout({
+const BACKEND_ORIGIN = process.env.NEXT_PUBLIC_API_DOMAIN || "http://localhost:8080";
+
+async function resolveAuth() {
+    try {
+        const cookieStore = await cookies();
+        const token = cookieStore.get('s5_token')?.value;
+
+        if (!token) {
+            return { isSignedIn: false };
+        }
+
+        // Check auth with backend - use /api/auth/validate endpoint
+        const res = await fetch(
+            `${BACKEND_ORIGIN}/api/auth/validate?token=${encodeURIComponent(token)}`,
+            {
+                headers: { 'accept': 'application/json' },
+                next: { revalidate: 60 }, // Cache for 1 minute
+            }
+        );
+
+        if (res.status === 401) {
+            return { isSignedIn: false };
+        }
+
+        if (!res.ok) {
+            return { isSignedIn: false };
+        }
+
+        const data = await res.json();
+        return {
+            isSignedIn: Boolean(data?.valid),  // Changed from data?.signedIn
+            steamId: data?.steamId || null,
+        };
+    } catch (error) {
+        // During build, connection refused is expected
+        if (error && typeof error === 'object' && 'cause' in error) {
+            const cause = error.cause as any;
+            if (cause?.code === 'ECONNREFUSED') {
+                // Silently return false during build
+                return { isSignedIn: false };
+            }
+        }
+        console.error('Auth resolution error:', error);
+        return { isSignedIn: false };
+    }
+}
+
+export default async function RootLayout({
                                        children,
                                    }: Readonly<{
     children: React.ReactNode;
 }>) {
+    const authState = await resolveAuth();
     return (
         <html
             lang="en"
@@ -179,12 +229,14 @@ export default function RootLayout({
             />
         </head>
         <body>
-        <Header/>
-        <main>
-            {children}
-        </main>
-        <Footer/>
-        <UmamiAnalytics/>
+        <AuthProvider initialAuth={authState}>
+            <Header/>
+            <main>
+                {children}
+            </main>
+            <Footer/>
+            <UmamiAnalytics/>
+        </AuthProvider>
         </body>
         </html>
     );

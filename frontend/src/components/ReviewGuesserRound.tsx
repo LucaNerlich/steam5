@@ -10,7 +10,7 @@ import RoundResultDialog from "@/components/RoundResultDialog";
 import RoundResultActions from "@/components/RoundResultActions";
 import RoundShareSummary from "@/components/RoundShareSummary";
 import {buildSteamLoginUrl} from "@/components/SteamLoginButton";
-import useAuthSignedIn from "@/lib/hooks/useAuthSignedIn";
+import {useAuthSignedIn} from "@/contexts/AuthContext";
 import useServerGuesses from "@/lib/hooks/useServerGuesses";
 import {loadDay, saveRound, type StoredDay} from "@/lib/storage";
 import "@/styles/components/reviewGuesserRound.css";

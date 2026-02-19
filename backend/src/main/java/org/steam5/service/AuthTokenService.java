@@ -2,6 +2,7 @@ package org.steam5.service;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -9,6 +10,7 @@ import javax.crypto.SecretKey;
 import java.time.Instant;
 import java.util.Date;
 
+@Slf4j
 @Service
 public class AuthTokenService {
 
@@ -39,6 +41,8 @@ public class AuthTokenService {
                     .getPayload()
                     .getSubject();
         } catch (Exception e) {
+            // Debug level since this happens on every request with invalid/expired tokens
+            log.debug("Token verification failed", e);
             return null;
         }
     }

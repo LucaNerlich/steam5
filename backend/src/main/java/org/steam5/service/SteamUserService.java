@@ -78,7 +78,7 @@ public class SteamUserService {
                 }
             }
         } catch (Exception e) {
-            log.warn("Failed to fetch persona name for {}: {}", steamId, e.toString());
+            log.warn("Failed to fetch persona name for {}", steamId, e);
         }
     }
 

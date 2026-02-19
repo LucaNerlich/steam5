@@ -12,6 +12,11 @@ public class ReviewGameException extends IllegalStateException {
         this.statusCode = statusCode;
     }
 
+    public ReviewGameException(int statusCode, String message, Throwable cause) {
+        super(message, cause);
+        this.statusCode = statusCode;
+    }
+
 }
 
 

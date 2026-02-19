@@ -42,7 +42,7 @@ public class BlurhashEnqueueListener {
                 default -> throw new IllegalArgumentException("Unknown type " + event.getType());
             }
         } catch (SchedulerException se) {
-            log.warn("Failed to enqueue Blurhash Job for appId {} or steamId={}: {}", event.getAppId(), event.getSteamId(), se.getMessage());
+            log.warn("Failed to enqueue Blurhash Job for appId {} or steamId={}", event.getAppId(), event.getSteamId(), se);
         }
     }
 

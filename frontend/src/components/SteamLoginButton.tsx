@@ -6,7 +6,7 @@ import Image from "next/image";
 import SignInImage from "../../public/sign-in-through-steam.png"
 import {UserCheckIcon} from "@phosphor-icons/react/ssr";
 import Link from "next/link";
-import {useAuthMe} from "@/lib/hooks/useAuthSignedIn";
+import {useAuth} from "@/contexts/AuthContext";
 
 export function buildSteamLoginUrl(): string {
     const backend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
@@ -17,16 +17,15 @@ export function buildSteamLoginUrl(): string {
 }
 
 export default function SteamLoginButton(): React.ReactElement {
-    const {data} = useAuthMe();
-    const steamId = data?.signedIn ? (data.steamId ?? null) : null;
+    const {isSignedIn, steamId} = useAuth();
     const clearedRef = useRef(false);
 
     useEffect(() => {
-        if (data?.signedIn && !clearedRef.current) {
+        if (isSignedIn && !clearedRef.current) {
             clearedRef.current = true;
             try { clearAll(); } catch { /* ignore */ }
         }
-    }, [data?.signedIn]);
+    }, [isSignedIn]);
 
     const onClick = () => {
         window.location.href = buildSteamLoginUrl();

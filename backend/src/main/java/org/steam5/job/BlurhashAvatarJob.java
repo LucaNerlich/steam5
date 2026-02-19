@@ -37,7 +37,7 @@ public class BlurhashAvatarJob implements Job {
                     log.info("Targeted BlurhashAvatarJob finished for steamId={} encoded={}", steamId, encoded);
                     return;
                 } catch (Exception e) {
-                    log.warn("Targeted BlurhashAvatarJob failed for steamId {}: {}", steamId, e.getMessage());
+                    log.warn("Targeted BlurhashAvatarJob failed for steamId {}", steamId, e);
                     return;
                 }
             }

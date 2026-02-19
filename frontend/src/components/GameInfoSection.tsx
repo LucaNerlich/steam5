@@ -2,7 +2,7 @@
 
 import React from "react";
 import Image from "next/image";
-import {Fancybox} from "@fancyapps/ui";
+// CSS must be imported at the top level, not dynamically
 import "@fancyapps/ui/dist/fancybox/fancybox.css";
 import parse, {
     attributesToProps,
@@ -150,6 +150,7 @@ export default function GameInfoSection({pick}: Props): React.ReactElement | nul
     React.useEffect(() => {
         if (!hasMovies) return;
 
+        let FancyboxInstance: any = null;
         let dashModulePromise: Promise<any> | null = null;
         const dashPlayers: Array<{ reset: () => void }> = [];
         const selector = `[data-fancybox="videos-${pick.appId}"]`;
@@ -176,40 +177,55 @@ export default function GameInfoSection({pick}: Props): React.ReactElement | nul
             }
         };
 
-        // @ts-ignore Fancybox global binding
-        Fancybox.bind(selector, {
-            Toolbar: {
-                display: {
-                    left: ["infobar"],
-                    middle: [],
-                    right: ["close"]
-                }
-            },
-            on: {
-                "Carousel.attachSlideEl": (_fancyboxRef: unknown, _carouselRef: unknown, slide: { src?: string; el?: HTMLElement }) => {
-                    const src = typeof slide?.src === "string" ? slide.src : "";
-                    if (!src.toLowerCase().includes(".mpd")) return;
-                    const videoEl = slide.el?.querySelector("video") as HTMLVideoElement | null;
-                    if (!videoEl) return;
-                    void loadDashModule().then((dashjsModule) => {
-                        if (!dashjsModule) return;
-                        const dashLib = dashjsModule.default ?? dashjsModule;
-                        if (!dashLib?.MediaPlayer) return;
-                        const player = dashLib.MediaPlayer().create();
-                        player.initialize(videoEl, src, true);
-                        player.setMute(true);
-                        dashPlayers.push(player);
-                    });
+        // Dynamically import Fancybox JavaScript
+        const initFancybox = async () => {
+            try {
+                const fancyboxModule = await import("@fancyapps/ui");
+                FancyboxInstance = fancyboxModule.Fancybox;
+
+                // @ts-ignore Fancybox global binding
+                FancyboxInstance.bind(selector, {
+                Toolbar: {
+                    display: {
+                        left: ["infobar"],
+                        middle: [],
+                        right: ["close"]
+                    }
                 },
-                destroy: () => {
-                    disposePlayers();
+                on: {
+                    "Carousel.attachSlideEl": (_fancyboxRef: unknown, _carouselRef: unknown, slide: { src?: string; el?: HTMLElement }) => {
+                        const src = typeof slide?.src === "string" ? slide.src : "";
+                        if (!src.toLowerCase().includes(".mpd")) return;
+                        const videoEl = slide.el?.querySelector("video") as HTMLVideoElement | null;
+                        if (!videoEl) return;
+                        void loadDashModule().then((dashjsModule) => {
+                            if (!dashjsModule) return;
+                            const dashLib = dashjsModule.default ?? dashjsModule;
+                            if (!dashLib?.MediaPlayer) return;
+                            const player = dashLib.MediaPlayer().create();
+                            player.initialize(videoEl, src, true);
+                            player.setMute(true);
+                            dashPlayers.push(player);
+                        });
+                    },
+                    destroy: () => {
+                        disposePlayers();
+                    }
                 }
+            });
+            } catch (error) {
+                console.error("Failed to load Fancybox", error);
             }
-        });
+        };
+
+        // Initialize Fancybox when needed
+        void initFancybox();
 
         return () => {
-            Fancybox.unbind(selector);
-            Fancybox.close();
+            if (FancyboxInstance) {
+                FancyboxInstance.unbind(selector);
+                FancyboxInstance.close();
+            }
             disposePlayers();
         };
     }, [hasMovies, pick.appId]);

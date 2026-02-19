@@ -2,19 +2,22 @@ import { NextResponse } from "next/server";
 
 const BACKEND_ORIGIN = process.env.NEXT_PUBLIC_API_DOMAIN || "http://localhost:8080";
 
-export const dynamic = 'force-dynamic';
+// Cache based on timeframe: shorter for daily, longer for all-time
+export const revalidate = 5; // Default 5 seconds
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const timeframe = searchParams.get('timeframe') || 'all';
-    
+
     const url = `${BACKEND_ORIGIN}/api/stats/users/achievements?timeframe=${encodeURIComponent(timeframe)}`;
-    
-    // Disable Next.js caching - SWR handles client-side caching and refresh logic
+
+    // Use appropriate cache duration based on timeframe
+    const cacheTime = timeframe === 'daily' ? 5 : timeframe === 'weekly' ? 10 : 30;
+
     const res = await fetch(url, {
       headers: { accept: "application/json" },
-      cache: 'no-store',
+      next: { revalidate: cacheTime },
     });
     const data = await res.json();
     
