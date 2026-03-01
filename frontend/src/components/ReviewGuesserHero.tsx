@@ -8,6 +8,31 @@ import {ReviewGameState, SteamAppDetail} from "@/types/review-game";
 import {formatDate, formatPrice} from "@/lib/format";
 import "@/styles/components/reviewGuesserHero.css";
 
+const formatEntityList = (names: string[], locale?: string): string => {
+    if (names.length === 0) return "";
+    if (names.length === 1) return names[0];
+
+    if (typeof Intl !== "undefined" && typeof Intl.ListFormat === "function") {
+        try {
+            const formatter = new Intl.ListFormat(locale, {style: "long", type: "conjunction"});
+            const parts = formatter.formatToParts(names);
+            const formattedWithSemicolons = parts
+                .map((part) => (part.type === "literal" ? "; " : part.value))
+                .join("");
+
+            if (formattedWithSemicolons.trim().length > 0) {
+                return formattedWithSemicolons;
+            }
+
+            return formatter.format(names);
+        } catch {
+            // Ignore locale formatting errors and fall back to a safe separator.
+        }
+    }
+
+    return names.join("; ");
+};
+
 interface ReviewGuesserHeroProps {
     today: ReviewGameState;
     pick: SteamAppDetail;
@@ -20,7 +45,14 @@ export default function ReviewGuesserHero(props: Readonly<ReviewGuesserHeroProps
     const pick = props.pick;
     const totalRounds = today.picks.length;
     const allShots = (pick.screenshots ?? []);
-    const thumbShots = allShots.slice(0, 4);
+    const developerNames = formatEntityList(
+        (pick.developers ?? []).map((developer) => developer.name).filter(Boolean),
+        props.locale
+    );
+    const publisherNames = formatEntityList(
+        (pick.publisher ?? []).map((publisher) => publisher.name).filter(Boolean),
+        props.locale
+    );
 
     useEffect(() => {
         // Initialize Fancybox for this component's screenshots
@@ -58,18 +90,14 @@ export default function ReviewGuesserHero(props: Readonly<ReviewGuesserHeroProps
             <p>Round <strong>{props.roundIndex}</strong> of <strong>{totalRounds}</strong>
             </p>
             <p className="meta">
-                {pick.developers && pick.developers.length > 0 && (
+                {developerNames && (
                     <span title='Developer' className="meta-item">
-                        🧑‍💻 {pick.developers.map((d) => (
-                        <span key={d.id}>{d.name}</span>
-                    ))}
+                        🧑‍💻 {developerNames}
                     </span>
                 )}
-                {pick.publisher && pick.publisher.length > 0 && (
+                {publisherNames && (
                     <span title='Publisher' className="meta-item">
-                        🌍 {pick.publisher.map((p) => (
-                        <span key={p.id}>{p.name}</span>
-                    ))}
+                        🌍 {publisherNames}
                     </span>
                 )}
                 {pick.releaseDate && (

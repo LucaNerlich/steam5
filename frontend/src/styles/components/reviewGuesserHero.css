@@ -22,10 +22,6 @@
         }
     }
 
-    .meta .meta-item span + span {
-        margin-left: 0.35rem;
-    }
-
     .steam-link {
         color: var(--color-text);
         text-decoration: underline;
