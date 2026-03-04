@@ -2,7 +2,7 @@
 
 import {useEffect, useState} from "react";
 
-type FontChoice = "krypton" | "neon" | 'argon' | 'radon' | 'xenon' | 'space';
+type FontChoice = "krypton" | "neon" | 'argon' | 'radon' | 'xenon' | 'space' | 'pixel-square';
 
 export default function FontToggle() {
     const [mounted, setMounted] = useState(false);
@@ -15,6 +15,7 @@ export default function FontToggle() {
             case 'radon':
             case 'xenon':
             case 'space':
+            case 'pixel-square':
             case 'krypton':
                 return stored as FontChoice;
             default:
@@ -26,7 +27,7 @@ export default function FontToggle() {
     useEffect(() => {
         try {
             const stored = window.localStorage.getItem('font-family-choice');
-            if (stored === 'neon' || stored === 'argon' || stored === 'radon' || stored === 'xenon' || stored === 'krypton') {
+            if (stored === 'neon' || stored === 'argon' || stored === 'radon' || stored === 'xenon' || stored === 'space' || stored === 'pixel-square' || stored === 'krypton') {
                 const s = stored as FontChoice;
                 setFont(prev => (prev === s ? prev : s));
             }
@@ -93,6 +94,12 @@ export default function FontToggle() {
                 style={{fontFamily: 'var(--font-space), system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif'}}
             >
                 Space
+            </option>
+            <option
+                value="pixel-square"
+                style={{fontFamily: 'var(--font-pixel-square), system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif'}}
+            >
+                Pixel
             </option>
         </select>
     );

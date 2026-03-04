@@ -61,6 +61,15 @@ const space = localFont({
     preload: false,
 });
 
+const pixelSquare = localFont({
+    src: [
+        {path: "./fonts/GeistPixel-Square.woff2"},
+    ],
+    display: 'swap',
+    variable: '--font-pixel-square',
+    preload: false,
+});
+
 const description = 'Daily Steam review guessing game — guess review counts, climb leaderboards, and share your results.';
 const base = (process.env.NEXT_PUBLIC_DOMAIN || "https://steam5.org").replace(/\/$/, "");
 let origin = base;
@@ -212,7 +221,7 @@ export default async function RootLayout({
     return (
         <html
             lang="en"
-            className={`${krypton.variable} ${neon.variable} ${argon.variable} ${radon.variable} ${xenon.variable} ${space.variable}`}
+            className={`${krypton.variable} ${neon.variable} ${argon.variable} ${radon.variable} ${xenon.variable} ${space.variable} ${pixelSquare.variable}`}
             suppressHydrationWarning
         >
         <head>
