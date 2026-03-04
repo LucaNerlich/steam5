@@ -11,6 +11,7 @@ type LeaderEntry = {
     totalPoints: number;
     rounds: number;
     hits: number;
+    flops: number;
     tooHigh: number;
     tooLow: number;
     avgPoints: number;
@@ -207,7 +208,7 @@ export default function LeaderboardTable(props: {
         }
     }, [formatDuration, formatTimeOfDay]);
 
-    type SortKey = 'personaName' | 'totalPoints' | 'rounds' | 'streak' | 'hits' | 'tooHigh' | 'tooLow' | 'avgPoints';
+    type SortKey = 'personaName' | 'totalPoints' | 'rounds' | 'streak' | 'hits' | 'flops' | 'tooHigh' | 'tooLow' | 'avgPoints';
     type SortDir = 'asc' | 'desc';
 
     const [sortKey, setSortKey] = useState<SortKey | null>(null);
@@ -295,6 +296,7 @@ export default function LeaderboardTable(props: {
                         <SortableTH label="Streak" keyName={'streak'} title={'Uninterrupted daily-challenges'}
                                     alignNum/>
                         <SortableTH label="Hits" keyName={'hits'} title={'Correct guess'} alignNum/>
+                        <SortableTH label="Flops" keyName={'flops'} title={'Zero-point rounds (3+ buckets off)'} alignNum/>
                         <SortableTH label="Too High" keyName={'tooHigh'} alignNum/>
                         <SortableTH label="Too Low" keyName={'tooLow'} alignNum/>
                         <SortableTH label="Avg" keyName={'avgPoints'} alignNum/>
@@ -349,6 +351,7 @@ export default function LeaderboardTable(props: {
                             <td className="num">{entry.rounds}</td>
                             <td className="num">{entry.streak}</td>
                             <td className="num">{entry.hits}</td>
+                            <td className="num">{entry.flops}</td>
                             <td className="num">{entry.tooHigh}</td>
                             <td className="num">{entry.tooLow}</td>
                             <td className="num">{entry.avgPoints.toFixed(2)}</td>

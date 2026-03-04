@@ -141,11 +141,13 @@
 }
 
 @media (max-width: 640px) {
-    /* Show rounds on mobile; hide less critical columns to save space */
-    .leaderboard__table th:nth-child(6),
-    .leaderboard__table td:nth-child(6), /* Too High */
+    /* Hide Flops, Too High, and Too Low on mobile to save space */
     .leaderboard__table th:nth-child(7),
-    .leaderboard__table td:nth-child(7) /* Too Low */
+    .leaderboard__table td:nth-child(7), /* Flops */
+    .leaderboard__table th:nth-child(8),
+    .leaderboard__table td:nth-child(8), /* Too High */
+    .leaderboard__table th:nth-child(9),
+    .leaderboard__table td:nth-child(9) /* Too Low */
     {
         display: none;
     }

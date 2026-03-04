@@ -159,12 +159,12 @@ public class LeaderboardController {
     }
 
     @NotNull
-    private LeaderboardController.LeaderEntry getLeaderEntry(final String steamId, final long totalPoints, final long rounds, final long hits, final long tooHigh, final long tooLow, final double avgPoints, final int streak, final User user) {
+    private LeaderboardController.LeaderEntry getLeaderEntry(final String steamId, final long totalPoints, final long rounds, final long hits, final long flops, final long tooHigh, final long tooLow, final double avgPoints, final int streak, final User user) {
         final String personaName = user != null && user.getPersonaName() != null && !user.getPersonaName().isBlank() ? user.getPersonaName() : steamId;
         final String avatar = user != null && user.getAvatarFull() != null && !user.getAvatarFull().isBlank() ? user.getAvatarFull() : null;
         final String avatarBlurdata = user != null && user.getBlurdataAvatarFull() != null && !user.getBlurdataAvatarFull().isBlank() ? user.getBlurdataAvatarFull() : null;
         final String profileUrl = user != null && user.getProfileUrl() != null && !user.getProfileUrl().isBlank() ? user.getProfileUrl() : null;
-        return new LeaderEntry(steamId, personaName, totalPoints, rounds, hits, tooHigh, tooLow, avgPoints, streak, avatar, avatarBlurdata, profileUrl);
+        return new LeaderEntry(steamId, personaName, totalPoints, rounds, hits, flops, tooHigh, tooLow, avgPoints, streak, avatar, avatarBlurdata, profileUrl);
     }
 
     private LeaderEntry buildEntries(final Map.Entry<String, List<Guess>> entry,
@@ -176,13 +176,14 @@ public class LeaderboardController {
         final long totalPoints = list.stream().mapToLong(Guess::getPoints).sum();
         final long rounds = list.size();
         final long hits = list.stream().filter(g -> g.getSelectedBucket().equals(g.getActualBucket())).count();
+        final long flops = list.stream().filter(g -> g.getPoints() == 0).count();
         final long tooHigh = list.stream().filter(g -> bucketOrderFromLabel(g.getSelectedBucket()) > bucketOrderFromLabel(g.getActualBucket())).count();
         final long tooLow = list.stream().filter(g -> bucketOrderFromLabel(g.getSelectedBucket()) < bucketOrderFromLabel(g.getActualBucket())).count();
         final double avgPoints = rounds > 0 ? ((double) totalPoints) / rounds : 0.0;
         final User user = usersById.get(steamId);
         final List<LocalDate> dates = streakDatesById.getOrDefault(steamId, List.of());
         final int streak = calculateStreak(dates, asOfDate);
-        return getLeaderEntry(steamId, totalPoints, rounds, hits, tooHigh, tooLow, avgPoints, streak, user);
+        return getLeaderEntry(steamId, totalPoints, rounds, hits, flops, tooHigh, tooLow, avgPoints, streak, user);
     }
 
     private int calculateStreak(final List<LocalDate> dates, final LocalDate asOfDate) {
@@ -207,7 +208,7 @@ public class LeaderboardController {
     public record LeaderEntry(String steamId,
                               String personaName,
                               long totalPoints, long rounds,
-                              long hits, long tooHigh, long tooLow,
+                              long hits, long flops, long tooHigh, long tooLow,
                               double avgPoints,
                               int streak,
                               String avatar,
