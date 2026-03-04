@@ -34,12 +34,35 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiError> handleGenericException(Exception ex,
-                                                            HttpServletRequest request) {
+                                                             HttpServletRequest request) {
+        if (isClientDisconnect(ex)) {
+            log.debug("Client disconnected during response write: {} {}", request.getMethod(), request.getRequestURI());
+            return ResponseEntity.status(500).body(
+                ApiError.of(500, "Client disconnected", request.getRequestURI())
+            );
+        }
         log.error("Unhandled exception:", ex);
         // NEVER expose ex.getMessage() for generic exceptions - security issue
         return ResponseEntity.status(500).body(
             ApiError.of(500, "An internal error occurred", request.getRequestURI())
         );
+    }
+
+    private static boolean isClientDisconnect(Throwable ex) {
+        Throwable current = ex;
+        while (current != null) {
+            final String name = current.getClass().getSimpleName();
+            if ("ClientAbortException".equals(name)
+                    || "AsyncRequestNotUsableException".equals(name)) {
+                return true;
+            }
+            final String msg = current.getMessage();
+            if (msg != null && msg.contains("Broken pipe")) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 }
 
