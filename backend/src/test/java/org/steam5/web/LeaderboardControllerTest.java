@@ -2,6 +2,7 @@ package org.steam5.web;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.cache.CacheManager;
 import org.springframework.http.ResponseEntity;
 import org.steam5.domain.Guess;
 import org.steam5.domain.ReviewGamePick;
@@ -9,6 +10,7 @@ import org.steam5.domain.User;
 import org.steam5.repository.GuessRepository;
 import org.steam5.repository.UserRepository;
 import org.steam5.service.ReviewGameStateService;
+import org.steam5.service.SeasonService;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -26,17 +28,21 @@ public class LeaderboardControllerTest {
     private GuessRepository guessRepository;
     private ReviewGameStateService reviewGameStateService;
     private UserRepository userRepository;
+    private SeasonService seasonService;
+    private CacheManager cacheManager;
 
     @BeforeEach
     void setUp() {
         guessRepository = mock(GuessRepository.class);
         reviewGameStateService = mock(ReviewGameStateService.class);
         userRepository = mock(UserRepository.class);
+        seasonService = mock(SeasonService.class);
+        cacheManager = mock(CacheManager.class);
     }
 
     @Test
     void today_returnsAggregatedLeaders() {
-        LeaderboardController c = new LeaderboardController(guessRepository, reviewGameStateService, userRepository);
+        LeaderboardController c = new LeaderboardController(guessRepository, reviewGameStateService, userRepository, seasonService, cacheManager);
         when(reviewGameStateService.generateDailyPicks()).thenReturn(List.of(new ReviewGamePick(1L, LocalDate.now(), 42L, OffsetDateTime.now())));
 
         Guess g1 = new Guess(1L, "u1", LocalDate.now(), 1, 100L, "1-100", "1-100", 5, OffsetDateTime.now());
@@ -60,7 +66,7 @@ public class LeaderboardControllerTest {
 
     @Test
     void allTime_returnsAggregatedLeaders() {
-        LeaderboardController c = new LeaderboardController(guessRepository, reviewGameStateService, userRepository);
+        LeaderboardController c = new LeaderboardController(guessRepository, reviewGameStateService, userRepository,  seasonService, cacheManager);
         Guess g1 = new Guess(1L, "u1", LocalDate.now(), 1, 100L, "1-100", "1-100", 5, OffsetDateTime.now());
         Guess g2 = new Guess(3L, "u2", LocalDate.now(), 1, 300L, "1001-10000", "101-1000", 1, OffsetDateTime.now());
         when(guessRepository.findAll()).thenReturn(List.of(g1, g2));
