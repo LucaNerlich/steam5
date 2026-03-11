@@ -1,25 +1,41 @@
 .review-round__actions {
     margin-top: 0.5rem;
     display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    gap: 8px;
     flex-wrap: wrap;
+    align-items: center;
+    gap: 0.55rem;
+}
+
+.review-round__actions-secondary {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.review-round__actions-primary {
+    display: flex;
+    margin-left: auto;
+}
+
+.review-round__actions-primary .btn-cta {
+    margin-left: 0;
 }
 
 .review-round__actions .review-round__summary {
-    flex: 1 1 100%;
     width: 100%;
     display: flex;
     justify-content: flex-end;
 }
 
-.review-round__actions .btn-cta {
-    text-align: center;
-}
-
 .review-round__actions .share-inline {
     display: inline-flex;
+}
+
+.review-round__share {
+    margin-top: 8px;
+    display: flex;
+    justify-content: flex-end;
 }
 
 /* Share copied indicator */
@@ -31,14 +47,17 @@
 
 .share-inline .share-copied {
     position: absolute;
-    right: 0;
-    top: -1.4rem;
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
+    left: 50%;
+    bottom: calc(100% + 0.35rem);
+    transform: translateX(-50%);
+    background: color-mix(in srgb, var(--color-surface) 84%, var(--color-background));
+    border: 1px solid color-mix(in srgb, var(--color-text) 16%, var(--color-border));
     border-radius: 9999px;
-    padding: 0.1rem 0.4rem;
-    font-size: 0.75rem;
-    color: var(--color-muted);
+    padding: 0.2rem 0.5rem;
+    font-size: 0.76rem;
+    font-weight: 600;
+    color: var(--color-text);
+    white-space: nowrap;
     opacity: 0;
     pointer-events: none;
     transition: opacity 150ms ease;
@@ -48,61 +67,49 @@
     opacity: 1;
 }
 
-.review-round__share {
-    margin-top: 8px;
-    display: flex;
-    justify-content: flex-end;
-}
-
 /* ── Mobile ── */
-@media (max-width: 768px) {
-    .review-round__actions-inner {
+@media (max-width: 640px) {
+    .review-round__actions-secondary {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 8px;
         width: 100%;
     }
 
-    .review-round__actions-inner > .btn-ghost {
-        width: 100%;
-        justify-content: center;
-        text-align: center;
-    }
-
-    .review-round__actions .btn-cta {
-        flex: 1 1 100%;
+    .review-round__actions-secondary > .btn-ghost {
         width: 100%;
         justify-content: center;
         text-align: center;
     }
 
-    .review-round__actions .share-inline {
-        flex: 1 1 100%;
-        width: 100%;
-        display: flex;
-        justify-content: center;
-    }
-
-    .review-round__actions .share-inline .btn-success {
-        width: 100%;
-        justify-content: center;
-        text-align: center;
-    }
-
-    .review-round__share {
-        display: block;
-        width: 100%;
-    }
-
+    .review-round__actions-primary,
+    .review-round__actions .share-inline,
     .review-round__share .share-inline {
         width: 100%;
-        display: flex;
-        justify-content: center;
+        margin-left: 0;
     }
 
+    .review-round__actions-primary .btn-cta,
+    .review-round__actions .share-inline .btn-success,
     .review-round__share .share-inline .btn-success {
         width: 100%;
         justify-content: center;
         text-align: center;
+        margin-left: 0;
+    }
+
+    .review-round__actions .review-round__summary {
+        justify-content: center;
+    }
+
+    .review-round__share {
+        width: 100%;
+        justify-content: stretch;
+    }
+
+    .share-inline .share-copied {
+        bottom: auto;
+        top: calc(100% + 0.35rem);
+        font-size: 0.78rem;
+        padding: 0.2rem 0.52rem;
     }
 }

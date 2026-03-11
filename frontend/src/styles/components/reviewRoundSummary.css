@@ -1,19 +1,40 @@
 .review-round__summary {
-    margin-top: 8px;
+    margin-top: 0.2rem;
     display: flex;
     justify-content: flex-end;
-    align-items: baseline;
-    gap: 8px;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.42rem 0.58rem;
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--color-surface-variant) 65%, var(--color-surface));
 }
 
 .review-round__summary .summary-bar {
-    font-size: 1.1rem;
-    letter-spacing: 1px;
+    font-size: 1rem;
+    letter-spacing: 0.06em;
     font-family: 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', 'Twemoji Mozilla', 'EmojiOne Color', 'Android Emoji', 'Segoe UI Symbol', sans-serif;
 }
 
 .review-round__summary .summary-points {
+    color: var(--color-text);
+    font-size: 0.86rem;
+    white-space: nowrap;
+}
+
+.review-round__summary .summary-points strong {
     color: var(--color-muted);
+    font-weight: 600;
+}
+
+@media (max-width: 640px) {
+    .review-round__summary {
+        width: 100%;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 0.35rem 0.5rem;
+        padding: 0.45rem 0.55rem;
+    }
 }
 
 

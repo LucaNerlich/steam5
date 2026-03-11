@@ -12,7 +12,7 @@ export default function RoundResultActions(props: {
 }) {
     return (
         <div className="review-round__actions">
-            <div className="review-round__actions-inner">
+            <div className="review-round__actions-secondary">
                 <Link
                     href={`https://store.steampowered.com/app/${props.appId}`}
                     target="_blank"
@@ -29,9 +29,11 @@ export default function RoundResultActions(props: {
                 )}
             </div>
             {props.nextHref && (
-                <Link href={props.nextHref} className="btn-cta" aria-label="Go to next round">
-                    Next round <ArrowRightIcon size={28}/>
-                </Link>
+                <div className="review-round__actions-primary">
+                    <Link href={props.nextHref} className="btn-cta" aria-label="Go to next round">
+                        Next round <ArrowRightIcon size={28}/>
+                    </Link>
+                </div>
             )}
             {props.children}
         </div>

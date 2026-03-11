@@ -163,12 +163,27 @@
     }
 
     .result-comparison__arrow {
-        align-self: center;
-        transform: rotate(90deg);
-        margin-bottom: 0;
+        display: none;
     }
 
     .result-chip {
         text-align: center;
+    }
+
+    .result-footer {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0.35rem 0.7rem;
+    }
+
+    .result-detail {
+        width: 100%;
+        text-align: center;
+    }
+}
+
+@media (max-width: 380px) {
+    .result-footer {
+        padding: 0.45rem 0.75rem;
     }
 }

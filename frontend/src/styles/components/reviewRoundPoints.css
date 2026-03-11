@@ -35,7 +35,6 @@
 
 /* ── Text ── */
 .result-points__text {
-    font-size: 0.85rem;
     color: var(--color-text);
     white-space: nowrap;
 }
@@ -46,7 +45,26 @@
 }
 
 @media (max-width: 640px) {
+    .result-points {
+        width: 100%;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 0.35rem 0.5rem;
+    }
+
     .result-points__meter {
         width: 3rem;
+    }
+
+    .result-points__text {
+        width: 100%;
+        text-align: center;
+        white-space: normal;
+    }
+}
+
+@media (max-width: 380px) {
+    .result-points__meter {
+        width: 2.65rem;
     }
 }
