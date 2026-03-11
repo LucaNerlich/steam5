@@ -89,6 +89,10 @@
         order: 3;
     }
 
+    .review-round__actions-secondary.review-round__actions-secondary--single {
+        grid-template-columns: 1fr;
+    }
+
     .review-round__actions-secondary > .btn-ghost {
         width: 100%;
         justify-content: center;

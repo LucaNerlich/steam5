@@ -10,9 +10,11 @@ export default function RoundResultActions(props: {
     nextHref: string | null;
     children?: ReactNode;
 }) {
+    const hasPrev = Boolean(props.prevHref);
+
     return (
         <div className="review-round__actions">
-            <div className="review-round__actions-secondary">
+            <div className={`review-round__actions-secondary${hasPrev ? '' : ' review-round__actions-secondary--single'}`}>
                 <Link
                     href={`https://store.steampowered.com/app/${props.appId}`}
                     target="_blank"
@@ -22,7 +24,7 @@ export default function RoundResultActions(props: {
                 >
                     Open in Steam <SteamLogoIcon size={28}/>
                 </Link>
-                {props.prevHref && (
+                {hasPrev && (
                     <Link href={props.prevHref} className="btn-ghost" aria-label="Go to previous round">
                         <ArrowLeftIcon size={28}/> Last round
                     </Link>
