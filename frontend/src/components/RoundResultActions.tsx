@@ -24,7 +24,7 @@ export default function RoundResultActions(props: {
                 >
                     Open in Steam <SteamLogoIcon size={28}/>
                 </Link>
-                {hasPrev && (
+                {props.prevHref && (
                     <Link href={props.prevHref} className="btn-ghost" aria-label="Go to previous round">
                         <ArrowLeftIcon size={28}/> Last round
                     </Link>
