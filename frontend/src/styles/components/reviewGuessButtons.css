@@ -1,3 +1,35 @@
+.review-round__guess-card {
+    margin-top: 16px;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    overflow: hidden;
+}
+
+.review-round__guess-header {
+    padding: 0.625rem 0.875rem;
+    background: color-mix(in srgb, var(--color-primary) 8%, var(--color-surface));
+    border-bottom: 1px solid var(--color-border);
+}
+
+.review-round__guess-header h2 {
+    margin: 0;
+    font-size: 1rem;
+    line-height: 1.3;
+}
+
+.review-round__guess-body {
+    padding: 0.75rem 0.875rem;
+}
+
+.review-round__guess-helper {
+    margin: 0 0 0.5rem 0;
+    color: var(--color-muted);
+    font-size: 0.82rem;
+    line-height: 1.35;
+}
+
 .review-round__buttons {
     display: flex;
     gap: 8px;
@@ -6,35 +38,30 @@
 }
 
 .review-round__button {
-    background: var(--color-surface);
+    background: var(--color-surface-variant);
     color: var(--color-text);
-    border: 1px solid var(--color-border);
-    border-radius: 10px;
-    padding: 0.75rem 1.1rem;
-    font-size: 1.05rem;
-    line-height: 1.4;
+    border: 1px solid color-mix(in srgb, var(--color-text) 18%, var(--color-border));
+    border-radius: 9999px;
+    padding: 0.45rem 0.85rem;
+    font-size: 0.92rem;
+    line-height: 1.35;
     font-weight: 600;
     cursor: pointer;
-    min-width: 140px;
+    min-width: 124px;
     text-align: center;
     transition: transform 120ms ease, filter 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
-    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.02);
-
-    @media (max-width: 640px) {
-        padding: 0.5rem;
-    }
+    box-shadow: 0 1px 0 color-mix(in srgb, var(--color-text) 10%, transparent);
 }
 
 .review-round__button.is-selected {
-    border-color: var(--color-primary);
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 30%, transparent);
+    border-color: color-mix(in srgb, var(--color-primary) 75%, var(--color-border));
+    background: color-mix(in srgb, var(--color-primary) 10%, var(--color-surface));
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 25%, transparent);
 }
 
-/* Light hover effect for guess buttons */
 .review-round__buttons .review-round__button:hover {
-    filter: brightness(1.04);
-    transform: translateY(-1px);
-    transition: transform 120ms ease, filter 120ms ease;
+    filter: brightness(1.05);
+    border-color: color-mix(in srgb, var(--color-primary) 45%, var(--color-border));
 }
 
 .review-round__button:focus-visible {
@@ -44,19 +71,31 @@
 
 .review-round__button:disabled {
     cursor: not-allowed;
-    opacity: 0.7;
+    opacity: 0.6;
+    filter: saturate(0.75);
+}
+
+.review-round__guess-card .review-round__error {
+    margin: 0 0.875rem 0.75rem;
+    font-size: 0.85rem;
 }
 
 @media (max-width: 640px) {
+    .review-round__guess-body {
+        padding: 0.75rem;
+    }
+
     .review-round__buttons {
         flex-direction: column;
         align-items: stretch;
-        gap: 10px;
+        gap: 0.55rem;
     }
 
     .review-round__button {
         width: 100%;
+        min-width: 0;
+        border-radius: 10px;
+        padding: 0.58rem 0.75rem;
+        text-align: center;
     }
 }
-
-

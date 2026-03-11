@@ -13,6 +13,7 @@ type GuessButtonsProps = {
     submitted: boolean;
     isPending: boolean;
     formAction: (formData: FormData) => void;
+    helperText?: string;
 };
 
 function BucketButton({label, title, selectedLabel, onSelect, submitted, isPending}: {
@@ -44,7 +45,7 @@ function BucketButton({label, title, selectedLabel, onSelect, submitted, isPendi
 }
 
 export default function GuessButtons(props: Readonly<GuessButtonsProps>): React.ReactElement {
-    const {appId, buckets, bucketTitles, selectedLabel, onSelect, submitted, isPending, formAction} = props;
+    const {appId, buckets, bucketTitles, selectedLabel, onSelect, submitted, isPending, formAction, helperText} = props;
 
     const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -57,19 +58,22 @@ export default function GuessButtons(props: Readonly<GuessButtonsProps>): React.
     };
 
     return (
-        <form className="review-round__buttons" onSubmit={handleSubmit} aria-busy={isPending}>
-            <input type="hidden" name="appId" value={appId}/>
-            {buckets.map((label, i) => (
-                <BucketButton key={label}
-                              label={label}
-                              title={(bucketTitles && bucketTitles[i] ? bucketTitles[i] : undefined)}
-                              selectedLabel={selectedLabel}
-                              onSelect={onSelect}
-                              submitted={submitted}
-                              isPending={isPending}
-                />
-            ))}
-        </form>
+        <div className="review-round__guess-body">
+            {helperText ? <p className="review-round__guess-helper">{helperText}</p> : null}
+            <form className="review-round__buttons" onSubmit={handleSubmit} aria-busy={isPending}>
+                <input type="hidden" name="appId" value={appId}/>
+                {buckets.map((label, i) => (
+                    <BucketButton key={label}
+                                  label={label}
+                                  title={(bucketTitles && bucketTitles[i] ? bucketTitles[i] : undefined)}
+                                  selectedLabel={selectedLabel}
+                                  onSelect={onSelect}
+                                  submitted={submitted}
+                                  isPending={isPending}
+                    />
+                ))}
+            </form>
+        </div>
     );
 }
 

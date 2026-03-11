@@ -261,8 +261,10 @@ export default function ReviewGuesserRound({
     return (
         <>
             {shouldShowGuessControls && (
-                <>
-                    <h2 id="guess-submission">Submit Your Guess</h2>
+                <section className="review-round__guess-card" aria-labelledby="guess-submission">
+                    <div className="review-round__guess-header">
+                        <h2 id="guess-submission">Submit Your Guess</h2>
+                    </div>
                     <GuessButtons
                         appId={appId}
                         buckets={buckets}
@@ -272,11 +274,12 @@ export default function ReviewGuesserRound({
                         submitted={submittedFlag}
                         isPending={isPending}
                         formAction={handleAuthGuardedSubmit}
+                        helperText="Pick the review bucket that best matches this game."
                     />
                     {state && !state.ok && state.error && (
                         <p className="text-muted review-round__error">Error: {state.error}</p>
                     )}
-                </>
+                </section>
             )}
 
             {(effectiveResponse || prefilled) && (

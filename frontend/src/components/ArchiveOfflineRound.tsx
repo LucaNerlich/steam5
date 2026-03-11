@@ -7,6 +7,7 @@ import type {GuessResponse} from "@/types/review-game";
 import {loadDay, saveRound, type StoredDay} from "@/lib/storage";
 import "@/styles/components/reviewGuesserRound.css";
 import "@/styles/components/reviewRoundResult.css";
+import "@/styles/components/reviewGuessButtons.css";
 
 type Props = {
     appId: number;
@@ -65,27 +66,32 @@ export default function ArchiveOfflineRound(props: Readonly<Props>): React.React
     return (
         <div className="archive-offline-round">
             {!submitted && (
-                <>
-                    <h2 id={`guess-submission-${roundIndex}`}>Submit Your Guess (Offline Play)</h2>
-                    <div className="review-round__buttons">
-                        {buckets.map((label, i) => (
-                            <button
-                                key={label}
-                                type="button"
-                                className={`review-round__button${selectedLabel === label ? ' is-selected' : ''}`}
-                                onClick={() => onSelect(label)}
-                                title={(bucketTitles && bucketTitles[i] ? bucketTitles[i] : undefined)}
-                                disabled={!offlineAnswer}
-                            >
-                                {label}
-                            </button>
-                        ))}
+                <section className="review-round__guess-card" aria-labelledby={`guess-submission-${roundIndex}`}>
+                    <div className="review-round__guess-header">
+                        <h2 id={`guess-submission-${roundIndex}`}>Submit Your Guess (Offline Play)</h2>
+                    </div>
+                    <div className="review-round__guess-body">
+                        <p className="review-round__guess-helper">Pick the review bucket that best matches this game.</p>
+                        <div className="review-round__buttons">
+                            {buckets.map((label, i) => (
+                                <button
+                                    key={label}
+                                    type="button"
+                                    className={`review-round__button${selectedLabel === label ? ' is-selected' : ''}`}
+                                    onClick={() => onSelect(label)}
+                                    title={(bucketTitles && bucketTitles[i] ? bucketTitles[i] : undefined)}
+                                    disabled={!offlineAnswer}
+                                >
+                                    {label}
+                                </button>
+                            ))}
+                        </div>
                     </div>
                     {!offlineAnswer && (
                         <p className="text-muted review-round__error">Offline answer unavailable, try reloading
                             later.</p>
                     )}
-                </>
+                </section>
             )}
 
             {(localResponse || (stored?.results?.[roundIndex] && submitted)) && (
