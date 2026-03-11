@@ -2,6 +2,7 @@ import type {Metadata} from "next";
 import LeaderboardTable from "@/components/LeaderboardTable";
 import {Suspense} from "react";
 import LeaderboardSection from "@/components/LeaderboardSection";
+import LeaderboardSkeleton from "@/components/LeaderboardSkeleton";
 import {buildBreadcrumbJsonLd} from "@/lib/seo";
 import {Routes} from "../../routes";
 
@@ -20,7 +21,7 @@ export default async function LeaderboardPage() {
             <LeaderboardSection active="all"
                                 title="All-time"
                                 subline="Overall points summed across all days">
-                <Suspense fallback={<div style={{height: 320, background: 'var(--color-border)', borderRadius: 8}}/>}>
+                <Suspense fallback={<LeaderboardSkeleton variant="table"/>}>
                     <LeaderboardTable mode="all" refreshMs={10000}/>
                 </Suspense>
             </LeaderboardSection>

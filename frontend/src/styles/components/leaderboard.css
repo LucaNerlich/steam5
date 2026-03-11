@@ -366,4 +366,129 @@
     }
 }
 
+/* Leaderboard loading skeleton */
+.leaderboard-skeleton {
+    margin-top: 0.5rem;
+}
+
+.leaderboard-skeleton__heading {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    margin-bottom: 0.8rem;
+}
+
+.leaderboard-skeleton__title,
+.leaderboard-skeleton__subtitle,
+.leaderboard-skeleton__subline,
+.leaderboard-skeleton__tab,
+.leaderboard-skeleton__cell,
+.leaderboard-skeleton__avatar,
+.leaderboard-skeleton__avg {
+    background: var(--color-border);
+    border-radius: 6px;
+}
+
+.leaderboard-skeleton__title {
+    width: 220px;
+    height: 2rem;
+}
+
+.leaderboard-skeleton__tabs {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.leaderboard-skeleton__tab {
+    width: 72px;
+    height: 32px;
+    border-radius: 8px;
+}
+
+.leaderboard-skeleton__subtitle {
+    width: 90px;
+    height: 1.7rem;
+}
+
+.leaderboard-skeleton__subline {
+    width: 220px;
+    height: 1rem;
+}
+
+.leaderboard-skeleton__table {
+    border-top: 1px solid var(--color-border);
+}
+
+.leaderboard-skeleton__row {
+    display: grid;
+    grid-template-columns: 36px minmax(180px, 1.6fr) repeat(8, minmax(48px, 1fr));
+    gap: 0.6rem;
+    align-items: center;
+    padding: 0.5rem 0.2rem;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.leaderboard-skeleton__row--header .leaderboard-skeleton__cell {
+    height: 0.75rem;
+}
+
+.leaderboard-skeleton__cell {
+    display: block;
+    width: 100%;
+    height: 0.95rem;
+}
+
+.leaderboard-skeleton__cell--rank {
+    width: 18px;
+}
+
+.leaderboard-skeleton__player-cell {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    min-width: 0;
+}
+
+.leaderboard-skeleton__avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.leaderboard-skeleton__cell--player {
+    max-width: 220px;
+}
+
+.leaderboard-skeleton__cell--num {
+    max-width: 56px;
+}
+
+.leaderboard-skeleton__avg {
+    width: 120px;
+    height: 0.9rem;
+    margin-top: 0.45rem;
+    margin-left: auto;
+}
+
+@media (max-width: 640px) {
+    .leaderboard-skeleton__row {
+        grid-template-columns: 26px minmax(128px, 1.6fr) repeat(5, minmax(36px, 1fr));
+        gap: 0.45rem;
+        padding: 0.5rem 0;
+    }
+
+    .leaderboard-skeleton__mobile-hide {
+        display: none;
+    }
+
+    .leaderboard-skeleton__cell--player {
+        max-width: 140px;
+    }
+
+    .leaderboard-skeleton__cell--num {
+        max-width: 40px;
+    }
+}
+
 
