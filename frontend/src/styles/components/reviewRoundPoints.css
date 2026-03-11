@@ -1,9 +1,53 @@
-.review-round__points {
-    margin-top: 6px;
+.result-points {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    padding: 0 0.875rem;
 }
 
-.review-round__points .points-emoji {
-    font-family: 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', 'Twemoji Mozilla', 'EmojiOne Color', 'Android Emoji', 'Segoe UI Symbol', sans-serif;
+/* ── Native meter ── */
+.result-points__meter {
+    --meter-fill: var(--color-success);
+    width: 4rem;
+    flex-shrink: 0;
 }
 
+.result-points__meter--close { --meter-fill: oklch(0.78 0.16 90); }
+.result-points__meter--near  { --meter-fill: oklch(0.70 0.16 55); }
+.result-points__meter--far   { --meter-fill: var(--color-error); }
 
+/* WebKit (Chrome, Safari, Edge) */
+.result-points__meter::-webkit-meter-bar {
+    background: var(--color-border);
+    border: none;
+    border-radius: 9999px;
+}
+
+.result-points__meter::-webkit-meter-optimum-value {
+    background: var(--meter-fill);
+    border-radius: 9999px;
+}
+
+/* Firefox */
+.result-points__meter::-moz-meter-bar {
+    background: var(--meter-fill);
+    border-radius: 9999px;
+}
+
+/* ── Text ── */
+.result-points__text {
+    font-size: 0.85rem;
+    color: var(--color-text);
+    white-space: nowrap;
+}
+
+.result-points__sep {
+    margin: 0 0.3rem;
+    color: var(--color-muted);
+}
+
+@media (max-width: 640px) {
+    .result-points__meter {
+        width: 3rem;
+    }
+}

@@ -11,11 +11,17 @@ export default function RoundResultDialog(props: {
     result: GuessResponse;
     children?: ReactNode;
 }) {
+    const correct = props.result.correct;
     return (
-        <div role="dialog" aria-modal="true" className="review-round__result">
+        <div
+            role="dialog"
+            aria-modal="true"
+            className={`review-round__result ${correct ? 'review-round__result--correct' : 'review-round__result--incorrect'}`}
+        >
             <RoundResult
                 result={props.result}
                 selectedLabel={props.selectedLabel ?? null}
+                actualBucket={props.result.actualBucket}
             />
             <RoundPoints
                 buckets={props.buckets}
@@ -26,5 +32,3 @@ export default function RoundResultDialog(props: {
         </div>
     );
 }
-
-

@@ -1,5 +1,5 @@
 .review-round__actions {
-    margin-top: 12px;
+    margin-top: 0.5rem;
     display: flex;
     justify-content: flex-end;
     align-items: center;
@@ -7,7 +7,6 @@
     flex-wrap: wrap;
 }
 
-/* Ensure the score summary wraps to a new line and aligns right */
 .review-round__actions .review-round__summary {
     flex: 1 1 100%;
     width: 100%;
@@ -15,7 +14,6 @@
     justify-content: flex-end;
 }
 
-/* Desktop: keep buttons inline */
 .review-round__actions .btn-cta {
     text-align: center;
 }
@@ -24,7 +22,7 @@
     display: inline-flex;
 }
 
-/* Share button inline indicator (prevents layout shift on mobile) */
+/* Share copied indicator */
 .share-inline {
     position: relative;
     display: inline-flex;
@@ -56,9 +54,8 @@
     justify-content: flex-end;
 }
 
-/* Mobile: stack and full width for primary + share */
+/* ── Mobile ── */
 @media (max-width: 768px) {
-    /* Make the two inner actions (Open Steam / Last round) split the row */
     .review-round__actions-inner {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -75,21 +72,21 @@
     .review-round__actions .btn-cta {
         flex: 1 1 100%;
         width: 100%;
-        justify-content: flex-end;
-        text-align: right;
+        justify-content: center;
+        text-align: center;
     }
 
     .review-round__actions .share-inline {
         flex: 1 1 100%;
         width: 100%;
         display: flex;
-        justify-content: flex-end;
+        justify-content: center;
     }
 
     .review-round__actions .share-inline .btn-success {
         width: 100%;
-        justify-content: flex-end;
-        text-align: right;
+        justify-content: center;
+        text-align: center;
     }
 
     .review-round__share {
@@ -100,13 +97,12 @@
     .review-round__share .share-inline {
         width: 100%;
         display: flex;
-        justify-content: flex-end;
+        justify-content: center;
     }
 
     .review-round__share .share-inline .btn-success {
         width: 100%;
-        justify-content: flex-end;
-        text-align: right;
+        justify-content: center;
+        text-align: center;
     }
 }
-

@@ -1,12 +1,131 @@
+/* ── Result card wrapper ── */
 .review-round__result {
     margin-top: 16px;
     border: 1px solid var(--color-border);
-    padding: 12px;
+    padding: 0;
     background: var(--color-surface);
-    border-radius: 8px;
+    border-radius: 10px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    overflow: hidden;
 }
 
+.review-round__result--correct {
+    border-color: color-mix(in srgb, var(--color-success) 40%, var(--color-border));
+}
+
+.review-round__result--incorrect {
+    border-color: color-mix(in srgb, var(--color-error) 30%, var(--color-border));
+}
+
+/* ── Result body (inner content below header) ── */
+.result-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+/* ── Header banner ── */
+.result-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 0.875rem;
+    font-weight: 700;
+    font-size: 1rem;
+    border-radius: 9px 9px 0 0;
+}
+
+.result-header--correct {
+    background: color-mix(in srgb, var(--color-success) 12%, var(--color-surface));
+    color: var(--color-success);
+}
+
+.result-header--incorrect {
+    background: color-mix(in srgb, var(--color-error) 10%, var(--color-surface));
+    color: var(--color-error);
+}
+
+.result-header__icon {
+    flex-shrink: 0;
+}
+
+.result-header__text {
+    line-height: 1.3;
+}
+
+/* ── Pick vs Actual comparison ── */
+.result-comparison {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.625rem;
+    padding: 0 0.875rem;
+}
+
+.result-comparison__col {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    min-width: 0;
+    flex: 1 1 0%;
+}
+
+.result-comparison__label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--color-muted);
+}
+
+.result-comparison__arrow {
+    flex-shrink: 0;
+    color: var(--color-muted);
+    margin-bottom: 0.45rem;
+}
+
+/* Chips */
+.result-chip {
+    display: block;
+    padding: 0.35rem 0.6rem;
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.875rem;
+    line-height: 1.4;
+    background: var(--color-surface);
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.result-chip--correct {
+    border-color: color-mix(in srgb, var(--color-success) 50%, var(--color-border));
+    background: color-mix(in srgb, var(--color-success) 8%, var(--color-surface));
+    color: var(--color-success);
+}
+
+.result-chip--incorrect {
+    border-color: color-mix(in srgb, var(--color-error) 40%, var(--color-border));
+    background: color-mix(in srgb, var(--color-error) 6%, var(--color-surface));
+    color: var(--color-error);
+}
+
+.result-chip--actual {
+    border-color: color-mix(in srgb, var(--color-success) 50%, var(--color-border));
+    background: color-mix(in srgb, var(--color-success) 8%, var(--color-surface));
+    color: var(--color-success);
+}
+
+/* ── Secondary detail ── */
+.result-detail {
+    padding: 0 0.875rem;
+    font-size: 1rem;
+    color: var(--color-muted);
+    margin: 0;
+}
+
+/* ── Error / signin nudge ── */
 .review-round__error {
     margin-top: 8px;
 }
@@ -15,14 +134,33 @@
     margin: 0.5rem 0 0.25rem 0;
 }
 
+/* ── Actions ── */
 .review-round__actions {
-    margin-top: 8px;
+    margin-top: 0;
+    padding: 0.625rem 0.875rem 0.75rem;
 }
 
 .review-round__actions-inner {
     display: inline-flex;
     align-items: center;
-    gap: 0.6rem;
+    gap: 0.5rem;
 }
 
+/* ── Mobile ── */
+@media (max-width: 640px) {
+    .result-comparison {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.35rem;
+    }
 
+    .result-comparison__arrow {
+        align-self: center;
+        transform: rotate(90deg);
+        margin-bottom: 0;
+    }
+
+    .result-chip {
+        text-align: center;
+    }
+}

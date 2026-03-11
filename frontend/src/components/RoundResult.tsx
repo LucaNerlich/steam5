@@ -2,23 +2,53 @@
 
 import React from "react";
 import type {GuessResponse} from "@/types/review-game";
+import {CheckCircleIcon, XCircleIcon, ArrowRightIcon} from "@phosphor-icons/react/ssr";
 import "@/styles/components/reviewRoundResult.css";
 
-export default function RoundResult({result, selectedLabel}: {
+const fmt = new Intl.NumberFormat();
+
+export default function RoundResult({result, selectedLabel, actualBucket}: {
     result: GuessResponse;
-    selectedLabel?: string | null
+    selectedLabel?: string | null;
+    actualBucket: string;
 }): React.ReactElement {
+    const correct = result.correct;
+    const showComparison = !!selectedLabel;
+
     return (
-        <p>
-            {result.correct ? '✅ Correct!' : '❌ Not quite.'} ·
-            Reviews: <strong>{result.totalReviews}</strong>
-            {selectedLabel ? (
-                <>
-                    {' '}· Your pick: <strong>{selectedLabel}</strong>
-                </>
-            ) : null}
-        </p>
+        <div className="result-body">
+            <div className={`result-header ${correct ? 'result-header--correct' : 'result-header--incorrect'}`}
+                 aria-live="polite">
+                {correct
+                    ? <CheckCircleIcon size={22} weight="fill" className="result-header__icon"/>
+                    : <XCircleIcon size={22} weight="fill" className="result-header__icon"/>
+                }
+                <span className="result-header__text">
+                    {correct ? 'Correct!' : 'Not quite.'}
+                </span>
+            </div>
+
+            {showComparison && (
+                <div className="result-comparison">
+                    <div className="result-comparison__col">
+                        <span className="result-comparison__label">Your pick</span>
+                        <span className={`result-chip ${correct ? 'result-chip--correct' : 'result-chip--incorrect'}`}>
+                            {selectedLabel}
+                        </span>
+                    </div>
+                    <ArrowRightIcon size={16} className="result-comparison__arrow" aria-hidden="true"/>
+                    <div className="result-comparison__col">
+                        <span className="result-comparison__label">Actual</span>
+                        <span className="result-chip result-chip--actual">
+                            {actualBucket}
+                        </span>
+                    </div>
+                </div>
+            )}
+
+            <p className="result-detail">
+                {fmt.format(result.totalReviews)} total reviews
+            </p>
+        </div>
     );
 }
-
-
