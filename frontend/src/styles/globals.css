@@ -7,6 +7,14 @@ html {
     -webkit-text-size-adjust: 100%;
     color-scheme: light dark;
     box-sizing: border-box;
+    scrollbar-gutter: stable;
+}
+
+/* Fallback for browsers without scrollbar-gutter support */
+@supports not (scrollbar-gutter: stable) {
+    html {
+        overflow-y: scroll;
+    }
 }
 
 html,
