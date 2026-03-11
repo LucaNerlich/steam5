@@ -130,11 +130,6 @@ export default async function SeasonDetailPage({params}: {params: MaybePromise<P
             <script type="application/ld+json" dangerouslySetInnerHTML={{
                 __html: JSON.stringify(breadcrumbJsonLd)
             }} />
-            <nav aria-label="Breadcrumb" className="season-detail__breadcrumbs">
-                <Link href={Routes.seasons} className="season-detail__back-link">
-                    ← Seasons overview
-                </Link>
-            </nav>
 
             <header className="season-detail__hero">
                 <div className="season-detail__pill">Season #{season.seasonNumber}</div>

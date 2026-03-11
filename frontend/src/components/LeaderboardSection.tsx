@@ -8,7 +8,7 @@ export default function LeaderboardSection(props: {
     children: ReactNode;
 }) {
     return (
-        <section className="container">
+        <section className="container leaderboard">
             <h1>Leaderboard</h1>
             <nav className="leaderboard__toggle" aria-label="Leaderboard view">
                 <Link href="/review-guesser/leaderboard/today"

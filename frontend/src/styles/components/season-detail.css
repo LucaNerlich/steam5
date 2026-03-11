@@ -3,19 +3,11 @@
     flex-direction: column;
     gap: 2rem;
     padding-bottom: 4rem;
+    margin-top: 2rem;
 }
 
 .season-detail__breadcrumbs {
     font-size: 0.9rem;
-}
-
-.season-detail__back-link {
-    text-decoration: none;
-    color: var(--color-muted);
-}
-
-.season-detail__back-link:hover {
-    text-decoration: underline;
 }
 
 .season-detail__hero {

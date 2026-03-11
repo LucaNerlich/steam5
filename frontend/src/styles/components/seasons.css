@@ -2,7 +2,8 @@
     display: flex;
     flex-direction: column;
     gap: 2rem;
-    padding: 0 0 3rem;
+    padding-bottom: 4rem;
+    margin-top: 2rem;
 }
 
 .seasons__hero {

@@ -5,8 +5,24 @@ import LeaderboardSection from "@/components/LeaderboardSection";
 import LeaderboardSkeleton from "@/components/LeaderboardSkeleton";
 import {buildBreadcrumbJsonLd} from "@/lib/seo";
 import {Routes} from "../../routes";
+import {fetchLeaderboardPageData} from "@/lib/leaderboard";
 
-export default async function LeaderboardPage() {
+async function AllTimeLeaderboardContent() {
+    const [leaderboardData, achievementsData] = await fetchLeaderboardPageData(
+        "all", "all", 10
+    );
+
+    return (
+        <LeaderboardTable
+            mode="all"
+            refreshMs={10000}
+            initialData={leaderboardData as any}
+            initialAchievements={achievementsData as any}
+        />
+    );
+}
+
+export default function LeaderboardPage() {
     const breadcrumbJsonLd = buildBreadcrumbJsonLd([
         {name: "Home", url: Routes.home},
         {name: "Leaderboard", url: Routes.leaderboard},
@@ -22,7 +38,7 @@ export default async function LeaderboardPage() {
                                 title="All-time"
                                 subline="Overall points summed across all days">
                 <Suspense fallback={<LeaderboardSkeleton variant="table"/>}>
-                    <LeaderboardTable mode="all" refreshMs={10000}/>
+                    <AllTimeLeaderboardContent />
                 </Suspense>
             </LeaderboardSection>
         </>

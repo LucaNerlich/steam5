@@ -7,17 +7,27 @@ import {buildBreadcrumbJsonLd} from "@/lib/seo";
 import {Routes} from "../../../routes";
 import {fetchLeaderboardPageData} from "@/lib/leaderboard";
 
-export default async function LeaderboardSeasonPage() {
+async function SeasonLeaderboardContent() {
+    const [leaderboardData, achievementsData] = await fetchLeaderboardPageData(
+        "season", "season", 10
+    );
+
+    return (
+        <LeaderboardTable
+            mode="season"
+            refreshMs={10000}
+            initialData={leaderboardData as any}
+            initialAchievements={achievementsData as any}
+        />
+    );
+}
+
+export default function LeaderboardSeasonPage() {
     const breadcrumbJsonLd = buildBreadcrumbJsonLd([
         {name: "Home", url: Routes.home},
         {name: "Leaderboard", url: Routes.leaderboard},
         {name: "Season", url: Routes.leaderboardSeason},
     ]);
-
-    // Fetch both leaderboard and achievements data in parallel
-    const [leaderboardData, achievementsData] = await fetchLeaderboardPageData(
-        "season", "season", 10
-    );
 
     return (
         <>
@@ -28,12 +38,7 @@ export default async function LeaderboardSeasonPage() {
                                 title="Season"
                                 subline="Current season standings">
                 <Suspense fallback={<LeaderboardSkeleton variant="table"/>}>
-                    <LeaderboardTable
-                        mode="season"
-                        refreshMs={10000}
-                        initialData={leaderboardData as any}
-                        initialAchievements={achievementsData as any}
-                    />
+                    <SeasonLeaderboardContent />
                 </Suspense>
             </LeaderboardSection>
         </>

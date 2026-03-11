@@ -3,6 +3,9 @@
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     margin-top: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 4rem;
 }
 
 /* inner scroll container to allow scrolling inside the table while keeping page static */
@@ -279,17 +282,17 @@
     .leaderboard__achievements-table {
         display: block;
     }
-    
+
     .leaderboard__achievements-table thead {
         display: none;
     }
-    
+
     .leaderboard__achievements-table tbody {
         display: flex;
         flex-direction: column;
         gap: 0.4rem;
     }
-    
+
     .leaderboard__achievements-table tr {
         display: flex;
         flex-direction: column;
@@ -299,19 +302,19 @@
         padding: 0.5rem;
         background: var(--color-surface);
     }
-    
+
     .leaderboard__achievements-table td {
         padding: 0;
         border: none;
         display: flex;
         align-items: center;
     }
-    
+
     /* Hide desktop metric column on mobile */
     .leaderboard__achievements-table td.leaderboard__achievement-metric-desktop {
         display: none;
     }
-    
+
     /* Show mobile metric on mobile */
     .leaderboard__achievement-metric-mobile {
         display: inline-block;
@@ -319,7 +322,7 @@
         color: var(--color-muted);
         margin-left: auto;
     }
-    
+
     /* Top row: Achievement + Metric */
     .leaderboard__achievements-table td:first-child {
         font-weight: 600;
@@ -328,36 +331,36 @@
         justify-content: space-between;
         width: 100%;
     }
-    
+
     /* Bottom row: Profile name */
     .leaderboard__achievements-table td:nth-child(2) {
         width: 100%;
     }
-    
+
     .leaderboard__achievement-label {
         white-space: nowrap;
     }
-    
+
     .leaderboard__achievement-icon {
         font-size: 0.9rem;
     }
-    
+
     .leaderboard__achievement-winner {
         flex: 1;
         min-width: 0;
     }
-    
+
     .leaderboard__achievement-avatar-wrap {
         width: 18px;
         height: 18px;
         flex-shrink: 0;
     }
-    
+
     .leaderboard__achievement-avatar {
         width: 18px;
         height: 18px;
     }
-    
+
     .leaderboard__achievement-name {
         font-size: 0.85rem;
         overflow: hidden;

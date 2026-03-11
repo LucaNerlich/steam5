@@ -7,17 +7,27 @@ import {buildBreadcrumbJsonLd} from "@/lib/seo";
 import {Routes} from "../../../routes";
 import {fetchLeaderboardPageData} from "@/lib/leaderboard";
 
-export default async function LeaderboardTodayPage() {
+async function TodayLeaderboardContent() {
+    const [leaderboardData, achievementsData] = await fetchLeaderboardPageData(
+        "today", "daily", 5
+    );
+
+    return (
+        <LeaderboardTable
+            mode="today"
+            refreshMs={5000}
+            initialData={leaderboardData as any}
+            initialAchievements={achievementsData as any}
+        />
+    );
+}
+
+export default function LeaderboardTodayPage() {
     const breadcrumbJsonLd = buildBreadcrumbJsonLd([
         {name: "Home", url: Routes.home},
         {name: "Leaderboard", url: Routes.leaderboard},
         {name: "Today", url: Routes.leaderboardToday},
     ]);
-
-    // Fetch both leaderboard and achievements data in parallel
-    const [leaderboardData, achievementsData] = await fetchLeaderboardPageData(
-        "today", "daily", 5
-    );
 
     return (
         <>
@@ -28,12 +38,7 @@ export default async function LeaderboardTodayPage() {
                                 title="Today"
                                 subline={"Today'" + 's total points by player'}>
                 <Suspense fallback={<LeaderboardSkeleton variant="table"/>}>
-                    <LeaderboardTable
-                        mode="today"
-                        refreshMs={5000}
-                        initialData={leaderboardData as any}
-                        initialAchievements={achievementsData as any}
-                    />
+                    <TodayLeaderboardContent />
                 </Suspense>
             </LeaderboardSection>
         </>

@@ -1,6 +1,6 @@
 plugins {
     java
-    id("org.springframework.boot") version "4.0.2"
+    id("org.springframework.boot") version "4.0.3"
     id("io.spring.dependency-management") version "1.1.7"
     id("org.asciidoctor.jvm.convert") version "4.0.5"
 }
@@ -32,7 +32,7 @@ dependencies {
     compileOnly("org.projectlombok:lombok")
     developmentOnly("org.springframework.boot:spring-boot-devtools")
     implementation("org.springframework.boot:spring-boot-starter-cache")
-    implementation("com.github.ben-manes.caffeine:caffeine:3.2.2")
+    implementation("com.github.ben-manes.caffeine:caffeine:3.2.3")
     implementation("io.jsonwebtoken:jjwt-api:0.13.0")
     implementation("me.paulschwarz:spring-dotenv:4.0.0")
     implementation("org.apache.commons:commons-lang3")
@@ -44,7 +44,6 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-webmvc")
-    implementation("net.logstash.logback:logstash-logback-encoder:8.0")
     runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.13.0")
     runtimeOnly("io.jsonwebtoken:jjwt-impl:0.13.0")
     runtimeOnly("org.postgresql:postgresql")
