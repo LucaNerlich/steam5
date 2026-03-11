@@ -1,7 +1,6 @@
 import type {Metadata} from "next";
 import LeaderboardTable from "@/components/LeaderboardTable";
 import {Suspense} from "react";
-import LeaderboardSection from "@/components/LeaderboardSection";
 import LeaderboardSkeleton from "@/components/LeaderboardSkeleton";
 import {buildBreadcrumbJsonLd} from "@/lib/seo";
 import {Routes} from "../../../routes";
@@ -34,13 +33,11 @@ export default function LeaderboardSeasonPage() {
             <script type="application/ld+json" dangerouslySetInnerHTML={{
                 __html: JSON.stringify(breadcrumbJsonLd)
             }} />
-            <LeaderboardSection active="season"
-                                title="Season"
-                                subline="Current season standings">
-                <Suspense fallback={<LeaderboardSkeleton variant="table"/>}>
-                    <SeasonLeaderboardContent />
-                </Suspense>
-            </LeaderboardSection>
+            <h2>Season</h2>
+            <p className="text-muted">Current season standings</p>
+            <Suspense fallback={<LeaderboardSkeleton variant="table"/>}>
+                <SeasonLeaderboardContent />
+            </Suspense>
         </>
     );
 }

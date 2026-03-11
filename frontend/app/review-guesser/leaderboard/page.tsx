@@ -1,7 +1,6 @@
 import type {Metadata} from "next";
 import LeaderboardTable from "@/components/LeaderboardTable";
 import {Suspense} from "react";
-import LeaderboardSection from "@/components/LeaderboardSection";
 import LeaderboardSkeleton from "@/components/LeaderboardSkeleton";
 import {buildBreadcrumbJsonLd} from "@/lib/seo";
 import {Routes} from "../../routes";
@@ -34,13 +33,11 @@ export default function LeaderboardPage() {
             <script type="application/ld+json" dangerouslySetInnerHTML={{
                 __html: JSON.stringify(breadcrumbJsonLd)
             }} />
-            <LeaderboardSection active="all"
-                                title="All-time"
-                                subline="Overall points summed across all days">
-                <Suspense fallback={<LeaderboardSkeleton variant="table"/>}>
-                    <AllTimeLeaderboardContent />
-                </Suspense>
-            </LeaderboardSection>
+            <h2>All-time</h2>
+            <p className="text-muted">Overall points summed across all days</p>
+            <Suspense fallback={<LeaderboardSkeleton variant="table"/>}>
+                <AllTimeLeaderboardContent />
+            </Suspense>
         </>
     );
 }

@@ -1,7 +1,6 @@
 import type {Metadata} from "next";
 import LeaderboardTable from "@/components/LeaderboardTable";
 import {Suspense} from "react";
-import LeaderboardSection from "@/components/LeaderboardSection";
 import LeaderboardSkeleton from "@/components/LeaderboardSkeleton";
 import {buildBreadcrumbJsonLd} from "@/lib/seo";
 import {Routes} from "../../../routes";
@@ -34,13 +33,11 @@ export default function LeaderboardTodayPage() {
             <script type="application/ld+json" dangerouslySetInnerHTML={{
                 __html: JSON.stringify(breadcrumbJsonLd)
             }} />
-            <LeaderboardSection active="today"
-                                title="Today"
-                                subline={"Today'" + 's total points by player'}>
-                <Suspense fallback={<LeaderboardSkeleton variant="table"/>}>
-                    <TodayLeaderboardContent />
-                </Suspense>
-            </LeaderboardSection>
+            <h2>Today</h2>
+            <p className="text-muted">Today&apos;s total points by player</p>
+            <Suspense fallback={<LeaderboardSkeleton variant="table"/>}>
+                <TodayLeaderboardContent />
+            </Suspense>
         </>
     );
 }

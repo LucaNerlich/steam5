@@ -1,7 +1,6 @@
 import type {Metadata} from "next";
 import LeaderboardTable from "@/components/LeaderboardTable";
 import {Suspense} from "react";
-import LeaderboardSection from "@/components/LeaderboardSection";
 import LeaderboardSkeleton from "@/components/LeaderboardSkeleton";
 import {buildBreadcrumbJsonLd} from "@/lib/seo";
 import {Routes} from "../../../routes";
@@ -34,13 +33,11 @@ export default function LeaderboardWeeklyPage() {
             <script type="application/ld+json" dangerouslySetInnerHTML={{
                 __html: JSON.stringify(breadcrumbJsonLd)
             }} />
-            <LeaderboardSection active="weekly"
-                                title="Weekly"
-                                subline="Last seven days">
-                <Suspense fallback={<LeaderboardSkeleton variant="table"/>}>
-                    <WeeklyLeaderboardContent />
-                </Suspense>
-            </LeaderboardSection>
+            <h2>Weekly</h2>
+            <p className="text-muted">Last seven days</p>
+            <Suspense fallback={<LeaderboardSkeleton variant="table"/>}>
+                <WeeklyLeaderboardContent />
+            </Suspense>
         </>
     );
 }
