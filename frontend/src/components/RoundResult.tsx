@@ -5,10 +5,11 @@ import type {GuessResponse} from "@/types/review-game";
 import {CheckCircleIcon, XCircleIcon, ArrowRightIcon} from "@phosphor-icons/react/ssr";
 import "@/styles/components/reviewRoundResult.css";
 
-export default function RoundResult({result, selectedLabel, actualBucket}: {
+export default function RoundResult({result, selectedLabel, actualBucket, headerText}: {
     result: GuessResponse;
     selectedLabel?: string | null;
     actualBucket: string;
+    headerText: string;
 }): React.ReactElement {
     const correct = result.correct;
     const showComparison = !!selectedLabel;
@@ -22,7 +23,7 @@ export default function RoundResult({result, selectedLabel, actualBucket}: {
                     : <XCircleIcon size={22} weight="fill" className="result-header__icon"/>
                 }
                 <span className="result-header__text">
-                    {correct ? 'Correct!' : 'Not quite.'}
+                    {headerText}
                 </span>
             </div>
 
