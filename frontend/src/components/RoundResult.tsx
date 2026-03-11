@@ -5,8 +5,6 @@ import type {GuessResponse} from "@/types/review-game";
 import {CheckCircleIcon, XCircleIcon, ArrowRightIcon} from "@phosphor-icons/react/ssr";
 import "@/styles/components/reviewRoundResult.css";
 
-const fmt = new Intl.NumberFormat();
-
 export default function RoundResult({result, selectedLabel, actualBucket}: {
     result: GuessResponse;
     selectedLabel?: string | null;
@@ -45,10 +43,6 @@ export default function RoundResult({result, selectedLabel, actualBucket}: {
                     </div>
                 </div>
             )}
-
-            <p className="result-detail">
-                {fmt.format(result.totalReviews)} total reviews
-            </p>
         </div>
     );
 }

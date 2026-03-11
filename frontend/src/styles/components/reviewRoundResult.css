@@ -117,12 +117,20 @@
     color: var(--color-success);
 }
 
-/* ── Secondary detail ── */
+/* ── Footer row: reviews (left) + points (right) ── */
+.result-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.5rem 0.875rem;
+}
+
 .result-detail {
-    padding: 0 0.875rem;
     font-size: 1rem;
     color: var(--color-muted);
     margin: 0;
+    white-space: nowrap;
 }
 
 /* ── Error / signin nudge ── */

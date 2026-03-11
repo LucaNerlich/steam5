@@ -2,7 +2,6 @@
     display: flex;
     align-items: center;
     gap: 0.625rem;
-    padding: 0 0.875rem;
 }
 
 /* ── Native meter ── */

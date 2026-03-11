@@ -5,6 +5,8 @@ import type {GuessResponse} from "@/types/review-game";
 import RoundResult from "@/components/RoundResult";
 import RoundPoints from "@/components/RoundPoints";
 
+const fmt = new Intl.NumberFormat();
+
 export default function RoundResultDialog(props: {
     buckets: string[];
     selectedLabel: string | null | undefined;
@@ -23,11 +25,16 @@ export default function RoundResultDialog(props: {
                 selectedLabel={props.selectedLabel ?? null}
                 actualBucket={props.result.actualBucket}
             />
-            <RoundPoints
-                buckets={props.buckets}
-                selectedLabel={props.selectedLabel}
-                actualBucket={props.result.actualBucket}
-            />
+            <div className="result-footer">
+                <span className="result-detail">
+                    {fmt.format(props.result.totalReviews)} total reviews
+                </span>
+                <RoundPoints
+                    buckets={props.buckets}
+                    selectedLabel={props.selectedLabel}
+                    actualBucket={props.result.actualBucket}
+                />
+            </div>
             {props.children}
         </div>
     );
