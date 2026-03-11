@@ -2,6 +2,7 @@
     display: flex;
     align-items: center;
     gap: 0.625rem;
+    min-width: 0;
 }
 
 /* ── Native meter ── */
@@ -37,6 +38,7 @@
 .result-points__text {
     color: var(--color-text);
     white-space: nowrap;
+    min-width: 0;
 }
 
 .result-points__sep {
@@ -46,25 +48,32 @@
 
 @media (max-width: 640px) {
     .result-points {
-        width: 100%;
-        justify-content: center;
-        flex-wrap: wrap;
-        gap: 0.35rem 0.5rem;
+        width: auto;
+        justify-content: flex-end;
+        flex-wrap: nowrap;
+        gap: 0.4rem;
+        flex: 0 0 auto;
     }
 
     .result-points__meter {
-        width: 3rem;
+        width: 2.55rem;
     }
 
     .result-points__text {
-        width: 100%;
-        text-align: center;
-        white-space: normal;
+        width: auto;
+        text-align: right;
+        white-space: nowrap;
+        font-size: 0.79rem;
+        line-height: 1.2;
     }
 }
 
 @media (max-width: 380px) {
     .result-points__meter {
-        width: 2.65rem;
+        width: 2.35rem;
+    }
+
+    .result-points__text {
+        font-size: 0.74rem;
     }
 }

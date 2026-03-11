@@ -31,14 +31,17 @@ export default function RoundResult({result, selectedLabel, actualBucket, header
                 <div className="result-comparison">
                     <div className="result-comparison__col">
                         <span className="result-comparison__label">Your pick</span>
-                        <span className={`result-chip ${correct ? 'result-chip--correct' : 'result-chip--incorrect'}`}>
+                        <span
+                            className={`result-chip ${correct ? 'result-chip--correct' : 'result-chip--incorrect'}`}
+                            data-mobile-label="Your pick"
+                        >
                             {selectedLabel}
                         </span>
                     </div>
                     <ArrowRightIcon size={16} className="result-comparison__arrow" aria-hidden="true"/>
                     <div className="result-comparison__col">
                         <span className="result-comparison__label">Actual</span>
-                        <span className="result-chip result-chip--actual">
+                        <span className="result-chip result-chip--actual" data-mobile-label="Actual">
                             {actualBucket}
                         </span>
                     </div>

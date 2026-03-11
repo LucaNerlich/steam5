@@ -39,7 +39,7 @@ export default function RoundResultDialog(props: {
             />
             <div className="result-footer">
                 <span className="result-detail">
-                    {fmt.format(props.result.totalReviews)} total reviews
+                    Reviews Σ={fmt.format(props.result.totalReviews)}
                 </span>
                 <RoundPoints
                     buckets={props.buckets}
