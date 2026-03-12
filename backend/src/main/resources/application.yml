@@ -10,6 +10,15 @@ spring:
     password: steam5_password
     driver-class-name: org.postgresql.Driver
     name: steam5_db
+    hikari:
+      # Keep defaults configurable per environment (especially production)
+      maximum-pool-size: ${DB_POOL_MAX_SIZE:20}
+      minimum-idle: ${DB_POOL_MIN_IDLE:5}
+      connection-timeout: ${DB_POOL_CONNECTION_TIMEOUT_MS:30000}
+      idle-timeout: ${DB_POOL_IDLE_TIMEOUT_MS:600000}
+      max-lifetime: ${DB_POOL_MAX_LIFETIME_MS:1800000}
+      validation-timeout: ${DB_POOL_VALIDATION_TIMEOUT_MS:5000}
+      leak-detection-threshold: ${DB_POOL_LEAK_DETECTION_MS:0}
   jackson:
     serialization:
       indent-output: true

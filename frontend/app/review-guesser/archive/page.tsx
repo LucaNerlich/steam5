@@ -5,7 +5,6 @@ import ArchiveSummary from "@/components/ArchiveSummary";
 import GameStatistics from "@/components/GameStatistics";
 
 const ONE_DAY_REVALIDATE_SECONDS = 86400;
-const IMMUTABLE_REVALIDATE_SECONDS = 31536000;
 const ARCHIVE_DAY_LIST_LIMIT = 5000;
 
 export const revalidate = 86400;
@@ -37,24 +36,6 @@ async function loadBuckets(): Promise<{ buckets: string[]; bucketTitles: string[
         return res.json();
     } catch {
         return {buckets: [], bucketTitles: []};
-    }
-}
-
-async function loadDaySummary(
-    date: string,
-    revalidateSeconds: number
-): Promise<Array<{ appId: number; name: string }>> {
-    const backend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
-    try {
-        const res = await fetch(`${backend}/api/review-game/day/${encodeURIComponent(date)}`, {
-            headers: {accept: 'application/json'},
-            next: {revalidate: revalidateSeconds},
-        });
-        if (!res.ok) return [];
-        const data: { picks?: Array<{ appId: number; name: string }> } = await res.json();
-        return Array.isArray(data?.picks) ? data.picks : [];
-    } catch {
-        return [];
     }
 }
 
@@ -104,11 +85,6 @@ export default async function ArchiveIndexPage({searchParams}: ArchivePageProps)
         ? months[selectedMonthIndex + 1]
         : null;
     const visibleDays = selectedMonth ? days.filter((date) => getMonthKey(date) === selectedMonth) : [];
-    const now = new Date();
-    const currentMonth = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
-    const selectedMonthRevalidate = selectedMonth === currentMonth
-        ? ONE_DAY_REVALIDATE_SECONDS
-        : IMMUTABLE_REVALIDATE_SECONDS;
     const bucketData = await loadBuckets();
 
     return (
@@ -168,24 +144,11 @@ export default async function ArchiveIndexPage({searchParams}: ArchivePageProps)
                         <p className="text-muted">No previous daily challenges found for this month.</p>
                     ) : (
                         <ul>
-                            {await Promise.all(visibleDays.map(async (d) => {
-                                const picks = await loadDaySummary(d, selectedMonthRevalidate);
-                                const titles = picks.map((p, i) => ({round: i + 1, appId: p.appId, name: p.name}));
-                                return (
-                                    <li key={d} className='archive-list__toc'>
-                                        <a href={`/review-guesser/archive/${d}`}>{d}</a>
-                                        {titles.length > 0 && (
-                                            <ol>
-                                                {titles.map(t => (
-                                                    <li key={`${d}-${t.appId}`}>
-                                                        <a href={`/review-guesser/archive/${d}#round-${t.round}`}>{t.name}</a>
-                                                    </li>
-                                                ))}
-                                            </ol>
-                                        )}
-                                    </li>
-                                );
-                            }))}
+                            {visibleDays.map((d) => (
+                                <li key={d} className='archive-list__toc'>
+                                    <a href={`/review-guesser/archive/${d}`}>{d}</a>
+                                </li>
+                            ))}
                         </ul>
                     )}
                 </>

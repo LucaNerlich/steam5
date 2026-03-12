@@ -1,7 +1,7 @@
 import {NextResponse} from "next/server";
 
 const ONE_DAY_REVALIDATE_SECONDS = 86400;
-const DEFAULT_LIMIT = 3650;
+const DEFAULT_LIMIT = 120;
 const MAX_LIMIT = 5000;
 
 export const revalidate = 86400;
