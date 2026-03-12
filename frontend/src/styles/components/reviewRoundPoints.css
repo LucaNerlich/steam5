@@ -1,37 +1,7 @@
 .result-points {
     display: flex;
     align-items: center;
-    gap: 0.625rem;
     min-width: 0;
-}
-
-/* ── Native meter ── */
-.result-points__meter {
-    --meter-fill: var(--color-success);
-    width: 4rem;
-    flex-shrink: 0;
-}
-
-.result-points__meter--close { --meter-fill: var(--color-score-close); }
-.result-points__meter--near  { --meter-fill: var(--color-score-near); }
-.result-points__meter--far   { --meter-fill: var(--color-error); }
-
-/* WebKit (Chrome, Safari, Edge) */
-.result-points__meter::-webkit-meter-bar {
-    background: var(--color-border);
-    border: none;
-    border-radius: 9999px;
-}
-
-.result-points__meter::-webkit-meter-optimum-value {
-    background: var(--meter-fill);
-    border-radius: 9999px;
-}
-
-/* Firefox */
-.result-points__meter::-moz-meter-bar {
-    background: var(--meter-fill);
-    border-radius: 9999px;
 }
 
 /* ── Text ── */
@@ -51,12 +21,7 @@
         width: auto;
         justify-content: flex-end;
         flex-wrap: nowrap;
-        gap: 0.4rem;
         flex: 0 0 auto;
-    }
-
-    .result-points__meter {
-        width: 2.55rem;
     }
 
     .result-points__text {
@@ -65,15 +30,5 @@
         white-space: nowrap;
         font-size: 0.79rem;
         line-height: 1.2;
-    }
-}
-
-@media (max-width: 380px) {
-    .result-points__meter {
-        width: 2.35rem;
-    }
-
-    .result-points__text {
-        font-size: 0.74rem;
     }
 }
