@@ -8,7 +8,7 @@ const ONE_DAY_REVALIDATE_SECONDS = 86400;
 const IMMUTABLE_REVALIDATE_SECONDS = 31536000;
 const ARCHIVE_DAY_LIST_LIMIT = 5000;
 
-export const revalidate = ONE_DAY_REVALIDATE_SECONDS;
+export const revalidate = 86400;
 
 async function loadDays(): Promise<string[]> {
     const backend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';

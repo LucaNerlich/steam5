@@ -4,7 +4,7 @@ const ONE_DAY_REVALIDATE_SECONDS = 86400;
 const DEFAULT_LIMIT = 3650;
 const MAX_LIMIT = 5000;
 
-export const revalidate = ONE_DAY_REVALIDATE_SECONDS;
+export const revalidate = 86400;
 
 const BACKEND_ORIGIN = process.env.NEXT_PUBLIC_API_DOMAIN || "http://localhost:8080";
 
