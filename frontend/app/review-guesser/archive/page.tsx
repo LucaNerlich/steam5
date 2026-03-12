@@ -39,6 +39,42 @@ async function loadBuckets(): Promise<{ buckets: string[]; bucketTitles: string[
     }
 }
 
+type ArchiveMonthDay = {
+    date: string;
+    picks: Array<{ appId: number; name: string }>;
+};
+
+async function loadMonthArchiveDays(month: string, revalidateSeconds: number): Promise<ArchiveMonthDay[]> {
+    if (!isValidMonth(month)) return [];
+    const backend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
+    try {
+        const res = await fetch(`${backend}/api/review-game/archive/month?month=${encodeURIComponent(month)}`, {
+            headers: {'accept': 'application/json'},
+            next: {revalidate: revalidateSeconds},
+        });
+        if (!res.ok) return [];
+        const data: unknown = await res.json();
+        if (!Array.isArray(data)) return [];
+        return data
+            .filter((row): row is ArchiveMonthDay => {
+                if (typeof row !== "object" || row === null) return false;
+                const candidate = row as { date?: unknown; picks?: unknown };
+                return typeof candidate.date === "string" && Array.isArray(candidate.picks);
+            })
+            .map((row) => ({
+                date: row.date,
+                picks: row.picks
+                    .filter((pick): pick is { appId: number; name: string } => {
+                        if (typeof pick !== "object" || pick === null) return false;
+                        const candidate = pick as { appId?: unknown; name?: unknown };
+                        return typeof candidate.appId === "number" && typeof candidate.name === "string";
+                    }),
+            }));
+    } catch {
+        return [];
+    }
+}
+
 function getMonthKey(date: string): string {
     return date.slice(0, 7);
 }
@@ -85,6 +121,15 @@ export default async function ArchiveIndexPage({searchParams}: ArchivePageProps)
         ? months[selectedMonthIndex + 1]
         : null;
     const visibleDays = selectedMonth ? days.filter((date) => getMonthKey(date) === selectedMonth) : [];
+    const now = new Date();
+    const currentMonth = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
+    const selectedMonthRevalidate = selectedMonth === currentMonth
+        ? ONE_DAY_REVALIDATE_SECONDS
+        : 31536000;
+    const monthSummaries = selectedMonth
+        ? await loadMonthArchiveDays(selectedMonth, selectedMonthRevalidate)
+        : [];
+    const picksByDate = new Map(monthSummaries.map((item) => [item.date, item.picks]));
     const bucketData = await loadBuckets();
 
     return (
@@ -144,11 +189,23 @@ export default async function ArchiveIndexPage({searchParams}: ArchivePageProps)
                         <p className="text-muted">No previous daily challenges found for this month.</p>
                     ) : (
                         <ul>
-                            {visibleDays.map((d) => (
-                                <li key={d} className='archive-list__toc'>
-                                    <a href={`/review-guesser/archive/${d}`}>{d}</a>
-                                </li>
-                            ))}
+                            {visibleDays.map((d) => {
+                                const picks = picksByDate.get(d) ?? [];
+                                return (
+                                    <li key={d} className='archive-list__toc'>
+                                        <a href={`/review-guesser/archive/${d}`}>{d}</a>
+                                        {picks.length > 0 && (
+                                            <ol>
+                                                {picks.map((pick, i) => (
+                                                    <li key={`${d}-${pick.appId}-${i}`}>
+                                                        <a href={`/review-guesser/archive/${d}#round-${i + 1}`}>{pick.name}</a>
+                                                    </li>
+                                                ))}
+                                            </ol>
+                                        )}
+                                    </li>
+                                );
+                            })}
                         </ul>
                     )}
                 </>

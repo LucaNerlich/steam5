@@ -24,8 +24,12 @@ import org.quartz.TriggerKey;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.time.YearMonth;
+import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -513,6 +517,66 @@ public class ReviewGameStateController {
                 .eTag(etag)
                 .header("Cache-Control", "public, s-maxage=86400, max-age=3600")
                 .body(new BucketMeta(labels, titles));
+    }
+
+    public record ArchiveMonthDayPick(Long appId, String name) {
+    }
+
+    public record ArchiveMonthDay(String date, List<ArchiveMonthDayPick> picks) {
+    }
+
+    @GetMapping("/archive/month")
+    @Cacheable(value = "review-game", key = "'archive-month:' + #month", unless = "#result == null")
+    public ResponseEntity<List<ArchiveMonthDay>> archiveMonth(@RequestParam("month") String month,
+                                                              @RequestHeader HttpHeaders headers) {
+        final YearMonth ym;
+        try {
+            ym = YearMonth.parse(month);
+        } catch (DateTimeParseException e) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        final LocalDate from = ym.atDay(1);
+        final LocalDate to = ym.plusMonths(1).atDay(1);
+        final List<org.steam5.repository.ReviewGamePickRepository.MonthlyArchivePickRow> rows =
+                pickRepository.listMonthlyArchivePicks(from, to);
+
+        final Map<String, List<ArchiveMonthDayPick>> grouped = new LinkedHashMap<>();
+        for (var row : rows) {
+            final String date = row.getPickDate().toString();
+            grouped.computeIfAbsent(date, k -> new ArrayList<>())
+                    .add(new ArchiveMonthDayPick(row.getAppId(), row.getName()));
+        }
+        final List<ArchiveMonthDay> out = grouped.entrySet().stream()
+                .map(e -> new ArchiveMonthDay(e.getKey(), e.getValue()))
+                .toList();
+
+        final boolean isCurrentMonth = ym.equals(YearMonth.now());
+        final String cacheControl = isCurrentMonth
+                ? "public, s-maxage=86400, max-age=3600"
+                : "public, max-age=31536000, immutable";
+        final String etag = weakEtagForStringLists(
+                out.stream()
+                        .map(day -> {
+                            final ArrayList<String> lines = new ArrayList<>(day.picks().size() + 1);
+                            lines.add(day.date());
+                            for (ArchiveMonthDayPick pick : day.picks()) {
+                                lines.add(pick.appId() + ":" + pick.name());
+                            }
+                            return lines;
+                        })
+                        .toList()
+        );
+        if (etag != null && headers.getIfNoneMatch().contains(etag)) {
+            return ResponseEntity.status(304)
+                    .eTag(etag)
+                    .header("Cache-Control", cacheControl)
+                    .build();
+        }
+        return ResponseEntity.ok()
+                .eTag(etag)
+                .header("Cache-Control", cacheControl)
+                .body(out);
     }
 
     private record Range(long lower, Long upper) {

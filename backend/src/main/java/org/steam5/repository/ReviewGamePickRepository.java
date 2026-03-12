@@ -27,6 +27,25 @@ public interface ReviewGamePickRepository extends JpaRepository<ReviewGamePick, 
     @Query("select distinct p.pickDate from ReviewGamePick p order by p.pickDate desc")
     List<LocalDate> listDistinctPickDates(Pageable pageable);
 
+    interface MonthlyArchivePickRow {
+        LocalDate getPickDate();
+        Long getAppId();
+        String getName();
+    }
+
+    @Query(value = """
+            SELECT p.pick_date AS pickDate,
+                   p.app_id AS appId,
+                   COALESCE(d.name, CAST(p.app_id AS text)) AS name
+            FROM review_game_pick p
+            LEFT JOIN steam_app_details d ON d.app_id = p.app_id
+            WHERE p.pick_date >= :fromDate
+              AND p.pick_date < :toDate
+            ORDER BY p.pick_date DESC, p.created_at ASC, p.id ASC
+            """, nativeQuery = true)
+    List<MonthlyArchivePickRow> listMonthlyArchivePicks(@Param("fromDate") LocalDate fromDate,
+                                                        @Param("toDate") LocalDate toDate);
+
     // Top games by review count
     interface TopGameByReviewsRow {
         Long getAppId();
