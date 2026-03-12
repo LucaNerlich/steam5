@@ -12,13 +12,13 @@ spring:
     name: steam5_db
     hikari:
       # Keep defaults configurable per environment (especially production)
-      maximum-pool-size: ${DB_POOL_MAX_SIZE:20}
-      minimum-idle: ${DB_POOL_MIN_IDLE:5}
-      connection-timeout: ${DB_POOL_CONNECTION_TIMEOUT_MS:30000}
-      idle-timeout: ${DB_POOL_IDLE_TIMEOUT_MS:600000}
-      max-lifetime: ${DB_POOL_MAX_LIFETIME_MS:1800000}
-      validation-timeout: ${DB_POOL_VALIDATION_TIMEOUT_MS:5000}
-      leak-detection-threshold: ${DB_POOL_LEAK_DETECTION_MS:0}
+      maximum-pool-size: ${DB_POOL_MAX_SIZE:${SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE:20}}
+      minimum-idle: ${DB_POOL_MIN_IDLE:${SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE:5}}
+      connection-timeout: ${DB_POOL_CONNECTION_TIMEOUT_MS:${SPRING_DATASOURCE_HIKARI_CONNECTION_TIMEOUT:30000}}
+      idle-timeout: ${DB_POOL_IDLE_TIMEOUT_MS:${SPRING_DATASOURCE_HIKARI_IDLE_TIMEOUT:600000}}
+      max-lifetime: ${DB_POOL_MAX_LIFETIME_MS:${SPRING_DATASOURCE_HIKARI_MAX_LIFETIME:1800000}}
+      validation-timeout: ${DB_POOL_VALIDATION_TIMEOUT_MS:${SPRING_DATASOURCE_HIKARI_VALIDATION_TIMEOUT:5000}}
+      leak-detection-threshold: ${DB_POOL_LEAK_DETECTION_MS:${SPRING_DATASOURCE_HIKARI_LEAK_DETECTION_THRESHOLD:0}}
   jackson:
     serialization:
       indent-output: true
