@@ -25,15 +25,13 @@ export default function RoundPoints({buckets, selectedLabel, actualBucket}: {
     actualBucket: string
 }) {
     if (!selectedLabel) return null;
-    const {points, distance} = scoreForRound(buckets, selectedLabel, actualBucket);
+    const {points} = scoreForRound(buckets, selectedLabel, actualBucket);
     const pointsLabel = POINTS_PLURAL_RULES.select(points) === "one" ? "point" : "points";
 
     return (
         <div className="result-points">
             <div className="result-points__text">
                 <strong>{points}</strong> {pointsLabel}
-                <span className="result-points__sep">&middot;</span>
-                {distance === 0 ? 'exact match' : `off by ${distance}`}
             </div>
         </div>
     );

@@ -11,11 +11,11 @@ const fmt = new Intl.NumberFormat();
 
 function resolveHeaderText(correct: boolean, buckets: string[], selectedLabel: string | null | undefined, actualBucket: string): string {
     if (correct) return 'Hit!';
-    if (selectedLabel) {
-        const {points} = scoreForRound(buckets, selectedLabel, actualBucket);
-        if (points === 0) return 'Flop!';
-    }
-    return 'Not quite.';
+    if (!selectedLabel) return 'Flop!';
+
+    const {distance, points} = scoreForRound(buckets, selectedLabel, actualBucket);
+    if (points === 0) return 'Flop!';
+    return `Off by ${distance}`;
 }
 
 function resolveRoundResultTier(
