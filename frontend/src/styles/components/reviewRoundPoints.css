@@ -12,8 +12,8 @@
     flex-shrink: 0;
 }
 
-.result-points__meter--close { --meter-fill: oklch(0.78 0.16 90); }
-.result-points__meter--near  { --meter-fill: oklch(0.70 0.16 55); }
+.result-points__meter--close { --meter-fill: var(--color-score-close); }
+.result-points__meter--near  { --meter-fill: var(--color-score-near); }
 .result-points__meter--far   { --meter-fill: var(--color-error); }
 
 /* WebKit (Chrome, Safari, Edge) */

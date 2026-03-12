@@ -9,6 +9,8 @@
     --color-primary: oklch(0.5461 0.2152 262.88);
     --color-accent: oklch(0.7686 0.1647 70.08);
     --color-success: oklch(0.6271 0.1699 149.21);
+    --color-score-close: oklch(0.78 0.16 90);
+    --color-score-near: oklch(0.7 0.16 55);
     --color-error: oklch(0.5771 0.2152 27.33);
     --font-mono: ui-monospace, 'SF Mono', 'Monaco', 'Cascadia Code', 'Roboto Mono', 'Consolas', monospace;
 }
@@ -24,5 +26,7 @@ html[data-theme='dark'] {
     --color-primary: oklch(0.7137 0.1434 254.62);
     --color-accent: oklch(0.8369 0.1644 84.43);
     --color-success: oklch(0.7227 0.192 149.58);
+    --color-score-close: oklch(0.84 0.14 95);
+    --color-score-near: oklch(0.78 0.15 60);
     --color-error: oklch(0.6368 0.2078 25.33);
 }
