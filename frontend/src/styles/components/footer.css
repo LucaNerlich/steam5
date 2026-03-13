@@ -1,15 +1,15 @@
 footer {
-    margin-top: 2rem;
-    padding-left: max(12px, env(safe-area-inset-left));
-    padding-right: max(12px, env(safe-area-inset-right));
+    margin-top: var(--layout-footer-margin-top);
+    padding-left: var(--layout-page-inline-padding-left);
+    padding-right: var(--layout-page-inline-padding-right);
     border-top: 1px solid var(--color-border);
 }
 
 footer .container {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
-    padding: 1rem 0;
+    gap: var(--layout-footer-stack-gap);
+    padding: var(--layout-footer-padding-y) 0;
 }
 
 .footer__meta {
@@ -52,7 +52,7 @@ footer .container {
 
 footer .controls {
     display: flex;
-    gap: 14px;
+    gap: var(--layout-controls-gap);
     align-items: center;
     flex-wrap: wrap;
     justify-content: center;
@@ -62,7 +62,7 @@ footer .controls {
 footer .controls .font-select,
 footer .controls .theme-select {
     max-width: 140px;
-    padding: 4px 6px;
+    padding: var(--layout-select-padding-y) var(--layout-select-padding-x);
     font-size: 0.9rem;
 }
 

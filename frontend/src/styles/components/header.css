@@ -12,15 +12,15 @@ header .container {
     display: flex;
     justify-content: flex-start;
     align-items: center;
-    padding: 0.5rem 0;
+    padding: var(--layout-header-padding-y) 0;
 
     @media (max-width: 640px) {
         /* Mobile: switch to a 3-column grid so a title can sit centered */
         display: grid;
         grid-template-columns: auto 1fr auto;
         align-items: center;
-        padding: 0.25rem 0;
-        gap: 0.5rem;
+        padding: var(--layout-header-padding-y-mobile) 0;
+        gap: var(--layout-header-mobile-gap);
     }
 }
 
@@ -51,7 +51,7 @@ header .brand {
 header .header-actions {
     display: inline-flex;
     align-items: center;
-    gap: 1rem;
+    gap: var(--layout-header-actions-gap);
     margin-left: auto;
 
     a {
@@ -73,7 +73,7 @@ header .header-actions__link {
 /* Narrow dropdown for font selection */
 header .font-select {
     max-width: 120px;
-    padding: 4px 6px;
+    padding: var(--layout-select-padding-y) var(--layout-select-padding-x);
     font-size: 0.9rem;
 }
 
@@ -98,7 +98,7 @@ header .steam-login-btn:hover {
     }
 
     header .header-actions {
-        gap: 0.5rem;
+        gap: var(--layout-header-actions-gap-mobile);
     }
 
     header .font-select {
