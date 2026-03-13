@@ -30,6 +30,7 @@
     --layout-select-padding-y: 4px;
     --layout-select-padding-x: 6px;
     --layout-heading-density: 1;
+    --layout-body-line-height: 1.6;
 }
 
 html[data-theme='dark'] {
@@ -114,23 +115,24 @@ html[data-theme='minimalist'] {
     --color-score-close: oklch(0.85 0.08 90);
     --color-score-near: oklch(0.8 0.08 60);
     --color-error: oklch(0.7 0.12 25);
-    --layout-page-inline-padding-left: max(10px, env(safe-area-inset-left));
-    --layout-page-inline-padding-right: max(10px, env(safe-area-inset-right));
-    --layout-main-offset-mobile: 46px;
-    --layout-main-offset-desktop: 50px;
-    --layout-container-inline-padding: 0.75rem;
-    --layout-header-padding-y: 0.35rem;
-    --layout-header-padding-y-mobile: 0.2rem;
-    --layout-header-mobile-gap: 0.4rem;
-    --layout-header-actions-gap: 0.75rem;
-    --layout-header-actions-gap-mobile: 0.4rem;
-    --layout-footer-margin-top: 1.5rem;
-    --layout-footer-stack-gap: 0.75rem;
-    --layout-footer-padding-y: 0.75rem;
-    --layout-controls-gap: 10px;
-    --layout-select-padding-y: 3px;
-    --layout-select-padding-x: 5px;
-    --layout-heading-density: 0.85;
+    --layout-page-inline-padding-left: max(6px, env(safe-area-inset-left));
+    --layout-page-inline-padding-right: max(6px, env(safe-area-inset-right));
+    --layout-main-offset-mobile: 40px;
+    --layout-main-offset-desktop: 44px;
+    --layout-container-inline-padding: 0.5rem;
+    --layout-header-padding-y: 0.2rem;
+    --layout-header-padding-y-mobile: 0.1rem;
+    --layout-header-mobile-gap: 0.25rem;
+    --layout-header-actions-gap: 0.45rem;
+    --layout-header-actions-gap-mobile: 0.25rem;
+    --layout-footer-margin-top: 1rem;
+    --layout-footer-stack-gap: 0.45rem;
+    --layout-footer-padding-y: 0.5rem;
+    --layout-controls-gap: 6px;
+    --layout-select-padding-y: 2px;
+    --layout-select-padding-x: 4px;
+    --layout-heading-density: 0.55;
+    --layout-body-line-height: 1.4;
 }
 
 /* Bold: saturated primary and strong contrast surfaces */

@@ -22,7 +22,7 @@ body {
     font-family: var(--font-krypton), system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif;
     max-width: 100vw;
     overflow-x: hidden;
-    line-height: 1.6;
+    line-height: var(--layout-body-line-height);
     font-size: 16px;
     background-color: var(--color-background);
     color: var(--color-text);
@@ -142,4 +142,37 @@ button.theme-toggle:hover {
     max-width: 1200px;
     padding: 0 var(--layout-container-inline-padding);
     margin: 0 auto;
+}
+
+/* "Minimalist" intentionally strips visual decoration and density. */
+html[data-theme='minimalist'] :where(*, *::before, *::after) {
+    animation: none !important;
+    transition: none !important;
+}
+
+html[data-theme='minimalist'] :where(
+    button,
+    input,
+    select,
+    textarea,
+    .btn-cta,
+    .btn-success,
+    .btn-ghost,
+    [class*='__card'],
+    [class*='__hero'],
+    [class*='__summary'],
+    [class*='__modal'],
+    [class*='__panel']
+) {
+    border-radius: 0 !important;
+    box-shadow: none !important;
+}
+
+html[data-theme='minimalist'] :where(.btn-cta, .btn-success, .btn-ghost, button) {
+    filter: none !important;
+}
+
+html[data-theme='minimalist'] :not(header) > .container img {
+    border-radius: 0;
+    filter: grayscale(1);
 }
