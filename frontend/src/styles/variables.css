@@ -30,3 +30,122 @@ html[data-theme='dark'] {
     --color-score-near: oklch(0.78 0.15 60);
     --color-error: oklch(0.6368 0.2078 25.33);
 }
+
+/* OLED: near-black background with high-contrast accents */
+html[data-theme='oled'] {
+    --color-background: oklch(0.07 0.01 260);
+    --color-text: oklch(0.96 0.01 260);
+    --color-surface: oklch(0.1 0.015 260);
+    --color-surface-variant: oklch(0.16 0.02 260);
+    --color-muted: oklch(0.7 0.02 260);
+    --color-border: oklch(0.22 0.03 260);
+    --color-border-subtle: oklch(0.14 0.02 260);
+    --color-primary: oklch(0.7 0.25 262);
+    --color-accent: oklch(0.8 0.18 70);
+    --color-success: oklch(0.7 0.2 150);
+    --color-score-close: oklch(0.82 0.18 95);
+    --color-score-near: oklch(0.78 0.18 60);
+    --color-error: oklch(0.68 0.23 27);
+}
+
+/* Hacker: dark terminal style with neon green highlights */
+html[data-theme='hacker'] {
+    --color-background: oklch(0.12 0.02 140);
+    --color-text: oklch(0.9 0.02 140);
+    --color-surface: oklch(0.16 0.03 140);
+    --color-surface-variant: oklch(0.2 0.03 140);
+    --color-muted: oklch(0.72 0.04 140);
+    --color-border: oklch(0.3 0.05 140);
+    --color-border-subtle: oklch(0.2 0.03 140);
+    --color-primary: oklch(0.78 0.26 145);
+    --color-accent: oklch(0.8 0.24 110);
+    --color-success: oklch(0.8 0.28 145);
+    --color-score-close: oklch(0.82 0.24 130);
+    --color-score-near: oklch(0.78 0.24 120);
+    --color-error: oklch(0.66 0.22 27);
+}
+
+/* Rainbow: neutral surfaces with colorful accent and primary */
+html[data-theme='rainbow'] {
+    --color-background: oklch(0.96 0.01 260);
+    --color-text: oklch(0.2 0.01 260);
+    --color-surface: oklch(1 0 0);
+    --color-surface-variant: oklch(0.95 0.02 260);
+    --color-muted: oklch(0.6 0.07 260);
+    --color-border: oklch(0.9 0.03 260);
+    --color-border-subtle: oklch(0.95 0.02 260);
+    --color-primary: oklch(0.7 0.25 30);
+    --color-accent: oklch(0.78 0.25 280);
+    --color-success: oklch(0.7 0.23 145);
+    --color-score-close: oklch(0.8 0.24 80);
+    --color-score-near: oklch(0.78 0.24 330);
+    --color-error: oklch(0.65 0.25 30);
+}
+
+/* Minimalist: soft grays and understated primary */
+html[data-theme='minimalist'] {
+    --color-background: oklch(0.98 0.002 260);
+    --color-text: oklch(0.24 0.01 260);
+    --color-surface: oklch(1 0 0);
+    --color-surface-variant: oklch(0.95 0.01 260);
+    --color-muted: oklch(0.6 0.02 260);
+    --color-border: oklch(0.9 0.01 260);
+    --color-border-subtle: oklch(0.96 0.005 260);
+    --color-primary: oklch(0.7 0.08 260);
+    --color-accent: oklch(0.8 0.09 210);
+    --color-success: oklch(0.7 0.11 145);
+    --color-score-close: oklch(0.85 0.08 90);
+    --color-score-near: oklch(0.8 0.08 60);
+    --color-error: oklch(0.7 0.12 25);
+}
+
+/* Bold: saturated primary and strong contrast surfaces */
+html[data-theme='bold'] {
+    --color-background: oklch(0.93 0.03 260);
+    --color-text: oklch(0.18 0.03 260);
+    --color-surface: oklch(0.98 0.02 260);
+    --color-surface-variant: oklch(0.9 0.04 260);
+    --color-muted: oklch(0.6 0.06 260);
+    --color-border: oklch(0.84 0.05 260);
+    --color-border-subtle: oklch(0.9 0.04 260);
+    --color-primary: oklch(0.7 0.26 260);
+    --color-accent: oklch(0.78 0.26 20);
+    --color-success: oklch(0.7 0.22 150);
+    --color-score-close: oklch(0.82 0.24 90);
+    --color-score-near: oklch(0.78 0.24 60);
+    --color-error: oklch(0.68 0.26 25);
+}
+
+/* Night: softer dark theme with blue tint */
+html[data-theme='night'] {
+    --color-background: oklch(0.14 0.02 260);
+    --color-text: oklch(0.94 0.01 260);
+    --color-surface: oklch(0.19 0.03 260);
+    --color-surface-variant: oklch(0.25 0.03 260);
+    --color-muted: oklch(0.72 0.02 260);
+    --color-border: oklch(0.34 0.03 260);
+    --color-border-subtle: oklch(0.24 0.03 260);
+    --color-primary: oklch(0.76 0.2 255);
+    --color-accent: oklch(0.8 0.18 230);
+    --color-success: oklch(0.72 0.2 150);
+    --color-score-close: oklch(0.82 0.19 90);
+    --color-score-near: oklch(0.78 0.19 60);
+    --color-error: oklch(0.66 0.21 25);
+}
+
+/* Bright: vivid, high-energy light variant */
+html[data-theme='bright'] {
+    --color-background: oklch(0.98 0.015 95);
+    --color-text: oklch(0.16 0.02 260);
+    --color-surface: oklch(1 0.01 95);
+    --color-surface-variant: oklch(0.96 0.02 95);
+    --color-muted: oklch(0.6 0.05 95);
+    --color-border: oklch(0.9 0.03 95);
+    --color-border-subtle: oklch(0.96 0.02 95);
+    --color-primary: oklch(0.7 0.24 262);
+    --color-accent: oklch(0.82 0.22 80);
+    --color-success: oklch(0.7 0.2 150);
+    --color-score-close: oklch(0.86 0.22 90);
+    --color-score-near: oklch(0.8 0.22 60);
+    --color-error: oklch(0.68 0.24 25);
+}

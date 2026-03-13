@@ -59,7 +59,8 @@ footer .controls {
     width: 100%;
 }
 
-footer .controls .font-select {
+footer .controls .font-select,
+footer .controls .theme-select {
     max-width: 140px;
     padding: 4px 6px;
     font-size: 0.9rem;
@@ -75,8 +76,6 @@ footer .controls .font-select {
     opacity: 0.85;
 }
 
-/* Make icon buttons larger and consistent */
-footer .controls .theme-toggle,
 footer .controls .footer__icon-link {
     display: inline-flex;
     align-items: center;
@@ -91,12 +90,10 @@ footer .controls .footer__icon-link {
     line-height: 0;
 }
 
-footer .controls .theme-toggle:hover,
 footer .controls .footer__icon-link:hover {
     filter: brightness(1.02);
 }
 
-footer .controls .theme-toggle svg,
 footer .controls .footer__icon-link svg {
     width: 20px;
     height: 20px;

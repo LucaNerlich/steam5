@@ -1,26 +1,47 @@
 /**
  * Blocking script that initializes theme before React hydration.
  * This script runs synchronously before React loads to prevent FOUC.
- * The theme logic is duplicated here for the blocking script; ThemeSelector component
- * uses the centralized implementation from src/lib/theme/initTheme.ts.
  */
 (function () {
+    var KNOWN_THEMES = [
+        'light',
+        'dark',
+        'oled',
+        'hacker',
+        'rainbow',
+        'minimalist',
+        'bold',
+        'night',
+        'bright'
+    ];
+
+    function isKnownTheme(value) {
+        return KNOWN_THEMES.indexOf(value) !== -1;
+    }
+
     try {
-        const stored = localStorage.getItem('theme');
-        const theme = stored === 'light' || stored === 'dark'
-            ? stored
-            : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-        if (theme === 'dark') {
-            document.documentElement.setAttribute('data-theme', 'dark');
-        } else {
-            document.documentElement.removeAttribute('data-theme');
+        var stored = null;
+        try {
+            stored = localStorage.getItem('theme');
+        } catch (_) {
+            stored = null;
         }
+
+        var theme;
+        if (stored && isKnownTheme(stored)) {
+            theme = stored;
+        } else {
+            var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            theme = prefersDark ? 'dark' : 'light';
+        }
+
+        document.documentElement.setAttribute('data-theme', theme);
     } catch (e) {
-        // Fallback to system preference if localStorage fails
+        // Fallback to system preference if localStorage or dataset fails
         if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
             document.documentElement.setAttribute('data-theme', 'dark');
         } else {
-            document.documentElement.removeAttribute('data-theme');
+            document.documentElement.setAttribute('data-theme', 'light');
         }
     }
 })();
