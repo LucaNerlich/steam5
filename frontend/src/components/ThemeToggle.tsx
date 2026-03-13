@@ -14,10 +14,7 @@ const THEME_LABELS: Record<Theme, string> = {
     oled: "OLED",
     hacker: "Hacker",
     rainbow: "Rainbow",
-    minimalist: "Minimalist",
-    bold: "Bold",
     night: "Night",
-    bright: "Bright",
 };
 
 const THEME_OPTIONS: ThemeOption[] = THEME_IDS.map((id) => ({

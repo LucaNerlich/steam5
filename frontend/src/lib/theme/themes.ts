@@ -4,10 +4,7 @@ export const THEME_IDS = [
     "oled",
     "hacker",
     "rainbow",
-    "minimalist",
-    "bold",
     "night",
-    "bright",
 ] as const;
 
 export type Theme = (typeof THEME_IDS)[number];

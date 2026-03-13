@@ -144,35 +144,3 @@ button.theme-toggle:hover {
     margin: 0 auto;
 }
 
-/* "Minimalist" intentionally strips visual decoration and density. */
-html[data-theme='minimalist'] :where(*, *::before, *::after) {
-    animation: none !important;
-    transition: none !important;
-}
-
-html[data-theme='minimalist'] :where(
-    button,
-    input,
-    select,
-    textarea,
-    .btn-cta,
-    .btn-success,
-    .btn-ghost,
-    [class*='__card'],
-    [class*='__hero'],
-    [class*='__summary'],
-    [class*='__modal'],
-    [class*='__panel']
-) {
-    border-radius: 0 !important;
-    box-shadow: none !important;
-}
-
-html[data-theme='minimalist'] :where(.btn-cta, .btn-success, .btn-ghost, button) {
-    filter: none !important;
-}
-
-html[data-theme='minimalist'] :not(header) > .container img {
-    border-radius: 0;
-    filter: grayscale(1);
-}
