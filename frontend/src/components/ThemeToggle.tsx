@@ -32,20 +32,50 @@ function notifyListeners() {
     for (const l of listeners) l();
 }
 
+function safeGetStoredTheme(): string | null {
+    if (typeof window === "undefined") return null;
+    try {
+        return window.localStorage.getItem("theme");
+    } catch {
+        return null;
+    }
+}
+
+function safeSetStoredTheme(theme: Theme) {
+    if (typeof window === "undefined") return;
+    try {
+        window.localStorage.setItem("theme", theme);
+    } catch {
+        // Ignore storage errors (private mode/restricted contexts).
+    }
+}
+
+function safeClearStoredTheme() {
+    if (typeof window === "undefined") return;
+    try {
+        window.localStorage.removeItem("theme");
+    } catch {
+        // Ignore storage errors (private mode/restricted contexts).
+    }
+}
+
 function readThemeFromDOM(): Theme {
     if (typeof window === "undefined") return "light";
     const rootTheme = document.documentElement.getAttribute("data-theme");
     if (isTheme(rootTheme)) return rootTheme;
-    const stored = window.localStorage.getItem("theme");
+    const stored = safeGetStoredTheme();
     if (stored && isTheme(stored)) return stored;
+    if (stored) safeClearStoredTheme();
     return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? "dark" : "light";
 }
 
-function applyTheme(theme: Theme) {
+function applyTheme(theme: Theme, persist = true) {
     currentTheme = theme;
     const root = document.documentElement;
     root.setAttribute("data-theme", theme);
-    window.localStorage.setItem("theme", theme);
+    if (persist) {
+        safeSetStoredTheme(theme);
+    }
     notifyListeners();
 }
 
@@ -72,10 +102,13 @@ export default function ThemeToggle() {
     useEffect(() => {
         const media = window.matchMedia('(prefers-color-scheme: dark)');
         const handler = () => {
-            const stored = window.localStorage.getItem("theme");
+            const stored = safeGetStoredTheme();
             // Only follow system preference when no explicit theme choice is stored
+            if (stored && !isTheme(stored)) {
+                safeClearStoredTheme();
+            }
             if (!stored || !isTheme(stored)) {
-                applyTheme(media.matches ? "dark" : "light");
+                applyTheme(media.matches ? "dark" : "light", false);
             }
         };
         media.addEventListener("change", handler);

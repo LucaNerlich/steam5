@@ -28,7 +28,7 @@
 
     function isKnownTheme(value, knownThemes) {
         if (!isSafeThemeToken(value)) return false;
-        if (!knownThemes || knownThemes.length === 0) return true;
+        if (!knownThemes || knownThemes.length === 0) return false;
         return knownThemes.indexOf(value) !== -1;
     }
 
