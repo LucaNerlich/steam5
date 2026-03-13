@@ -33,8 +33,6 @@ export default function LeaderboardWeeklyPage() {
             <script type="application/ld+json" dangerouslySetInnerHTML={{
                 __html: JSON.stringify(breadcrumbJsonLd)
             }} />
-            <h2>Weekly</h2>
-            <p className="text-muted">Last seven days</p>
             <Suspense fallback={<LeaderboardSkeleton variant="table"/>}>
                 <WeeklyLeaderboardContent />
             </Suspense>

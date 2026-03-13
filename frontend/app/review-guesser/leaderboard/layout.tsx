@@ -1,12 +1,14 @@
 import {ReactNode} from "react";
 import "@/styles/components/leaderboard.css";
 import LeaderboardToggle from "@/components/LeaderboardToggle";
+import LeaderboardHeader from "@/components/LeaderboardHeader";
 
 export default function LeaderboardLayout({children}: { children: ReactNode }) {
     return (
         <section className="container">
             <h1>Leaderboard</h1>
             <LeaderboardToggle />
+            <LeaderboardHeader />
             {children}
         </section>
     );

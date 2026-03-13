@@ -33,8 +33,6 @@ export default function LeaderboardSeasonPage() {
             <script type="application/ld+json" dangerouslySetInnerHTML={{
                 __html: JSON.stringify(breadcrumbJsonLd)
             }} />
-            <h2>Season</h2>
-            <p className="text-muted">Current season standings</p>
             <Suspense fallback={<LeaderboardSkeleton variant="table"/>}>
                 <SeasonLeaderboardContent />
             </Suspense>

@@ -33,8 +33,6 @@ export default function LeaderboardPage() {
             <script type="application/ld+json" dangerouslySetInnerHTML={{
                 __html: JSON.stringify(breadcrumbJsonLd)
             }} />
-            <h2>All-time</h2>
-            <p className="text-muted">Overall points summed across all days</p>
             <Suspense fallback={<LeaderboardSkeleton variant="table"/>}>
                 <AllTimeLeaderboardContent />
             </Suspense>

@@ -33,8 +33,6 @@ export default function LeaderboardTodayPage() {
             <script type="application/ld+json" dangerouslySetInnerHTML={{
                 __html: JSON.stringify(breadcrumbJsonLd)
             }} />
-            <h2>Today</h2>
-            <p className="text-muted">Today&apos;s total points by player</p>
             <Suspense fallback={<LeaderboardSkeleton variant="table"/>}>
                 <TodayLeaderboardContent />
             </Suspense>
