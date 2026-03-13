@@ -1,38 +1,29 @@
 "use client";
 
 import {useEffect, useSyncExternalStore} from "react";
-
-type Theme =
-    | "light"
-    | "dark"
-    | "oled"
-    | "hacker"
-    | "rainbow"
-    | "minimalist"
-    | "bold"
-    | "night"
-    | "bright";
+import {isTheme, THEME_IDS, type Theme} from "@/lib/theme/themes";
 
 type ThemeOption = {
     id: Theme;
     label: string;
 };
 
-const THEME_OPTIONS: ThemeOption[] = [
-    {id: "light", label: "Light"},
-    {id: "dark", label: "Dark"},
-    {id: "oled", label: "OLED"},
-    {id: "hacker", label: "Hacker"},
-    {id: "rainbow", label: "Rainbow"},
-    {id: "minimalist", label: "Minimalist"},
-    {id: "bold", label: "Bold"},
-    {id: "night", label: "Night"},
-    {id: "bright", label: "Bright"},
-];
+const THEME_LABELS: Record<Theme, string> = {
+    light: "Light",
+    dark: "Dark",
+    oled: "OLED",
+    hacker: "Hacker",
+    rainbow: "Rainbow",
+    minimalist: "Minimalist",
+    bold: "Bold",
+    night: "Night",
+    bright: "Bright",
+};
 
-function isTheme(value: string | null): value is Theme {
-    return THEME_OPTIONS.some(option => option.id === value);
-}
+const THEME_OPTIONS: ThemeOption[] = THEME_IDS.map((id) => ({
+    id,
+    label: THEME_LABELS[id],
+}));
 
 let currentTheme: Theme = "light";
 const listeners = new Set<() => void>();
@@ -96,7 +87,10 @@ export default function ThemeToggle() {
             aria-label="Color theme"
             className="theme-select"
             value={theme}
-            onChange={(e) => applyTheme(e.target.value as Theme)}
+            onChange={(e) => {
+                const value = e.target.value;
+                if (isTheme(value)) applyTheme(value);
+            }}
         >
             {THEME_OPTIONS.map(option => (
                 <option key={option.id} value={option.id}>
