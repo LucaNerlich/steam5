@@ -1,15 +1,15 @@
 footer {
-    margin-top: var(--layout-footer-margin-top);
-    padding-left: var(--layout-page-inline-padding-left);
-    padding-right: var(--layout-page-inline-padding-right);
+    margin-top: 2rem;
+    padding-left: max(12px, env(safe-area-inset-left));
+    padding-right: max(12px, env(safe-area-inset-right));
     border-top: 1px solid var(--color-border);
 }
 
 footer .container {
     display: flex;
     flex-direction: column;
-    gap: var(--layout-footer-stack-gap);
-    padding: var(--layout-footer-padding-y) 0;
+    gap: 1rem;
+    padding: 1rem 0;
 }
 
 .footer__meta {
@@ -52,17 +52,16 @@ footer .container {
 
 footer .controls {
     display: flex;
-    gap: var(--layout-controls-gap);
+    gap: 14px;
     align-items: center;
     flex-wrap: wrap;
     justify-content: center;
     width: 100%;
 }
 
-footer .controls .font-select,
-footer .controls .theme-select {
+footer .controls .font-select {
     max-width: 140px;
-    padding: var(--layout-select-padding-y) var(--layout-select-padding-x);
+    padding: 4px 6px;
     font-size: 0.9rem;
 }
 
@@ -76,6 +75,8 @@ footer .controls .theme-select {
     opacity: 0.85;
 }
 
+/* Make icon buttons larger and consistent */
+footer .controls .theme-toggle,
 footer .controls .footer__icon-link {
     display: inline-flex;
     align-items: center;
@@ -90,10 +91,12 @@ footer .controls .footer__icon-link {
     line-height: 0;
 }
 
+footer .controls .theme-toggle:hover,
 footer .controls .footer__icon-link:hover {
     filter: brightness(1.02);
 }
 
+footer .controls .theme-toggle svg,
 footer .controls .footer__icon-link svg {
     width: 20px;
     height: 20px;

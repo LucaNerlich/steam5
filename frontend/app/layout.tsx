@@ -6,7 +6,6 @@ import UmamiAnalytics from "@/components/UmamiAnalytics";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { AuthProvider } from "@/contexts/AuthContext";
-import {THEME_IDS} from "@/lib/theme/themes";
 import localFont from "next/font/local";
 
 const krypton = localFont({
@@ -226,11 +225,7 @@ export default async function RootLayout({
             suppressHydrationWarning
         >
         <head>
-            <Script
-                src="/theme-init.js"
-                strategy="beforeInteractive"
-                data-known-themes={THEME_IDS.join(",")}
-            />
+            <Script src="/theme-init.js" strategy="beforeInteractive"/>
             <link rel="preconnect" href={origin}/>
             <link rel="dns-prefetch" href={origin}/>
             <script

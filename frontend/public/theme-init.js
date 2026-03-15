@@ -1,70 +1,26 @@
 /**
  * Blocking script that initializes theme before React hydration.
  * This script runs synchronously before React loads to prevent FOUC.
+ * The theme logic is duplicated here for the blocking script; ThemeSelector component
+ * uses the centralized implementation from src/lib/theme/initTheme.ts.
  */
 (function () {
-    function parseKnownThemesFromScript() {
-        var script = document.currentScript;
-        if (!script || !script.getAttribute) return null;
-
-        var raw = script.getAttribute('data-known-themes');
-        if (!raw) return null;
-
-        var parts = raw.split(',');
-        var themes = [];
-        for (var i = 0; i < parts.length; i += 1) {
-            var candidate = parts[i].trim();
-            if (candidate) {
-                themes.push(candidate);
-            }
-        }
-
-        return themes.length > 0 ? themes : null;
-    }
-
-    function isSafeThemeToken(value) {
-        return /^[a-z0-9-]{1,32}$/.test(value);
-    }
-
-    function isKnownTheme(value, knownThemes) {
-        if (!isSafeThemeToken(value)) return false;
-        if (!knownThemes || knownThemes.length === 0) return false;
-        return knownThemes.indexOf(value) !== -1;
-    }
-
     try {
-        var knownThemes = parseKnownThemesFromScript();
-        var stored = null;
-        var hasStorage = true;
-        try {
-            stored = localStorage.getItem('theme');
-        } catch (_) {
-            hasStorage = false;
-            stored = null;
-        }
-
-        var theme;
-        if (stored && isKnownTheme(stored, knownThemes)) {
-            theme = stored;
+        const stored = localStorage.getItem('theme');
+        const theme = stored === 'light' || stored === 'dark'
+            ? stored
+            : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        if (theme === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
         } else {
-            if (stored && hasStorage) {
-                try {
-                    localStorage.removeItem('theme');
-                } catch (_) {
-                    // Ignore removal failures in restricted storage contexts.
-                }
-            }
-            var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-            theme = prefersDark ? 'dark' : 'light';
+            document.documentElement.removeAttribute('data-theme');
         }
-
-        document.documentElement.setAttribute('data-theme', theme);
     } catch (e) {
-        // Fallback to system preference if localStorage or dataset fails
+        // Fallback to system preference if localStorage fails
         if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
             document.documentElement.setAttribute('data-theme', 'dark');
         } else {
-            document.documentElement.setAttribute('data-theme', 'light');
+            document.documentElement.removeAttribute('data-theme');
         }
     }
 })();
