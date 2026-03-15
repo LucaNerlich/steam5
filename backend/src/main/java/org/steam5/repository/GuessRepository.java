@@ -12,6 +12,12 @@ import java.util.Optional;
 public interface GuessRepository extends JpaRepository<Guess, Long> {
     Optional<Guess> findBySteamIdAndGameDateAndRoundIndex(String steamId, LocalDate date, int roundIndex);
 
+    /**
+     * Fetches one user's guess history in profile display order.
+     * Uses the composite index on (steam_id, game_date, round_index).
+     */
+    List<Guess> findBySteamIdOrderByGameDateDescRoundIndexAsc(String steamId);
+
     @Query("select g from Guess g where g.steamId = :steamId and g.gameDate = :date order by g.roundIndex asc")
     List<Guess> findAllForDay(@Param("steamId") String steamId, @Param("date") LocalDate date);
 
@@ -28,6 +34,10 @@ public interface GuessRepository extends JpaRepository<Guess, Long> {
     @Query("select g from Guess g where g.gameDate = :date")
     List<Guess> findAllByDate(@Param("date") LocalDate date);
 
+    /**
+     * Date-range scan used by profile/history and season views.
+     * Primarily backed by idx_guesses_game_date.
+     */
     @Query("select g from Guess g where g.gameDate between :start and :end")
     List<Guess> findAllBetween(@Param("start") LocalDate start,
                                 @Param("end") LocalDate end);
@@ -46,6 +56,10 @@ public interface GuessRepository extends JpaRepository<Guess, Long> {
         Long getActiveDays();
     }
 
+    /**
+     * Aggregates per-user season metrics over a bounded date range.
+     * The date predicate relies on idx_guesses_game_date.
+     */
     @Query("""
             select g.steamId as steamId,
                    sum(g.points) as totalPoints,
@@ -64,6 +78,10 @@ public interface GuessRepository extends JpaRepository<Guess, Long> {
         LocalDate getGameDate();
     }
 
+    /**
+     * Returns ordered (user, date) participation rows for streak/season processing.
+     * Uses idx_guesses_game_date for the bounded date filter.
+     */
     @Query("""
             select g.steamId as steamId,
                    g.gameDate as gameDate
@@ -182,6 +200,7 @@ public interface GuessRepository extends JpaRepository<Guess, Long> {
         Long getRounds();
     }
 
+    // Multi-scan CTE query. Cached in service layer today; consider a window-function rewrite if data volume grows.
     @Query(value = "WITH day_rounds AS (\n" +
             "  SELECT game_date, MAX(round_index) AS rounds_per_day\n" +
             "  FROM guesses\n" +
@@ -205,6 +224,7 @@ public interface GuessRepository extends JpaRepository<Guess, Long> {
             , nativeQuery = true)
     List<PerfectDaysRow> findUsersByPerfectDaysDesc(@Param("minRounds") int minRounds);
 
+    // Multi-scan CTE query. Cached in service layer today; consider a window-function rewrite if data volume grows.
     @Query(value = "WITH day_rounds AS (\n" +
             "  SELECT game_date, MAX(round_index) AS rounds_per_day\n" +
             "  FROM guesses\n" +
@@ -292,6 +312,7 @@ public interface GuessRepository extends JpaRepository<Guess, Long> {
         Long getRounds();
     }
 
+    // Multi-scan CTE query. Cached in service layer today; consider a window-function rewrite if data volume grows.
     @Query(value = "WITH daily_diffs AS (\n" +
             "  SELECT steam_id, game_date,\n" +
             "    EXTRACT(EPOCH FROM (MAX(created_at) - MIN(created_at))) AS diff_seconds\n" +
@@ -311,6 +332,7 @@ public interface GuessRepository extends JpaRepository<Guess, Long> {
             "ORDER BY ut.total_seconds ASC, uc.rounds DESC, ut.steam_id ASC", nativeQuery = true)
     List<DailyTimeDiffRow> findUsersByDailyTimeDiffAsc(@Param("minRounds") int minRounds);
 
+    // Multi-scan CTE query. Cached in service layer today; consider a window-function rewrite if data volume grows.
     @Query(value = "WITH daily_diffs AS (\n" +
             "  SELECT steam_id, game_date,\n" +
             "    EXTRACT(EPOCH FROM (MAX(created_at) - MIN(created_at))) AS diff_seconds\n" +
@@ -333,6 +355,7 @@ public interface GuessRepository extends JpaRepository<Guess, Long> {
                                                                @Param("endDate") LocalDate endDate,
                                                                @Param("minRounds") int minRounds);
 
+    // Multi-scan CTE query. Cached in service layer today; consider a window-function rewrite if data volume grows.
     @Query(value = "WITH daily_diffs AS (\n" +
             "  SELECT steam_id, game_date,\n" +
             "    EXTRACT(EPOCH FROM (MAX(created_at) - MIN(created_at))) AS diff_seconds\n" +
@@ -352,6 +375,7 @@ public interface GuessRepository extends JpaRepository<Guess, Long> {
             "ORDER BY ut.total_seconds DESC, uc.rounds DESC, ut.steam_id ASC", nativeQuery = true)
     List<DailyTimeDiffRow> findUsersByDailyTimeDiffDesc(@Param("minRounds") int minRounds);
 
+    // Multi-scan CTE query. Cached in service layer today; consider a window-function rewrite if data volume grows.
     @Query(value = "WITH daily_diffs AS (\n" +
             "  SELECT steam_id, game_date,\n" +
             "    EXTRACT(EPOCH FROM (MAX(created_at) - MIN(created_at))) AS diff_seconds\n" +

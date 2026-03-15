@@ -41,10 +41,7 @@ public class ProfileController {
             return ResponseEntity.status(404).body(Map.of("error", "not_found"));
         }
 
-        final List<Guess> guesses = guessRepository.findAll().stream()
-                .filter(g -> Objects.equals(g.getSteamId(), steamId))
-                .sorted(Comparator.comparing(Guess::getGameDate).thenComparingInt(Guess::getRoundIndex))
-                .toList();
+        final List<Guess> guesses = guessRepository.findBySteamIdOrderByGameDateDescRoundIndexAsc(steamId);
 
         // Resolve app names in bulk to avoid N+1 lookups
         final Map<Long, String> appNames = guesses.stream()

@@ -15,11 +15,15 @@ import org.steam5.repository.details.SteamAppDetailRepository;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -325,17 +329,25 @@ public class StatisticsService {
     @Cacheable(value = "stats-hourly", key = "'top-games-by-reviews-' + #limit", unless = "#result == null")
     public List<TopGameByReviews> getTopGamesByReviewCount(int limit) {
         final List<ReviewGamePickRepository.TopGameByReviewsRow> rows = reviewGamePickRepository.findTopGamesByReviewCount(limit);
+        final Set<LocalDate> pickDates = rows.stream()
+                .map(ReviewGamePickRepository.TopGameByReviewsRow::getPickDate)
+                .filter(java.util.Objects::nonNull)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        final Map<LocalDate, List<ReviewGamePick>> picksByDate = pickDates.isEmpty()
+                ? Map.of()
+                : reviewGamePickRepository.findByPickDateIn(pickDates).stream()
+                .collect(Collectors.groupingBy(ReviewGamePick::getPickDate));
+        picksByDate.values().forEach(picks -> picks.sort(
+                Comparator.comparing(ReviewGamePick::getCreatedAt).thenComparing(ReviewGamePick::getId)
+        ));
+
         return rows.stream()
                 .map(row -> {
                     final LocalDate pickDate = row.getPickDate();
                     // Calculate round index for the most recent pick date
                     Integer roundIndex = null;
                     if (pickDate != null && row.getAppId() != null) {
-                        final List<ReviewGamePick> picksForDate = reviewGamePickRepository.findByPickDate(pickDate);
-                        // Sort by created_at to get the order
-                        final List<ReviewGamePick> sortedPicks = picksForDate.stream()
-                                .sorted((a, b) -> a.getCreatedAt().compareTo(b.getCreatedAt()))
-                                .toList();
+                        final List<ReviewGamePick> sortedPicks = picksByDate.getOrDefault(pickDate, List.of());
                         // Find the index of the pick for this app
                         for (int i = 0; i < sortedPicks.size(); i++) {
                             if (sortedPicks.get(i).getAppId().equals(row.getAppId())) {

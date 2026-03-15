@@ -9,8 +9,13 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 
 @Entity
+// NOTE: Hibernate only auto-creates this index when ddl-auto is update/create.
+// For large production tables, apply manually during maintenance:
+// CREATE INDEX CONCURRENTLY idx_guesses_game_date ON guesses (game_date)
+// (CONCURRENTLY cannot be used by Hibernate schema updates because they run in a transaction).
 @Table(name = "guesses", indexes = {
-        @Index(name = "ix_guess_steam_date_round", columnList = "steam_id, game_date, round_index", unique = true)
+        @Index(name = "ix_guess_steam_date_round", columnList = "steam_id, game_date, round_index", unique = true),
+        @Index(name = "idx_guesses_game_date", columnList = "game_date")
 })
 @Data
 @NoArgsConstructor

@@ -10,10 +10,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.steam5.domain.ReviewGamePick;
+import org.steam5.domain.SteamAppReviews;
 import org.steam5.domain.User;
 import org.steam5.domain.details.SteamAppDetail;
 import org.steam5.http.ReviewGameException;
 import org.steam5.repository.GuessRepository;
+import org.steam5.repository.SteamAppReviewsRepository;
 import org.steam5.repository.UserRepository;
 import org.steam5.repository.details.SteamAppDetailRepository;
 import org.steam5.service.AuthTokenService;
@@ -27,12 +29,15 @@ import java.time.OffsetDateTime;
 import java.time.YearMonth;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -46,6 +51,7 @@ public class ReviewGameStateController {
     private final ReviewGameStateService service;
     private final SteamAppDetailRepository detailRepository;
     private final GuessRepository guessRepository;
+    private final SteamAppReviewsRepository reviewsRepository;
     private final UserRepository userRepository;
     private final AuthTokenService authTokenService;
     private final org.steam5.repository.ReviewGamePickRepository pickRepository;
@@ -211,12 +217,13 @@ public class ReviewGameStateController {
         final List<ReviewGamePick> picks = service.generateDailyPicks();
         final LocalDate date = picks.isEmpty() ? LocalDate.now() : picks.getFirst().getPickDate();
         final var guesses = guessRepository.findAllForDay(steamId, date);
+        final Map<Long, Integer> totalReviewsByAppId = lookupTotalReviewsByAppId(guesses);
         final var dtos = guesses.stream().map(g -> new MyGuessDto(
                 g.getRoundIndex(),
                 g.getAppId(),
                 g.getSelectedBucket(),
                 g.getActualBucket(),
-                service.getTotalReviewCountForApp(g.getAppId())
+                totalReviewsByAppId.getOrDefault(g.getAppId(), 0)
         )).toList();
         return ResponseEntity.ok(dtos);
     }
@@ -243,12 +250,13 @@ public class ReviewGameStateController {
         }
 
         final var guesses = guessRepository.findAllForDay(steamId, day);
+        final Map<Long, Integer> totalReviewsByAppId = lookupTotalReviewsByAppId(guesses);
         final var dtos = guesses.stream().map(g -> new MyGuessDto(
                 g.getRoundIndex(),
                 g.getAppId(),
                 g.getSelectedBucket(),
                 g.getActualBucket(),
-                service.getTotalReviewCountForApp(g.getAppId())
+                totalReviewsByAppId.getOrDefault(g.getAppId(), 0)
         )).toList();
 
         final boolean isToday = day.equals(LocalDate.now());
@@ -283,12 +291,13 @@ public class ReviewGameStateController {
         final var guesses = guessRepository.findAllBetween(start, end).stream()
                 .filter(g -> g.getSteamId().equals(steamId))
                 .toList();
+        final Map<Long, Integer> totalReviewsByAppId = lookupTotalReviewsByAppId(guesses);
         final var dtos = guesses.stream().map(g -> new MyGuessDto(
                 g.getRoundIndex(),
                 g.getAppId(),
                 g.getSelectedBucket(),
                 g.getActualBucket(),
-                service.getTotalReviewCountForApp(g.getAppId())
+                totalReviewsByAppId.getOrDefault(g.getAppId(), 0)
         )).toList();
 
         return ResponseEntity.ok()
@@ -616,9 +625,18 @@ public class ReviewGameStateController {
         final List<String> labels = service.getBucketLabels();
         // Collect all appIds for dates in range, preserving chronological order per day
         final java.util.ArrayList<Long> appIds = new java.util.ArrayList<>();
+        final List<ReviewGamePick> picksInRange = pickRepository.findByPickDateBetween(start, end);
+        final Map<LocalDate, List<ReviewGamePick>> picksByDate = new HashMap<>();
+        for (ReviewGamePick pick : picksInRange) {
+            picksByDate.computeIfAbsent(pick.getPickDate(), ignored -> new ArrayList<>()).add(pick);
+        }
+        picksByDate.values().forEach(picks -> picks.sort(
+                Comparator.comparing(ReviewGamePick::getCreatedAt).thenComparing(ReviewGamePick::getId)
+        ));
+
         java.time.LocalDate d = start;
         while (!d.isAfter(end)) {
-            final List<org.steam5.domain.ReviewGamePick> picks = pickRepository.findByPickDate(d);
+            final List<org.steam5.domain.ReviewGamePick> picks = picksByDate.getOrDefault(d, List.of());
             if (!picks.isEmpty()) {
                 for (org.steam5.domain.ReviewGamePick p : picks) appIds.add(p.getAppId());
             }
@@ -637,6 +655,24 @@ public class ReviewGameStateController {
             out.add(new AlwaysPickScore(i + 1, selected, avg, rounds));
         }
         return new AlwaysPickComputation(rounds, out);
+    }
+
+    private Map<Long, Integer> lookupTotalReviewsByAppId(List<org.steam5.domain.Guess> guesses) {
+        final Set<Long> appIds = new HashSet<>();
+        for (org.steam5.domain.Guess guess : guesses) {
+            if (guess.getAppId() != null) {
+                appIds.add(guess.getAppId());
+            }
+        }
+        if (appIds.isEmpty()) {
+            return Map.of();
+        }
+
+        final Map<Long, Integer> totalReviewsByAppId = new HashMap<>();
+        for (SteamAppReviews reviews : reviewsRepository.findAllById(appIds)) {
+            totalReviewsByAppId.put(reviews.getAppId(), reviews.getTotalPositive() + reviews.getTotalNegative());
+        }
+        return totalReviewsByAppId;
     }
 }
 

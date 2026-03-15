@@ -200,6 +200,20 @@ npm run dev
 - Keep entities and repositories aligned with the schema.
 - Add tests for the ingest job and API controllers.
 
+## Query Performance Notes
+
+- `guesses` date-range queries (for example `findAllBetween`, `findSeasonStats`, `findSeasonDates`) rely on `idx_guesses_game_date`.
+- Profile history lookup uses `(steam_id, game_date, round_index)` via `findBySteamIdOrderByGameDateDescRoundIndexAsc`.
+- `SteamAppReviewsRepository` random-pick methods use a two-phase CTE + `NOT EXISTS` pattern to avoid random sorting on the full table.
+- Optional DBA-only index for large review datasets:
+  ```sql
+  CREATE INDEX idx_reviews_eligible ON steam_app_reviews (app_id)
+  WHERE (total_positive + total_negative) > 0;
+  ```
+  Add this as a migration when schema management is centralized.
+- `GuessRepository` multi-scan CTE methods (`findUsersByPerfectDays*`, `findUsersByDailyTimeDiff*`) are currently service-cached; if data volume grows, prioritize window-function rewrites.
+- `leaderboardAllTime` is an inherent full-table aggregation and should be monitored as table size grows; caching reduces runtime pressure.
+
 ---
 
 ## License

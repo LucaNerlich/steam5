@@ -8,12 +8,29 @@ import org.springframework.stereotype.Repository;
 import org.steam5.domain.ReviewGamePick;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 
 @Repository
 public interface ReviewGamePickRepository extends JpaRepository<ReviewGamePick, Long> {
 
+    /**
+     * Returns all picks for one challenge day.
+     * Uses the index on review_game_pick.pick_date (idx_pick_date / equivalent).
+     */
     List<ReviewGamePick> findByPickDate(LocalDate pickDate);
+
+    /**
+     * Batch day lookup used to avoid N+1 fetches when multiple dates are processed together.
+     * Uses the index on review_game_pick.pick_date (idx_pick_date / equivalent).
+     */
+    List<ReviewGamePick> findByPickDateIn(Collection<LocalDate> dates);
+
+    /**
+     * Bounded range lookup for historical calculations.
+     * Uses the index on review_game_pick.pick_date (idx_pick_date / equivalent).
+     */
+    List<ReviewGamePick> findByPickDateBetween(LocalDate start, LocalDate end);
 
     @Query(value = "SELECT app_id FROM review_game_pick WHERE pick_date >= :sinceDate", nativeQuery = true)
     List<Long> findAppIdsPickedSince(@Param("sinceDate") LocalDate sinceDate);
