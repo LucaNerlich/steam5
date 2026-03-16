@@ -2,6 +2,10 @@
 @import "variables.css";
 @import "shared.css";
 
+@view-transition {
+    navigation: auto;
+}
+
 html {
     scroll-behavior: smooth;
     -webkit-text-size-adjust: 100%;
