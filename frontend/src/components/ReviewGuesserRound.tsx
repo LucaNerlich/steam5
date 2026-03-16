@@ -125,7 +125,7 @@ export default function ReviewGuesserRound({
             event.preventDefault();
             router.push(nextHref);
         };
-    }, [hasNextRound, nextHref, prevHref, roundIndex, router, showAuthWarning]);
+    }, [hasNextRound, nextHref, prevHref, router, showAuthWarning]);
 
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
