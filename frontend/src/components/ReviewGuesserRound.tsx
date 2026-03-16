@@ -1,6 +1,7 @@
 "use client";
 
-import {useActionState, useEffect, useMemo, useState, useTransition} from "react";
+import {useActionState, useEffect, useMemo, useRef, useState, useTransition} from "react";
+import {useRouter} from "next/navigation";
 import type {GuessResponse} from "@/types/review-game";
 import type {GuessActionState} from "../../app/review-guesser/[round]/actions";
 import {submitGuessAction} from "../../app/review-guesser/[round]/actions";
@@ -56,6 +57,7 @@ export default function ReviewGuesserRound({
                                                prefilled,
                                                allResults
                                            }: Props) {
+    const router = useRouter();
     const initial: GuessActionState = {ok: false};
     const [state, formAction] = useActionState<GuessActionState, FormData>(submitGuessAction, initial);
     const [isPending, startTransition] = useTransition();
@@ -86,6 +88,54 @@ export default function ReviewGuesserRound({
         const prev = roundIndex - 1;
         return prev >= 1 ? `/review-guesser/${prev}` : null;
     }, [roundIndex]);
+    const hasNextRound = roundIndex < totalRounds;
+    const keydownHandlerRef = useRef<(event: KeyboardEvent) => void>(() => {});
+
+    useEffect(() => {
+        keydownHandlerRef.current = (event: KeyboardEvent) => {
+            const shouldIgnoreArrowNavigation = (): boolean => {
+                if (event.defaultPrevented || event.repeat) return true;
+                if (showAuthWarning) return true;
+                if (event.metaKey || event.ctrlKey || event.altKey) return true;
+
+                const target = event.target;
+                if (target instanceof HTMLElement) {
+                    if (target.isContentEditable) return true;
+                    if (target.closest('input, textarea, select, [contenteditable="true"], [role="textbox"]')) {
+                        return true;
+                    }
+                }
+
+                // Fancybox owns arrow keys while media lightbox is active.
+                if (document.querySelector(".fancybox__container.is-open")) return true;
+
+                return false;
+            };
+            if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+            if (shouldIgnoreArrowNavigation()) return;
+
+            if (event.key === "ArrowLeft") {
+                if (!prevHref) return;
+                event.preventDefault();
+                router.push(prevHref);
+                return;
+            }
+
+            if (!hasNextRound || !nextHref) return;
+            event.preventDefault();
+            router.push(nextHref);
+        };
+    }, [hasNextRound, nextHref, prevHref, router, showAuthWarning]);
+
+    useEffect(() => {
+        const handleKeyDown = (event: KeyboardEvent) => {
+            keydownHandlerRef.current(event);
+        };
+        document.addEventListener("keydown", handleKeyDown);
+        return () => {
+            document.removeEventListener("keydown", handleKeyDown);
+        };
+    }, [router]);
 
     // Persist this round's result for the current game date
     useEffect(() => {
