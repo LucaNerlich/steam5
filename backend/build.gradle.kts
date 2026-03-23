@@ -1,6 +1,6 @@
 plugins {
     java
-    id("org.springframework.boot") version "4.0.3"
+    id("org.springframework.boot") version "4.0.4"
     id("io.spring.dependency-management") version "1.1.7"
     id("org.asciidoctor.jvm.convert") version "4.0.5"
 }
@@ -34,7 +34,8 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-cache")
     implementation("com.github.ben-manes.caffeine:caffeine:3.2.3")
     implementation("io.jsonwebtoken:jjwt-api:0.13.0")
-    implementation("me.paulschwarz:spring-dotenv:4.0.0")
+    implementation(platform("me.paulschwarz:spring-dotenv-bom:5.1.0"))
+    developmentOnly("me.paulschwarz:springboot4-dotenv")
     implementation("org.apache.commons:commons-lang3")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")

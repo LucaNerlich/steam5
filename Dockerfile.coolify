@@ -1,5 +1,5 @@
 # Stage 1: Build
-FROM gradle:8.14.3-jdk21-alpine as build
+FROM gradle:9.4.1-jdk21-alpine as build
 
 ARG STEAM_API_KEY
 ARG PORT
