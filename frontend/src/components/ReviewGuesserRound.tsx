@@ -71,6 +71,12 @@ export default function ReviewGuesserRound({
 
     const scopeKey = `${gameDate ?? ''}:${roundIndex}:${appId}`;
 
+    // @view-transition { navigation: auto } in globals.css overrides Next.js's
+    // default scroll-to-top on client navigations, so we reset manually.
+    useEffect(() => {
+        window.scrollTo({ top: 0, behavior: "instant" });
+    }, [roundIndex]);
+
     // Derive a reset signal from scope changes instead of using an effect
     const [prevScopeKey, setPrevScopeKey] = useState<string | null>(null);
     if (prevScopeKey !== scopeKey) {
