@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
@@ -410,6 +411,7 @@ public class ReviewGameStateController {
     }
 
     @PostMapping("/guess-auth")
+    @Transactional
     public ResponseEntity<GuessResponse> submitGuessAuthenticated(@RequestHeader HttpHeaders headers,
                                                                   @CookieValue(value = "s5_token", required = false) String cookieToken,
                                                                   @RequestBody GuessRequest req) {
@@ -463,8 +465,18 @@ public class ReviewGameStateController {
             return ResponseEntity.ok(new GuessResponse(g.getAppId(), total, g.getActualBucket(), alreadyOk));
         }
 
-        // create new
-        guessRepository.save(new org.steam5.domain.Guess(null, steamId, date, roundIndex, req.appId, req.bucketGuess, computedActual, points, java.time.OffsetDateTime.now()));
+        // create new; guard against concurrent duplicate via the unique index
+        try {
+            guessRepository.save(new org.steam5.domain.Guess(null, steamId, date, roundIndex, req.appId, req.bucketGuess, computedActual, points, java.time.OffsetDateTime.now()));
+        } catch (DataIntegrityViolationException ignored) {
+            // another request saved the same guess concurrently; return the persisted one
+            final var existing = guessRepository.findBySteamIdAndGameDateAndRoundIndex(steamId, date, roundIndex);
+            if (existing.isPresent()) {
+                final var g = existing.get();
+                final boolean alreadyOk = g.getActualBucket() != null && g.getActualBucket().equals(g.getSelectedBucket());
+                return ResponseEntity.ok(new GuessResponse(g.getAppId(), total, g.getActualBucket(), alreadyOk));
+            }
+        }
         final boolean ok = isCorrectForLabel(req.bucketGuess, total);
         return ResponseEntity.ok(new GuessResponse(req.appId, total, computedActual, ok));
     }

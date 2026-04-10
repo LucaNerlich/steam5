@@ -28,6 +28,7 @@ public class ReviewGameStateJob implements Job {
             service.generateDailyPicks();
         } catch (Exception e) {
             log.error("ReviewGameState generation failed", e);
+            throw new JobExecutionException(e, false);
         } finally {
             long durationMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
             log.info("Job end ReviewGameStateJob durationMs={} nextFireTime={}", durationMs,

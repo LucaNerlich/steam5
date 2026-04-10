@@ -131,8 +131,41 @@ public class LeaderboardController {
     @GetMapping(value = {"", "/", "/all"})
     @Cacheable(value = "leaderboard-static", key = "'all-time:' + T(java.time.LocalDate).now()", unless = "#result == null || #result.body == null")
     public ResponseEntity<List<LeaderEntry>> allTime() {
-        final List<Guess> guesses = guessRepository.findAll();
-        return getGuessResponse(guesses, LocalDate.now());
+        final LocalDate today = LocalDate.now();
+        final List<GuessRepository.AllTimeStatsRow> rows = guessRepository.aggregateAllTimeStats();
+        if (rows.isEmpty()) {
+            return ResponseEntity.ok(List.of());
+        }
+
+        final List<String> steamIds = rows.stream().map(GuessRepository.AllTimeStatsRow::getSteamId).toList();
+        final Map<String, User> usersById = userRepository.findAllById(steamIds).stream()
+                .collect(Collectors.toMap(User::getSteamId, user -> user));
+        final Map<String, List<LocalDate>> streakDatesById = guessRepository
+                .findDistinctDatesUpToForUsers(steamIds, today)
+                .stream()
+                .collect(Collectors.groupingBy(GuessRepository.UserDateRow::getSteamId,
+                        Collectors.mapping(GuessRepository.UserDateRow::getGameDate, Collectors.toList())));
+
+        final List<LeaderEntry> out = rows.stream()
+                .map(row -> {
+                    final User user = usersById.get(row.getSteamId());
+                    final List<LocalDate> dates = streakDatesById.getOrDefault(row.getSteamId(), List.of());
+                    final int streak = calculateStreak(dates, today);
+                    return getLeaderEntry(
+                            row.getSteamId(),
+                            row.getTotalPoints() != null ? row.getTotalPoints() : 0L,
+                            row.getRounds() != null ? row.getRounds() : 0L,
+                            row.getHits() != null ? row.getHits() : 0L,
+                            row.getFlops() != null ? row.getFlops() : 0L,
+                            row.getTooHigh() != null ? row.getTooHigh() : 0L,
+                            row.getTooLow() != null ? row.getTooLow() : 0L,
+                            row.getAvgPoints() != null ? row.getAvgPoints() : 0.0,
+                            streak,
+                            user
+                    );
+                })
+                .toList();
+        return ResponseEntity.ok(out);
     }
 
     @NotNull

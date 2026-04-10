@@ -289,7 +289,7 @@ export default function ReviewGuesserRound({
     };
 
     const handleAuthGuardedSubmit = (formData: FormData) => {
-        if (roundIndex === 1 && signedIn === false) {
+        if (signedIn === false) {
             setPendingFormData(cloneFormData(formData));
             setShowAuthWarning(true);
             return;
