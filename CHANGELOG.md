@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.1] - 2026-04-11
+
+### Changed
+- Updated Spring Boot to 4.0.5
+- Removed hardcoded dependency versions in favor of Spring Boot BOM management
+
 ## [1.1.0] - 2026-04-11
 
 ### Added
