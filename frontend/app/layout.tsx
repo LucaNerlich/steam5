@@ -176,12 +176,16 @@ async function resolveAuth() {
             return { isSignedIn: false };
         }
 
-        // Check auth with backend - use /api/auth/validate endpoint
+        // Fix #4: send the JWT in an Authorization header rather than a URL query
+        // parameter — tokens in query strings end up in access logs, browser history,
+        // and Referer headers.
+        // Fix #7: do not cache the validation result; a stale positive response after
+        // logout would leave the server-rendered HTML showing the user as authenticated.
         const res = await fetch(
-            `${BACKEND_ORIGIN}/api/auth/validate?token=${encodeURIComponent(token)}`,
+            `${BACKEND_ORIGIN}/api/auth/validate`,
             {
-                headers: { 'accept': 'application/json' },
-                next: { revalidate: 60 }, // Cache for 1 minute
+                headers: { 'accept': 'application/json', 'authorization': `Bearer ${token}` },
+                cache: 'no-store',
             }
         );
 

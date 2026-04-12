@@ -7,12 +7,15 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 import org.steam5.security.AdminTokenFilter;
+import org.steam5.security.AuthRateLimitFilter;
 
 @Configuration
 public class SecurityConfig {
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, AdminTokenFilter adminTokenFilter) {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http,
+                                                   AdminTokenFilter adminTokenFilter,
+                                                   AuthRateLimitFilter authRateLimitFilter) {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
@@ -28,6 +31,11 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
                         .anyRequest().authenticated()
                 )
+                // Fix #5: both custom filters are anchored before BasicAuthenticationFilter.
+                // The rate limiter is registered first so it runs before AdminTokenFilter —
+                // addFilterBefore inserts each filter directly before the anchor, so the
+                // first registration ends up earliest in the chain.
+                .addFilterBefore(authRateLimitFilter, BasicAuthenticationFilter.class)
                 .addFilterBefore(adminTokenFilter, BasicAuthenticationFilter.class)
                 .httpBasic(basic -> {
                 })

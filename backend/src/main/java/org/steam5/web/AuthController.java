@@ -10,6 +10,7 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -22,6 +23,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -36,6 +38,15 @@ public class AuthController {
 
     private static final String OPENID_ENDPOINT = "https://steamcommunity.com/openid/login";
     private static final Pattern STEAM_ID_PATTERN = Pattern.compile("https://steamcommunity.com/openid/id/([0-9]{17})");
+    // Allowlist for the state/nonce param: alphanumeric + hyphens/underscores, 8–128 chars
+    private static final Pattern SAFE_STATE_PATTERN = Pattern.compile("[A-Za-z0-9_-]{8,128}");
+
+    // Fix #9: reuse a single HttpClient across all callback requests instead of
+    // constructing one per login (which discards the internal thread/connection pool).
+    private static final HttpClient HTTP_CLIENT = HttpClient.newBuilder()
+            .followRedirects(HttpClient.Redirect.NEVER)
+            .connectTimeout(Duration.ofSeconds(5))
+            .build();
 
     private final AuthTokenService tokenService;
     private final SteamUserService steamUserService;
@@ -45,6 +56,26 @@ public class AuthController {
 
     private static String enc(String v) {
         return URLEncoder.encode(v, StandardCharsets.UTF_8);
+    }
+
+    /**
+     * Fix #2: Validate that the supplied redirect URL belongs to the trusted
+     * frontend origin.  Accepts only URLs whose scheme, host, and port all match
+     * {@code defaultRedirectBase}.  Rejects everything else, falling back to the
+     * hard-coded default callback URL.
+     */
+    private boolean isAllowedRedirect(String redirect) {
+        try {
+            URI uri = URI.create(redirect);
+            URI base = URI.create(defaultRedirectBase);
+            return uri.getScheme() != null
+                    && uri.getScheme().equals(base.getScheme())
+                    && uri.getHost() != null
+                    && uri.getHost().equals(base.getHost())
+                    && uri.getPort() == base.getPort();
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     private static String buildCheckAuthBody(Map<String, String> params) {
@@ -75,7 +106,7 @@ public class AuthController {
             URI r = URI.create(url);
             StringBuilder origin = new StringBuilder();
             origin.append(r.getScheme()).append("://").append(r.getHost());
-            if (r.getPort() != -1) origin.append(":" + r.getPort());
+            if (r.getPort() != -1) origin.append(":").append(r.getPort());
             return origin.toString();
         } catch (Exception e) {
             return fallback;
@@ -83,10 +114,23 @@ public class AuthController {
     }
 
     @GetMapping("/steam/login")
-    public ResponseEntity<Void> startLogin(@RequestParam(value = "redirect", required = false) String redirect,
-                                           jakarta.servlet.http.HttpServletRequest request) {
-        // Compute return_to and realm. Realm MUST be the origin (scheme://host[:port]) of return_to
-        final String returnTo = (redirect == null || redirect.isBlank()) ? defaultRedirectBase + "/api/auth/steam/callback" : redirect;
+    public ResponseEntity<Void> startLogin(
+            @RequestParam(value = "redirect", required = false) String redirect,
+            @RequestParam(value = "state", required = false) String state) {
+
+        // Fix #2: validate redirect against the trusted frontend origin; fall back
+        // to the configured default if the supplied value is absent or untrusted.
+        final String baseReturnTo = (redirect == null || redirect.isBlank() || !isAllowedRedirect(redirect))
+                ? defaultRedirectBase + "/api/auth/steam/callback"
+                : redirect;
+
+        // Fix #6: if the frontend supplied a CSRF state token, embed it in the
+        // return_to URL so Steam carries it back in the redirect, and the
+        // callback can verify it against the browser's cookie.
+        final String returnTo = (state != null && SAFE_STATE_PATTERN.matcher(state).matches())
+                ? baseReturnTo + (baseReturnTo.contains("?") ? "&" : "?") + "state=" + enc(state)
+                : baseReturnTo;
+
         final String realm = deriveOriginSafe(returnTo, defaultRedirectBase);
         final String url = OPENID_ENDPOINT + "?openid.ns=" + enc("http://specs.openid.net/auth/2.0")
                 + "&openid.mode=checkid_setup"
@@ -100,23 +144,22 @@ public class AuthController {
     @GetMapping("/steam/callback")
     public ResponseEntity<?> callback(@RequestParam Map<String, String> params) {
         try {
-            // Verify assertion with Steam via check_authentication
             final String body = buildCheckAuthBody(params);
-            final String opEndpoint = params.getOrDefault("openid.op_endpoint", OPENID_ENDPOINT);
-            HttpResponse<String> res;
-            try (HttpClient client = HttpClient.newBuilder()
-                    .followRedirects(HttpClient.Redirect.NEVER)
-                    .build()) {
-                final HttpRequest req = HttpRequest.newBuilder()
-                        .uri(URI.create(opEndpoint))
-                        .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-                        .header(HttpHeaders.ACCEPT, "text/plain")
-                        .header(HttpHeaders.ACCEPT_ENCODING, "identity")
-                        .header(HttpHeaders.USER_AGENT, "steam5-auth/1.0")
-                        .POST(HttpRequest.BodyPublishers.ofString(body))
-                        .build();
-                res = client.send(req, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
-            }
+
+            // Fix #1: ALWAYS send the check_authentication request to the hardcoded
+            // Steam endpoint.  Never trust the client-supplied openid.op_endpoint —
+            // doing so would allow an attacker to point the backend at an arbitrary
+            // server that returns is_valid:true (SSRF + authentication bypass).
+            final HttpRequest req = HttpRequest.newBuilder()
+                    .uri(URI.create(OPENID_ENDPOINT))
+                    .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                    .header(HttpHeaders.ACCEPT, "text/plain")
+                    .header(HttpHeaders.ACCEPT_ENCODING, "identity")
+                    .header(HttpHeaders.USER_AGENT, "steam5-auth/1.0")
+                    .POST(HttpRequest.BodyPublishers.ofString(body))
+                    .build();
+            final HttpResponse<String> res = HTTP_CLIENT.send(req, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+
             final String resBody = res.body();
             if (res.statusCode() / 100 == 3) {
                 final String location = res.headers().firstValue("Location").orElse("<none>");
@@ -141,7 +184,7 @@ public class AuthController {
             }
             final String steamId = m.group(1);
 
-            // Enrich user profile (persona name) best-effort
+            // Enrich user profile (persona name) — runs asynchronously; does not block login
             steamUserService.updateUserProfile(steamId);
 
             // Issue signed token
@@ -153,12 +196,21 @@ public class AuthController {
         }
     }
 
+    /**
+     * Fix #4: Accept the JWT via {@code Authorization: Bearer} header rather than
+     * a query parameter.  Tokens in query strings end up in server access logs,
+     * browser history, and {@code Referer} headers — none of which is appropriate
+     * for a credential.
+     */
     @GetMapping("/validate")
-    public ResponseEntity<?> validate(@RequestParam("token") String token) {
+    public ResponseEntity<?> validate(
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(401).body(Map.of("valid", false));
+        }
+        final String token = authHeader.substring(7);
         final String steamId = tokenService.verifyToken(token);
         if (steamId == null) return ResponseEntity.status(401).body(Map.of("valid", false));
         return ResponseEntity.ok(Map.of("valid", true, "steamId", steamId));
     }
 }
-
-

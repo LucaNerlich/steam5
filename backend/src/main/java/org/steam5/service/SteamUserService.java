@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.steam5.config.SteamAppsConfig;
 import org.steam5.domain.User;
@@ -27,8 +28,14 @@ public class SteamUserService {
     private final UserRepository userRepository;
     private final SteamHttpClient steamHttpClient;
     private final SteamAppsConfig steamAppsConfig;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    // Fix #10: inject the Spring-managed ObjectMapper so it inherits all registered
+    // modules (Java Time, etc.) rather than using a bare new ObjectMapper() instance.
+    private final ObjectMapper objectMapper;
 
+    // Fix #11: run the Steam API call asynchronously so profile enrichment no longer
+    // blocks the login response.  The method is still @Transactional; each async
+    // invocation gets its own transaction in a separate thread-pool thread.
+    @Async
     @Transactional
     public void updateUserProfile(String steamId) {
         try {
@@ -64,7 +71,8 @@ public class SteamUserService {
                 user.setPrimaryClanId(player.path("primaryclanid").asText(null));
                 user.setTimeCreatedSec(player.path("timecreated").isNumber() ? player.path("timecreated").asLong() : null);
                 user.setCountryCode(player.path("loccountrycode").asText(null));
-                if (user.getCreatedAt() == null) user.setCreatedAt(java.time.OffsetDateTime.now());
+                // Fix #12 (dead code removed): createdAt is set by @PrePersist on the entity;
+                // the null guard here was never reachable for new User() instances.
                 userRepository.save(user);
 
                 // Determine whether avatar values changed during this update run

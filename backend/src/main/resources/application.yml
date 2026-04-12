@@ -55,6 +55,7 @@ server:
     min-response-size: 1KB
 # Logging configuration is in logback-spring.xml
 auth:
+  jwtSecret: ${AUTH_JWT_SECRET:change-me-please-change-me-32-bytes-min}
   redirectBase: ${REDIRECT_BASE:http://localhost:3000}
 admin:
   api-token: ${ADMIN_API_TOKEN:}

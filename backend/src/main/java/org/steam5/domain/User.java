@@ -70,8 +70,10 @@ public class User {
     @Column(name = "country_code", length = 8)
     private String countryCode;
 
+    // Fix #12: removed the field initializer — @PrePersist below sets this value
+    // reliably before every INSERT, so the duplicate initializer was dead code.
     @Column(name = "created_at", nullable = false)
-    private OffsetDateTime createdAt = OffsetDateTime.now();
+    private OffsetDateTime createdAt;
 
     @Column(name = "updated_at")
     private OffsetDateTime updatedAt;

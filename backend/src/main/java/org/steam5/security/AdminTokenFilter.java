@@ -14,6 +14,8 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.List;
 
 @Component
@@ -48,8 +50,15 @@ public class AdminTokenFilter extends OncePerRequestFilter {
             return;
         }
 
-        String providedToken = request.getHeader(ADMIN_HEADER);
-        if (!StringUtils.hasText(providedToken) || !expectedToken.equals(providedToken)) {
+        final String providedToken = request.getHeader(ADMIN_HEADER);
+
+        // Fix #3: use a constant-time comparison to prevent timing-oracle attacks
+        // that could reveal the token character-by-character via response latency.
+        // String.equals() short-circuits on the first differing byte, leaking timing info.
+        if (!StringUtils.hasText(providedToken)
+                || !MessageDigest.isEqual(
+                        expectedToken.getBytes(StandardCharsets.UTF_8),
+                        providedToken.getBytes(StandardCharsets.UTF_8))) {
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized");
             return;
         }
@@ -65,4 +74,3 @@ public class AdminTokenFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 }
-

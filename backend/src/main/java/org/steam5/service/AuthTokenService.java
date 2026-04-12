@@ -17,7 +17,20 @@ public class AuthTokenService {
     private final SecretKey key;
 
     public AuthTokenService(@Value("${auth.jwtSecret:change-me-please-change-me-32-bytes-min}") String secret) {
-        // Derive HMAC key from provided secret
+        // Fix #8: enforce a minimum key length at startup so a misconfigured or
+        // default secret causes an immediate, obvious failure rather than silently
+        // running with a weak key in production.
+        if (secret == null || secret.length() < 32) {
+            throw new IllegalStateException(
+                    "auth.jwtSecret must be at least 32 characters. " +
+                    "Generate a strong secret with: openssl rand -base64 48");
+        }
+        if (secret.startsWith("change-me")) {
+            log.warn("auth.jwtSecret appears to be the default insecure value. " +
+                     "Set a strong random secret in production via the AUTH_JWT_SECRET environment variable.");
+        }
+        // Derive HMAC key from provided secret.
+        // Key length determines algorithm: ≥32 bytes → HS256, ≥48 → HS384, ≥64 → HS512
         this.key = Keys.hmacShaKeyFor(secret.getBytes(java.nio.charset.StandardCharsets.UTF_8));
     }
 
