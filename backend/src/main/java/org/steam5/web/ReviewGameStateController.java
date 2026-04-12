@@ -285,13 +285,17 @@ public class ReviewGameStateController {
         final String steamId = token == null ? null : authTokenService.verifyToken(token);
         if (steamId == null) return ResponseEntity.status(401).build();
 
-        final LocalDate start = from == null || from.isBlank() ? LocalDate.of(1970, 1, 1) : LocalDate.parse(from);
-        final LocalDate end = to == null || to.isBlank() ? LocalDate.now() : LocalDate.parse(to);
+        final LocalDate start;
+        final LocalDate end;
+        try {
+            start = from == null || from.isBlank() ? LocalDate.of(1970, 1, 1) : LocalDate.parse(from);
+            end = to == null || to.isBlank() ? LocalDate.now() : LocalDate.parse(to);
+        } catch (DateTimeParseException e) {
+            return ResponseEntity.badRequest().build();
+        }
         if (end.isBefore(start)) return ResponseEntity.badRequest().build();
 
-        final var guesses = guessRepository.findAllBetween(start, end).stream()
-                .filter(g -> g.getSteamId().equals(steamId))
-                .toList();
+        final var guesses = guessRepository.findBySteamIdBetween(steamId, start, end);
         final Map<Long, Integer> totalReviewsByAppId = lookupTotalReviewsByAppId(guesses);
         final var dtos = guesses.stream().map(g -> new MyGuessDto(
                 g.getRoundIndex(),

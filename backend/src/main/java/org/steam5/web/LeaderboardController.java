@@ -221,19 +221,28 @@ public class LeaderboardController {
 
     private int calculateStreak(final List<LocalDate> dates, final LocalDate asOfDate) {
         // Determine the current streak of consecutive days with at least one guess up to asOfDate.
+        // A one-day grace is applied: if the most recent play was yesterday, the streak is still
+        // considered active (the user may not have played today yet).
         if (dates.isEmpty()) return 0;
+        final LocalDate latest = dates.get(0); // dates are in descending order
+        final LocalDate expected;
+        if (latest.equals(asOfDate) || latest.equals(asOfDate.minusDays(1))) {
+            expected = latest;
+        } else {
+            // Gap of two or more days — streak is broken.
+            return 0;
+        }
         int streak = 0;
-        LocalDate expected = asOfDate;
+        LocalDate next = expected;
         for (LocalDate d : dates) {
-            if (d.equals(expected)) {
+            if (d.equals(next)) {
                 streak++;
-                expected = expected.minusDays(1);
-            } else if (d.isBefore(expected)) {
-                // break on first gap
+                next = next.minusDays(1);
+            } else if (d.isBefore(next)) {
+                // first gap — streak ends here
                 break;
-            } else {
-                // future date shouldn't happen; skip
             }
+            // future date (shouldn't happen); skip
         }
         return streak;
     }

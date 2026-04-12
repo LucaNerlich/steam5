@@ -40,11 +40,8 @@ public class SeasonFinalizerJob implements Job {
                     seasonService.finalizeSeason(season);
                 }
             }
-
-            // Re-check to make sure today is covered (in case multiple seasons were finalized)
-            if (current.getEndDate().isBefore(todayUtc)) {
-                seasonService.ensureSeasonForDate(todayUtc);
-            }
+            // ensureSeasonForDate above guarantees current.endDate >= todayUtc,
+            // so no further season creation is needed here.
         } catch (Exception ex) {
             log.error("Season finalization failed", ex);
         } finally {

@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.2] - 2026-04-12
+
+### Fixed
+- `GET /api/review-game/my/history` no longer loads the entire guesses table into memory; now queries only the requesting user's rows via a dedicated indexed query
+- `GET /api/review-game/my/history` returns HTTP 400 instead of 500 when `from`/`to` query parameters contain an invalid date format
+- All-time leaderboard streak now shows the correct active streak for users who have not yet played today (one-day grace: yesterday counts as today for streak continuity)
+- Removed unreachable code path in `SeasonFinalizerJob` that could never fire because `ensureSeasonForDate` guarantees the current season covers today
+
 ## [1.2.1] - 2026-04-12
 
 ### Changed
