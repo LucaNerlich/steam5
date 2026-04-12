@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.1] - 2026-04-12
+
+### Fixed
+
+- "Points by round" chart now correctly shows individual dots for each round within a day; previously R1/R2/R3 on the
+  same date were drawn on top of each other and appeared as a single point
+- "Recent performance" heading now sits outside the card grid, matching the visual style of the "Season awards" section
+
+### Added
+
+- News post announcing the seven new profile performance charts
+
 ## [1.3.0] - 2026-04-12
 
 ### Added
