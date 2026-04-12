@@ -4,7 +4,7 @@ import React, {useMemo} from "react";
 
 type Round = { selectedBucket: string; actualBucket: string };
 
-const MIN_ROUNDS = 3;
+const MIN_ROUNDS = 20;
 
 export default function BucketCallouts({rounds}: { rounds: Round[] }): React.ReactElement {
     const {best, worst} = useMemo(() => {
