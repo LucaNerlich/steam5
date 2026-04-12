@@ -3,6 +3,7 @@
 import React, {useMemo} from "react";
 
 type Round = {
+    roundIndex?: number;
     selectedBucket: string;
     actualBucket: string;
     points: number;
@@ -48,6 +49,17 @@ export default function PointsByRoundChart({rounds}: { rounds: Round[] }): React
         return padding + Math.max(0, Math.min(1, t)) * (width - padding * 2);
     };
 
+    /**
+     * Per-round x offset so R1/R2/R3 on the same day don't overlap.
+     * Spreads dots by ~4 px per step around the day's base x.
+     */
+    const xScaleRound = (dateStr: string, roundIndex: number | undefined) => {
+        const base = xScaleDate(dateStr);
+        const step = 4;
+        const ri = roundIndex ?? 0;
+        return base + (ri - 1) * step;
+    };
+
     const yScale = (p: number) => {
         const plotHeight = height - padding * 2 - xAxisSpace;
         return height - padding - xAxisSpace - (p / 5) * plotHeight;
@@ -87,10 +99,10 @@ export default function PointsByRoundChart({rounds}: { rounds: Round[] }): React
                         fill="none"
                         stroke="var(--color-primary, #6366f1)"
                         strokeWidth="2"
-                        points={last.map(r => `${xScaleDate(r.date!)},${yScale(r.points)}`).join(" ")}
+                        points={last.map(r => `${xScaleRound(r.date!, r.roundIndex)},${yScale(r.points)}`).join(" ")}
                     />
                     {last.map((r) => (
-                        <circle key={`pt-${r.date}-${r.selectedBucket}-${r.actualBucket}`} cx={xScaleDate(r.date!)} cy={yScale(r.points)} r="2.5" fill="var(--color-primary, #6366f1)"/>
+                        <circle key={`pt-${r.date}-${r.roundIndex ?? 0}-${r.selectedBucket}`} cx={xScaleRound(r.date!, r.roundIndex)} cy={yScale(r.points)} r="2.5" fill="var(--color-primary, #6366f1)"/>
                     ))}
                 </g>
                 {/* Y axis labels */}
