@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.3] - 2026-04-12
+
+### Fixed
+
+- Removed dead profile link from the "Profile Stats Expanded" news post
+
 ## [1.3.2] - 2026-04-12
 
 ### Fixed
