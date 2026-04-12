@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.2] - 2026-04-12
+
+### Fixed
+
+- Best & worst bucket callout now requires at least 20 rounds per bucket, filtering out price ranges from the original
+  bucket setup that lack sufficient data for a meaningful comparison
+
 ## [1.3.1] - 2026-04-12
 
 ### Fixed
