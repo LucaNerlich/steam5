@@ -90,7 +90,7 @@ export default function PointsByRoundChart({rounds}: { rounds: Round[] }): React
                         points={last.map(r => `${xScaleDate(r.date!)},${yScale(r.points)}`).join(" ")}
                     />
                     {last.map((r) => (
-                        <circle key={`pt-${r.date}-${r.roundIndex}`} cx={xScaleDate(r.date!)} cy={yScale(r.points)} r="2.5" fill="var(--color-primary, #6366f1)"/>
+                        <circle key={`pt-${r.date}-${r.selectedBucket}-${r.actualBucket}`} cx={xScaleDate(r.date!)} cy={yScale(r.points)} r="2.5" fill="var(--color-primary, #6366f1)"/>
                     ))}
                 </g>
                 {/* Y axis labels */}
