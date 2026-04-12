@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.4] - 2026-04-12
+
+### Fixed
+- Fixed invalid heading hierarchy in the game-info section: "Technical Info" was incorrectly marked as `<h2>` (same level as the section title); changed to `<h3>`
+
 ## [1.2.3] - 2026-04-12
 
 ### Fixed

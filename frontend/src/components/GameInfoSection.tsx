@@ -297,7 +297,7 @@ export default function GameInfoSection({pick}: Props): React.ReactElement | nul
             )}
 
             {(hasController || hasPlatforms) && (
-                <h2>Technical Info</h2>
+                <h3>Technical Info</h3>
             )}
 
             {hasController && (
