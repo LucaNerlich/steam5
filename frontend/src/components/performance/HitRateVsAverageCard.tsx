@@ -63,7 +63,7 @@ export default function HitRateVsAverageCard({rounds}: { rounds: Round[] }): Rea
                  aria-label="Your hit rate vs global average">
                 <Row y={22} label={`You (last ${DAYS_WINDOW} days)`} pct={myHitRate}
                      color={'var(--color-primary, #6366f1)'}/>
-                <Row y={52} label={'All players'} pct={globalAvg ?? myHitRate} color={'var(--color-success, #16a34a)'}/>
+                <Row y={52} label={'All players (all‑time)'} pct={globalAvg ?? myHitRate} color={'var(--color-success, #16a34a)'}/>
             </svg>
         </div>
     );

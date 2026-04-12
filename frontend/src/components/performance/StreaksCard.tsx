@@ -41,7 +41,14 @@ export default function StreaksCard({rounds}: { rounds: Round[] }): React.ReactE
             if (cur - prev === 24 * 60 * 60 * 1000) tail += 1; else break;
         }
 
-        return {current: tail, longest: best};
+        // A streak is only "current" if the player played today or yesterday.
+        // If the last play date is older than that, the streak has already broken.
+        const todayUtc = new Date().toISOString().slice(0, 10);
+        const yesterdayUtc = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+        const lastDate = dates[dates.length - 1];
+        const current = lastDate >= yesterdayUtc && lastDate <= todayUtc ? tail : 0;
+
+        return {current, longest: best};
     }, [rounds]);
 
     return (

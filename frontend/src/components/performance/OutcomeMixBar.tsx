@@ -4,6 +4,12 @@ import React, {useMemo} from "react";
 
 type Round = { selectedBucket: string; actualBucket: string; date?: string };
 
+/** Extract the leading numeric threshold from a bucket label (e.g. "2001-10000" → 2001). */
+function bucketOrder(label: string): number {
+    const m = label?.match(/^(\d+)/);
+    return m ? parseInt(m[1], 10) : -1;
+}
+
 export default function OutcomeMixBar({rounds}: { rounds: Round[] }): React.ReactElement {
     const DAYS_WINDOW = 30;
     const last = useMemo(() => {
@@ -18,7 +24,7 @@ export default function OutcomeMixBar({rounds}: { rounds: Round[] }): React.Reac
         const counts = {hit: 0, high: 0, low: 0};
         for (const r of last) {
             if (r.selectedBucket === r.actualBucket) counts.hit++;
-            else if (r.selectedBucket > r.actualBucket) counts.high++;
+            else if (bucketOrder(r.selectedBucket) > bucketOrder(r.actualBucket)) counts.high++;
             else counts.low++;
         }
         const total = Math.max(1, counts.hit + counts.high + counts.low);

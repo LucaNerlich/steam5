@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.5] - 2026-04-12
+
+### Fixed
+- Outcome mix chart (Too High / Too Low) now compares bucket labels numerically instead of lexicographically, fixing misclassification for high-count buckets like "2001–10000" vs "10001–50000"
+- Current daily streak now correctly resets to 0 when the player's last play date is more than one day ago; previously it showed the last trailing run regardless of how long ago it ended
+
+### Changed
+- Points-by-round chart x-axis now uses proportional calendar positioning so gaps in play days are visible as gaps in the chart; date labels show real dates (e.g. "Apr 1 → Apr 15 → Apr 30") instead of "older / mid / newer"
+- Hit-rate comparison card label updated to "All players (all‑time)" to accurately reflect that the global baseline uses all-time data while the user's bar shows only the last 30 days
+
 ## [1.2.4] - 2026-04-12
 
 ### Fixed
