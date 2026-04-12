@@ -5,83 +5,120 @@ All notable changes to this project will be documented in this file.
 ## [1.3.0] - 2026-04-12
 
 ### Added
+
 - Calendar heatmap showing 365 days of play activity with color intensity by average points earned
 - Round position chart showing average points scored per round position (R1, R2, R3)
 - Day-of-week chart showing average points by day of the week (Mon–Sun)
 - Improvement trend card comparing early vs recent round averages with a directional indicator
 - Perfect days counter showing how many days all rounds scored maximum points, with a circular progress ring
-- Guess bias badge summarising whether the player tends to overshoot or undershoot the actual price range, with a stacked breakdown bar
+- Guess bias badge summarising whether the player tends to overshoot or undershoot the actual price range, with a
+  stacked breakdown bar
 - Best and worst bucket callout highlighting the price ranges with the highest and lowest hit rates
 
 ## [1.2.5] - 2026-04-12
 
 ### Fixed
-- Outcome mix chart (Too High / Too Low) now compares bucket labels numerically instead of lexicographically, fixing misclassification for high-count buckets like "2001–10000" vs "10001–50000"
-- Current daily streak now correctly resets to 0 when the player's last play date is more than one day ago; previously it showed the last trailing run regardless of how long ago it ended
+
+- Outcome mix chart (Too High / Too Low) now compares bucket labels numerically instead of lexicographically, fixing
+  misclassification for high-count buckets like "2001–10000" vs "10001–50000"
+- Current daily streak now correctly resets to 0 when the player's last play date is more than one day ago; previously
+  it showed the last trailing run regardless of how long ago it ended
 
 ### Changed
-- Points-by-round chart x-axis now uses proportional calendar positioning so gaps in play days are visible as gaps in the chart; date labels show real dates (e.g. "Apr 1 → Apr 15 → Apr 30") instead of "older / mid / newer"
-- Hit-rate comparison card label updated to "All players (all‑time)" to accurately reflect that the global baseline uses all-time data while the user's bar shows only the last 30 days
+
+- Points-by-round chart x-axis now uses proportional calendar positioning so gaps in play days are visible as gaps in
+  the chart; date labels show real dates (e.g. "Apr 1 → Apr 15 → Apr 30") instead of "older / mid / newer"
+- Hit-rate comparison card label updated to "All players (all‑time)" to accurately reflect that the global baseline uses
+  all-time data while the user's bar shows only the last 30 days
 
 ## [1.2.4] - 2026-04-12
 
 ### Fixed
-- Fixed invalid heading hierarchy in the game-info section: "Technical Info" was incorrectly marked as `<h2>` (same level as the section title); changed to `<h3>`
+
+- Fixed invalid heading hierarchy in the game-info section: "Technical Info" was incorrectly marked as `<h2>` (same
+  level as the section title); changed to `<h3>`
 
 ## [1.2.3] - 2026-04-12
 
 ### Fixed
-- `POST /api/admin/seasons/{id}/finalize` now returns HTTP 409 Conflict if the season is already finalized, preventing accidental re-finalization that would delete and recreate all awards
-- `AdminTokenFilter` now logs a startup warning when `ADMIN_API_TOKEN` is not configured (mirrors the JWT secret validation pattern)
-- Steam login callback now validates that the backend response contains both `steamId` and `token` before setting the session cookie; a malformed response now redirects to an error page instead of silently setting the cookie to `"undefined"`
-- Public profile endpoint (`/api/profile/{steamId}`) now caps the `days` history at the most recent 365 days, preventing unbounded responses for long-tenured players
+
+- `POST /api/admin/seasons/{id}/finalize` now returns HTTP 409 Conflict if the season is already finalized, preventing
+  accidental re-finalization that would delete and recreate all awards
+- `AdminTokenFilter` now logs a startup warning when `ADMIN_API_TOKEN` is not configured (mirrors the JWT secret
+  validation pattern)
+- Steam login callback now validates that the backend response contains both `steamId` and `token` before setting the
+  session cookie; a malformed response now redirects to an error page instead of silently setting the cookie to
+  `"undefined"`
+- Public profile endpoint (`/api/profile/{steamId}`) now caps the `days` history at the most recent 365 days, preventing
+  unbounded responses for long-tenured players
 
 ## [1.2.2] - 2026-04-12
 
 ### Fixed
-- `GET /api/review-game/my/history` no longer loads the entire guesses table into memory; now queries only the requesting user's rows via a dedicated indexed query
-- `GET /api/review-game/my/history` returns HTTP 400 instead of 500 when `from`/`to` query parameters contain an invalid date format
-- All-time leaderboard streak now shows the correct active streak for users who have not yet played today (one-day grace: yesterday counts as today for streak continuity)
-- Removed unreachable code path in `SeasonFinalizerJob` that could never fire because `ensureSeasonForDate` guarantees the current season covers today
+
+- `GET /api/review-game/my/history` no longer loads the entire guesses table into memory; now queries only the
+  requesting user's rows via a dedicated indexed query
+- `GET /api/review-game/my/history` returns HTTP 400 instead of 500 when `from`/`to` query parameters contain an invalid
+  date format
+- All-time leaderboard streak now shows the correct active streak for users who have not yet played today (one-day
+  grace: yesterday counts as today for streak continuity)
+- Removed unreachable code path in `SeasonFinalizerJob` that could never fire because `ensureSeasonForDate` guarantees
+  the current season covers today
 
 ## [1.2.1] - 2026-04-12
 
 ### Changed
-- Logout response now includes `Clear-Site-Data: "cookies"` header for a broad, spec-compliant cookie sweep on Chrome and Firefox; the explicit `Set-Cookie: s5_token=; maxAge=0` is kept as a fallback for Safari
+
+- Logout response now includes `Clear-Site-Data: "cookies"` header for a broad, spec-compliant cookie sweep on Chrome
+  and Firefox; the explicit `Set-Cookie: s5_token=; maxAge=0` is kept as a fallback for Safari
 
 ## [1.2.0] - 2026-04-12
 
 ### Security
-- Fixed SSRF vulnerability: OpenID assertion verification now always uses the hardcoded Steam endpoint, ignoring any attacker-supplied `openid.op_endpoint` parameter
-- Fixed open redirect: the `redirect` parameter on the login endpoint is validated against the trusted frontend origin before use
-- Added login-CSRF protection via a random state nonce (`s5_state` cookie) generated by the login button and verified in the callback
-- JWT tokens are now passed via `Authorization: Bearer` header instead of URL query parameters, preventing token exposure in server access logs and browser history
+
+- Fixed SSRF vulnerability: OpenID assertion verification now always uses the hardcoded Steam endpoint, ignoring any
+  attacker-supplied `openid.op_endpoint` parameter
+- Fixed open redirect: the `redirect` parameter on the login endpoint is validated against the trusted frontend origin
+  before use
+- Added login-CSRF protection via a random state nonce (`s5_state` cookie) generated by the login button and verified in
+  the callback
+- JWT tokens are now passed via `Authorization: Bearer` header instead of URL query parameters, preventing token
+  exposure in server access logs and browser history
 - Admin token comparison is now constant-time (`MessageDigest.isEqual`) to prevent timing-oracle attacks
 - Added per-IP rate limiting (60 req/min) on all `/api/auth/**` endpoints via `AuthRateLimitFilter`
-- JWT secret is validated at startup: the application refuses to start if the secret is shorter than 32 characters, and logs a warning if the well-known default value is detected
+- JWT secret is validated at startup: the application refuses to start if the secret is shorter than 32 characters, and
+  logs a warning if the well-known default value is detected
 
 ### Changed
-- User profile enrichment (Steam `GetPlayerSummaries` API call) now runs asynchronously, removing it from the login response critical path
+
+- User profile enrichment (Steam `GetPlayerSummaries` API call) now runs asynchronously, removing it from the login
+  response critical path
 - `SteamUserService` now uses the Spring-managed `ObjectMapper` bean instead of a bare `new ObjectMapper()` instance
-- `HttpClient` for OpenID verification is now a reused static field instead of being constructed on every login callback request
+- `HttpClient` for OpenID verification is now a reused static field instead of being constructed on every login callback
+  request
 - `AUTH_JWT_SECRET` environment variable documented in `.env.example` and wired into `application.yml`
 
 ### Fixed
+
 - Pinned explicit versions for `caffeine`, `jjwt`, and `springboot4-dotenv` dependencies in `build.gradle.kts`
 - Removed unreachable `createdAt` null-check in `SteamUserService` and redundant field initializer in `User` entity
 
 ### Documentation
-- Added comprehensive `AUTHENTICATION_FLOW.md` covering the full Steam OpenID 2.0 flow, JWT internals, cookie mechanics, CSRF protection, rate limiting, and verification examples with Mermaid sequence diagrams
+
+- Added comprehensive `AUTHENTICATION_FLOW.md` covering the full Steam OpenID 2.0 flow, JWT internals, cookie mechanics,
+  CSRF protection, rate limiting, and verification examples with Mermaid sequence diagrams
 
 ## [1.1.1] - 2026-04-11
 
 ### Changed
+
 - Updated Spring Boot to 4.0.5
 - Removed hardcoded dependency versions in favor of Spring Boot BOM management
 
 ## [1.1.0] - 2026-04-11
 
 ### Added
+
 - Monthly archive endpoint and frontend integration for game picks
 - Leaderboard layout with dynamic headers and toggle navigation
 - Keyboard navigation for round switching (arrow keys)
@@ -93,6 +130,7 @@ All notable changes to this project will be documented in this file.
 - Database query performance improvements and repository indexing
 
 ### Fixed
+
 - Auth login modal no longer fires on every round for unauthenticated users (only round 1)
 - Backend and frontend stability fixes
 - Dotenv dependency in Gradle build
@@ -100,6 +138,7 @@ All notable changes to this project will be documented in this file.
 - Privacy Policy content updated for clarity and compliance
 
 ### Changed
+
 - Upgraded to Gradle 9
 - Improved leaderboard and round result component layouts and responsiveness
 - Streamlined and simplified scoring logic
