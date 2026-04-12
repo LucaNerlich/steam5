@@ -171,16 +171,6 @@
 }
 
 /* Performance section */
-.profile__performance {
-    border: 1px solid var(--color-border);
-    border-radius: 0.5rem;
-    padding: 0.75rem;
-    background: var(--color-surface);
-}
-
-.profile__performance h2 {
-    margin: 0 0 0.5rem;
-}
 
 .perf-grid {
     display: grid;

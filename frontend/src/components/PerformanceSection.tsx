@@ -41,7 +41,7 @@ export default function PerformanceSection({days}: { days: Day[] }): React.React
     if (rounds.length === 0) return null;
 
     return (
-        <section aria-labelledby="perf-title" className="profile__performance">
+        <section aria-labelledby="perf-title">
             <h2 id="perf-title">Recent performance</h2>
             <div className="perf-grid">
                 <CalendarHeatmap rounds={rounds} />
