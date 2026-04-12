@@ -1,5 +1,12 @@
 [
     {
+        "start": "2026-04-12",
+        "end": "2026-04-19",
+        "title": "Profile Stats Expanded",
+        "text": "<p>Your <strong>player profile</strong> now shows seven new performance charts:</p><ul><li><strong>Activity heatmap</strong> — a full year of play history at a glance</li><li><strong>Points by round position</strong> — are you stronger in R1, R2, or R3?</li><li><strong>Points by day of week</strong> — your best and worst days</li><li><strong>Improvement trend</strong> — early vs. recent average to track progress</li><li><strong>Perfect days</strong> — how often every round scored 5 pts</li><li><strong>Guess bias</strong> — whether you tend to overshoot or undershoot</li><li><strong>Best & worst bucket</strong> — which price ranges you nail and which trip you up</li></ul><p>Visit your <a href='/review-guesser/profile'>profile</a> to see them.</p>",
+        "footer": "All charts update automatically as you keep playing."
+    },
+    {
         "start": "2025-12-05",
         "end": "2025-12-10",
         "title": "Seasons Are Live! 🏁",
