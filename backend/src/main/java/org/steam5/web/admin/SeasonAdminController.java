@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 import org.steam5.domain.Season;
+import org.steam5.domain.SeasonStatus;
 import org.steam5.service.SeasonService;
 
 import java.time.LocalDate;
@@ -48,6 +49,9 @@ public class SeasonAdminController {
     public ResponseEntity<Season> finalizeSeason(@PathVariable Long seasonId) {
         Season season = seasonService.findSeason(seasonId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Season not found"));
+        if (season.getStatus() == SeasonStatus.FINALIZED) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Season is already finalized");
+        }
         Season finalized = seasonService.finalizeSeason(season);
         return ResponseEntity.ok(finalized);
     }

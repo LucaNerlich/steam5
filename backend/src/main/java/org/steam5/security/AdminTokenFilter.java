@@ -4,6 +4,8 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -21,6 +23,8 @@ import java.util.List;
 @Component
 public class AdminTokenFilter extends OncePerRequestFilter {
 
+    private static final Logger log = LoggerFactory.getLogger(AdminTokenFilter.class);
+
     private static final String ADMIN_HEADER = "X-Admin-Token";
     private static final String ADMIN_PATH_PREFIX = "/api/admin/";
 
@@ -28,6 +32,9 @@ public class AdminTokenFilter extends OncePerRequestFilter {
 
     public AdminTokenFilter(@Value("${admin.api-token:}") String expectedToken) {
         this.expectedToken = expectedToken;
+        if (!StringUtils.hasText(expectedToken)) {
+            log.warn("ADMIN_API_TOKEN is not configured — all /api/admin/** requests will be rejected with 401. Set ADMIN_API_TOKEN in your environment.");
+        }
     }
 
     @Override

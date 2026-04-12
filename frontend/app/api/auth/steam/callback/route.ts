@@ -55,7 +55,13 @@ export async function GET(req: NextRequest) {
             return resp;
         }
 
-        const data = await res.json() as {steamId: string; token: string};
+        const data = await res.json() as {steamId?: string; token?: string};
+        if (!data.token || !data.steamId) {
+            console.error('[steam5] callback: backend returned unexpected response shape', {hasSteamId: Boolean(data.steamId), hasToken: Boolean(data.token)});
+            const resp = NextResponse.redirect(new URL('/review-guesser/1?auth=error', base));
+            clearStateCookie(resp, base);
+            return resp;
+        }
         const resp = NextResponse.redirect(new URL('/review-guesser/1?auth=ok', base));
         resp.cookies.set('s5_token', data.token, {
             httpOnly: true,

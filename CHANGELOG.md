@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.3] - 2026-04-12
+
+### Fixed
+- `POST /api/admin/seasons/{id}/finalize` now returns HTTP 409 Conflict if the season is already finalized, preventing accidental re-finalization that would delete and recreate all awards
+- `AdminTokenFilter` now logs a startup warning when `ADMIN_API_TOKEN` is not configured (mirrors the JWT secret validation pattern)
+- Steam login callback now validates that the backend response contains both `steamId` and `token` before setting the session cookie; a malformed response now redirects to an error page instead of silently setting the cookie to `"undefined"`
+- Public profile endpoint (`/api/profile/{steamId}`) now caps the `days` history at the most recent 365 days, preventing unbounded responses for long-tenured players
+
 ## [1.2.2] - 2026-04-12
 
 ### Fixed

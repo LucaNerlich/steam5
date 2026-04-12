@@ -86,6 +86,7 @@ public class ProfileController {
         ));
         out.put("days", byDay.entrySet().stream()
                         .sorted(Map.Entry.<LocalDate, List<Guess>>comparingByKey().reversed())
+                        .limit(365)
                         .map(e -> Map.of(
                                 "date", e.getKey().toString(),
                                 "rounds", e.getValue().stream().sorted(Comparator.comparingInt(Guess::getRoundIndex)).map(g -> Map.of(
