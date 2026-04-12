@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.1] - 2026-04-12
+
+### Changed
+- Logout response now includes `Clear-Site-Data: "cookies"` header for a broad, spec-compliant cookie sweep on Chrome and Firefox; the explicit `Set-Cookie: s5_token=; maxAge=0` is kept as a fallback for Safari
+
 ## [1.2.0] - 2026-04-12
 
 ### Security

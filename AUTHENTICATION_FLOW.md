@@ -116,7 +116,8 @@ sequenceDiagram
 
     %% ──── Logout ────
     User->>FE: GET /api/auth/logout
-    FE->>FE: Set-Cookie: s5_token="" (maxAge=0)
+    FE->>Browser: Clear-Site-Data: "cookies" (Chrome/Firefox)
+    FE->>Browser: Set-Cookie: s5_token=""; maxAge=0 (Safari fallback)
     FE-->>User: 302 Redirect → /review-guesser/1
 ```
 
@@ -467,17 +468,32 @@ clearStateCookie(resp, base);
 
 **Why SameSite=Lax for `s5_token`:** `Strict` would break the redirect from Steam back to the app (Steam is a different origin, and `Strict` prevents cookies from being sent on any cross-origin navigation). `Lax` allows cookies on top-level navigations (safe redirects) while blocking them on cross-site sub-resource loads.
 
-**Clearing `s5_token` on logout** (`frontend/app/api/auth/logout/route.ts`):
+**Clearing cookies on logout** (`frontend/app/api/auth/logout/route.ts`):
+
+The logout response uses two complementary mechanisms:
 
 ```typescript
+// Chrome / Firefox: clears every cookie on this origin in one shot.
+// More thorough than manually expiring individual cookies.
+resp.headers.set('Clear-Site-Data', '"cookies"');
+
+// Safari fallback: Clear-Site-Data is not supported in Safari, so we
+// also explicitly expire s5_token via Set-Cookie.
 resp.cookies.set('s5_token', '', {
     httpOnly: true,
     sameSite: 'lax',
     secure: base.startsWith('https'),
     path: '/',
-    maxAge: 0,   // maxAge=0 → browser deletes cookie immediately
+    maxAge: 0,
 });
 ```
+
+| Mechanism | Coverage | Browser support |
+|-----------|----------|-----------------|
+| `Clear-Site-Data: "cookies"` | All cookies for the origin | Chrome, Firefox |
+| `Set-Cookie: s5_token=; maxAge=0` | `s5_token` specifically | All browsers (Safari fallback) |
+
+`"storage"` is intentionally excluded from `Clear-Site-Data` — localStorage holds the user's anonymous game state, which should survive a logout and is only cleared on the next login (handled by `clearAll()` in `SteamLoginButton`).
 
 ---
 
@@ -849,6 +865,8 @@ export async function GET() {
 ```typescript
 export async function GET(req: NextRequest) {
     const resp = NextResponse.redirect(new URL('/review-guesser/1', base));
+    // Broad sweep for Chrome/Firefox; Safari falls back to the explicit Set-Cookie below.
+    resp.headers.set('Clear-Site-Data', '"cookies"');
     resp.cookies.set('s5_token', '', {
         httpOnly: true, sameSite: 'lax', secure: base.startsWith('https'),
         path: '/', maxAge: 0,
@@ -907,9 +925,9 @@ sequenceDiagram
 
     User->>FE: Click logout link (href="/api/auth/logout")
     FE->>FE: GET /api/auth/logout
-    FE->>Browser: Set-Cookie: s5_token=""; maxAge=0
+    FE->>Browser: Clear-Site-Data: "cookies" + Set-Cookie: s5_token=""; maxAge=0
     FE-->>User: 302 Redirect → /review-guesser/1
-    Browser->>Browser: Delete s5_token cookie
+    Browser->>Browser: Delete all origin cookies (or just s5_token on Safari)
     Browser->>FE: GET /review-guesser/1 (no s5_token cookie)
     FE->>FE: resolveAuth() → isSignedIn: false  (cache: no-store)
     FE-->>User: Page rendered as unauthenticated
