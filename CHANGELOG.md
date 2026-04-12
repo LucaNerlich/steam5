@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.0] - 2026-04-12
+
+### Added
+- Calendar heatmap showing 365 days of play activity with color intensity by average points earned
+- Round position chart showing average points scored per round position (R1, R2, R3)
+- Day-of-week chart showing average points by day of the week (Mon–Sun)
+- Improvement trend card comparing early vs recent round averages with a directional indicator
+- Perfect days counter showing how many days all rounds scored maximum points, with a circular progress ring
+- Guess bias badge summarising whether the player tends to overshoot or undershoot the actual price range, with a stacked breakdown bar
+- Best and worst bucket callout highlighting the price ranges with the highest and lowest hit rates
+
 ## [1.2.5] - 2026-04-12
 
 ### Fixed

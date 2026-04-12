@@ -7,6 +7,13 @@ import RollingHitRateSpark from "./performance/RollingHitRateSpark";
 import BucketAccuracyBars from "./performance/BucketAccuracyBars";
 import StreaksCard from "./performance/StreaksCard";
 import HitRateVsAverageCard from "./performance/HitRateVsAverageCard";
+import CalendarHeatmap from "./performance/CalendarHeatmap";
+import RoundPositionChart from "./performance/RoundPositionChart";
+import DayOfWeekChart from "./performance/DayOfWeekChart";
+import ImprovementTrend from "./performance/ImprovementTrend";
+import PerfectDaysCard from "./performance/PerfectDaysCard";
+import BiasBadge from "./performance/BiasBadge";
+import BucketCallouts from "./performance/BucketCallouts";
 
 type Round = {
     roundIndex: number;
@@ -37,15 +44,20 @@ export default function PerformanceSection({days}: { days: Day[] }): React.React
         <section aria-labelledby="perf-title" className="profile__performance">
             <h2 id="perf-title">Recent performance</h2>
             <div className="perf-grid">
+                <CalendarHeatmap rounds={rounds} />
                 <PointsByRoundChart rounds={rounds} />
                 <OutcomeMixBar rounds={rounds} />
                 <RollingHitRateSpark rounds={rounds} />
                 <StreaksCard rounds={rounds} />
                 <BucketAccuracyBars rounds={rounds} />
                 <HitRateVsAverageCard rounds={rounds} />
+                <RoundPositionChart rounds={rounds} />
+                <DayOfWeekChart rounds={rounds} />
+                <ImprovementTrend rounds={rounds} />
+                <PerfectDaysCard rounds={rounds} />
+                <BiasBadge rounds={rounds} />
+                <BucketCallouts rounds={rounds} />
             </div>
         </section>
     );
 }
-
-
