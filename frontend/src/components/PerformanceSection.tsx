@@ -13,6 +13,10 @@ import DayOfWeekChart from "./performance/DayOfWeekChart";
 import ImprovementTrend from "./performance/ImprovementTrend";
 import BiasBadge from "./performance/BiasBadge";
 import BucketCallouts from "./performance/BucketCallouts";
+import PointsDistribution from "./performance/PointsDistribution";
+import GuessDistanceChart from "./performance/GuessDistanceChart";
+import CumulativePointsChart from "./performance/CumulativePointsChart";
+import PerfectDaysCard from "./performance/PerfectDaysCard";
 
 type Round = {
     roundIndex: number;
@@ -55,6 +59,10 @@ export default function PerformanceSection({days}: { days: Day[] }): React.React
                 <ImprovementTrend rounds={rounds} />
                 <BiasBadge rounds={rounds} />
                 <BucketCallouts rounds={rounds} />
+                <CumulativePointsChart rounds={rounds} />
+                <PointsDistribution rounds={rounds} />
+                <GuessDistanceChart rounds={rounds} />
+                <PerfectDaysCard rounds={rounds} />
             </div>
         </section>
     );
