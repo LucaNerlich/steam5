@@ -12,7 +12,7 @@ export default function RoundPositionChart({rounds}: { rounds: Round[] }): React
     const bars = useMemo(() => {
         const groups = new Map<number, { total: number; count: number }>();
         for (const r of rounds) {
-            const pos = (r.roundIndex ?? 0) + 1;
+            const pos = r.roundIndex ?? 1;
             if (!groups.has(pos)) groups.set(pos, {total: 0, count: 0});
             const g = groups.get(pos)!;
             g.total += r.points;
