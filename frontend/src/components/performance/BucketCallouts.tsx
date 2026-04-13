@@ -6,6 +6,21 @@ type Round = { selectedBucket: string; actualBucket: string };
 
 const MIN_ROUNDS = 20;
 
+function PctBar({pct, color}: { pct: number; color: string }) {
+    const widthPct = Math.max(0, Math.min(1, pct)) * 100;
+    return (
+        <div className="bucket-callout__bar-track">
+            <div className="bucket-callout__bar-bg">
+                <div
+                    className="bucket-callout__bar-fill"
+                    style={{width: `${widthPct}%`, backgroundColor: color}}
+                />
+            </div>
+            <span className="bucket-callout__bar-pct">{Math.round(pct * 100)}%</span>
+        </div>
+    );
+}
+
 export default function BucketCallouts({rounds}: { rounds: Round[] }): React.ReactElement {
     const {best, worst} = useMemo(() => {
         const stats = new Map<string, { hits: number; total: number }>();
@@ -29,25 +44,6 @@ export default function BucketCallouts({rounds}: { rounds: Round[] }): React.Rea
 
     const hasData = best !== null;
 
-    const WIDTH = 300;
-    const HEIGHT = hasData ? 110 : 40;
-    const PAD = {top: 8, right: 12, bottom: 8, left: 12};
-    const barW = WIDTH - PAD.left - PAD.right;
-    const barH = 12;
-
-    function pctBar(pct: number, color: string, y: number) {
-        return (
-            <g>
-                <rect x={PAD.left} y={y} width={barW} height={barH} rx={2}
-                      fill="var(--color-border)" fillOpacity="0.3"/>
-                <rect x={PAD.left} y={y} width={Math.max(0, pct) * barW} height={barH} rx={2}
-                      fill={color} fillOpacity="0.85"/>
-                <text x={PAD.left + barW + 4} y={y + barH * 0.85} fontSize="10"
-                      fill="var(--color-muted)">{Math.round(pct * 100)}%</text>
-            </g>
-        );
-    }
-
     return (
         <div className="perf-card">
             <div className="perf-card__title">Best &amp; worst bucket</div>
@@ -56,26 +52,24 @@ export default function BucketCallouts({rounds}: { rounds: Round[] }): React.Rea
                     Need at least {MIN_ROUNDS} rounds per bucket
                 </p>
             ) : (
-                <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="perf-line" role="img"
-                     aria-label="Best and worst price bucket by hit rate">
-                    {/* Best */}
-                    <text x={PAD.left} y={PAD.top + 8} fontSize="10" fill="var(--color-muted)">
-                        Best: <tspan fontWeight="600" fill="var(--color-success, #16a34a)">{best!.label}</tspan>
-                        <tspan fill="var(--color-muted)"> ({best!.total} rounds)</tspan>
-                    </text>
-                    {pctBar(best!.pct, "var(--color-success, #16a34a)", PAD.top + 14)}
-
-                    {/* Worst */}
+                <div className="bucket-callout" role="img" aria-label="Best and worst bucket by hit rate">
+                    <div className="bucket-callout__row">
+                        <span className="bucket-callout__label">
+                            Best: <strong className="bucket-callout__label--success">{best!.label}</strong>
+                            <span className="bucket-callout__rounds">({best!.total} rounds)</span>
+                        </span>
+                        <PctBar pct={best!.pct} color="var(--color-success, #16a34a)" />
+                    </div>
                     {worst && worst.label !== best!.label && (
-                        <>
-                            <text x={PAD.left} y={PAD.top + 50} fontSize="10" fill="var(--color-muted)">
-                                Worst: <tspan fontWeight="600" fill="var(--color-danger, #ef4444)">{worst.label}</tspan>
-                                <tspan fill="var(--color-muted)"> ({worst.total} rounds)</tspan>
-                            </text>
-                            {pctBar(worst.pct, "var(--color-danger, #ef4444)", PAD.top + 56)}
-                        </>
+                        <div className="bucket-callout__row">
+                            <span className="bucket-callout__label">
+                                Worst: <strong className="bucket-callout__label--danger">{worst.label}</strong>
+                                <span className="bucket-callout__rounds">({worst.total} rounds)</span>
+                            </span>
+                            <PctBar pct={worst.pct} color="var(--color-danger, #ef4444)" />
+                        </div>
                     )}
-                </svg>
+                </div>
             )}
         </div>
     );
