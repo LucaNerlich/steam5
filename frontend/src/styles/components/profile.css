@@ -191,43 +191,6 @@
     margin-top: 0.15rem;
 }
 
-/* Perfect days ring layout */
-.perf-perfect {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-}
-
-.perf-perfect__ring {
-    width: auto;
-    height: 88px;
-    flex-shrink: 0;
-    display: block;
-}
-
-.perf-perfect__stats {
-    display: flex;
-    flex-direction: column;
-    gap: 0.1rem;
-}
-
-.perf-perfect__pct {
-    font-size: 1.6rem;
-    font-weight: 700;
-    line-height: 1;
-}
-
-.perf-perfect__label {
-    font-size: 0.82rem;
-    color: var(--color-muted);
-}
-
-.perf-perfect__sub {
-    font-size: 0.75rem;
-    color: var(--color-muted);
-    margin-top: 0.2rem;
-}
-
 /* BucketCallouts (best & worst bucket) */
 .bucket-callout {
     display: flex;
@@ -346,6 +309,7 @@
         font-size: 0.75rem;
     }
 }
+
 
 .profile__table {
     width: 100%;
