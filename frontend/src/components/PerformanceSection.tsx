@@ -11,7 +11,6 @@ import CalendarHeatmap from "./performance/CalendarHeatmap";
 import RoundPositionChart from "./performance/RoundPositionChart";
 import DayOfWeekChart from "./performance/DayOfWeekChart";
 import ImprovementTrend from "./performance/ImprovementTrend";
-import PerfectDaysCard from "./performance/PerfectDaysCard";
 import BiasBadge from "./performance/BiasBadge";
 import BucketCallouts from "./performance/BucketCallouts";
 
@@ -54,7 +53,6 @@ export default function PerformanceSection({days}: { days: Day[] }): React.React
                 <RoundPositionChart rounds={rounds} />
                 <DayOfWeekChart rounds={rounds} />
                 <ImprovementTrend rounds={rounds} />
-                <PerfectDaysCard rounds={rounds} />
                 <BiasBadge rounds={rounds} />
                 <BucketCallouts rounds={rounds} />
             </div>
