@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.4] - 2026-04-13
+
+### Fixed
+
+- Profile page no longer overflows horizontally on mobile; added proper overflow containment to CSS grid containers, performance chart cards, and award grid
+
 ## [1.3.3] - 2026-04-12
 
 ### Fixed
