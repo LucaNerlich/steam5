@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.4.0] - 2026-04-13
+
+### Added
+
+- `/llms.txt` route following the [llmstxt.org](https://llmstxt.org/) proposal, helping LLMs understand the site
+
 ## [1.3.4] - 2026-04-13
 
 ### Fixed
