@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.5.0] - 2026-04-13
+
+### Added
+
+- Points distribution histogram on the profile page showing how often each point value (0, 1, 2, 3, 5) is scored across
+  all rounds, with the 5-point hit bar highlighted in green
+- Guess distance chart on the profile page visualising how many buckets away from the correct answer each guess lands,
+  color-coded by direction (green for exact, amber for overshoot, red for undershoot)
+- Cumulative points area chart on the profile page showing total points accumulated over time with a gradient fill
+- Daily score tiers stacked bar on the profile page grouping played days into quality tiers: perfect (25 pts),
+  great (20–24), good (15–19), and below 15
+
 ## [1.4.1] - 2026-04-13
 
 ### Fixed
