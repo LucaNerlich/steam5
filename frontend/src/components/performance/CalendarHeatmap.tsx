@@ -69,6 +69,9 @@ export default function CalendarHeatmap({rounds}: { rounds: Round[] }): React.Re
     return (
         <div className="perf-card perf-card--full">
             <div className="perf-card__title">Play activity (last year)</div>
+            <p style={{color: "var(--color-muted)", fontSize: "0.8rem", margin: "0 0 0.25rem"}}>
+                Color intensity shows average points scored per round each day
+            </p>
             <div className="perf-heatmap-wrap">
                 <svg
                     viewBox={`0 0 ${svgW} ${svgH}`}
@@ -109,13 +112,16 @@ export default function CalendarHeatmap({rounds}: { rounds: Round[] }): React.Re
                             rx={2}
                             fill={avg === null ? "var(--color-border)" : "var(--color-primary, #6366f1)"}
                             fillOpacity={avg === null ? 0.5 : 0.15 + (avg / 5) * 0.85}
-                            aria-label={avg !== null ? `${dateStr}: ${avg.toFixed(1)} avg pts` : `${dateStr}: no play`}
-                        />
+                            aria-label={avg !== null ? `${dateStr}: ${avg.toFixed(1)} avg pts/round` : `${dateStr}: no play`}
+                        >
+                            <title>{avg !== null ? `${dateStr}\n${avg.toFixed(1)} avg pts/round` : `${dateStr}\nNo play`}</title>
+                        </rect>
                     ))}
                 </svg>
             </div>
             <div className="perf-heatmap-legend">
-                <span style={{color: "var(--color-muted)", fontSize: "0.75rem"}}>Less</span>
+                <span style={{color: "var(--color-muted)", fontSize: "0.75rem"}}>Avg pts/round:</span>
+                <span style={{color: "var(--color-muted)", fontSize: "0.75rem"}}>0</span>
                 {[0, 0.25, 0.5, 0.75, 1].map(t => (
                     <span
                         key={t}
@@ -130,7 +136,7 @@ export default function CalendarHeatmap({rounds}: { rounds: Round[] }): React.Re
                         }}
                     />
                 ))}
-                <span style={{color: "var(--color-muted)", fontSize: "0.75rem"}}>More</span>
+                <span style={{color: "var(--color-muted)", fontSize: "0.75rem"}}>5</span>
             </div>
         </div>
     );
