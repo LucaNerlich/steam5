@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.4.1] - 2026-04-13
+
+### Fixed
+
+- Average points per round position chart on the profile page no longer starts at R2; fixed off-by-one error where the
+  already 1-based `roundIndex` was incorrectly incremented again in the frontend
+- Best & worst bucket callout and accuracy-by-bucket bar chart on the profile page are now fully responsive; replaced
+  fixed-size SVG layouts with native HTML/CSS flexbox that reflows correctly on narrow viewports
+- Improvement trend chart now shows concrete context: subtitle with round counts ("First 10 vs last 10 of 30 rounds"),
+  specific "First N" / "Last N" dot labels, and date ranges beneath each data point
+
+### Improved
+
+- Play activity heatmap legend now reads "Avg pts/round: 0 … 5" instead of the vague "Less / More"; added a subtitle
+  explaining color intensity and native hover tooltips showing the exact date and average on each cell
+
+### Removed
+
+- Perfect days card removed from the profile performance section (leaderboard achievement is unaffected)
+
 ## [1.4.0] - 2026-04-13
 
 ### Added
