@@ -191,6 +191,126 @@
     margin-top: 0.15rem;
 }
 
+/* BucketCallouts (best & worst bucket) */
+.bucket-callout {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.bucket-callout__row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.bucket-callout__label {
+    font-size: 0.8rem;
+    color: var(--color-muted);
+}
+
+.bucket-callout__label--success {
+    color: var(--color-success, #16a34a);
+}
+
+.bucket-callout__label--danger {
+    color: var(--color-danger, #ef4444);
+}
+
+.bucket-callout__rounds {
+    margin-left: 0.25rem;
+}
+
+.bucket-callout__bar-track {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.bucket-callout__bar-bg {
+    flex: 1;
+    height: 0.75rem;
+    border-radius: 2px;
+    background: var(--color-border);
+    opacity: 0.3;
+    overflow: hidden;
+    min-width: 0;
+}
+
+.bucket-callout__bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    opacity: 0.85;
+}
+
+.bucket-callout__bar-pct {
+    font-size: 0.75rem;
+    color: var(--color-muted);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* BucketAccuracyBars (accuracy by bucket chart) */
+.bucket-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.bucket-bars__row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 1.25rem;
+}
+
+.bucket-bars__label {
+    flex-shrink: 0;
+    width: 6.5rem;
+    font-size: 0.8rem;
+    color: var(--color-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.bucket-bars__track {
+    flex: 1;
+    height: 0.75rem;
+    background: var(--color-border);
+    border-radius: 2px;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.bucket-bars__fill {
+    height: 100%;
+    background: var(--color-primary, #6366f1);
+    border-radius: 2px;
+    transition: width 0.2s ease;
+}
+
+.bucket-bars__pct {
+    flex-shrink: 0;
+    width: 2.5rem;
+    text-align: right;
+    font-size: 0.8rem;
+    color: var(--color-muted);
+}
+
+@media (max-width: 720px) {
+    .bucket-bars__label {
+        width: 5rem;
+        font-size: 0.75rem;
+    }
+
+    .bucket-bars__pct {
+        width: 2rem;
+        font-size: 0.75rem;
+    }
+}
+
+
 .profile__table {
     width: 100%;
     border-collapse: collapse;
