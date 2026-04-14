@@ -45,6 +45,7 @@ export type PlayerHighlight = {
     totalPoints: number;
     rounds: number;
     hits: number;
+    flops: number;
     avgPointsPerRound: number;
     avgPointsPerDay: number;
     activeDays: number;

@@ -225,6 +225,7 @@ export default async function SeasonDetailPage({params}: PageProps) {
                                 <th scope="col" className="num">Points</th>
                                 <th scope="col" className="num">Rounds</th>
                                 <th scope="col" className="num">Hits</th>
+                                <th scope="col" className="num">Flops</th>
                                 <th scope="col" className="num">Avg / round</th>
                                 <th scope="col" className="num">Avg / day</th>
                                 <th scope="col" className="num">Streak</th>
@@ -257,6 +258,7 @@ export default async function SeasonDetailPage({params}: PageProps) {
                                     <td className="num">{numberFormatter.format(player.totalPoints)}</td>
                                     <td className="num">{numberFormatter.format(player.rounds)}</td>
                                     <td className="num">{numberFormatter.format(player.hits)}</td>
+                                    <td className="num">{numberFormatter.format(player.flops)}</td>
                                     <td className="num">{decimalFormatter.format(player.avgPointsPerRound)}</td>
                                     <td className="num">{decimalFormatter.format(player.avgPointsPerDay)}</td>
                                     <td className="num">{player.longestStreak}</td>

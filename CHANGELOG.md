@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.5.0] - 2026-04-14
+
+### Added
+
+- Flops column in the season leaderboard table, showing zero-point rounds per player
+
 ## [1.4.1] - 2026-04-13
 
 ### Fixed

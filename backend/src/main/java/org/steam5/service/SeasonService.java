@@ -254,11 +254,12 @@ public class SeasonService {
     private SeasonStats buildSeasonStats(GuessRepository.SeasonStatRow row, List<LocalDate> participationDates) {
         long totalPoints = coerce(row.getTotalPoints());
         long hits = coerce(row.getHits());
+        long flops = coerce(row.getFlops());
         long rounds = coerce(row.getRounds());
         long activeDays = row.getActiveDays() != null ? row.getActiveDays() : participationDates.size();
         double avgPointsPerDay = activeDays > 0 ? (double) totalPoints / activeDays : 0d;
         long longestStreak = calculateLongestStreak(participationDates);
-        return new SeasonStats(row.getSteamId(), totalPoints, hits, rounds, activeDays, avgPointsPerDay, longestStreak);
+        return new SeasonStats(row.getSteamId(), totalPoints, hits, flops, rounds, activeDays, avgPointsPerDay, longestStreak);
     }
 
     private Map<String, List<LocalDate>> buildSeasonParticipationDates(LocalDate startDate, LocalDate endDate) {
@@ -373,6 +374,7 @@ public class SeasonService {
                 stats.steamId(),
                 stats.totalPoints(),
                 stats.hits(),
+                stats.flops(),
                 stats.rounds(),
                 stats.activeDays(),
                 stats.avgPointsPerDay(),
@@ -470,6 +472,7 @@ public class SeasonService {
     private record SeasonStats(String steamId,
                                long totalPoints,
                                long hits,
+                               long flops,
                                long rounds,
                                long activeDays,
                                double avgPointsPerDay,
@@ -497,6 +500,7 @@ public class SeasonService {
     public record PlayerSeasonStat(String steamId,
                                    long totalPoints,
                                    long hits,
+                                   long flops,
                                    long rounds,
                                    long activeDays,
                                    double avgPointsPerDay,

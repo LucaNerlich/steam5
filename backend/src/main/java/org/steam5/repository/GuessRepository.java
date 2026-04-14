@@ -57,6 +57,7 @@ public interface GuessRepository extends JpaRepository<Guess, Long> {
         String getSteamId();
         Long getTotalPoints();
         Long getHits();
+        Long getFlops();
         Long getRounds();
         Long getActiveDays();
     }
@@ -69,6 +70,7 @@ public interface GuessRepository extends JpaRepository<Guess, Long> {
             select g.steamId as steamId,
                    sum(g.points) as totalPoints,
                    sum(case when g.selectedBucket = g.actualBucket then 1 else 0 end) as hits,
+                   sum(case when g.points = 0 then 1 else 0 end) as flops,
                    count(g) as rounds,
                    count(distinct g.gameDate) as activeDays
             from Guess g
