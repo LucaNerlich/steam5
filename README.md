@@ -177,6 +177,30 @@ Notes
 
 ---
 
+## Monitoring (Prometheus + Grafana)
+
+A self-contained Prometheus + Grafana stack lives in [`monitoring/`](monitoring/README.md) and scrapes
+the backend's `/actuator/prometheus` endpoint over HTTP basic auth.
+
+- **Stack**: Prometheus 3.5.1, Grafana 12.3.1 (image tags pinned in `monitoring/.env.example`).
+- **Dashboards**: 5 provisioned dashboards (JVM, HTTP server, HikariCP, Caches, Quartz jobs).
+- **Local quick start** (with the backend already running on `MANAGEMENT_SERVER_PORT=8081`):
+
+  ```bash
+  cd monitoring
+  cp .env.example .env
+  docker compose --env-file .env up -d
+  ```
+
+- **URLs**: Prometheus at <http://localhost:9090>, Grafana at <http://localhost:3001>
+  (default credentials `admin` / `admin` — change in `.env`).
+
+See [`monitoring/README.md`](monitoring/README.md) for the full reference, environment variable table,
+cross-platform notes (macOS vs. Linux `host.docker.internal`), Coolify production deployment guide,
+and troubleshooting.
+
+---
+
 ## Frontend (Next.js)
 
 - Next 15, App Router, TypeScript
