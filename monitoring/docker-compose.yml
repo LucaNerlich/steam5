@@ -10,7 +10,7 @@
 
 services:
   prometheus:
-    image: ${PROMETHEUS_IMAGE:-prom/prometheus:v3.5.1}
+    image: ${PROMETHEUS_IMAGE:-prom/prometheus:v3}
     container_name: steam5-prometheus
     restart: unless-stopped
     ports:
@@ -46,7 +46,7 @@ services:
       - "--web.enable-lifecycle"
 
   grafana:
-    image: ${GRAFANA_IMAGE:-grafana/grafana:12.3.1}
+    image: dhi.io/grafana:13-debian13-dev
     container_name: steam5-grafana
     restart: unless-stopped
     depends_on:
