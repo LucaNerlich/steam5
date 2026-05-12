@@ -46,7 +46,7 @@ services:
       - "--web.enable-lifecycle"
 
   grafana:
-    image: dhi.io/grafana:13-debian13-dev
+    image: grafana/grafana:latest-ubuntu
     container_name: steam5-grafana
     restart: unless-stopped
     depends_on:
