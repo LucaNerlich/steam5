@@ -1,0 +1,193 @@
+{
+  "annotations": {"list": []},
+  "editable": false,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {"axisLabel": "execs/sec", "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2, "showPoints": "never", "spanNulls": true},
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 9, "w": 12, "x": 0, "y": 0},
+      "id": 1,
+      "options": {"legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom"}, "tooltip": {"mode": "multi", "sort": "desc"}},
+      "title": "Job execution rate — by outcome",
+      "targets": [
+        {"datasource": {"type": "prometheus", "uid": "prometheus"}, "expr": "sum by (outcome) (rate(quartz_jobs_execution_seconds_count{application=\"$app\", name=~\"$job\"}[5m]))", "legendFormat": "{{outcome}}", "refId": "A"}
+      ],
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {"axisLabel": "execs/sec", "drawStyle": "bars", "fillOpacity": 50, "lineWidth": 1, "showPoints": "never", "spanNulls": true, "stacking": {"group": "A", "mode": "normal"}},
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 9, "w": 12, "x": 12, "y": 0},
+      "id": 2,
+      "options": {"legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom"}, "tooltip": {"mode": "multi", "sort": "desc"}},
+      "title": "Job execution rate — by job (stacked, succeeded+failed)",
+      "targets": [
+        {"datasource": {"type": "prometheus", "uid": "prometheus"}, "expr": "sum by (name) (rate(quartz_jobs_execution_seconds_count{application=\"$app\", name=~\"$job\"}[5m]))", "legendFormat": "{{name}}", "refId": "A"}
+      ],
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {"axisLabel": "seconds", "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2, "showPoints": "never", "spanNulls": true},
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 9, "w": 12, "x": 0, "y": 9},
+      "id": 3,
+      "options": {"legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom"}, "tooltip": {"mode": "multi", "sort": "desc"}},
+      "title": "Avg job duration (5m) — by job",
+      "targets": [
+        {"datasource": {"type": "prometheus", "uid": "prometheus"}, "expr": "sum by (name) (rate(quartz_jobs_execution_seconds_sum{application=\"$app\", name=~\"$job\"}[5m])) / clamp_min(sum by (name) (rate(quartz_jobs_execution_seconds_count{application=\"$app\", name=~\"$job\"}[5m])), 1e-9)", "legendFormat": "{{name}}", "refId": "A"}
+      ],
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {"axisLabel": "seconds", "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2, "showPoints": "never", "spanNulls": true},
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 9, "w": 12, "x": 12, "y": 9},
+      "id": 4,
+      "options": {"legend": {"calcs": ["max"], "displayMode": "table", "placement": "bottom"}, "tooltip": {"mode": "multi", "sort": "desc"}},
+      "title": "Max job duration — by job",
+      "targets": [
+        {"datasource": {"type": "prometheus", "uid": "prometheus"}, "expr": "max by (name) (quartz_jobs_execution_seconds_max{application=\"$app\", name=~\"$job\"})", "legendFormat": "{{name}}", "refId": "A"}
+      ],
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "orange", "value": 1}, {"color": "red", "value": 5}]},
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 5, "w": 8, "x": 0, "y": 18},
+      "id": 5,
+      "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"},
+      "title": "Failed executions (total)",
+      "targets": [
+        {"datasource": {"type": "prometheus", "uid": "prometheus"}, "expr": "sum(quartz_jobs_execution_seconds_count{application=\"$app\", outcome=\"failed\", name=~\"$job\"})", "refId": "A"}
+      ],
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 5, "w": 8, "x": 8, "y": 18},
+      "id": 6,
+      "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"},
+      "title": "Successful executions (total)",
+      "targets": [
+        {"datasource": {"type": "prometheus", "uid": "prometheus"}, "expr": "sum(quartz_jobs_execution_seconds_count{application=\"$app\", outcome=\"succeeded\", name=~\"$job\"})", "refId": "A"}
+      ],
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "thresholds": {"mode": "absolute", "steps": [{"color": "blue", "value": null}]},
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 5, "w": 8, "x": 16, "y": 18},
+      "id": 7,
+      "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"},
+      "title": "Vetoed executions (total)",
+      "targets": [
+        {"datasource": {"type": "prometheus", "uid": "prometheus"}, "expr": "sum(quartz_jobs_execution_seconds_count{application=\"$app\", outcome=\"vetoed\", name=~\"$job\"}) or vector(0)", "refId": "A"}
+      ],
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "custom": {"align": "auto", "cellOptions": {"type": "auto"}, "inspect": false},
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
+          "unit": "short"
+        },
+        "overrides": [
+          {"matcher": {"id": "byName", "options": "avg duration (s)"}, "properties": [{"id": "unit", "value": "s"}]},
+          {"matcher": {"id": "byName", "options": "max duration (s)"}, "properties": [{"id": "unit", "value": "s"}]},
+          {"matcher": {"id": "byName", "options": "failed"}, "properties": [{"id": "thresholds", "value": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "red", "value": 1}]}}, {"id": "custom.cellOptions", "value": {"mode": "basic", "type": "color-background"}}]}
+        ]
+      },
+      "gridPos": {"h": 10, "w": 24, "x": 0, "y": 23},
+      "id": 8,
+      "options": {"footer": {"show": false}, "showHeader": true},
+      "title": "Per-job summary — executions, durations, outcomes",
+      "targets": [
+        {"datasource": {"type": "prometheus", "uid": "prometheus"}, "expr": "sum by (name) (quartz_jobs_execution_seconds_count{application=\"$app\", name=~\"$job\", outcome=\"succeeded\"})", "format": "table", "instant": true, "refId": "succeeded"},
+        {"datasource": {"type": "prometheus", "uid": "prometheus"}, "expr": "sum by (name) (quartz_jobs_execution_seconds_count{application=\"$app\", name=~\"$job\", outcome=\"failed\"})", "format": "table", "instant": true, "refId": "failed"},
+        {"datasource": {"type": "prometheus", "uid": "prometheus"}, "expr": "sum by (name) (quartz_jobs_execution_seconds_sum{application=\"$app\", name=~\"$job\"}) / clamp_min(sum by (name) (quartz_jobs_execution_seconds_count{application=\"$app\", name=~\"$job\"}), 1)", "format": "table", "instant": true, "refId": "avg duration (s)"},
+        {"datasource": {"type": "prometheus", "uid": "prometheus"}, "expr": "max by (name) (quartz_jobs_execution_seconds_max{application=\"$app\", name=~\"$job\"})", "format": "table", "instant": true, "refId": "max duration (s)"}
+      ],
+      "transformations": [
+        {"id": "joinByField", "options": {"byField": "name", "mode": "outer"}},
+        {"id": "filterFieldsByName", "options": {"include": {"pattern": "name|Value #(succeeded|failed|avg duration \\(s\\)|max duration \\(s\\))"}}},
+        {"id": "organize", "options": {"excludeByName": {}, "indexByName": {}, "renameByName": {"Value #succeeded": "succeeded", "Value #failed": "failed", "Value #avg duration (s)": "avg duration (s)", "Value #max duration (s)": "max duration (s)"}}}
+      ],
+      "type": "table"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["steam5", "quartz"],
+  "templating": {
+    "list": [
+      {"current": {"selected": false, "text": "steam5", "value": "steam5"}, "datasource": {"type": "prometheus", "uid": "prometheus"}, "definition": "label_values(jvm_memory_used_bytes, application)", "hide": 0, "includeAll": false, "label": "Application", "multi": false, "name": "app", "options": [], "query": {"query": "label_values(jvm_memory_used_bytes, application)", "refId": "PrometheusVariableQueryEditor-VariableQuery"}, "refresh": 2, "regex": "", "sort": 1, "type": "query"},
+      {"current": {"selected": true, "text": "All", "value": "$__all"}, "datasource": {"type": "prometheus", "uid": "prometheus"}, "definition": "label_values(quartz_jobs_execution_seconds_count{application=\"$app\"}, name)", "hide": 0, "includeAll": true, "label": "Job", "multi": true, "name": "job", "options": [], "query": {"query": "label_values(quartz_jobs_execution_seconds_count{application=\"$app\"}, name)", "refId": "PrometheusVariableQueryEditor-VariableQuery"}, "refresh": 2, "regex": "", "sort": 1, "type": "query"}
+    ]
+  },
+  "time": {"from": "now-1h", "to": "now"},
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Steam5 — Quartz jobs",
+  "uid": "steam5-quartz",
+  "version": 1,
+  "weekStart": ""
+}

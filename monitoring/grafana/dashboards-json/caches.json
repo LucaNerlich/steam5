@@ -1,0 +1,140 @@
+{
+  "annotations": {"list": []},
+  "editable": false,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {"axisLabel": "ops/sec", "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2, "showPoints": "never", "spanNulls": true, "stacking": {"group": "A", "mode": "none"}},
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 9, "w": 12, "x": 0, "y": 0},
+      "id": 1,
+      "options": {"legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom"}, "tooltip": {"mode": "multi", "sort": "desc"}},
+      "title": "Cache get rate (hits vs misses) — $cache",
+      "targets": [
+        {"datasource": {"type": "prometheus", "uid": "prometheus"}, "expr": "sum by (result) (rate(cache_gets_total{application=\"$app\", cache=~\"$cache\"}[5m]))", "legendFormat": "{{result}}", "refId": "A"}
+      ],
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [],
+          "max": 1,
+          "min": 0,
+          "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "orange", "value": 0.5}, {"color": "green", "value": 0.8}]},
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 9, "w": 12, "x": 12, "y": 0},
+      "id": 2,
+      "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"},
+      "title": "Cache hit ratio (last 5m) — $cache",
+      "targets": [
+        {"datasource": {"type": "prometheus", "uid": "prometheus"}, "expr": "sum by (cache) (rate(cache_gets_total{application=\"$app\", cache=~\"$cache\", result=\"hit\"}[5m])) / clamp_min(sum by (cache) (rate(cache_gets_total{application=\"$app\", cache=~\"$cache\"}[5m])), 1e-9)", "legendFormat": "{{cache}}", "refId": "A"}
+      ],
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {"axisLabel": "entries", "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2, "showPoints": "never", "spanNulls": true},
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 9, "w": 12, "x": 0, "y": 9},
+      "id": 3,
+      "options": {"legend": {"calcs": ["last", "max"], "displayMode": "table", "placement": "bottom"}, "tooltip": {"mode": "multi", "sort": "desc"}},
+      "title": "Cache size (entries) — per cache",
+      "targets": [
+        {"datasource": {"type": "prometheus", "uid": "prometheus"}, "expr": "cache_size{application=\"$app\", cache=~\"$cache\"}", "legendFormat": "{{cache}}", "refId": "A"}
+      ],
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {"axisLabel": "ops/sec", "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2, "showPoints": "never", "spanNulls": true},
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 9, "w": 12, "x": 12, "y": 9},
+      "id": 4,
+      "options": {"legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom"}, "tooltip": {"mode": "multi", "sort": "desc"}},
+      "title": "Cache puts & evictions rate — per cache",
+      "targets": [
+        {"datasource": {"type": "prometheus", "uid": "prometheus"}, "expr": "sum by (cache) (rate(cache_puts_total{application=\"$app\", cache=~\"$cache\"}[5m]))", "legendFormat": "puts: {{cache}}", "refId": "A"},
+        {"datasource": {"type": "prometheus", "uid": "prometheus"}, "expr": "sum by (cache) (rate(cache_evictions_total{application=\"$app\", cache=~\"$cache\"}[5m]))", "legendFormat": "evictions: {{cache}}", "refId": "B"}
+      ],
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "custom": {"align": "auto", "cellOptions": {"type": "auto"}, "inspect": false},
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
+          "unit": "short"
+        },
+        "overrides": [
+          {"matcher": {"id": "byName", "options": "hit ratio"}, "properties": [{"id": "unit", "value": "percentunit"}, {"id": "custom.cellOptions", "value": {"mode": "gradient", "type": "gauge"}}, {"id": "max", "value": 1}, {"id": "min", "value": 0}]},
+          {"matcher": {"id": "byName", "options": "size"}, "properties": [{"id": "unit", "value": "short"}]}
+        ]
+      },
+      "gridPos": {"h": 10, "w": 24, "x": 0, "y": 18},
+      "id": 5,
+      "options": {"footer": {"countRows": false, "fields": "", "reducer": ["sum"], "show": false}, "showHeader": true},
+      "title": "Cache summary table — totals & hit ratio",
+      "targets": [
+        {"datasource": {"type": "prometheus", "uid": "prometheus"}, "expr": "sum by (cache) (cache_gets_total{application=\"$app\", cache=~\"$cache\", result=\"hit\"}) / clamp_min(sum by (cache) (cache_gets_total{application=\"$app\", cache=~\"$cache\"}), 1)", "format": "table", "instant": true, "legendFormat": "__auto", "refId": "hit ratio"},
+        {"datasource": {"type": "prometheus", "uid": "prometheus"}, "expr": "sum by (cache) (cache_gets_total{application=\"$app\", cache=~\"$cache\", result=\"hit\"})", "format": "table", "instant": true, "legendFormat": "__auto", "refId": "hits"},
+        {"datasource": {"type": "prometheus", "uid": "prometheus"}, "expr": "sum by (cache) (cache_gets_total{application=\"$app\", cache=~\"$cache\", result=\"miss\"})", "format": "table", "instant": true, "legendFormat": "__auto", "refId": "misses"},
+        {"datasource": {"type": "prometheus", "uid": "prometheus"}, "expr": "sum by (cache) (cache_puts_total{application=\"$app\", cache=~\"$cache\"})", "format": "table", "instant": true, "legendFormat": "__auto", "refId": "puts"},
+        {"datasource": {"type": "prometheus", "uid": "prometheus"}, "expr": "sum by (cache) (cache_evictions_total{application=\"$app\", cache=~\"$cache\"})", "format": "table", "instant": true, "legendFormat": "__auto", "refId": "evictions"},
+        {"datasource": {"type": "prometheus", "uid": "prometheus"}, "expr": "sum by (cache) (cache_size{application=\"$app\", cache=~\"$cache\"})", "format": "table", "instant": true, "legendFormat": "__auto", "refId": "size"}
+      ],
+      "transformations": [
+        {"id": "joinByField", "options": {"byField": "cache", "mode": "outer"}},
+        {"id": "filterFieldsByName", "options": {"include": {"pattern": "cache|Value #(hit ratio|hits|misses|puts|evictions|size)"}}},
+        {"id": "organize", "options": {"excludeByName": {}, "indexByName": {}, "renameByName": {"Value #hit ratio": "hit ratio", "Value #hits": "hits", "Value #misses": "misses", "Value #puts": "puts", "Value #evictions": "evictions", "Value #size": "size"}}}
+      ],
+      "type": "table"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["steam5", "caches"],
+  "templating": {
+    "list": [
+      {"current": {"selected": false, "text": "steam5", "value": "steam5"}, "datasource": {"type": "prometheus", "uid": "prometheus"}, "definition": "label_values(jvm_memory_used_bytes, application)", "hide": 0, "includeAll": false, "label": "Application", "multi": false, "name": "app", "options": [], "query": {"query": "label_values(jvm_memory_used_bytes, application)", "refId": "PrometheusVariableQueryEditor-VariableQuery"}, "refresh": 2, "regex": "", "sort": 1, "type": "query"},
+      {"current": {"selected": true, "text": "All", "value": "$__all"}, "datasource": {"type": "prometheus", "uid": "prometheus"}, "definition": "label_values(cache_gets_total{application=\"$app\"}, cache)", "hide": 0, "includeAll": true, "label": "Cache", "multi": true, "name": "cache", "options": [], "query": {"query": "label_values(cache_gets_total{application=\"$app\"}, cache)", "refId": "PrometheusVariableQueryEditor-VariableQuery"}, "refresh": 2, "regex": "", "sort": 1, "type": "query"}
+    ]
+  },
+  "time": {"from": "now-1h", "to": "now"},
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Steam5 — Caches (Caffeine)",
+  "uid": "steam5-caches",
+  "version": 1,
+  "weekStart": ""
+}
