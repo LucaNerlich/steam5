@@ -172,8 +172,12 @@ Security: token-based auth via Steam login. See `frontend/app/api/auth/*` and `b
 Notes
 
 - You’ll only see cache metrics after endpoints using `@Cacheable` are exercised.
-- In dev, actuator on port 8081 is open (no auth). If you want it restricted to specific endpoints, update
-  `SecurityConfig` to narrow `EndpointRequest`.
+- Actuator runs on its own management port (`MANAGEMENT_SERVER_PORT`, default `8081`) and is protected
+  by HTTP Basic auth. In dev the credentials default to `metrics` / `metrics`; `/actuator/health` is
+  the only endpoint that remains publicly reachable. In production (coolify) the same scheme applies and
+  the defaults **must** be overridden via `METRICS_USERNAME` / `METRICS_PASSWORD` — the backend logs a
+  startup `WARN` if the dev defaults are still in use. To narrow exposure further, adjust
+  `SecurityConfig` / `EndpointRequest`.
 
 ---
 

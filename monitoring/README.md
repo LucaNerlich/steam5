@@ -57,6 +57,13 @@ docker compose down
 docker compose down -v
 ```
 
+> **Heads-up — `MANAGEMENT_SERVER_PORT` ↔ `STEAM5_METRICS_TARGET` coupling.**
+> If you override `MANAGEMENT_SERVER_PORT` on the backend (default `8081`), you **must** also
+> override `STEAM5_METRICS_TARGET` in `monitoring/.env` to match (e.g.
+> `host.docker.internal:18081`). The two values are coupled — Prometheus scrapes whatever you
+> point it at via `STEAM5_METRICS_TARGET`, but the backend only listens for actuator traffic on
+> `MANAGEMENT_SERVER_PORT`.
+
 ### Expected URLs
 
 | Service    | URL                            | Notes                                                |
@@ -179,6 +186,8 @@ Create a new Coolify service from this `monitoring/docker-compose.yml`. Set:
 
 | Service      | Env var                       | Coolify location     | Example prod value                                |
 |--------------|-------------------------------|----------------------|---------------------------------------------------|
+| `prometheus` | `PROMETHEUS_IMAGE`            | Service env          | `prom/prometheus:v3.5.1` (pin a tag for prod)     |
+| `prometheus` | `PROMETHEUS_PORT`             | Service env          | `9090`                                            |
 | `prometheus` | `STEAM5_METRICS_TARGET`       | Service env          | `steam5-backend:8081`                             |
 | `prometheus` | `STEAM5_METRICS_SCHEME`       | Service env          | `http` (internal) or `https` (public)             |
 | `prometheus` | `STEAM5_METRICS_PATH`         | Service env          | `/actuator/prometheus`                            |
@@ -186,6 +195,7 @@ Create a new Coolify service from this `monitoring/docker-compose.yml`. Set:
 | `prometheus` | `STEAM5_METRICS_PASSWORD`     | Service env (secret) | _= backend `METRICS_PASSWORD`_                    |
 | `prometheus` | `PROMETHEUS_RETENTION`        | Service env          | `15d` (or higher with sized volume)               |
 | `prometheus` | `PROMETHEUS_SCRAPE_INTERVAL`  | Service env          | `15s`                                             |
+| `grafana`    | `GRAFANA_IMAGE`               | Service env          | `grafana/grafana:12.3.1` (pin a tag for prod)     |
 | `grafana`    | `GF_SECURITY_ADMIN_USER`      | Service env          | _operator choice (e.g. `steam5-admin`)_           |
 | `grafana`    | `GF_SECURITY_ADMIN_PASSWORD`  | Service env (secret) | _strong password, ≥ 16 chars_                     |
 | `grafana`    | `GF_SERVER_ROOT_URL`          | Service env          | `https://grafana.steam5.org`                      |
