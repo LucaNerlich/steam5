@@ -1,16 +1,17 @@
 # Steam5 monitoring stack: Prometheus + Grafana.
 #
-# Sidecar configs are bind-mounted from `./prometheus/` and
-# `./grafana/provisioning/datasources/`. The Prometheus datasource is
-# auto-provisioned (UID `prometheus`); dashboards are NOT auto-provisioned.
+# Mandatory sidecar configs (Prometheus entrypoint shim, Prometheus config
+# template, Grafana datasource) are inlined below as top-level `configs:`
+# so the stack is self-contained — Coolify's Git deploy mode ships only
+# this compose file, not sibling sidecar files.
 #
-# Import dashboards manually once after first boot via the Grafana UI:
-#   Dashboards → New → Import → paste JSON from
-#   `./grafana/dashboards-json/*.json` → select the Prometheus datasource
-#   → Import. They persist in the `/var/lib/grafana` host volume.
+# Source-of-truth files remain on disk under `monitoring/prometheus/` and
+# `monitoring/grafana/provisioning/datasources/`. Keep the inlined copies
+# below in sync when editing those (escape every literal `$` to `$$`).
 #
-# Coolify deploys: use Git-based source with Base Directory `/monitoring`
-# so sibling files ship alongside this compose file.
+# Dashboards are NOT inlined. Import the JSON files under
+# `./grafana/dashboards-json/` manually once via the Grafana UI; they
+# persist in the `/var/lib/grafana` host volume.
 #
 # Local quickstart: cp .env.example .env && docker compose --env-file .env up -d
 
@@ -33,9 +34,14 @@ services:
       STEAM5_METRICS_PATH: ${STEAM5_METRICS_PATH:-/actuator/prometheus}
       STEAM5_METRICS_USERNAME: ${STEAM5_METRICS_USERNAME:-metrics}
       STEAM5_METRICS_PASSWORD: ${STEAM5_METRICS_PASSWORD:-metrics}
+    configs:
+      - source: prometheus_entrypoint
+        target: /usr/local/bin/entrypoint.sh
+        mode: 0755
+      - source: prometheus_config_template
+        target: /etc/prometheus/prometheus.yml.tpl
+        mode: 0444
     volumes:
-      - ./prometheus/entrypoint.sh:/usr/local/bin/entrypoint.sh:ro
-      - ./prometheus/prometheus.yml.tpl:/etc/prometheus/prometheus.yml.tpl:ro
       - /data/volumes/steam5/prometheus:/prometheus
     extra_hosts:
       # No-op on macOS Docker Desktop (where host.docker.internal already
@@ -67,8 +73,11 @@ services:
       GF_SERVER_ROOT_URL: ${GF_SERVER_ROOT_URL:-http://localhost:${GRAFANA_PORT:-3001}}
       GF_SERVER_DOMAIN: ${GF_SERVER_DOMAIN:-localhost}
       GF_USERS_ALLOW_SIGN_UP: ${GF_USERS_ALLOW_SIGN_UP:-false}
+    configs:
+      - source: grafana_datasource
+        target: /etc/grafana/provisioning/datasources/prometheus.yml
+        mode: 0444
     volumes:
-      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
       - /data/volumes/steam5/grafana:/var/lib/grafana
     networks:
       - default
@@ -80,3 +89,78 @@ networks:
   coolify:
     external: true
     name: coolify
+
+configs:
+  prometheus_entrypoint:
+    content: |
+      #!/bin/sh
+      # Templating shim for the Prometheus container.
+      #
+      # Prometheus does not natively expand $${VAR} placeholders inside its config
+      # (only --enable-feature=expand-external-labels covers external_labels). This
+      # script renders /etc/prometheus/prometheus.yml.tpl into /tmp/prometheus.yml
+      # at startup, substituting @@VAR@@ markers from the container's environment,
+      # then execs the prometheus binary with that rendered file. Basic-auth
+      # credentials are written to per-file paths read via username_file /
+      # password_file so they never appear on the prometheus command line.
+      set -e
+
+      RENDERED=/tmp/prometheus.yml
+      SECRETS_DIR=/tmp/prometheus-secrets
+
+      mkdir -p "$$SECRETS_DIR"
+      # `printf %s` (no newline) so basic-auth values don't include a trailing \n.
+      printf '%s' "$${STEAM5_METRICS_USERNAME:-}" > "$$SECRETS_DIR/username"
+      printf '%s' "$${STEAM5_METRICS_PASSWORD:-}" > "$$SECRETS_DIR/password"
+
+      sed \
+        -e "s|@@PROMETHEUS_SCRAPE_INTERVAL@@|$${PROMETHEUS_SCRAPE_INTERVAL:-15s}|g" \
+        -e "s|@@STEAM5_METRICS_TARGET@@|$${STEAM5_METRICS_TARGET:-host.docker.internal:8081}|g" \
+        -e "s|@@STEAM5_METRICS_SCHEME@@|$${STEAM5_METRICS_SCHEME:-http}|g" \
+        -e "s|@@STEAM5_METRICS_PATH@@|$${STEAM5_METRICS_PATH:-/actuator/prometheus}|g" \
+        -e "s|@@PROM_SECRETS_DIR@@|$${SECRETS_DIR}|g" \
+        /etc/prometheus/prometheus.yml.tpl > "$$RENDERED"
+
+      exec /bin/prometheus --config.file="$$RENDERED" "$$@"
+  prometheus_config_template:
+    content: |
+      # Prometheus configuration template.
+      #
+      # Rendered into /tmp/prometheus.yml by /usr/local/bin/entrypoint.sh at
+      # container start. Edit the template, not the rendered copy. Placeholders
+      # (@@VAR@@) are substituted from the container environment.
+      global:
+        scrape_interval: @@PROMETHEUS_SCRAPE_INTERVAL@@
+        evaluation_interval: @@PROMETHEUS_SCRAPE_INTERVAL@@
+
+      scrape_configs:
+        - job_name: steam5
+          metrics_path: @@STEAM5_METRICS_PATH@@
+          scheme: @@STEAM5_METRICS_SCHEME@@
+          basic_auth:
+            # Credentials are written to files by entrypoint.sh so they never appear
+            # on the prometheus process command line. For unauthenticated targets,
+            # remove the basic_auth block entirely.
+            username_file: @@PROM_SECRETS_DIR@@/username
+            password_file: @@PROM_SECRETS_DIR@@/password
+          static_configs:
+            - targets:
+                - @@STEAM5_METRICS_TARGET@@
+  grafana_datasource:
+    content: |
+      # Auto-provision the in-network Prometheus datasource.
+      # `prometheus` is the docker-compose service name and resolves over the
+      # default compose network — only the host-facing port differs per
+      # environment, the in-network DNS is constant.
+      apiVersion: 1
+
+      datasources:
+        - name: Prometheus
+          uid: prometheus
+          type: prometheus
+          access: proxy
+          url: http://prometheus:9090
+          isDefault: true
+          editable: false
+          jsonData:
+            timeInterval: 15s
