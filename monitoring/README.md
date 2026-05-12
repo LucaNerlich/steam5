@@ -237,6 +237,19 @@ Coolify (or whoever provisions the host) is responsible for creating and
 chowning the directories. Leave both unset to keep the named-volume
 behaviour.
 
+Pre-deploy host prep (run once on the host, as root):
+
+```bash
+sudo mkdir -p /data/volumes/steam5/prometheus /data/volumes/steam5/grafana
+sudo chown -R 65534:65534 /data/volumes/steam5/prometheus   # Prometheus runs as 'nobody' (UID 65534)
+sudo chown -R 472:0       /data/volumes/steam5/grafana      # Grafana container runs as UID 472
+```
+
+Without correct ownership the containers will fail on first boot with
+`permission denied` errors when they try to write to the mount. This
+only applies when bind-mounting; the named-volume case is handled
+automatically by Docker.
+
 ### 5. Grafana behind Coolify's reverse proxy
 
 Coolify's Traefik handles TLS and routing. Add a Coolify domain mapping
