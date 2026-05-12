@@ -53,6 +53,16 @@ server:
     enabled: true
     mime-types: application/json, text/html, text/plain
     min-response-size: 1KB
+management:
+  endpoint:
+    prometheus:
+      access: read-only
+  metrics:
+    tags:
+      application: steam5
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
 # Logging configuration is in logback-spring.xml
 auth:
   jwtSecret: ${AUTH_JWT_SECRET:change-me-please-change-me-32-bytes-min}

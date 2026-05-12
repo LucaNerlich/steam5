@@ -5,11 +5,11 @@ spring:
       spec: maximumSize=500,expireAfterWrite=12h,refreshAfterWrite=1h #https://github.com/ben-manes/caffeine/wiki/Refresh
 management:
   server:
-    port: 8081
+    port: ${MANAGEMENT_SERVER_PORT:8081}
   endpoints:
     web:
       exposure:
-        include: "health" # https://www.baeldung.com/spring-boot-actuators
+        include: ${MANAGEMENT_ENDPOINTS_EXPOSURE:health,prometheus} # https://www.baeldung.com/spring-boot-actuators
   endpoint:
     health:
       show-details: never
