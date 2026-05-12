@@ -121,6 +121,8 @@ every variable so you can scan it without opening the file.
 | `GF_SERVER_ROOT_URL`         | `http://localhost:3001`              | Public URL Grafana uses for redirects, share links, OAuth callbacks.    |
 | `GF_SERVER_DOMAIN`           | `localhost`                          | Grafana's external domain (used in cookies, links).                     |
 | `GF_USERS_ALLOW_SIGN_UP`     | `false`                              | Disable self-service account creation.                                  |
+| `PROMETHEUS_DATA_PATH`       | _(unset → named volume)_             | Optional — bind-mount data volume to a host path.                       |
+| `GRAFANA_DATA_PATH`          | _(unset → named volume)_             | Optional — bind-mount data volume to a host path.                       |
 
 ## Cross-platform notes
 
@@ -214,6 +216,26 @@ Coolify persistent storage so data survives redeploys:
 
 In Coolify → service → **Storages**, mark both volumes as persistent. Without
 this, redeploys wipe metric history and any Grafana customisations.
+
+#### Bind-mount overrides (optional)
+
+By default the volumes above are Docker named volumes living under
+`/var/lib/docker/volumes`. If you want the data on a known host path —
+e.g. on a VPS with a dedicated `/data` partition for easier backups,
+snapshots, or filesystem-level management — set:
+
+```
+PROMETHEUS_DATA_PATH=/data/volumes/steam5/prometheus
+GRAFANA_DATA_PATH=/data/volumes/steam5/grafana
+```
+
+When either variable is set to an absolute host path, docker compose
+bind-mounts that directory instead of using the named volume. The host
+directory **must exist and be writable by the container UID**
+(Prometheus: `65534/nobody`, Grafana: `472`) before `docker compose up` —
+Coolify (or whoever provisions the host) is responsible for creating and
+chowning the directories. Leave both unset to keep the named-volume
+behaviour.
 
 ### 5. Grafana behind Coolify's reverse proxy
 

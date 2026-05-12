@@ -29,7 +29,10 @@ services:
     volumes:
       - ./prometheus/prometheus.yml.tpl:/etc/prometheus/prometheus.yml.tpl:ro
       - ./prometheus/entrypoint.sh:/usr/local/bin/entrypoint.sh:ro
-      - prometheus-data:/prometheus
+      # When PROMETHEUS_DATA_PATH is set to an absolute host path, docker
+      # compose treats it as a bind mount (host directory must exist);
+      # otherwise it falls back to the named docker volume below.
+      - ${PROMETHEUS_DATA_PATH:-prometheus-data}:/prometheus
     extra_hosts:
       # No-op on macOS Docker Desktop (where host.docker.internal already
       # resolves), required on Linux Docker Engine 20.10+ to reach the host.
@@ -62,7 +65,10 @@ services:
       # a sub-mountpoint inside a read-only parent bind. The dashboards
       # provider in provisioning/dashboards/dashboards.yml points here.
       - ./grafana/dashboards-json:/var/lib/grafana/dashboards-json:ro
-      - grafana-data:/var/lib/grafana
+      # When GRAFANA_DATA_PATH is set to an absolute host path, docker
+      # compose treats it as a bind mount (host directory must exist);
+      # otherwise it falls back to the named docker volume below.
+      - ${GRAFANA_DATA_PATH:-grafana-data}:/var/lib/grafana
 
 volumes:
   prometheus-data:
