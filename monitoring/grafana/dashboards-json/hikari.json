@@ -1,0 +1,128 @@
+{
+  "uid": "steam5-hikari",
+  "title": "Steam5 — HikariCP",
+  "tags": ["steam5", "hikari", "db"],
+  "schemaVersion": 39,
+  "editable": true,
+  "graphTooltip": 1,
+  "refresh": "30s",
+  "time": {"from": "now-1h", "to": "now"},
+  "timezone": "browser",
+  "templating": {
+    "list": [
+      {
+        "name": "app",
+        "label": "Application",
+        "type": "query",
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "query": {"query": "label_values(jvm_memory_used_bytes, application)", "refId": "PrometheusVariableQueryEditor-VariableQuery"},
+        "definition": "label_values(jvm_memory_used_bytes, application)",
+        "refresh": 2,
+        "includeAll": false,
+        "multi": false,
+        "current": {"text": "steam5", "value": "steam5"},
+        "sort": 1
+      },
+      {
+        "name": "pool",
+        "label": "Pool",
+        "type": "query",
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "query": {"query": "label_values(hikaricp_connections{application=\"$app\"}, pool)", "refId": "PrometheusVariableQueryEditor-VariableQuery"},
+        "definition": "label_values(hikaricp_connections{application=\"$app\"}, pool)",
+        "refresh": 2,
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": false,
+        "current": {"text": "All", "value": "$__all"},
+        "sort": 1
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1, "type": "stat", "title": "Active connections",
+      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []},
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "colorMode": "value", "graphMode": "area"},
+      "targets": [{"refId": "A", "expr": "sum(hikaricp_connections_active{application=\"$app\", pool=~\"$pool\"})", "datasource": {"type": "prometheus", "uid": "prometheus"}}]
+    },
+    {
+      "id": 2, "type": "stat", "title": "Idle connections",
+      "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []},
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "colorMode": "value", "graphMode": "area"},
+      "targets": [{"refId": "A", "expr": "sum(hikaricp_connections_idle{application=\"$app\", pool=~\"$pool\"})", "datasource": {"type": "prometheus", "uid": "prometheus"}}]
+    },
+    {
+      "id": 3, "type": "stat", "title": "Pending acquisitions",
+      "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "short", "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "orange", "value": 1}, {"color": "red", "value": 5}]}}, "overrides": []},
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "colorMode": "value", "graphMode": "area"},
+      "targets": [{"refId": "A", "expr": "sum(hikaricp_connections_pending{application=\"$app\", pool=~\"$pool\"})", "datasource": {"type": "prometheus", "uid": "prometheus"}}]
+    },
+    {
+      "id": 4, "type": "stat", "title": "Connection timeouts (total)",
+      "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "short", "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "red", "value": 1}]}}, "overrides": []},
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "colorMode": "value", "graphMode": "area"},
+      "targets": [{"refId": "A", "expr": "sum(hikaricp_connections_timeout_total{application=\"$app\", pool=~\"$pool\"})", "datasource": {"type": "prometheus", "uid": "prometheus"}}]
+    },
+    {
+      "id": 5, "type": "timeseries", "title": "Connection pool state",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "short", "custom": {"drawStyle": "line", "fillOpacity": 10}}, "overrides": []},
+      "options": {"legend": {"displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "max"]}, "tooltip": {"mode": "multi"}},
+      "targets": [
+        {"refId": "A", "expr": "hikaricp_connections_active{application=\"$app\", pool=~\"$pool\"}", "legendFormat": "{{pool}} active", "datasource": {"type": "prometheus", "uid": "prometheus"}},
+        {"refId": "B", "expr": "hikaricp_connections_idle{application=\"$app\", pool=~\"$pool\"}", "legendFormat": "{{pool}} idle", "datasource": {"type": "prometheus", "uid": "prometheus"}},
+        {"refId": "C", "expr": "hikaricp_connections{application=\"$app\", pool=~\"$pool\"}", "legendFormat": "{{pool}} total", "datasource": {"type": "prometheus", "uid": "prometheus"}},
+        {"refId": "D", "expr": "hikaricp_connections_pending{application=\"$app\", pool=~\"$pool\"}", "legendFormat": "{{pool}} pending", "datasource": {"type": "prometheus", "uid": "prometheus"}}
+      ]
+    },
+    {
+      "id": 6, "type": "timeseries", "title": "Pool capacity (min / max)",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "short", "custom": {"drawStyle": "line", "fillOpacity": 10, "lineStyle": {"fill": "dash"}}}, "overrides": []},
+      "options": {"legend": {"displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull"]}, "tooltip": {"mode": "multi"}},
+      "targets": [
+        {"refId": "A", "expr": "hikaricp_connections_min{application=\"$app\", pool=~\"$pool\"}", "legendFormat": "{{pool}} min", "datasource": {"type": "prometheus", "uid": "prometheus"}},
+        {"refId": "B", "expr": "hikaricp_connections_max{application=\"$app\", pool=~\"$pool\"}", "legendFormat": "{{pool}} max", "datasource": {"type": "prometheus", "uid": "prometheus"}}
+      ]
+    },
+    {
+      "id": 7, "type": "timeseries", "title": "Avg connection acquire time (5m)",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "s", "custom": {"drawStyle": "line", "fillOpacity": 10}}, "overrides": []},
+      "options": {"legend": {"displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "max"]}, "tooltip": {"mode": "multi"}},
+      "targets": [{"refId": "A", "expr": "rate(hikaricp_connections_acquire_seconds_sum{application=\"$app\", pool=~\"$pool\"}[5m]) / clamp_min(rate(hikaricp_connections_acquire_seconds_count{application=\"$app\", pool=~\"$pool\"}[5m]), 1e-9)", "legendFormat": "{{pool}} avg acquire", "datasource": {"type": "prometheus", "uid": "prometheus"}}]
+    },
+    {
+      "id": 8, "type": "timeseries", "title": "Avg connection usage time (5m)",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "s", "custom": {"drawStyle": "line", "fillOpacity": 10}}, "overrides": []},
+      "options": {"legend": {"displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "max"]}, "tooltip": {"mode": "multi"}},
+      "targets": [{"refId": "A", "expr": "rate(hikaricp_connections_usage_seconds_sum{application=\"$app\", pool=~\"$pool\"}[5m]) / clamp_min(rate(hikaricp_connections_usage_seconds_count{application=\"$app\", pool=~\"$pool\"}[5m]), 1e-9)", "legendFormat": "{{pool}} avg usage", "datasource": {"type": "prometheus", "uid": "prometheus"}}]
+    },
+    {
+      "id": 9, "type": "timeseries", "title": "Connection acquire/usage rate (per second)",
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 20},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "ops", "custom": {"drawStyle": "line", "fillOpacity": 10}}, "overrides": []},
+      "options": {"legend": {"displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "max"]}, "tooltip": {"mode": "multi"}},
+      "targets": [
+        {"refId": "A", "expr": "rate(hikaricp_connections_acquire_seconds_count{application=\"$app\", pool=~\"$pool\"}[5m])", "legendFormat": "{{pool}} acquire/s", "datasource": {"type": "prometheus", "uid": "prometheus"}},
+        {"refId": "B", "expr": "rate(hikaricp_connections_usage_seconds_count{application=\"$app\", pool=~\"$pool\"}[5m])", "legendFormat": "{{pool}} usage/s", "datasource": {"type": "prometheus", "uid": "prometheus"}},
+        {"refId": "C", "expr": "rate(hikaricp_connections_creation_seconds_count{application=\"$app\", pool=~\"$pool\"}[5m])", "legendFormat": "{{pool}} creation/s", "datasource": {"type": "prometheus", "uid": "prometheus"}}
+      ]
+    }
+  ]
+}

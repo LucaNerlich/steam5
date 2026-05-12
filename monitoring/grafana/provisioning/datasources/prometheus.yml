@@ -1,0 +1,16 @@
+# Auto-provision the in-network Prometheus datasource.
+# `prometheus` is the docker-compose service name and resolves over the
+# default compose network — only the host-facing port differs per
+# environment, the in-network DNS is constant.
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    uid: prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false
+    jsonData:
+      timeInterval: 15s

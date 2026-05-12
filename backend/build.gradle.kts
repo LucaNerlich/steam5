@@ -37,6 +37,7 @@ dependencies {
     implementation("me.paulschwarz:springboot4-dotenv:5.1.0")
     implementation("org.apache.commons:commons-lang3")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
+    implementation("io.micrometer:micrometer-registry-prometheus")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-data-rest")
     implementation("org.springframework.boot:spring-boot-starter-security-oauth2-client")
