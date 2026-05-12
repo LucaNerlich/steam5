@@ -64,7 +64,7 @@ services:
       - "--web.enable-lifecycle"
 
   grafana:
-    image: grafana/grafana:12.3.0-ubuntu
+    image: grafana/grafana:13.0.1-security-01-ubuntu
     pull_policy: always
     container_name: steam5-grafana
     restart: unless-stopped
