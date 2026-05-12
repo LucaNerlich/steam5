@@ -1,0 +1,114 @@
+{
+  "uid": "steam5-jvm",
+  "title": "Steam5 — JVM",
+  "tags": ["steam5", "jvm"],
+  "schemaVersion": 39,
+  "editable": true,
+  "graphTooltip": 1,
+  "refresh": "30s",
+  "time": {"from": "now-1h", "to": "now"},
+  "timezone": "browser",
+  "templating": {
+    "list": [
+      {
+        "name": "app",
+        "label": "Application",
+        "type": "query",
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "query": {"query": "label_values(jvm_memory_used_bytes, application)", "refId": "PrometheusVariableQueryEditor-VariableQuery"},
+        "definition": "label_values(jvm_memory_used_bytes, application)",
+        "refresh": 2,
+        "includeAll": false,
+        "multi": false,
+        "current": {"text": "steam5", "value": "steam5"},
+        "sort": 1
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1, "type": "stat", "title": "Heap used",
+      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "bytes"}, "overrides": []},
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "colorMode": "value", "graphMode": "area"},
+      "targets": [{"refId": "A", "expr": "sum(jvm_memory_used_bytes{application=\"$app\", area=\"heap\"})", "datasource": {"type": "prometheus", "uid": "prometheus"}}]
+    },
+    {
+      "id": 2, "type": "stat", "title": "Heap committed",
+      "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "bytes"}, "overrides": []},
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "colorMode": "value", "graphMode": "area"},
+      "targets": [{"refId": "A", "expr": "sum(jvm_memory_committed_bytes{application=\"$app\", area=\"heap\"})", "datasource": {"type": "prometheus", "uid": "prometheus"}}]
+    },
+    {
+      "id": 3, "type": "stat", "title": "Live threads",
+      "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []},
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "colorMode": "value", "graphMode": "area"},
+      "targets": [{"refId": "A", "expr": "jvm_threads_live_threads{application=\"$app\"}", "datasource": {"type": "prometheus", "uid": "prometheus"}}]
+    },
+    {
+      "id": 4, "type": "stat", "title": "Classes loaded",
+      "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []},
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "colorMode": "value", "graphMode": "area"},
+      "targets": [{"refId": "A", "expr": "jvm_classes_loaded_classes{application=\"$app\"}", "datasource": {"type": "prometheus", "uid": "prometheus"}}]
+    },
+    {
+      "id": 5, "type": "timeseries", "title": "Heap usage by pool",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "bytes", "custom": {"drawStyle": "line", "fillOpacity": 20, "stacking": {"mode": "normal", "group": "A"}}}, "overrides": []},
+      "options": {"legend": {"displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "max"]}, "tooltip": {"mode": "multi"}},
+      "targets": [{"refId": "A", "expr": "jvm_memory_used_bytes{application=\"$app\", area=\"heap\"}", "legendFormat": "{{id}}", "datasource": {"type": "prometheus", "uid": "prometheus"}}]
+    },
+    {
+      "id": 6, "type": "timeseries", "title": "Non-heap usage by pool",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "bytes", "custom": {"drawStyle": "line", "fillOpacity": 20, "stacking": {"mode": "normal", "group": "A"}}}, "overrides": []},
+      "options": {"legend": {"displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "max"]}, "tooltip": {"mode": "multi"}},
+      "targets": [{"refId": "A", "expr": "jvm_memory_used_bytes{application=\"$app\", area=\"nonheap\"}", "legendFormat": "{{id}}", "datasource": {"type": "prometheus", "uid": "prometheus"}}]
+    },
+    {
+      "id": 7, "type": "timeseries", "title": "Threads (live / daemon / peak)",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "short", "custom": {"drawStyle": "line", "fillOpacity": 10}}, "overrides": []},
+      "options": {"legend": {"displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull"]}, "tooltip": {"mode": "multi"}},
+      "targets": [
+        {"refId": "A", "expr": "jvm_threads_live_threads{application=\"$app\"}", "legendFormat": "live", "datasource": {"type": "prometheus", "uid": "prometheus"}},
+        {"refId": "B", "expr": "jvm_threads_daemon_threads{application=\"$app\"}", "legendFormat": "daemon", "datasource": {"type": "prometheus", "uid": "prometheus"}},
+        {"refId": "C", "expr": "jvm_threads_peak_threads{application=\"$app\"}", "legendFormat": "peak", "datasource": {"type": "prometheus", "uid": "prometheus"}}
+      ]
+    },
+    {
+      "id": 8, "type": "timeseries", "title": "Thread states",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "short", "custom": {"drawStyle": "line", "fillOpacity": 30, "stacking": {"mode": "normal", "group": "A"}}}, "overrides": []},
+      "options": {"legend": {"displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull"]}, "tooltip": {"mode": "multi"}},
+      "targets": [{"refId": "A", "expr": "jvm_threads_states_threads{application=\"$app\"}", "legendFormat": "{{state}}", "datasource": {"type": "prometheus", "uid": "prometheus"}}]
+    },
+    {
+      "id": 9, "type": "timeseries", "title": "GC pause rate (per second)",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 20},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "ops", "custom": {"drawStyle": "line", "fillOpacity": 10}}, "overrides": []},
+      "options": {"legend": {"displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "max"]}, "tooltip": {"mode": "multi"}},
+      "targets": [{"refId": "A", "expr": "rate(jvm_gc_pause_seconds_count{application=\"$app\"}[5m])", "legendFormat": "{{gc}} / {{cause}}", "datasource": {"type": "prometheus", "uid": "prometheus"}}]
+    },
+    {
+      "id": 10, "type": "timeseries", "title": "GC pause max (per scrape)",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 20},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "s", "custom": {"drawStyle": "line", "fillOpacity": 10}}, "overrides": []},
+      "options": {"legend": {"displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "max"]}, "tooltip": {"mode": "multi"}},
+      "targets": [{"refId": "A", "expr": "jvm_gc_pause_seconds_max{application=\"$app\"}", "legendFormat": "{{gc}} / {{cause}}", "datasource": {"type": "prometheus", "uid": "prometheus"}}]
+    }
+  ]
+}
