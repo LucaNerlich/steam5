@@ -12,7 +12,7 @@ providers:
     folder: ''
     folderUid: ''
     type: file
-    disableDeletion: false
+    disableDeletion: true
     updateIntervalSeconds: 30
     allowUiUpdates: false
     options:
