@@ -250,7 +250,95 @@ Without correct ownership the containers will fail on first boot with
 only applies when bind-mounting; the named-volume case is handled
 automatically by Docker.
 
-### 5. Grafana behind Coolify's reverse proxy
+### 5. Pointing Prometheus at the backend (`STEAM5_METRICS_TARGET`)
+
+`STEAM5_METRICS_TARGET` is **`host:port` only** — no scheme, no path. The
+scheme lives in `STEAM5_METRICS_SCHEME` and the metrics path in
+`STEAM5_METRICS_PATH`.
+
+```
+# wrong — Prometheus rejects this with a config parse error
+STEAM5_METRICS_TARGET=https://steam5.org:8081/actuator/prometheus
+
+# correct
+STEAM5_METRICS_TARGET=steam5-backend:8081
+```
+
+Pick one of the three options below for the host portion.
+
+#### Option A (recommended): Coolify internal DNS
+
+When Prometheus and the Spring backend run in the same Coolify project they
+share a Docker network, and the backend is reachable by its container name.
+Find the name in one of two ways:
+
+- In the Coolify UI, open the backend service and look for **Container name**,
+  **Network aliases**, or the service's network/internal settings.
+- From a shell on the host, find the Coolify-generated network and inspect it:
+
+  ```bash
+  docker network ls
+  docker network inspect <network-name>
+  ```
+
+  The backend container appears under `Containers[].Name`.
+
+Use `http` (not `https`) — traffic stays on the internal bridge — and the
+backend's `MANAGEMENT_SERVER_PORT` (default `8081`).
+
+```
+STEAM5_METRICS_SCHEME=http
+STEAM5_METRICS_TARGET=steam5-backend:8081
+STEAM5_METRICS_PATH=/actuator/prometheus
+```
+
+#### Option B: Expose the management port publicly
+
+If Prometheus runs in a different Coolify project, on a different host, or in
+Grafana Cloud, the backend's actuator must be publicly reachable. Either add a
+Coolify port mapping for container port `8081` to the host, or add Traefik
+labels routing a dedicated subdomain (with TLS termination) to it. Because the
+actuator is then on the public internet, `METRICS_USERNAME` / `METRICS_PASSWORD`
+**must** be overridden from the dev defaults with strong values — the backend
+already logs a startup `WARN` if the defaults are still in use (see §1).
+
+```
+STEAM5_METRICS_SCHEME=https
+STEAM5_METRICS_TARGET=steam5.org:8081
+STEAM5_METRICS_PATH=/actuator/prometheus
+```
+
+This adds attack surface compared to Option A; prefer A whenever possible.
+
+#### Option C: Same host, host network
+
+If the backend runs directly on the host (not in a container) or with
+`network_mode: host`, use `host.docker.internal:8081` — the same value as the
+local-dev default. This is rarely the right answer in a Coolify deployment.
+
+#### Common mistakes
+
+- Putting a full URL (`https://steam5.org:8081`) in `STEAM5_METRICS_TARGET` —
+  Prometheus rejects this with a config parse error.
+- Forgetting to set `STEAM5_METRICS_SCHEME=https` when scraping over TLS
+  (defaults to `http`).
+- Pointing at the main app port (`8080`) instead of the management port
+  (`8081`) — `/actuator/prometheus` is only exposed on the management port.
+- Credentials mismatch — `STEAM5_METRICS_USERNAME` / `STEAM5_METRICS_PASSWORD`
+  in the monitoring stack must equal `METRICS_USERNAME` / `METRICS_PASSWORD`
+  on the backend, otherwise Prometheus gets a `401`.
+
+#### Verification
+
+After deploy, open `http://<grafana-host>:9090/targets` (the Prometheus UI) —
+the `steam5` target should be **UP** with no scrape errors.
+
+- `401 Unauthorized` → credentials mismatch.
+- `connection refused` → host/port wrong, or the backend isn't reachable on
+  that network.
+- `404 Not Found` → `STEAM5_METRICS_PATH` is wrong.
+
+### 6. Grafana behind Coolify's reverse proxy
 
 Coolify's Traefik handles TLS and routing. Add a Coolify domain mapping
 `grafana.steam5.org` → service `grafana` port `3000` (the container port,
@@ -265,7 +353,7 @@ Setting these correctly is required for share links, OAuth callbacks, and
 correct cookie scoping. Do **not** add a public domain mapping for
 Prometheus — keep it internal-only.
 
-### 6. Quick verify in production
+### 7. Quick verify in production
 
 After deploy, from any host that can reach the backend (e.g. inside
 Coolify's terminal), confirm the scrape target works:
