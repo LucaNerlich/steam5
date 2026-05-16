@@ -3,9 +3,15 @@
 # Rendered into /tmp/prometheus.yml by /usr/local/bin/entrypoint.sh at
 # container start. Edit the template, not the rendered copy. Placeholders
 # (@@VAR@@) are substituted from the container environment.
+#
+# Mirror of the inlined `prometheus_config_template` in docker-compose.yml —
+# keep them in sync (Coolify's Git deploy mode ships only the compose file).
 global:
   scrape_interval: @@PROMETHEUS_SCRAPE_INTERVAL@@
   evaluation_interval: @@PROMETHEUS_SCRAPE_INTERVAL@@
+
+rule_files:
+  - /etc/prometheus/alert_rules.yml
 
 scrape_configs:
   - job_name: steam5
@@ -20,3 +26,18 @@ scrape_configs:
     static_configs:
       - targets:
           - @@STEAM5_METRICS_TARGET@@
+
+  - job_name: node
+    static_configs:
+      - targets:
+          - @@NODE_EXPORTER_TARGET@@
+
+  - job_name: cadvisor
+    static_configs:
+      - targets:
+          - @@CADVISOR_TARGET@@
+
+  - job_name: postgres
+    static_configs:
+      - targets:
+          - @@POSTGRES_EXPORTER_TARGET@@

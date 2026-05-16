@@ -1,5 +1,9 @@
 package org.steam5.http;
 
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Tags;
+import io.micrometer.core.instrument.Timer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
@@ -15,9 +19,11 @@ public class SteamHttpClient {
 
     private final RestTemplate restTemplate;
     private final SteamRateLimiter rateLimiter;
+    private final MeterRegistry meterRegistry;
 
-    public SteamHttpClient(SteamAppsConfig cfg, SteamRateLimiter rateLimiter) {
+    public SteamHttpClient(SteamAppsConfig cfg, SteamRateLimiter rateLimiter, MeterRegistry meterRegistry) {
         this.rateLimiter = rateLimiter;
+        this.meterRegistry = meterRegistry;
         final SimpleClientHttpRequestFactory rf = new SimpleClientHttpRequestFactory();
         rf.setConnectTimeout(cfg.getHttpTimeoutMs());
         rf.setReadTimeout(cfg.getHttpTimeoutMs());
@@ -45,8 +51,43 @@ public class SteamHttpClient {
         return url.replaceAll("key=[^&]+", "key=***");
     }
 
+    // Map a request URL to a bounded `endpoint` tag value. Anything not
+    // recognised falls into `other` so the metric label cardinality stays
+    // fixed regardless of which job emits the request.
+    private static String endpointTag(String url) {
+        if (url == null) return "other";
+        if (url.contains("/api/appdetails")) return "appDetails";
+        if (url.contains("/appreviews/")) return "appReviews";
+        if (url.contains("GetAppList")) return "appList";
+        if (url.contains("/openid/")) return "openid";
+        return "other";
+    }
+
+    private void recordOutcome(String endpoint, String outcome, long elapsedNanos) {
+        Counter.builder("steam.api.requests")
+                .description("Steam API requests by endpoint and outcome")
+                .tags(Tags.of("endpoint", endpoint, "outcome", outcome))
+                .register(meterRegistry)
+                .increment();
+        Timer.builder("steam.api.request.duration")
+                .description("Steam API request duration")
+                .tags(Tags.of("endpoint", endpoint, "outcome", outcome))
+                .register(meterRegistry)
+                .record(elapsedNanos, java.util.concurrent.TimeUnit.NANOSECONDS);
+    }
+
+    private void recordRateLimited(String endpoint) {
+        Counter.builder("steam.api.rate.limit.hits")
+                .description("Steam API responses observed with HTTP 429")
+                .tags(Tags.of("endpoint", endpoint))
+                .register(meterRegistry)
+                .increment();
+    }
+
     public String get(String url) throws SteamApiException {
         final int maxAttempts = 3;
+        final String endpoint = endpointTag(url);
+        final long started = System.nanoTime();
         int attempt = 0;
         while (true) {
             attempt++;
@@ -58,6 +99,7 @@ public class SteamHttpClient {
                     if (attempt > 1) {
                         log.info("Steam API call succeeded on attempt {}: {}", attempt, sanitizeUrl(url));
                     }
+                    recordOutcome(endpoint, "success", System.nanoTime() - started);
                     return resp.getBody();
                 }
                 // Non-2xx without exception (custom handlers) - treat as error
@@ -67,6 +109,8 @@ public class SteamHttpClient {
                     backoff(attempt);
                     continue;
                 }
+                if (status == 429) recordRateLimited(endpoint);
+                recordOutcome(endpoint, status == 429 ? "rate_limited" : "failed", System.nanoTime() - started);
                 throw new SteamApiException(status, url, "HTTP " + status + " calling Steam API");
             } catch (RestClientResponseException rcre) {
                 final int status = rcre.getStatusCode().value();
@@ -78,6 +122,8 @@ public class SteamHttpClient {
                 }
                 log.error("Steam API call failed after {} attempts: status={} url={}",
                           attempt, status, sanitizeUrl(url));
+                if (status == 429) recordRateLimited(endpoint);
+                recordOutcome(endpoint, status == 429 ? "rate_limited" : "failed", System.nanoTime() - started);
                 throw new SteamApiException(status, url, "HTTP " + status + " calling Steam API", rcre);
             } catch (ResourceAccessException rae) {
                 // I/O errors or timeouts; retry with backoff
@@ -88,10 +134,9 @@ public class SteamHttpClient {
                     continue;
                 }
                 log.error("Steam API network error after {} attempts: url={}", attempt, sanitizeUrl(url), rae);
+                recordOutcome(endpoint, "network_error", System.nanoTime() - started);
                 throw new SteamApiException(599, url, "Network error calling Steam API", rae);
             }
         }
     }
 }
-
-

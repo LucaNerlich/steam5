@@ -123,6 +123,26 @@
         {"refId": "B", "expr": "rate(hikaricp_connections_usage_seconds_count{application=\"$app\", pool=~\"$pool\"}[5m])", "legendFormat": "{{pool}} usage/s", "datasource": {"type": "prometheus", "uid": "prometheus"}},
         {"refId": "C", "expr": "rate(hikaricp_connections_creation_seconds_count{application=\"$app\", pool=~\"$pool\"}[5m])", "legendFormat": "{{pool}} creation/s", "datasource": {"type": "prometheus", "uid": "prometheus"}}
       ]
+    },
+    {
+      "id": 10, "type": "timeseries", "title": "Avg connection creation time (5m)",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 28},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "s", "custom": {"drawStyle": "line", "fillOpacity": 10}}, "overrides": []},
+      "options": {"legend": {"displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "max"]}, "tooltip": {"mode": "multi"}},
+      "targets": [{"refId": "A", "expr": "rate(hikaricp_connections_creation_seconds_sum{application=\"$app\", pool=~\"$pool\"}[5m]) / clamp_min(rate(hikaricp_connections_creation_seconds_count{application=\"$app\", pool=~\"$pool\"}[5m]), 1e-9)", "legendFormat": "{{pool}} avg creation", "datasource": {"type": "prometheus", "uid": "prometheus"}}]
+    },
+    {
+      "id": 11, "type": "timeseries", "title": "Max single-acquire / usage / creation time",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 28},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "s", "custom": {"drawStyle": "line", "fillOpacity": 10}}, "overrides": []},
+      "options": {"legend": {"displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "max"]}, "tooltip": {"mode": "multi"}},
+      "targets": [
+        {"refId": "A", "expr": "hikaricp_connections_acquire_seconds_max{application=\"$app\", pool=~\"$pool\"}", "legendFormat": "{{pool}} acquire max", "datasource": {"type": "prometheus", "uid": "prometheus"}},
+        {"refId": "B", "expr": "hikaricp_connections_usage_seconds_max{application=\"$app\", pool=~\"$pool\"}", "legendFormat": "{{pool}} usage max", "datasource": {"type": "prometheus", "uid": "prometheus"}},
+        {"refId": "C", "expr": "hikaricp_connections_creation_seconds_max{application=\"$app\", pool=~\"$pool\"}", "legendFormat": "{{pool}} creation max", "datasource": {"type": "prometheus", "uid": "prometheus"}}
+      ]
     }
   ]
 }

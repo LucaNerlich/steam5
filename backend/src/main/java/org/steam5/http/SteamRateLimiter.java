@@ -1,5 +1,7 @@
 package org.steam5.http;
 
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
@@ -10,6 +12,13 @@ public class SteamRateLimiter {
 
     private volatile long nextAllowedEpochMs = 0L;
     private long minIntervalMs = 1000L;
+    private final Timer waitTimer;
+
+    public SteamRateLimiter(MeterRegistry meterRegistry) {
+        this.waitTimer = Timer.builder("steam.api.rate.limiter.wait")
+                .description("Time waited acquiring the Steam API rate-limit permit")
+                .register(meterRegistry);
+    }
 
     public synchronized void setMinInterval(Duration interval) {
         this.minIntervalMs = Math.max(0L, interval.toMillis());
@@ -33,7 +42,6 @@ public class SteamRateLimiter {
                 Thread.currentThread().interrupt();
             }
         }
+        waitTimer.record(waitMs, TimeUnit.MILLISECONDS);
     }
 }
-
-

@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.7.0] - 2026-05-16
+
+### Added
+
+- Host metrics via a `node-exporter` sidecar in the monitoring stack — CPU, memory, load, disk usage/IO, network, file descriptors
+- Container metrics via a `cAdvisor` sidecar — per-container CPU/memory/network/filesystem IO, restarts, OOM events
+- PostgreSQL metrics via a `postgres-exporter` sidecar — connections vs `max_connections`, transactions, deadlocks, cache hit ratio, rows fetched/inserted/updated/deleted, database size, longest-running query
+- Domain instrumentation in the backend — Steam API request rate and latency by endpoint/outcome, dedicated 429 rate-limit counter, rate-limiter wait time, ingestion coverage and freshness gauges, daily-pick generation success/size, authenticated-guess counter by correct/incorrect
+- Four new Grafana dashboards: `Steam5 — Infra (host)`, `Steam5 — Infra (containers)`, `Steam5 — PostgreSQL`, `Steam5 — Domain`
+- Prometheus alert rules in `monitoring/prometheus/alert_rules.yml` covering backend down, 5xx rate, Quartz job failures, daily-picks missing, HikariCP saturation, Steam API rate-limiting, host disk/memory, Postgres connections and deadlocks (visible in Prometheus UI; no Alertmanager wired up yet)
+
+### Changed
+
+- JVM dashboard now shows process CPU usage, process uptime, and open vs max file descriptors
+- HTTP-server dashboard now shows scrape-target up status, 5xx rate, 5xx ratio, and a 5xx-by-URI table
+- HikariCP dashboard now shows average connection creation time and max acquire/usage/creation times
+- Prometheus config template now declares `rule_files` and additional scrape jobs (`node`, `cadvisor`, `postgres`)
+- Monitoring README documents the new exporters, alert rules table, env vars, and a Postgres exporter setup section with the `pg_monitor` SQL snippet
+
 ## [1.6.0] - 2026-04-20
 
 ### Added

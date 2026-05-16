@@ -1,0 +1,121 @@
+{
+  "uid": "steam5-infra-containers",
+  "title": "Steam5 — Infra (containers)",
+  "tags": ["steam5", "infra", "containers", "cadvisor"],
+  "schemaVersion": 39,
+  "editable": true,
+  "graphTooltip": 1,
+  "refresh": "30s",
+  "time": {"from": "now-1h", "to": "now"},
+  "timezone": "browser",
+  "templating": {
+    "list": [
+      {
+        "name": "container",
+        "label": "Container",
+        "type": "query",
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "query": {"query": "label_values(container_last_seen{name=~\".+\"}, name)", "refId": "PrometheusVariableQueryEditor-VariableQuery"},
+        "definition": "label_values(container_last_seen{name=~\".+\"}, name)",
+        "refresh": 2,
+        "includeAll": true,
+        "allValue": ".+",
+        "multi": true,
+        "current": {"text": "All", "value": "$__all"},
+        "sort": 1
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1, "type": "stat", "title": "Running containers",
+      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []},
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "colorMode": "value", "graphMode": "area"},
+      "targets": [{"refId": "A", "expr": "count(container_last_seen{name=~\".+\"})", "datasource": {"type": "prometheus", "uid": "prometheus"}}]
+    },
+    {
+      "id": 2, "type": "stat", "title": "Total container memory used",
+      "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "bytes"}, "overrides": []},
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "colorMode": "value", "graphMode": "area"},
+      "targets": [{"refId": "A", "expr": "sum(container_memory_working_set_bytes{name=~\".+\"})", "datasource": {"type": "prometheus", "uid": "prometheus"}}]
+    },
+    {
+      "id": 3, "type": "stat", "title": "Container restarts (1h)",
+      "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "short", "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "orange", "value": 1}, {"color": "red", "value": 5}]}}, "overrides": []},
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "colorMode": "value", "graphMode": "area"},
+      "targets": [{"refId": "A", "expr": "sum(increase(container_start_time_seconds{name=~\".+\"}[1h] offset 0s) > bool 0)", "datasource": {"type": "prometheus", "uid": "prometheus"}}]
+    },
+    {
+      "id": 4, "type": "stat", "title": "OOM events (1h)",
+      "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "short", "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "red", "value": 1}]}}, "overrides": []},
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "colorMode": "value", "graphMode": "area"},
+      "targets": [{"refId": "A", "expr": "sum(increase(container_oom_events_total{name=~\".+\"}[1h]))", "datasource": {"type": "prometheus", "uid": "prometheus"}}]
+    },
+    {
+      "id": 5, "type": "timeseries", "title": "CPU usage by container",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "percentunit", "custom": {"drawStyle": "line", "fillOpacity": 10}}, "overrides": []},
+      "options": {"legend": {"displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "max"]}, "tooltip": {"mode": "multi", "sort": "desc"}},
+      "targets": [{"refId": "A", "expr": "sum by (name) (rate(container_cpu_usage_seconds_total{name=~\"$container\"}[5m]))", "legendFormat": "{{name}}", "datasource": {"type": "prometheus", "uid": "prometheus"}}]
+    },
+    {
+      "id": 6, "type": "timeseries", "title": "Memory working set by container",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "bytes", "custom": {"drawStyle": "line", "fillOpacity": 10}}, "overrides": []},
+      "options": {"legend": {"displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "max"]}, "tooltip": {"mode": "multi", "sort": "desc"}},
+      "targets": [{"refId": "A", "expr": "container_memory_working_set_bytes{name=~\"$container\"}", "legendFormat": "{{name}}", "datasource": {"type": "prometheus", "uid": "prometheus"}}]
+    },
+    {
+      "id": 7, "type": "timeseries", "title": "Network RX/TX by container",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "binBps", "custom": {"drawStyle": "line", "fillOpacity": 10}}, "overrides": []},
+      "options": {"legend": {"displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "max"]}, "tooltip": {"mode": "multi"}},
+      "targets": [
+        {"refId": "A", "expr": "sum by (name) (rate(container_network_receive_bytes_total{name=~\"$container\"}[5m]))", "legendFormat": "{{name}} rx", "datasource": {"type": "prometheus", "uid": "prometheus"}},
+        {"refId": "B", "expr": "-sum by (name) (rate(container_network_transmit_bytes_total{name=~\"$container\"}[5m]))", "legendFormat": "{{name}} tx", "datasource": {"type": "prometheus", "uid": "prometheus"}}
+      ]
+    },
+    {
+      "id": 8, "type": "timeseries", "title": "Filesystem I/O by container",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "binBps", "custom": {"drawStyle": "line", "fillOpacity": 10}}, "overrides": []},
+      "options": {"legend": {"displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "max"]}, "tooltip": {"mode": "multi"}},
+      "targets": [
+        {"refId": "A", "expr": "sum by (name) (rate(container_fs_reads_bytes_total{name=~\"$container\"}[5m]))", "legendFormat": "{{name}} read", "datasource": {"type": "prometheus", "uid": "prometheus"}},
+        {"refId": "B", "expr": "-sum by (name) (rate(container_fs_writes_bytes_total{name=~\"$container\"}[5m]))", "legendFormat": "{{name}} write", "datasource": {"type": "prometheus", "uid": "prometheus"}}
+      ]
+    },
+    {
+      "id": 9, "type": "table", "title": "Top containers — current state",
+      "gridPos": {"h": 10, "w": 24, "x": 0, "y": 20},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "short"}, "overrides": [
+        {"matcher": {"id": "byName", "options": "Value #mem"}, "properties": [{"id": "unit", "value": "bytes"}, {"id": "displayName", "value": "memory"}]},
+        {"matcher": {"id": "byName", "options": "Value #cpu"}, "properties": [{"id": "unit", "value": "percentunit"}, {"id": "displayName", "value": "cpu"}]},
+        {"matcher": {"id": "byName", "options": "Value #restart"}, "properties": [{"id": "displayName", "value": "uptime (s)"}, {"id": "unit", "value": "s"}]}
+      ]},
+      "options": {"showHeader": true},
+      "targets": [
+        {"refId": "cpu", "expr": "sum by (name) (rate(container_cpu_usage_seconds_total{name=~\"$container\"}[5m]))", "format": "table", "instant": true, "datasource": {"type": "prometheus", "uid": "prometheus"}},
+        {"refId": "mem", "expr": "container_memory_working_set_bytes{name=~\"$container\"}", "format": "table", "instant": true, "datasource": {"type": "prometheus", "uid": "prometheus"}},
+        {"refId": "restart", "expr": "time() - container_start_time_seconds{name=~\"$container\"}", "format": "table", "instant": true, "datasource": {"type": "prometheus", "uid": "prometheus"}}
+      ],
+      "transformations": [
+        {"id": "joinByField", "options": {"byField": "name", "mode": "outer"}},
+        {"id": "organize", "options": {"excludeByName": {"Time 1": true, "Time 2": true, "Time 3": true, "__name__": true, "instance": true, "job": true, "id": true, "image": true, "container_label_com_docker_compose_project": true, "container_label_com_docker_compose_service": true}}}
+      ]
+    }
+  ]
+}

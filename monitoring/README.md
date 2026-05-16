@@ -1,18 +1,29 @@
 # Steam5 monitoring stack
 
-Prometheus + Grafana, containerised, scraping the Steam5 Spring Boot backend
-via `/actuator/prometheus` over HTTP basic auth.
+Prometheus + Grafana with three infrastructure exporters (node, cAdvisor,
+postgres), scraping the Steam5 Spring Boot backend via `/actuator/prometheus`
+over HTTP basic auth.
 
 ## Overview
 
-| Component  | Image                  | Default host port | Purpose                                                                  |
-|------------|------------------------|-------------------|--------------------------------------------------------------------------|
-| Prometheus | `prom/prometheus:v3.5.1` | `9090`            | Scrapes the backend, retains TSDB locally.                               |
-| Grafana    | `grafana/grafana:12.3.1` | `3001`            | Visualises Prometheus data, ships 5 provisioned Steam5 dashboards.       |
+| Component         | Image                                              | Default host port | Purpose                                                                  |
+|-------------------|----------------------------------------------------|-------------------|--------------------------------------------------------------------------|
+| Prometheus        | `prom/prometheus:v3.5.3`                           | `9090`            | Scrapes everything below, retains TSDB locally, evaluates alert rules.   |
+| Grafana           | `grafana/grafana:13.0.1-security-01-ubuntu`        | `3001`            | Visualises Prometheus data, ships 9 provisioned Steam5 dashboards.       |
+| node-exporter     | `prom/node-exporter:v1.8.2`                        | _(internal)_      | Host CPU / memory / disk / network / file descriptors.                   |
+| cAdvisor          | `gcr.io/cadvisor/cadvisor:v0.49.1`                 | _(internal)_      | Per-container CPU / memory / network / restarts / OOM events.            |
+| postgres-exporter | `prometheuscommunity/postgres-exporter:v0.15.0`    | _(internal)_      | Postgres connections, transactions, locks, deadlocks, cache hit ratio.   |
 
 The backend is **not** part of this stack — it must already be running and
 exposing `/actuator/prometheus` (port `8081` by default in dev). The
 Prometheus container reaches the backend via `host.docker.internal:8081`.
+
+The three exporters live inside the `steam5-monitoring` docker network and
+are scraped by Prometheus over that network's DNS — they have no host port
+exposure. cAdvisor and node-exporter need privileged read access to host
+files (`/proc`, `/sys`, `/var/run/docker.sock`); the postgres-exporter only
+needs a libpq DSN at `POSTGRES_EXPORTER_DSN` and a low-privilege monitoring
+role on the database (`pg_monitor` on PG 10+).
 
 Layout:
 
@@ -22,6 +33,7 @@ monitoring/
 ├── .env.example                # source of truth for tunable env vars
 ├── prometheus/
 │   ├── prometheus.yml.tpl      # config template (see entrypoint.sh)
+│   ├── alert_rules.yml         # source-of-truth alert rules (mirrored inline)
 │   └── entrypoint.sh           # renders template + writes basic-auth secrets
 └── grafana/
     ├── provisioning/
@@ -71,7 +83,7 @@ docker compose down -v
 | Prometheus | <http://localhost:9090>        | `/targets` should show the `steam5` job as **UP**.   |
 | Grafana    | <http://localhost:3001>        | Login `admin` / `admin` (override in `.env`).        |
 
-In Grafana → **Dashboards**, all five Steam5 dashboards are pre-loaded under
+In Grafana → **Dashboards**, all nine Steam5 dashboards are pre-loaded under
 the `steam5` tag — open any of them directly:
 
 - <http://localhost:3001/d/steam5-jvm>
@@ -79,24 +91,62 @@ the `steam5` tag — open any of them directly:
 - <http://localhost:3001/d/steam5-hikari>
 - <http://localhost:3001/d/steam5-caches>
 - <http://localhost:3001/d/steam5-quartz>
+- <http://localhost:3001/d/steam5-domain>
+- <http://localhost:3001/d/steam5-infra-host>
+- <http://localhost:3001/d/steam5-infra-containers>
+- <http://localhost:3001/d/steam5-postgres>
 
 ## Dashboards
 
-All dashboards filter by `application="steam5"` — a Micrometer common tag set
-via `management.metrics.tags.application: steam5` in
+Backend dashboards filter by `application="steam5"` — a Micrometer common
+tag set via `management.metrics.tags.application: steam5` in
 `backend/src/main/resources/application.yml`, so multiple environments can
-share one Prometheus.
+share one Prometheus. Infra dashboards (`infra-host`, `infra-containers`,
+`postgres`) filter by exporter-native labels (`instance`, `name`, `datname`).
 
-| File                            | UID              | Title                       | Purpose                                                                          |
-|---------------------------------|------------------|-----------------------------|----------------------------------------------------------------------------------|
-| `dashboards-json/jvm.json`      | `steam5-jvm`     | Steam5 — JVM                | Heap & non-heap usage, GC pause time/rate, threads, classes loaded.              |
-| `dashboards-json/http-server.json` | `steam5-http` | Steam5 — HTTP server        | Request rate, error rate, p50/p95/p99 latency, slowest endpoints, status codes. |
-| `dashboards-json/hikari.json`   | `steam5-hikari`  | Steam5 — HikariCP           | Connection pool size, active/idle/pending, wait time, timeouts.                  |
-| `dashboards-json/caches.json`   | `steam5-caches`  | Steam5 — Caches (Caffeine)  | Per-cache hit ratio, gets/puts/evictions, size; `$cache` template variable.      |
-| `dashboards-json/quartz.json`   | `steam5-quartz`  | Steam5 — Quartz jobs        | Job execution rate by outcome, duration percentiles, currently executing jobs.   |
+| File                            | UID                       | Title                          | Purpose                                                                          |
+|---------------------------------|---------------------------|--------------------------------|----------------------------------------------------------------------------------|
+| `dashboards-json/jvm.json`      | `steam5-jvm`              | Steam5 — JVM                   | Heap & non-heap usage, GC pause time/rate, threads, classes, CPU, file descriptors. |
+| `dashboards-json/http-server.json` | `steam5-http`          | Steam5 — HTTP server           | Request rate, error rate, p50/p95/p99 latency, slowest endpoints, 5xx by URI, target up. |
+| `dashboards-json/hikari.json`   | `steam5-hikari`           | Steam5 — HikariCP              | Connection pool size, active/idle/pending, wait/usage/creation time, timeouts.   |
+| `dashboards-json/caches.json`   | `steam5-caches`           | Steam5 — Caches (Caffeine)     | Per-cache hit ratio, gets/puts/evictions, size; `$cache` template variable.      |
+| `dashboards-json/quartz.json`   | `steam5-quartz`           | Steam5 — Quartz jobs           | Job execution rate by outcome, duration percentiles, per-job summary.            |
+| `dashboards-json/domain.json`   | `steam5-domain`           | Steam5 — Domain                | Daily-picks generation, Steam API health (429s, latency, wait), ingestion coverage/freshness, guess volume and accuracy. |
+| `dashboards-json/infra-host.json` | `steam5-infra-host`     | Steam5 — Infra (host)          | Host CPU, memory, load, disk space/IO, network, file descriptors (via node-exporter). |
+| `dashboards-json/infra-containers.json` | `steam5-infra-containers` | Steam5 — Infra (containers) | Per-container CPU/memory/network/fs IO, restarts, OOM events (via cAdvisor).     |
+| `dashboards-json/postgres.json` | `steam5-postgres`         | Steam5 — PostgreSQL            | Connections, transactions/sec, deadlocks, cache hit ratio, rows, DB size, longest query (via postgres-exporter). |
 
 To add a new dashboard, drop a JSON file with a unique `uid` into
 `grafana/dashboards-json/` and restart Grafana (`docker compose restart grafana`).
+
+## Alert rules
+
+Source-of-truth: [`prometheus/alert_rules.yml`](prometheus/alert_rules.yml).
+The same content is also inlined into `docker-compose.yml` as the
+`prometheus_alert_rules` config so Coolify's Git deploy mode (which ships
+only the compose file) picks it up. **When editing rules, change both
+copies** — and in the inlined copy every literal `$` must be doubled to
+`$$` because docker compose interpolates `${VAR}` and `$VAR` in `configs:
+content`.
+
+Alerts surface in Prometheus' web UI at `/alerts` and `/rules`. There is no
+Alertmanager yet, so they do not route anywhere — wiring email/Slack/etc is
+a separate change.
+
+Current rule groups:
+
+| Group           | Alert                          | Fires when                                                               |
+|-----------------|--------------------------------|--------------------------------------------------------------------------|
+| steam5-backend  | `Steam5BackendDown`            | `up{job="steam5"} == 0` for 2m.                                          |
+| steam5-backend  | `Steam5HighHttp5xx`            | 5xx rate exceeds 1% of all requests for 5m.                              |
+| steam5-backend  | `Steam5QuartzJobFailing`       | Any Quartz job recorded `outcome="failed"` in the last 15m.              |
+| steam5-backend  | `Steam5DailyPicksMissing`      | `steam5_daily_picks_last_success_epoch_seconds` is >26h old.             |
+| steam5-backend  | `Steam5HikariSaturated`        | `hikaricp_connections_pending > 0` for 5m.                               |
+| steam5-backend  | `Steam5SteamApiRateLimited`    | More than 5 HTTP 429s from the Steam API in the last 10m.                |
+| host            | `HostDiskAlmostFull`           | A filesystem is >85% full for 10m.                                       |
+| host            | `HostHighMemory`               | Host memory utilisation >90% for 10m.                                    |
+| postgres        | `PostgresConnectionsHigh`      | `pg_stat_activity_count / pg_settings_max_connections > 0.8` for 5m.     |
+| postgres        | `PostgresDeadlocks`            | Any deadlocks observed in the last 5m.                                   |
 
 ## Environment variables
 
@@ -114,6 +164,10 @@ every variable so you can scan it without opening the file.
 | `STEAM5_METRICS_PATH`        | `/actuator/prometheus`               | Metrics endpoint path on the backend.                                   |
 | `STEAM5_METRICS_USERNAME`    | `metrics`                            | Basic-auth user Prometheus presents to the backend.                     |
 | `STEAM5_METRICS_PASSWORD`    | `metrics`                            | Basic-auth password (must match backend `METRICS_PASSWORD`).            |
+| `NODE_EXPORTER_TARGET`       | `node-exporter:9100`                 | In-stack DNS target for the node-exporter sidecar.                      |
+| `CADVISOR_TARGET`            | `cadvisor:8080`                      | In-stack DNS target for the cAdvisor sidecar.                           |
+| `POSTGRES_EXPORTER_TARGET`   | `postgres-exporter:9187`             | In-stack DNS target for the postgres-exporter sidecar.                  |
+| `POSTGRES_EXPORTER_DSN`      | _(empty)_                            | libpq DSN postgres-exporter uses to connect (e.g. `postgresql://metrics:PW@host:5432/db?sslmode=disable`). Required for the `postgres` scrape job. |
 | `GRAFANA_IMAGE`              | `grafana/grafana:12.3.1`             | Grafana container image.                                                |
 | `GRAFANA_PORT`               | `3001`                               | Host port mapped to Grafana (3001 to avoid Next.js dev on 3000).        |
 | `GF_SECURITY_ADMIN_USER`     | `admin`                              | Initial Grafana admin username.                                         |
@@ -123,6 +177,33 @@ every variable so you can scan it without opening the file.
 | `GF_USERS_ALLOW_SIGN_UP`     | `false`                              | Disable self-service account creation.                                  |
 | `PROMETHEUS_DATA_PATH`       | _(unset → named volume)_             | Optional — bind-mount data volume to a host path.                       |
 | `GRAFANA_DATA_PATH`          | _(unset → named volume)_             | Optional — bind-mount data volume to a host path.                       |
+
+## Postgres exporter setup
+
+The `postgres-exporter` sidecar connects to Postgres via `POSTGRES_EXPORTER_DSN`.
+Grant it a low-privilege monitoring role rather than reusing the application
+user — `pg_monitor` (built-in on Postgres 10+) is sufficient and grants no
+superuser rights:
+
+```sql
+CREATE USER metrics WITH PASSWORD '…strong password…';
+GRANT pg_monitor TO metrics;
+```
+
+DSN format (no scheme prefix beyond `postgresql://`, no trailing slash):
+
+```
+POSTGRES_EXPORTER_DSN=postgresql://metrics:STRONG_PW@HOST:5432/steam5_db?sslmode=disable
+```
+
+For local dev, point at the host's Postgres:
+`postgresql://metrics:metrics@host.docker.internal:5432/steam5_db?sslmode=disable`.
+For Coolify, point at the in-network Postgres service DNS, e.g.
+`postgresql://metrics:…@steam5-postgres:5432/steam5_db?sslmode=disable`.
+
+If `POSTGRES_EXPORTER_DSN` is left unset the exporter container starts but
+fails its scrape — the `postgres` job in Prometheus will be DOWN, while the
+other jobs continue to work normally.
 
 ## Cross-platform notes
 

@@ -1,5 +1,7 @@
 package org.steam5.web;
 
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
@@ -57,6 +59,7 @@ public class ReviewGameStateController {
     private final AuthTokenService authTokenService;
     private final org.steam5.repository.ReviewGamePickRepository pickRepository;
     private final Scheduler scheduler;
+    private final MeterRegistry meterRegistry;
 
     private static int scorePoints(List<String> buckets, String selected, String actual) {
         int si = buckets.indexOf(selected);
@@ -472,6 +475,13 @@ public class ReviewGameStateController {
         // create new; guard against concurrent duplicate via the unique index
         try {
             guessRepository.save(new org.steam5.domain.Guess(null, steamId, date, roundIndex, req.appId, req.bucketGuess, computedActual, points, java.time.OffsetDateTime.now()));
+            // Increment only when a brand-new guess is persisted so the
+            // counter reflects player throughput, not duplicate submissions.
+            Counter.builder("steam5.guesses")
+                    .description("Authenticated guesses persisted, by exact-match outcome")
+                    .tag("outcome", req.bucketGuess.equals(computedActual) ? "correct" : "incorrect")
+                    .register(meterRegistry)
+                    .increment();
         } catch (DataIntegrityViolationException ignored) {
             // another request saved the same guess concurrently; return the persisted one
             final var existing = guessRepository.findBySteamIdAndGameDateAndRoundIndex(steamId, date, roundIndex);

@@ -34,12 +34,18 @@ services:
       STEAM5_METRICS_PATH: ${STEAM5_METRICS_PATH:-/actuator/prometheus}
       STEAM5_METRICS_USERNAME: ${STEAM5_METRICS_USERNAME:-metrics}
       STEAM5_METRICS_PASSWORD: ${STEAM5_METRICS_PASSWORD:-metrics}
+      NODE_EXPORTER_TARGET: ${NODE_EXPORTER_TARGET:-node-exporter:9100}
+      CADVISOR_TARGET: ${CADVISOR_TARGET:-cadvisor:8080}
+      POSTGRES_EXPORTER_TARGET: ${POSTGRES_EXPORTER_TARGET:-postgres-exporter:9187}
     configs:
       - source: prometheus_entrypoint
         target: /usr/local/bin/entrypoint.sh
         mode: 0755
       - source: prometheus_config_template
         target: /etc/prometheus/prometheus.yml.tpl
+        mode: 0444
+      - source: prometheus_alert_rules
+        target: /etc/prometheus/alert_rules.yml
         mode: 0444
     volumes:
       - /data/volumes/steam5/prometheus:/prometheus
@@ -96,6 +102,76 @@ services:
       retries: 3
       start_period: 30s
 
+  # ── Host-level metrics: CPU, memory, disk, network, file descriptors ───────
+  node-exporter:
+    image: prom/node-exporter:v1.8.2
+    pull_policy: always
+    container_name: steam5-node-exporter
+    restart: unless-stopped
+    pid: host
+    command:
+      - "--path.procfs=/host/proc"
+      - "--path.sysfs=/host/sys"
+      - "--path.rootfs=/host/root"
+      - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc|rootfs/var/lib/docker/containers|rootfs/var/lib/docker/overlay2|rootfs/run/docker/netns|rootfs/var/lib/docker/aufs)($$|/)"
+      - "--collector.filesystem.fs-types-exclude=^(autofs|binfmt_misc|bpf|cgroup2?|configfs|debugfs|devpts|devtmpfs|fusectl|hugetlbfs|iso9660|mqueue|nsfs|overlay|proc|procfs|pstore|rpc_pipefs|securityfs|selinuxfs|squashfs|sysfs|tracefs)$$"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/host/root:ro,rslave
+    networks:
+      - default
+    # No host port exposed: scraped only on the internal docker network.
+    expose:
+      - "9100"
+
+  # ── Container metrics: per-container CPU, memory, network, restart count ───
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    pull_policy: always
+    container_name: steam5-cadvisor
+    restart: unless-stopped
+    # cAdvisor needs broad read-only access to docker + cgroup state on the
+    # host. These mounts are sensitive (docker.sock especially) — keep this
+    # container reachable only on the internal docker network.
+    privileged: true
+    devices:
+      - /dev/kmsg:/dev/kmsg
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+      - /dev/disk:/dev/disk:ro
+    networks:
+      - default
+      - coolify
+    expose:
+      - "8080"
+
+  # ── Postgres metrics: connections, deadlocks, rows, locks, sizes ──────────
+  # Requires POSTGRES_EXPORTER_DSN pointing at a low-privilege monitoring
+  # user (grant `pg_monitor` on PG 10+ — no SUPERUSER needed). Internal only.
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.15.0
+    pull_policy: always
+    container_name: steam5-postgres-exporter
+    restart: unless-stopped
+    environment:
+      # libpq connection string. Example for local dev:
+      #   postgresql://metrics:metrics@host.docker.internal:5432/steam5_db?sslmode=disable
+      DATA_SOURCE_NAME: ${POSTGRES_EXPORTER_DSN:-}
+      PG_EXPORTER_EXTEND_QUERY_PATH: ""
+    extra_hosts:
+      # Same as Prometheus — lets the exporter reach a host-side Postgres in
+      # local dev. In Coolify the DSN points at the in-network Postgres DNS.
+      - "host.docker.internal:host-gateway"
+    networks:
+      - default
+      - coolify
+    expose:
+      - "9187"
+
 networks:
   default:
     name: steam5-monitoring
@@ -131,6 +207,9 @@ configs:
         -e "s|@@STEAM5_METRICS_TARGET@@|$${STEAM5_METRICS_TARGET:-host.docker.internal:8081}|g" \
         -e "s|@@STEAM5_METRICS_SCHEME@@|$${STEAM5_METRICS_SCHEME:-http}|g" \
         -e "s|@@STEAM5_METRICS_PATH@@|$${STEAM5_METRICS_PATH:-/actuator/prometheus}|g" \
+        -e "s|@@NODE_EXPORTER_TARGET@@|$${NODE_EXPORTER_TARGET:-node-exporter:9100}|g" \
+        -e "s|@@CADVISOR_TARGET@@|$${CADVISOR_TARGET:-cadvisor:8080}|g" \
+        -e "s|@@POSTGRES_EXPORTER_TARGET@@|$${POSTGRES_EXPORTER_TARGET:-postgres-exporter:9187}|g" \
         -e "s|@@PROM_SECRETS_DIR@@|$${SECRETS_DIR}|g" \
         /etc/prometheus/prometheus.yml.tpl > "$$RENDERED"
 
@@ -146,6 +225,9 @@ configs:
         scrape_interval: @@PROMETHEUS_SCRAPE_INTERVAL@@
         evaluation_interval: @@PROMETHEUS_SCRAPE_INTERVAL@@
 
+      rule_files:
+        - /etc/prometheus/alert_rules.yml
+
       scrape_configs:
         - job_name: steam5
           metrics_path: @@STEAM5_METRICS_PATH@@
@@ -159,6 +241,132 @@ configs:
           static_configs:
             - targets:
                 - @@STEAM5_METRICS_TARGET@@
+
+        - job_name: node
+          static_configs:
+            - targets:
+                - @@NODE_EXPORTER_TARGET@@
+
+        - job_name: cadvisor
+          static_configs:
+            - targets:
+                - @@CADVISOR_TARGET@@
+
+        - job_name: postgres
+          static_configs:
+            - targets:
+                - @@POSTGRES_EXPORTER_TARGET@@
+  prometheus_alert_rules:
+    # Source-of-truth: monitoring/prometheus/alert_rules.yml. Keep this
+    # inlined copy in sync — Coolify's Git deploy mode ships only this
+    # compose file. No templating is needed here, so the content is used
+    # as-is at /etc/prometheus/alert_rules.yml.
+    content: |
+      groups:
+        - name: steam5-backend
+          rules:
+            - alert: Steam5BackendDown
+              expr: up{job="steam5"} == 0
+              for: 2m
+              labels:
+                severity: critical
+              annotations:
+                summary: "Steam5 backend scrape target is down"
+                description: "Prometheus has been unable to scrape {{ $$labels.instance }} for >2m."
+
+            - alert: Steam5HighHttp5xx
+              expr: |
+                sum(rate(http_server_requests_seconds_count{application="steam5",status=~"5.."}[5m]))
+                  /
+                clamp_min(sum(rate(http_server_requests_seconds_count{application="steam5"}[5m])), 1e-9)
+                  > 0.01
+              for: 5m
+              labels:
+                severity: warning
+              annotations:
+                summary: "Steam5 5xx error rate above 1%"
+                description: "5xx error rate over the last 5m exceeds 1% of all requests."
+
+            - alert: Steam5QuartzJobFailing
+              expr: increase(quartz_jobs_execution_seconds_count{application="steam5",outcome="failed"}[15m]) > 0
+              for: 0m
+              labels:
+                severity: warning
+              annotations:
+                summary: "Quartz job failed in the last 15m"
+                description: "Job {{ $$labels.name }} reported {{ $$value }} failed execution(s) in the last 15m."
+
+            - alert: Steam5DailyPicksMissing
+              expr: time() - steam5_daily_picks_last_success_epoch_seconds > 26 * 3600
+              for: 0m
+              labels:
+                severity: critical
+              annotations:
+                summary: "Daily picks have not been generated in >26h"
+                description: "ReviewGameStateJob last succeeded at {{ humanizeTimestamp $$value }} — players will see no games today."
+
+            - alert: Steam5HikariSaturated
+              expr: hikaricp_connections_pending{application="steam5"} > 0
+              for: 5m
+              labels:
+                severity: warning
+              annotations:
+                summary: "HikariCP has pending connection acquisitions"
+                description: "{{ $$value }} thread(s) waiting on a DB connection for >5m — pool may be undersized."
+
+            - alert: Steam5SteamApiRateLimited
+              expr: increase(steam_api_rate_limit_hits_total{application="steam5"}[10m]) > 5
+              for: 0m
+              labels:
+                severity: warning
+              annotations:
+                summary: "Steam API returning 429s"
+                description: "{{ $$value }} 429 responses from the Steam API in the last 10m — back off ingest jobs."
+
+        - name: host
+          rules:
+            - alert: HostDiskAlmostFull
+              expr: |
+                100 * (1 - node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs"}
+                  / node_filesystem_size_bytes{fstype!~"tmpfs|overlay|squashfs"}) > 85
+              for: 10m
+              labels:
+                severity: warning
+              annotations:
+                summary: "Filesystem >85% full"
+                description: "{{ $$labels.mountpoint }} on {{ $$labels.instance }} is {{ $$value | humanize }}% full."
+
+            - alert: HostHighMemory
+              expr: 100 * (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) > 90
+              for: 10m
+              labels:
+                severity: warning
+              annotations:
+                summary: "Host memory >90% used"
+                description: "{{ $$labels.instance }} memory utilisation at {{ $$value | humanize }}%."
+
+        - name: postgres
+          rules:
+            - alert: PostgresConnectionsHigh
+              expr: |
+                sum by (instance) (pg_stat_activity_count)
+                  / on (instance) group_left()
+                pg_settings_max_connections > 0.8
+              for: 5m
+              labels:
+                severity: warning
+              annotations:
+                summary: "Postgres using >80% of max_connections"
+                description: "{{ $$value | humanize }} fraction of max_connections in use on {{ $$labels.instance }}."
+
+            - alert: PostgresDeadlocks
+              expr: increase(pg_stat_database_deadlocks[5m]) > 0
+              for: 0m
+              labels:
+                severity: warning
+              annotations:
+                summary: "Postgres deadlocks detected"
+                description: "{{ $$value }} deadlock(s) on database {{ $$labels.datname }} in the last 5m."
   grafana_datasource:
     content: |
       # Auto-provision the in-network Prometheus datasource.
