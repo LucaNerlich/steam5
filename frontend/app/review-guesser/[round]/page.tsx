@@ -14,7 +14,7 @@ async function loadToday(): Promise<ReviewGameState> {
     const backend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
     const res = await fetch(`${backend}/api/review-game/today`, {
         headers: {"accept": "application/json"},
-        next: {revalidate: 60},
+        next: {revalidate: 60, tags: ['round-today']},
     });
     if (!res.ok) {
         throw new Error(`Failed to load daily picks: ${res.status}`);

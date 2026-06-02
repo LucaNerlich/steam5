@@ -1,3 +1,4 @@
+import {revalidatePath} from 'next/cache';
 import {NextRequest, NextResponse} from "next/server";
 
 const BACKEND_ORIGIN = process.env.NEXT_PUBLIC_API_DOMAIN || "http://localhost:8080";
@@ -71,6 +72,7 @@ export async function GET(req: NextRequest) {
             maxAge: 60 * 60 * 24 * 30,
         });
         clearStateCookie(resp, base);
+        revalidatePath('/review-guesser', 'layout');
         return resp;
     } catch (e) {
         console.error('[steam5] callback error', {

@@ -9,7 +9,7 @@ const BACKEND_ORIGIN = process.env.NEXT_PUBLIC_API_DOMAIN || "http://localhost:8
 export async function GET() {
     try {
         const res = await fetch(`${BACKEND_ORIGIN}/api/review-game/today`, {
-            next: {revalidate: 60},
+            next: {revalidate: 60, tags: ['round-today']},
             headers: {"accept": "application/json"}
         });
         const data: ReviewGameState = await res.json();
