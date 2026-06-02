@@ -12,16 +12,16 @@
         "@fancyapps/ui": "^6.1.14",
         "@phosphor-icons/react": "^2.1.10",
         "babel-plugin-react-compiler": "^1.0.0",
-        "dashjs": "^5.1.1",
+        "dashjs": "^5.2.0",
         "html-react-parser": "^5.2.17",
-        "next": "^16.2.6",
-        "react": "^19.2.6",
-        "react-dom": "^19.2.6",
+        "next": "^16.2.7",
+        "react": "^19.2.7",
+        "react-dom": "^19.2.7",
         "swr": "^2.4.1"
     },
     "devDependencies": {
         "@types/node": "^22.19.19",
-        "@types/react": "^19.2.15",
+        "@types/react": "^19.2.16",
         "@types/react-dom": "^19.2.3",
         "typescript": "^5.9.3"
     },
