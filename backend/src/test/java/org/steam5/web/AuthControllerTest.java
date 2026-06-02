@@ -35,19 +35,35 @@ public class AuthControllerTest {
         when(token.verifyToken("good")).thenReturn("123");
         when(token.verifyToken("bad")).thenReturn(null);
 
-        var ok = controller.validate("good");
+        // validate() reads an Authorization header, which must carry the "Bearer " scheme.
+        var ok = controller.validate("Bearer good");
         assertEquals(200, ok.getStatusCode().value());
         assertNotNull(ok.getBody());
         final var okBody = ok.getBody();
         assertNotNull(okBody);
         assertEquals(true, ((Map<?, ?>) okBody).get("valid"));
 
-        var bad = controller.validate("bad");
+        var bad = controller.validate("Bearer bad");
         assertEquals(401, bad.getStatusCode().value());
         assertNotNull(bad.getBody());
         final var badBody = bad.getBody();
         assertNotNull(badBody);
         assertEquals(false, ((Map<?, ?>) badBody).get("valid"));
+    }
+
+    @Test
+    void validate_okResponseIsNeverCached() {
+        AuthTokenService token = mock(AuthTokenService.class);
+        SteamUserService users = mock(SteamUserService.class);
+        AuthController controller = new AuthController(token, users);
+
+        when(token.verifyToken("good")).thenReturn("123");
+
+        // Bearer prefix is required for the success path.
+        var ok = controller.validate("Bearer good");
+        assertEquals(200, ok.getStatusCode().value());
+        // Per-user token validation must never be stored by any cache (shared or private).
+        assertEquals("no-store", ok.getHeaders().getCacheControl());
     }
 }
 

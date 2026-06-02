@@ -1,3 +1,4 @@
+import {revalidatePath, revalidateTag} from 'next/cache';
 import {NextRequest, NextResponse} from "next/server";
 
 const BACKEND_ORIGIN = process.env.NEXT_PUBLIC_API_DOMAIN || "http://localhost:8080";
@@ -71,6 +72,10 @@ export async function GET(req: NextRequest) {
             maxAge: 60 * 60 * 24 * 30,
         });
         clearStateCookie(resp, base);
+        // Invalidate the round page tree and the tagged today-fetches (page +
+        // proxy route) so the freshly-authenticated user sees current data.
+        revalidatePath('/review-guesser', 'layout');
+        revalidateTag('round-today', 'max');
         return resp;
     } catch (e) {
         console.error('[steam5] callback error', {

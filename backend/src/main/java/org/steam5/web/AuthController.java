@@ -211,6 +211,9 @@ public class AuthController {
         final String token = authHeader.substring(7);
         final String steamId = tokenService.verifyToken(token);
         if (steamId == null) return ResponseEntity.status(401).body(Map.of("valid", false));
-        return ResponseEntity.ok(Map.of("valid", true, "steamId", steamId));
+        // Token validation is per-user and must never be stored by any cache.
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CACHE_CONTROL, "no-store")
+                .body(Map.of("valid", true, "steamId", steamId));
     }
 }

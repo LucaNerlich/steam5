@@ -14,7 +14,7 @@ async function loadToday(): Promise<ReviewGameState> {
     const backend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
     const res = await fetch(`${backend}/api/review-game/today`, {
         headers: {"accept": "application/json"},
-        next: {revalidate: 60},
+        next: {revalidate: 60, tags: ['round-today']},
     });
     if (!res.ok) {
         throw new Error(`Failed to load daily picks: ${res.status}`);
@@ -117,7 +117,7 @@ export async function generateMetadata({params}: { params: Promise<{ round: stri
     try {
         const today: ReviewGameState = await fetch(`${backend}/api/review-game/today`, {
             headers: {"accept": "application/json"},
-            next: {revalidate: 60}
+            next: {revalidate: 60, tags: ['round-today']}
         }).then(r => r.json());
         const roundIndex = Math.max(1, Number.parseInt(round || '1', 10));
         const pick = today.picks[roundIndex - 1];
