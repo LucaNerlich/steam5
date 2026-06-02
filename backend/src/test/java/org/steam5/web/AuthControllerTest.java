@@ -35,14 +35,15 @@ public class AuthControllerTest {
         when(token.verifyToken("good")).thenReturn("123");
         when(token.verifyToken("bad")).thenReturn(null);
 
-        var ok = controller.validate("good");
+        // validate() reads an Authorization header, which must carry the "Bearer " scheme.
+        var ok = controller.validate("Bearer good");
         assertEquals(200, ok.getStatusCode().value());
         assertNotNull(ok.getBody());
         final var okBody = ok.getBody();
         assertNotNull(okBody);
         assertEquals(true, ((Map<?, ?>) okBody).get("valid"));
 
-        var bad = controller.validate("bad");
+        var bad = controller.validate("Bearer bad");
         assertEquals(401, bad.getStatusCode().value());
         assertNotNull(bad.getBody());
         final var badBody = bad.getBody();
