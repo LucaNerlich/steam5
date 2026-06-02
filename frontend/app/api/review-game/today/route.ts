@@ -1,7 +1,8 @@
 import {NextResponse} from "next/server";
 import type {ReviewGameState} from "@/types/review-game";
 
-// Cache today's data briefly at the edge; backend is cached for 24h
+// Cache today's data briefly at the edge; backend now caches live data for ~30 min.
+// Tagged 'round-today' so auth events can invalidate it via revalidateTag.
 export const revalidate = 60;
 
 const BACKEND_ORIGIN = process.env.NEXT_PUBLIC_API_DOMAIN || "http://localhost:8080";

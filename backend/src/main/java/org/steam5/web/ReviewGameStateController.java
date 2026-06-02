@@ -62,14 +62,13 @@ public class ReviewGameStateController {
     private final MeterRegistry meterRegistry;
 
     // Live daily data — rounds regenerate at ~00:01 UTC; 30 min CDN window absorbs
-    // traffic spikes while keeping staleness bounded. must-revalidate prevents
-    // serving yesterday's picks to a browser that has gone offline past max-age.
+    // traffic spikes while keeping staleness bounded. must-revalidate forbids any
+    // cache from serving picks once they go stale. Deliberately no stale-while-
+    // revalidate: it would let shared caches keep serving yesterday's picks during
+    // background refresh, which is exactly the staleness this endpoint must avoid
+    // (and it conflicts with must-revalidate anyway).
     private static final String CACHE_LIVE =
             "public, s-maxage=1800, max-age=60, must-revalidate";
-    // Same as CACHE_LIVE but with a short stale-while-revalidate window for
-    // endpoints that serve the current game state (allows background refresh).
-    private static final String CACHE_LIVE_SWR =
-            "public, s-maxage=1800, max-age=60, stale-while-revalidate=60, must-revalidate";
     // Configuration data (bucket labels/ranges) — changes only on deploy.
     private static final String CACHE_CONFIG = "public, s-maxage=3600, max-age=300";
     // Historical round data — immutable once the day is over.
@@ -350,12 +349,12 @@ public class ReviewGameStateController {
         if (etag != null && headers.getIfNoneMatch().contains(etag)) {
             return ResponseEntity.status(304)
                     .eTag(etag)
-                    .header("Cache-Control", CACHE_LIVE_SWR)
+                    .header("Cache-Control", CACHE_LIVE)
                     .build();
         }
         return ResponseEntity.ok()
                 .eTag(etag)
-                .header("Cache-Control", CACHE_LIVE_SWR)
+                .header("Cache-Control", CACHE_LIVE)
                 .body(new ReviewGameStateDto(date, service.getBucketLabels(), service.getBucketTitles(), details));
     }
 
@@ -535,13 +534,13 @@ public class ReviewGameStateController {
         final boolean isToday = day.equals(java.time.LocalDate.now());
         final String etag = weakEtagForPicks(details);
         if (etag != null && headers.getIfNoneMatch().contains(etag)) {
-            final String cc = isToday ? CACHE_LIVE_SWR : CACHE_HISTORICAL;
+            final String cc = isToday ? CACHE_LIVE : CACHE_HISTORICAL;
             return ResponseEntity.status(304)
                     .eTag(etag)
                     .header("Cache-Control", cc)
                     .build();
         }
-        final String cc = isToday ? CACHE_LIVE_SWR : CACHE_HISTORICAL;
+        final String cc = isToday ? CACHE_LIVE : CACHE_HISTORICAL;
         return ResponseEntity.ok()
                 .eTag(etag)
                 .header("Cache-Control", cc)

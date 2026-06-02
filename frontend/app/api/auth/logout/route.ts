@@ -1,4 +1,4 @@
-import {revalidatePath} from 'next/cache';
+import {revalidatePath, revalidateTag} from 'next/cache';
 import {NextRequest, NextResponse} from 'next/server';
 
 export async function GET(req: NextRequest) {
@@ -20,7 +20,10 @@ export async function GET(req: NextRequest) {
         path: '/',
         maxAge: 0,
     });
+    // Invalidate the round page tree and the tagged today-fetches (page + proxy
+    // route) so the logged-out user no longer sees their prefilled guesses.
     revalidatePath('/review-guesser', 'layout');
+    revalidateTag('round-today', 'max');
     return resp;
 }
 
