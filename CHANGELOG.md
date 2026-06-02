@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.7.1] - 2026-06-02
+
+### Fixed
+
+- Stale daily rounds are no longer served from caches — live round endpoints now use shorter, revalidating cache lifetimes, and logging in or out explicitly refreshes the cached round data
+- Per-user responses (your guesses and token validation) can no longer be stored by shared/CDN caches, so one player's data is never served to another
+- Conditional `304 Not Modified` responses are no longer cached and replayed to requests that did not send a matching ETag
+
+### Changed
+
+- Upgraded Next.js
+- Hardened npm against supply-chain attacks via `.npmrc` settings
+
 ## [1.7.0] - 2026-05-16
 
 ### Added
