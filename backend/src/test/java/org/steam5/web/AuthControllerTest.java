@@ -49,6 +49,21 @@ public class AuthControllerTest {
         assertNotNull(badBody);
         assertEquals(false, ((Map<?, ?>) badBody).get("valid"));
     }
+
+    @Test
+    void validate_okResponseIsNeverCached() {
+        AuthTokenService token = mock(AuthTokenService.class);
+        SteamUserService users = mock(SteamUserService.class);
+        AuthController controller = new AuthController(token, users);
+
+        when(token.verifyToken("good")).thenReturn("123");
+
+        // Bearer prefix is required for the success path.
+        var ok = controller.validate("Bearer good");
+        assertEquals(200, ok.getStatusCode().value());
+        // Per-user token validation must never be stored by any cache (shared or private).
+        assertEquals("no-store", ok.getHeaders().getCacheControl());
+    }
 }
 
 

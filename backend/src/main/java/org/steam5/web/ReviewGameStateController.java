@@ -73,6 +73,17 @@ public class ReviewGameStateController {
     private static final String CACHE_CONFIG = "public, s-maxage=3600, max-age=300";
     // Historical round data — immutable once the day is over.
     private static final String CACHE_HISTORICAL = "public, max-age=31536000, immutable";
+    // Per-user data — `private` keeps it out of shared/CDN caches so one user's
+    // guesses are never served to another; only the user's own browser may store it.
+    private static final String PRIVATE_LIVE = "private, max-age=60, must-revalidate";
+    private static final String PRIVATE_HISTORICAL = "private, max-age=31536000, immutable";
+
+    // Cache only successful 200 bodies. These handlers build a 304 (or 4xx) that is
+    // specific to the *current* request's If-None-Match; caching that ResponseEntity
+    // would replay a bodyless 304 to clients that never sent a matching ETag. The
+    // 200 body is request-independent, so it remains safe to cache.
+    private static final String CACHE_ONLY_2XX =
+            "#result == null || !#result.statusCode.is2xxSuccessful()";
 
     private static int scorePoints(List<String> buckets, String selected, String actual) {
         int si = buckets.indexOf(selected);
@@ -167,7 +178,7 @@ public class ReviewGameStateController {
     }
 
     @GetMapping("/days")
-    @Cacheable(value = "review-game", key = "'days'", unless = "#result == null")
+    @Cacheable(value = "review-game", key = "'days'", unless = CACHE_ONLY_2XX)
     public ResponseEntity<List<String>> listDays(@RequestParam(value = "limit", defaultValue = "60") int limit,
                                                  @RequestHeader HttpHeaders headers) {
         final int capped = Math.max(1, Math.min(limit, 3650));
@@ -200,7 +211,7 @@ public class ReviewGameStateController {
     }
 
     @GetMapping("/today/details")
-    @Cacheable(value = "review-game", key = "'details'", unless = "#result == null")
+    @Cacheable(value = "review-game", key = "'details'", unless = CACHE_ONLY_2XX)
     public ResponseEntity<List<SteamAppDetail>> getTodayDetails(@RequestHeader HttpHeaders headers) {
         final List<ReviewGamePick> picks = service.generateDailyPicks();
         final List<Long> appIds = picks.stream().map(ReviewGamePick::getAppId).toList();
@@ -242,7 +253,11 @@ public class ReviewGameStateController {
                 g.getActualBucket(),
                 totalReviewsByAppId.getOrDefault(g.getAppId(), 0)
         )).toList();
-        return ResponseEntity.ok(dtos);
+        // Per-user data: `private` prevents shared/CDN caches from ever storing it
+        // (would otherwise risk serving one user's guesses to another).
+        return ResponseEntity.ok()
+                .header("Cache-Control", PRIVATE_LIVE)
+                .body(dtos);
     }
 
     @GetMapping("/my/day/{date}")
@@ -277,7 +292,10 @@ public class ReviewGameStateController {
         )).toList();
 
         final boolean isToday = day.equals(LocalDate.now());
-        final String cacheControl = isToday ? CACHE_LIVE : CACHE_HISTORICAL;
+        // Per-user data: never let a shared/CDN cache store it (would leak one
+        // user's guesses to another). `private` restricts caching to the caller's
+        // own browser.
+        final String cacheControl = isToday ? PRIVATE_LIVE : PRIVATE_HISTORICAL;
 
         return ResponseEntity.ok()
                 .header("Cache-Control", cacheControl)
@@ -325,7 +343,7 @@ public class ReviewGameStateController {
     }
 
     @GetMapping("/today")
-    @Cacheable(value = "review-game", key = "'picks'", unless = "#result == null")
+    @Cacheable(value = "review-game", key = "'picks'", unless = CACHE_ONLY_2XX)
     public ResponseEntity<ReviewGameStateDto> getToday(@RequestHeader HttpHeaders headers) {
         final List<ReviewGamePick> picks = service.generateDailyPicks();
         final List<Long> appIds = picks.stream().map(ReviewGamePick::getAppId).toList();
@@ -507,7 +525,7 @@ public class ReviewGameStateController {
     }
 
     @GetMapping("/day/{date}")
-    @Cacheable(value = "review-game", key = "'picks:' + #date", unless = "#result == null")
+    @Cacheable(value = "review-game", key = "'picks:' + #date", unless = CACHE_ONLY_2XX)
     public ResponseEntity<ReviewGameStateDto> getByDate(@PathVariable("date") String date,
                                                         @RequestHeader HttpHeaders headers) {
         final java.time.LocalDate day;
@@ -572,7 +590,7 @@ public class ReviewGameStateController {
     }
 
     @GetMapping("/archive/month")
-    @Cacheable(value = "review-game", key = "'archive-month:' + #month", unless = "#result == null")
+    @Cacheable(value = "review-game", key = "'archive-month:' + #month", unless = CACHE_ONLY_2XX)
     public ResponseEntity<List<ArchiveMonthDay>> archiveMonth(@RequestParam("month") String month,
                                                               @RequestHeader HttpHeaders headers) {
         final YearMonth ym;
@@ -632,7 +650,7 @@ public class ReviewGameStateController {
     }
 
     @GetMapping("/history/always-pick")
-    @Cacheable(value = "review-game", key = "'always-pick-hist:' + (#from != null ? #from : 'min') + ':' + (#to != null ? #to : 'max')", unless = "#result == null")
+    @Cacheable(value = "review-game", key = "'always-pick-hist:' + (#from != null ? #from : 'min') + ':' + (#to != null ? #to : 'max')", unless = CACHE_ONLY_2XX)
     public ResponseEntity<HistoricalAlwaysPickResponse> alwaysPickHistory(
             @RequestParam(value = "from", required = false) String from,
             @RequestParam(value = "to", required = false) String to) {
