@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.7.9] - 2026-06-07
+
+### Changed
+
+- The season countdown in the footer ("X days left in season") now links directly to the current season's detail page
+
 ## [1.7.8] - 2026-06-07
 
 ### Fixed
