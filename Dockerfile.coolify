@@ -24,9 +24,9 @@ WORKDIR /app
 RUN addgroup -S spring && adduser -S spring -G spring
 USER spring:spring
 
-# copy jar to work dir root
-COPY --from=build /app/build/libs/steam5-1.0.0-SNAPSHOT.jar .
+# Copy and rename so the CMD never needs updating when the Gradle version changes
+COPY --from=build /app/build/libs/steam5-*.jar app.jar
 
 EXPOSE ${PORT}
 
-CMD ["java", "-jar", "steam5-1.0.0-SNAPSHOT.jar"]
+CMD ["java", "-jar", "app.jar"]
