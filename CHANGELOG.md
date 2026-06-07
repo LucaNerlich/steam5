@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.7.5] - 2026-06-07
+
+### Changed
+
+- Achievements table now uses the same visual style as the regular leaderboard — consistent row layout, avatar size, name link treatment, and horizontal scroll behaviour
+
 ## [1.7.4] - 2026-06-07
 
 ### Changed
