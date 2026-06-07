@@ -20,7 +20,7 @@ type PageProps = PageParams;
 
 type MaybePromise<T> = T | Promise<T>;
 
-const backend = process.env.NEXT_PUBLIC_API_DOMAIN || "http://localhost:8080";
+import {BACKEND_ORIGIN as backend} from "@/lib/backend";
 const numberFormatter = new Intl.NumberFormat();
 const decimalFormatter = new Intl.NumberFormat(undefined, {maximumFractionDigits: 2});
 const percentFormatter = new Intl.NumberFormat(undefined, {style: "percent", maximumFractionDigits: 1});

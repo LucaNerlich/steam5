@@ -8,12 +8,14 @@ import GuessButtons from "@/components/GuessButtons";
 import AuthWarningModal from "@/components/AuthWarningModal";
 import RoundResultDialog from "@/components/RoundResultDialog";
 import RoundResultActions from "@/components/RoundResultActions";
-import RoundShareSummary from "@/components/RoundShareSummary";
+import ShareControls from "@/components/ShareControls";
+import RoundSummary from "@/components/RoundSummary";
 import {buildSteamLoginUrl} from "@/components/SteamLoginButton";
 import {useAuthSignedIn} from "@/contexts/AuthContext";
 import useServerGuesses from "@/lib/hooks/useServerGuesses";
 import useRoundArrowNavigation from "@/lib/hooks/useRoundArrowNavigation";
-import {loadDay, saveRound, type StoredDay} from "@/lib/storage";
+import {loadDay, saveRound, type StoredDay, type RoundResult} from "@/lib/storage";
+import {prefillToResponse, resolveEffectiveResponse} from "@/lib/guessResolution";
 import "@/styles/components/reviewGuesserRound.css";
 import "@/styles/components/reviewRoundResult.css";
 import "@/styles/components/reviewShareControls.css";
@@ -37,14 +39,7 @@ interface Props {
     }>;
 }
 
-type StoredRoundResult = {
-    appId: number;
-    pickName?: string;
-    selectedLabel: string;
-    actualBucket: string;
-    totalReviews: number;
-    correct: boolean;
-};
+type StoredRoundResult = RoundResult;
 
 export default function ReviewGuesserRound({
                                                appId,
@@ -170,24 +165,8 @@ export default function ReviewGuesserRound({
             totalReviews: g.totalReviews,
         };
     }, [prefilled, serverGuesses, roundIndex, appId]);
-    const prefilledResponse: GuessResponse | null = computedPrefill && computedPrefill.selectedLabel
-        ? {
-            appId,
-            totalReviews: computedPrefill.totalReviews ?? 0,
-            actualBucket: computedPrefill.actualBucket ?? '',
-            correct: computedPrefill.actualBucket ? (computedPrefill.actualBucket === computedPrefill.selectedLabel) : false,
-        }
-        : null;
-    const effectiveResponse: GuessResponse | null = state && state.ok && state.response
-        ? state.response
-        : storedThisRound
-            ? {
-                appId: storedThisRound.appId,
-                totalReviews: storedThisRound.totalReviews,
-                actualBucket: storedThisRound.actualBucket,
-                correct: storedThisRound.correct
-            }
-            : prefilledResponse;
+    const prefilledResponse = prefillToResponse(appId, computedPrefill);
+    const effectiveResponse = resolveEffectiveResponse(state, storedThisRound, prefilledResponse);
 
     // Effective selected label used for rendering (ignore stale selection from previous scope)
     const renderSelectedLabel = selectionScopeKey === scopeKey ? selectedLabel : (computedPrefill?.selectedLabel ?? null);
@@ -311,7 +290,8 @@ export default function ReviewGuesserRound({
                     >
                         {canShowShare && (
                             <>
-                                <RoundShareSummary
+                                <ShareControls
+                                    inline
                                     buckets={buckets}
                                     gameDate={gameDate}
                                     totalRounds={totalRounds}
@@ -329,6 +309,24 @@ export default function ReviewGuesserRound({
                                     }
                                     results={!serverGuessesLoading && hasServerResults ? serverResults : undefined}
                                     signedIn={signedIn}
+                                />
+                                <RoundSummary
+                                    buckets={buckets}
+                                    gameDate={gameDate}
+                                    totalRounds={totalRounds}
+                                    latestRound={latestStoredRoundIndex}
+                                    latest={(Object.keys(mergedServerResults).length > 0 ? mergedServerResults[latestStoredRoundIndex] : null) ||
+                                        latestStored ||
+                                        {
+                                            appId,
+                                            pickName,
+                                            selectedLabel: (storedThisRound?.selectedLabel ?? renderSelectedLabel ?? '') as string,
+                                            actualBucket: effectiveResponse ? effectiveResponse.actualBucket : (storedThisRound?.actualBucket ?? ''),
+                                            totalReviews: effectiveResponse ? effectiveResponse.totalReviews : (storedThisRound?.totalReviews ?? 0),
+                                            correct: effectiveResponse ? effectiveResponse.correct : (storedThisRound?.correct ?? false),
+                                        }
+                                    }
+                                    results={!serverGuessesLoading && hasServerResults ? serverResults : undefined}
                                 />
                                 {signedIn === false && (
                                     <p className="text-muted review-round__signin-nudge">

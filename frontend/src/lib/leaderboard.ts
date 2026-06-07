@@ -3,7 +3,8 @@
  * Used in Next.js server components to pre-fetch data with ISR caching.
  */
 
-export const BACKEND_ORIGIN = process.env.NEXT_PUBLIC_API_DOMAIN || "http://localhost:8080";
+import {BACKEND_ORIGIN} from "@/lib/backend";
+export {BACKEND_ORIGIN};
 
 /** Valid timeframe values for the achievements API */
 export type AchievementTimeframe = "daily" | "weekly" | "season" | "all";

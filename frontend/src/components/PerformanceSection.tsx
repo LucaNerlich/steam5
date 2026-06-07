@@ -1,7 +1,8 @@
 "use client";
 
-import React, {useMemo} from "react";
+import React from "react";
 import PointsByRoundChart from "@/components/performance/PointsByRoundChart";
+import type {FlatRound} from "@/lib/rounds";
 import OutcomeMixBar from "./performance/OutcomeMixBar";
 import RollingHitRateSpark from "./performance/RollingHitRateSpark";
 import BucketAccuracyBars from "./performance/BucketAccuracyBars";
@@ -14,29 +15,7 @@ import ImprovementTrend from "./performance/ImprovementTrend";
 import BiasBadge from "./performance/BiasBadge";
 import BucketCallouts from "./performance/BucketCallouts";
 
-type Round = {
-    roundIndex: number;
-    appId: number;
-    appName?: string;
-    selectedBucket: string;
-    actualBucket: string;
-    points: number;
-};
-
-type Day = {
-    date: string;
-    rounds: Round[];
-};
-
-export default function PerformanceSection({days}: { days: Day[] }): React.ReactElement | null {
-    const rounds = useMemo(() => {
-        const flat = days.flatMap(d => d.rounds.map(r => ({...r, date: d.date})));
-        // Ensure chronological order: oldest -> newest, then by roundIndex
-        return flat.sort((a: any, b: any) => {
-            if (a.date === b.date) return (a.roundIndex||0) - (b.roundIndex||0);
-            return a.date.localeCompare(b.date);
-        });
-    }, [days]);
+export default function PerformanceSection({rounds}: { rounds: FlatRound[] }): React.ReactElement | null {
     if (rounds.length === 0) return null;
 
     return (

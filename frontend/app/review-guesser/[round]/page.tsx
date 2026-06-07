@@ -7,11 +7,11 @@ import NewsBox from "@/components/NewsBox";
 import ReviewGuesserRound from "@/components/ReviewGuesserRound";
 import {Suspense} from "react";
 import {cookies} from "next/headers";
+import {BACKEND_ORIGIN as backend} from "@/lib/backend";
 
 export const revalidate = 60;
 
 async function loadToday(): Promise<ReviewGameState> {
-    const backend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
     const res = await fetch(`${backend}/api/review-game/today`, {
         headers: {"accept": "application/json"},
         next: {revalidate: 60, tags: ['round-today']},
@@ -33,7 +33,6 @@ type ServerGuess = {
 async function loadMyGuesses(): Promise<ServerGuess[]> {
     const token = (await cookies()).get('s5_token')?.value;
     if (!token) return [];
-    const backend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
     try {
         const res = await fetch(`${backend}/api/review-game/my/today`, {
             headers: {"accept": "application/json", "authorization": `Bearer ${token}`},
@@ -118,7 +117,6 @@ export default async function ReviewGuesserRoundPage({params}: { params: Promise
 
 export async function generateMetadata({params}: { params: Promise<{ round: string }> }): Promise<Metadata> {
     const {round} = await params;
-    const backend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
     try {
         const today: ReviewGameState = await fetch(`${backend}/api/review-game/today`, {
             headers: {"accept": "application/json"},

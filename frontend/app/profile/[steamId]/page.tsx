@@ -5,6 +5,8 @@ import "@/styles/components/profile.css";
 import PerformanceSection from "@/components/PerformanceSection";
 import {Suspense} from "react";
 import {formatDate, ordinal, placementTier} from "@/lib/format";
+import {flattenDayRounds} from "@/lib/rounds";
+import {BACKEND_ORIGIN as backend} from "@/lib/backend";
 import {formatAwardMetric} from "@/lib/seasons";
 
 type ProfileResponse = {
@@ -46,7 +48,6 @@ type ProfileResponse = {
 };
 
 export default async function ProfilePage({params}: { params: { steamId: string } }) {
-    const backend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
     const {steamId} = await params;
     const res = await fetch(`${backend}/api/profile/${encodeURIComponent(steamId)}`, { next: { revalidate: 300, tags: [
                 `profile:${steamId}`
@@ -140,7 +141,7 @@ export default async function ProfilePage({params}: { params: { steamId: string 
 
                 <Suspense fallback={<div style={{height: 160, background: 'var(--color-border)', borderRadius: 8}}/>}>
                     {/* PerformanceSection is client and renders quickly; Suspense ensures streaming */}
-                    <PerformanceSection days={allDays} />
+                    <PerformanceSection rounds={flattenDayRounds(allDays)} />
                 </Suspense>
 
                 <section aria-labelledby="days-title">
@@ -248,7 +249,6 @@ function groupAwardsBySeason(awards: ProfileResponse["awards"]): AwardSeason[] {
 export const revalidate = 300;
 
 export async function generateMetadata({params}: { params: { steamId: string } }): Promise<Metadata> {
-    const backend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
     const {steamId} = await params;
     let name: string = steamId;
     try {

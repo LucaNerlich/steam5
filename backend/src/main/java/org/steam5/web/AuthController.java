@@ -6,25 +6,22 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.steam5.auth.SteamOpenIdUtils;
 import org.steam5.service.AuthTokenService;
 import org.steam5.service.SteamUserService;
 
 import java.net.URI;
-import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -54,65 +51,6 @@ public class AuthController {
     @Value("${auth.redirectBase:https://steam5.org}")
     private String defaultRedirectBase;
 
-    private static String enc(String v) {
-        return URLEncoder.encode(v, StandardCharsets.UTF_8);
-    }
-
-    /**
-     * Fix #2: Validate that the supplied redirect URL belongs to the trusted
-     * frontend origin.  Accepts only URLs whose scheme, host, and port all match
-     * {@code defaultRedirectBase}.  Rejects everything else, falling back to the
-     * hard-coded default callback URL.
-     */
-    private boolean isAllowedRedirect(String redirect) {
-        try {
-            URI uri = URI.create(redirect);
-            URI base = URI.create(defaultRedirectBase);
-            return uri.getScheme() != null
-                    && uri.getScheme().equals(base.getScheme())
-                    && uri.getHost() != null
-                    && uri.getHost().equals(base.getHost())
-                    && uri.getPort() == base.getPort();
-        } catch (Exception e) {
-            return false;
-        }
-    }
-
-    private static String buildCheckAuthBody(Map<String, String> params) {
-        MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
-        // Copy back all openid.* assertion params EXCEPT mode
-        for (Map.Entry<String, String> e : params.entrySet()) {
-            final String key = e.getKey();
-            if (key.startsWith("openid.") && !"openid.mode".equals(key)) {
-                form.add(key, e.getValue());
-            }
-        }
-        // Replace mode with check_authentication as required by OpenID spec
-        form.add("openid.mode", "check_authentication");
-        StringBuilder sb = new StringBuilder();
-        boolean first = true;
-        for (Map.Entry<String, List<String>> e : form.entrySet()) {
-            for (String v : e.getValue()) {
-                if (!first) sb.append('&');
-                sb.append(enc(e.getKey())).append('=').append(enc(v));
-                first = false;
-            }
-        }
-        return sb.toString();
-    }
-
-    private static String deriveOriginSafe(String url, String fallback) {
-        try {
-            URI r = URI.create(url);
-            StringBuilder origin = new StringBuilder();
-            origin.append(r.getScheme()).append("://").append(r.getHost());
-            if (r.getPort() != -1) origin.append(":").append(r.getPort());
-            return origin.toString();
-        } catch (Exception e) {
-            return fallback;
-        }
-    }
-
     @GetMapping("/steam/login")
     public ResponseEntity<Void> startLogin(
             @RequestParam(value = "redirect", required = false) String redirect,
@@ -120,7 +58,7 @@ public class AuthController {
 
         // Fix #2: validate redirect against the trusted frontend origin; fall back
         // to the configured default if the supplied value is absent or untrusted.
-        final String baseReturnTo = (redirect == null || redirect.isBlank() || !isAllowedRedirect(redirect))
+        final String baseReturnTo = (redirect == null || redirect.isBlank() || !SteamOpenIdUtils.isAllowedRedirect(redirect, defaultRedirectBase))
                 ? defaultRedirectBase + "/api/auth/steam/callback"
                 : redirect;
 
@@ -128,23 +66,23 @@ public class AuthController {
         // return_to URL so Steam carries it back in the redirect, and the
         // callback can verify it against the browser's cookie.
         final String returnTo = (state != null && SAFE_STATE_PATTERN.matcher(state).matches())
-                ? baseReturnTo + (baseReturnTo.contains("?") ? "&" : "?") + "state=" + enc(state)
+                ? baseReturnTo + (baseReturnTo.contains("?") ? "&" : "?") + "state=" + SteamOpenIdUtils.enc(state)
                 : baseReturnTo;
 
-        final String realm = deriveOriginSafe(returnTo, defaultRedirectBase);
-        final String url = OPENID_ENDPOINT + "?openid.ns=" + enc("http://specs.openid.net/auth/2.0")
+        final String realm = SteamOpenIdUtils.deriveOriginSafe(returnTo, defaultRedirectBase);
+        final String url = OPENID_ENDPOINT + "?openid.ns=" + SteamOpenIdUtils.enc("http://specs.openid.net/auth/2.0")
                 + "&openid.mode=checkid_setup"
-                + "&openid.return_to=" + enc(returnTo)
-                + "&openid.realm=" + enc(realm)
-                + "&openid.identity=" + enc("http://specs.openid.net/auth/2.0/identifier_select")
-                + "&openid.claimed_id=" + enc("http://specs.openid.net/auth/2.0/identifier_select");
+                + "&openid.return_to=" + SteamOpenIdUtils.enc(returnTo)
+                + "&openid.realm=" + SteamOpenIdUtils.enc(realm)
+                + "&openid.identity=" + SteamOpenIdUtils.enc("http://specs.openid.net/auth/2.0/identifier_select")
+                + "&openid.claimed_id=" + SteamOpenIdUtils.enc("http://specs.openid.net/auth/2.0/identifier_select");
         return ResponseEntity.status(302).location(URI.create(url)).build();
     }
 
     @GetMapping("/steam/callback")
     public ResponseEntity<?> callback(@RequestParam Map<String, String> params) {
         try {
-            final String body = buildCheckAuthBody(params);
+            final String body = SteamOpenIdUtils.buildCheckAuthBody(params);
 
             // Fix #1: ALWAYS send the check_authentication request to the hardcoded
             // Steam endpoint.  Never trust the client-supplied openid.op_endpoint —

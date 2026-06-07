@@ -7,6 +7,7 @@ import Link from "next/link";
 import NextChallengeTime from "@/components/NextChallengeTime";
 import SeasonCountdown from "@/components/SeasonCountdown";
 import {Routes} from "../../app/routes";
+import {version} from "../../package.json";
 
 export default function Footer() {
     return (
@@ -27,6 +28,11 @@ export default function Footer() {
                         <Link href={Routes.imprint}>Imprint</Link>
                         <span>·</span>
                         <Link href={Routes.privacy}>Privacy</Link>
+                    </small>
+                    <small className="footer__meta-line text-muted">
+                        <span>Frontend v{version}</span>
+                        <span> · </span>
+                        <span>Backend v{version}</span>
                     </small>
                 </div>
                 <div className="controls">

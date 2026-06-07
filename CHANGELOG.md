@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.7.7] - 2026-06-07
+
+### Changed
+
+- Footer now shows the current frontend and backend version numbers
+- Internal refactors with no behaviour change: backend origin constant centralised in one utility; `PerformanceSection` interface made honest (accepts pre-flattened rounds); `RoundShareSummary` pass-through removed; Steam OpenID helpers extracted to a testable utility class; effective-response fallback logic extracted to a pure function
+
 ## [1.7.6] - 2026-06-07
 
 ### Changed

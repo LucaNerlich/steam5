@@ -11,11 +11,11 @@ import "@/styles/components/archive.css";
 import GameInfoSection from "@/components/GameInfoSection";
 import React from "react";
 import {Routes} from "../../../routes";
+import {BACKEND_ORIGIN as backend} from "@/lib/backend";
 
 export const revalidate = 31536000;
 
 async function loadArchived(date: string): Promise<ReviewGameState | null> {
-    const backend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
     try {
         const res = await fetch(`${backend}/api/review-game/day/${encodeURIComponent(date)}`, {
             headers: {"accept": "application/json"},
@@ -34,7 +34,6 @@ async function loadAnswers(date: string, appIds: number[]): Promise<Record<numbe
 }>> {
     // Call the public guess endpoint per appId to get the bucket and review count without auth
     // This runs on the server during SSG, so it does not expose any secrets and avoids client requests.
-    const backend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
     const out: Record<number, { actualBucket: string; totalReviews: number }> = {};
     await Promise.all(appIds.map(async (id) => {
         try {
@@ -121,7 +120,6 @@ export async function generateMetadata({params}: { params: Promise<{ date: strin
     const {date} = await params;
     const title = `Archive — ${formatDate(date)}`;
     const description = `Past daily challenge for ${formatDate(date)} — Steam Review Guesser.`;
-    const backend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
     const base = (process.env.NEXT_PUBLIC_DOMAIN || 'https://steam5.org').replace(/\/$/, '');
     let ogUrl = '/opengraph-image';
     try {

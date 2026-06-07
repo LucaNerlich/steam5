@@ -6,6 +6,7 @@ import {groupAwardsByCategory, formatAwardMetric, rankClassName} from "@/lib/sea
 import type {SeasonView} from "@/types/seasons";
 import "@/styles/components/seasons.css";
 import {Routes} from "../../routes";
+import {BACKEND_ORIGIN as backend} from "@/lib/backend";
 
 type CurrentSeasonResponse = {
     season: SeasonView;
@@ -13,8 +14,6 @@ type CurrentSeasonResponse = {
     daysRemaining: number;
     nextSeasonStart: string;
 };
-
-const backend = process.env.NEXT_PUBLIC_API_DOMAIN || "http://localhost:8080";
 
 async function loadCurrentSeason(): Promise<CurrentSeasonResponse | null> {
     try {

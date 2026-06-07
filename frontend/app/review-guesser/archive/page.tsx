@@ -3,6 +3,7 @@ import Link from "next/link";
 import "@/styles/components/archive-list.css";
 import ArchiveSummary from "@/components/ArchiveSummary";
 import GameStatistics from "@/components/GameStatistics";
+import {BACKEND_ORIGIN as backend} from "@/lib/backend";
 
 const ONE_DAY_REVALIDATE_SECONDS = 86400;
 const ARCHIVE_DAY_LIST_LIMIT = 5000;
@@ -10,7 +11,6 @@ const ARCHIVE_DAY_LIST_LIMIT = 5000;
 export const revalidate = 86400;
 
 async function loadDays(): Promise<string[]> {
-    const backend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
     try {
         const res = await fetch(`${backend}/api/review-game/days?limit=${ARCHIVE_DAY_LIST_LIMIT}`, {
             headers: {'accept': 'application/json'},
@@ -26,7 +26,6 @@ async function loadDays(): Promise<string[]> {
 }
 
 async function loadBuckets(): Promise<{ buckets: string[]; bucketTitles: string[] }> {
-    const backend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
     try {
         const res = await fetch(`${backend}/api/review-game/buckets`, {
             headers: {'accept': 'application/json'},
@@ -46,7 +45,6 @@ type ArchiveMonthDay = {
 
 async function loadMonthArchiveDays(month: string, revalidateSeconds: number): Promise<ArchiveMonthDay[]> {
     if (!isValidMonth(month)) return [];
-    const backend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
     try {
         const res = await fetch(`${backend}/api/review-game/archive/month?month=${encodeURIComponent(month)}`, {
             headers: {'accept': 'application/json'},
