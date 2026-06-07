@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.7.3] - 2026-06-07
+
+### Fixed
+
+- Guesses from a previous set of daily rounds no longer appear on the new games when the day's picks are regenerated — submitted results are now matched to the current pick both in the browser and at the `/my/today` API, instead of being keyed only by round number
+
+### Changed
+
+- Internal refactors for maintainability, with no change to behaviour: authentication-token extraction is now handled by a single resolver (`@CurrentUser`), cache eviction is centralised in one module, daily-pick generation is split into focused steps, the round scoring formula is shared rather than duplicated, and arrow-key round navigation moved into a reusable hook
+
 ## [1.7.2] - 2026-06-07
 
 ### Fixed

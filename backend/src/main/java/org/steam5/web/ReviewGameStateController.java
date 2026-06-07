@@ -21,7 +21,7 @@ import org.steam5.repository.GuessRepository;
 import org.steam5.repository.SteamAppReviewsRepository;
 import org.steam5.repository.UserRepository;
 import org.steam5.repository.details.SteamAppDetailRepository;
-import org.steam5.service.AuthTokenService;
+import org.steam5.security.CurrentUser;
 import org.steam5.service.ReviewGameStateService;
 import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
@@ -56,7 +56,6 @@ public class ReviewGameStateController {
     private final GuessRepository guessRepository;
     private final SteamAppReviewsRepository reviewsRepository;
     private final UserRepository userRepository;
-    private final AuthTokenService authTokenService;
     private final org.steam5.repository.ReviewGamePickRepository pickRepository;
     private final Scheduler scheduler;
     private final MeterRegistry meterRegistry;
@@ -230,21 +229,23 @@ public class ReviewGameStateController {
     }
 
     @GetMapping("/my/today")
-    public ResponseEntity<?> myToday(@RequestHeader HttpHeaders headers,
-                                     @CookieValue(value = "s5_token", required = false) String cookieToken) {
-        final String bearer = headers.getFirst(HttpHeaders.AUTHORIZATION);
-        String token = null;
-        if (bearer != null && bearer.toLowerCase().startsWith("bearer ")) {
-            token = bearer.substring(7).trim();
-        } else if (cookieToken != null && !cookieToken.isBlank()) {
-            token = cookieToken;
-        }
-        final String steamId = token == null ? null : authTokenService.verifyToken(token);
+    public ResponseEntity<?> myToday(@CurrentUser String steamId) {
         if (steamId == null) return ResponseEntity.status(401).build();
 
         final List<ReviewGamePick> picks = service.generateDailyPicks();
         final LocalDate date = picks.isEmpty() ? LocalDate.now() : picks.getFirst().getPickDate();
-        final var guesses = guessRepository.findAllForDay(steamId, date);
+
+        // Only return guesses that belong to today's current picks. If picks were
+        // regenerated for the same date, the user's earlier guesses remain dated
+        // today but point at replaced games — exclude them so stale results are
+        // never surfaced on the new picks.
+        final Set<Long> currentAppIds = new HashSet<>();
+        for (ReviewGamePick p : picks) currentAppIds.add(p.getAppId());
+
+        final var guesses = guessRepository.findAllForDay(steamId, date).stream()
+                .filter(g -> currentAppIds.contains(g.getAppId()))
+                .toList();
+
         final Map<Long, Integer> totalReviewsByAppId = lookupTotalReviewsByAppId(guesses);
         final var dtos = guesses.stream().map(g -> new MyGuessDto(
                 g.getRoundIndex(),
@@ -262,16 +263,7 @@ public class ReviewGameStateController {
 
     @GetMapping("/my/day/{date}")
     public ResponseEntity<?> myDay(@PathVariable("date") String date,
-                                   @RequestHeader HttpHeaders headers,
-                                   @CookieValue(value = "s5_token", required = false) String cookieToken) {
-        final String bearer = headers.getFirst(HttpHeaders.AUTHORIZATION);
-        String token = null;
-        if (bearer != null && bearer.toLowerCase().startsWith("bearer ")) {
-            token = bearer.substring(7).trim();
-        } else if (cookieToken != null && !cookieToken.isBlank()) {
-            token = cookieToken;
-        }
-        final String steamId = token == null ? null : authTokenService.verifyToken(token);
+                                   @CurrentUser String steamId) {
         if (steamId == null) return ResponseEntity.status(401).build();
 
         final LocalDate day;
@@ -305,16 +297,7 @@ public class ReviewGameStateController {
     @GetMapping("/my/history")
     public ResponseEntity<?> myHistory(@RequestParam(value = "from", required = false) String from,
                                        @RequestParam(value = "to", required = false) String to,
-                                       @RequestHeader HttpHeaders headers,
-                                       @CookieValue(value = "s5_token", required = false) String cookieToken) {
-        final String bearer = headers.getFirst(HttpHeaders.AUTHORIZATION);
-        String token = null;
-        if (bearer != null && bearer.toLowerCase().startsWith("bearer ")) {
-            token = bearer.substring(7).trim();
-        } else if (cookieToken != null && !cookieToken.isBlank()) {
-            token = cookieToken;
-        }
-        final String steamId = token == null ? null : authTokenService.verifyToken(token);
+                                       @CurrentUser String steamId) {
         if (steamId == null) return ResponseEntity.status(401).build();
 
         final LocalDate start;
@@ -448,20 +431,11 @@ public class ReviewGameStateController {
 
     @PostMapping("/guess-auth")
     @Transactional
-    public ResponseEntity<GuessResponse> submitGuessAuthenticated(@RequestHeader HttpHeaders headers,
-                                                                  @CookieValue(value = "s5_token", required = false) String cookieToken,
+    public ResponseEntity<GuessResponse> submitGuessAuthenticated(@CurrentUser String steamId,
                                                                   @RequestBody GuessRequest req) {
         if (req == null || req.appId == null || req.bucketGuess == null) {
             return ResponseEntity.badRequest().build();
         }
-        final String bearer = headers.getFirst(HttpHeaders.AUTHORIZATION);
-        String token = null;
-        if (bearer != null && bearer.toLowerCase().startsWith("bearer ")) {
-            token = bearer.substring(7).trim();
-        } else if (cookieToken != null && !cookieToken.isBlank()) {
-            token = cookieToken;
-        }
-        final String steamId = token == null ? null : authTokenService.verifyToken(token);
         if (steamId == null) {
             return ResponseEntity.status(401).build();
         }

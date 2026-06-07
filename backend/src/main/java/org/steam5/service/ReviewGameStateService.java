@@ -2,8 +2,6 @@ package org.steam5.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cache.Cache;
-import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
@@ -23,7 +21,6 @@ import org.steam5.repository.SteamAppReviewsRepository;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.*;
-import java.util.function.Predicate;
 import java.util.stream.IntStream;
 
 @Service
@@ -67,51 +64,8 @@ public class ReviewGameStateService {
         final List<ReviewGamePick> picks = new ArrayList<>(5);
         final Set<Long> chosenIds = new HashSet<>();
 
-        // Helper to validate an appId by fetching details; returns true if usable, otherwise records exclusion
-        final Predicate<Long> validateApp = appId -> {
-            try {
-                boolean ok = detailsFetcher.fetchForAppId(appId);
-                if (!ok) {
-                    excludedAppRepository.save(new org.steam5.domain.ExcludedApp(appId, "details fetch failed or success=false", OffsetDateTime.now()));
-                }
-                return ok;
-            } catch (SteamApiException sae) {
-                // Do not permanently exclude apps on rate limiting; abort generation instead to respect Steam API
-                if (sae.getStatusCode() == 429) {
-                    log.warn("Steam API rate limited (429) while validating appId {}. Aborting pick generation without exclusion.", appId);
-                    throw new RuntimeException(sae); // propagate to stop execution per policy
-                }
-                excludedAppRepository.save(new org.steam5.domain.ExcludedApp(appId, "details fetch error: HTTP " + sae.getStatusCode(), OffsetDateTime.now()));
-                return false;
-            } catch (Exception e) {
-                excludedAppRepository.save(new org.steam5.domain.ExcludedApp(appId, "details fetch error: " + e.getMessage(), OffsetDateTime.now()));
-                return false;
-            }
-        };
-
-        // Build buckets from configured boundaries
-        final List<Integer> bounds = config.getBucketBoundaries();
-        final List<int[]> bucketRanges = new ArrayList<>(5);
-        if (bounds != null && !bounds.isEmpty()) {
-            int prev = MIN_BUCKET_BOUND;
-            for (int b : bounds) {
-                bucketRanges.add(new int[]{prev, b});
-                prev = b + 1;
-            }
-            bucketRanges.add(new int[]{bounds.getLast() + 1, Integer.MAX_VALUE});
-        } else {
-            bucketRanges.add(new int[]{MIN_BUCKET_BOUND, 100});
-            bucketRanges.add(new int[]{101, 1000});
-            bucketRanges.add(new int[]{1001, 10000});
-            bucketRanges.add(new int[]{10001, 100000});
-            bucketRanges.add(new int[]{100001, Integer.MAX_VALUE});
-        }
-
-        // Validate bucket count: at least 5; if more than 5, the count must be odd
-        final int bucketCount = bucketRanges.size();
-        if (bucketCount < 5 || (bucketCount > 5 && bucketCount % 2 == 0)) {
-            throw new IllegalStateException("Invalid bucket configuration: " + bucketCount + " buckets. Must be at least 5 and odd when > 5.");
-        }
+        // Build and validate buckets from configured boundaries
+        final List<int[]> bucketRanges = buildBucketRanges();
 
         // Decide on strategy for today (seeded for reproducibility)
         final BUCKET_STRATEGY strategy = chooseStrategyForDate(today);
@@ -132,7 +86,7 @@ public class ReviewGameStateService {
                     : reviewsRepository.findRandomBetween(excludeSince, range[0], range[1], PageRequest.of(0, 8));
 
             for (Long id : candidates) {
-                if (!chosenIds.contains(id) && validateApp.test(id)) {
+                if (!chosenIds.contains(id) && validateAppOrExclude(id)) {
                     chosenIds.add(id);
                     picks.add(new ReviewGamePick(null, today, id, OffsetDateTime.now()));
                     log.info("Round {}: bucket {} (range {}-{}) -> picked appId {}", round, (labels.isEmpty() ? bucketIndex : labels.get(bucketIndex)), range[0], range[1] == Integer.MAX_VALUE ? "∞" : String.valueOf(range[1]), id);
@@ -145,7 +99,7 @@ public class ReviewGameStateService {
                 // fallback ANY
                 final List<Long> anyIds = reviewsRepository.findRandomAnyAppIds(excludeSince, PageRequest.of(0, 10));
                 for (Long id : anyIds) {
-                    if (!chosenIds.contains(id) && validateApp.test(id)) {
+                    if (!chosenIds.contains(id) && validateAppOrExclude(id)) {
                         chosenIds.add(id);
                         picks.add(new ReviewGamePick(null, today, id, OffsetDateTime.now()));
                         log.info("Round {}: bucket {} fallback ANY -> picked appId {}", round, (labels.isEmpty() ? bucketIndex : labels.get(bucketIndex)), id);
@@ -161,45 +115,105 @@ public class ReviewGameStateService {
         final List<ReviewGamePick> saved = pickRepository.saveAll(picks);
         log.info("Generated {} review-game picks for {}", saved.size(), today);
 
-        // Evict review-game cache only when new picks were created
+        // Enrich picked apps and invalidate caches only when new picks were created
         if (!saved.isEmpty()) {
-            // Update reviews and details for the selected appIds
             for (ReviewGamePick p : saved) {
-                // Refresh reviews only if data is stale beyond configured threshold
-                try {
-                    final int days = config.getMinReviewsFreshDays();
-                    if (days > 0) {
-                        final OffsetDateTime cutoff = OffsetDateTime.now().minusDays(days);
-                        final SteamAppReviews existingReviews = reviewsRepository.findById(p.getAppId()).orElse(null);
-                        final boolean needsRefresh = existingReviews == null
-                                || existingReviews.getUpdatedAt() == null
-                                || existingReviews.getUpdatedAt().isBefore(cutoff);
-                        if (needsRefresh) {
-                            log.info("Refreshing reviews for picked appId {} (cutoff={}, existingAt={})", p.getAppId(), cutoff, existingReviews != null ? existingReviews.getUpdatedAt() : null);
-                            reviewsFetcher.fetchForAppId(p.getAppId());
-                        }
-                    }
-                } catch (Exception e) {
-                    log.warn("Failed to conditionally refresh reviews for picked appId {}", p.getAppId(), e);
-                }
-
-                try {
-                    detailsFetcher.fetchForAppId(p.getAppId());
-                } catch (Exception e) {
-                    log.warn("Failed to refresh details for picked appId {}", p.getAppId(), e);
-                }
-
-                // Publish an event to enqueue BlurhashScreenshotsJob asynchronously for this appId
-                eventPublisher.publishEvent(new BlurhashEncodeRequested(p.getAppId(), null, BlurhashEnqueueListener.Type.SCREENSHOT));
+                enrichPickedApp(p);
             }
-
-            // Clear game cache
-            final Cache cache = cacheManager.getCache("review-game");
-            if (cache != null) {
-                cache.clear();
-            }
+            cacheEvictor.evictReviewGameState();
         }
         return saved;
+    }
+
+    /**
+     * Builds the review-count bucket ranges from configured boundaries (falling back
+     * to defaults when unconfigured) and validates the resulting count: at least 5
+     * buckets, and an odd count when more than 5.
+     */
+    private List<int[]> buildBucketRanges() {
+        final List<Integer> bounds = config.getBucketBoundaries();
+        final List<int[]> bucketRanges = new ArrayList<>(5);
+        if (bounds != null && !bounds.isEmpty()) {
+            int prev = MIN_BUCKET_BOUND;
+            for (int b : bounds) {
+                bucketRanges.add(new int[]{prev, b});
+                prev = b + 1;
+            }
+            bucketRanges.add(new int[]{bounds.getLast() + 1, Integer.MAX_VALUE});
+        } else {
+            bucketRanges.add(new int[]{MIN_BUCKET_BOUND, 100});
+            bucketRanges.add(new int[]{101, 1000});
+            bucketRanges.add(new int[]{1001, 10000});
+            bucketRanges.add(new int[]{10001, 100000});
+            bucketRanges.add(new int[]{100001, Integer.MAX_VALUE});
+        }
+
+        final int bucketCount = bucketRanges.size();
+        if (bucketCount < 5 || (bucketCount > 5 && bucketCount % 2 == 0)) {
+            throw new IllegalStateException("Invalid bucket configuration: " + bucketCount + " buckets. Must be at least 5 and odd when > 5.");
+        }
+        return bucketRanges;
+    }
+
+    /**
+     * Validates an appId by fetching its details. Returns {@code true} if usable.
+     * On a non-usable or errored app, records an exclusion and returns {@code false}.
+     * A Steam API 429 (rate limit) is never treated as an exclusion — it aborts
+     * generation by propagating, so we respect the API rather than poisoning the pool.
+     */
+    private boolean validateAppOrExclude(final Long appId) {
+        try {
+            boolean ok = detailsFetcher.fetchForAppId(appId);
+            if (!ok) {
+                excludedAppRepository.save(new org.steam5.domain.ExcludedApp(appId, "details fetch failed or success=false", OffsetDateTime.now()));
+            }
+            return ok;
+        } catch (SteamApiException sae) {
+            if (sae.getStatusCode() == 429) {
+                log.warn("Steam API rate limited (429) while validating appId {}. Aborting pick generation without exclusion.", appId);
+                throw new RuntimeException(sae); // propagate to stop execution per policy
+            }
+            excludedAppRepository.save(new org.steam5.domain.ExcludedApp(appId, "details fetch error: HTTP " + sae.getStatusCode(), OffsetDateTime.now()));
+            return false;
+        } catch (Exception e) {
+            excludedAppRepository.save(new org.steam5.domain.ExcludedApp(appId, "details fetch error: " + e.getMessage(), OffsetDateTime.now()));
+            return false;
+        }
+    }
+
+    /**
+     * Refreshes a freshly picked app's data: conditionally re-fetches reviews when
+     * they are stale beyond the configured freshness window, re-fetches details, and
+     * publishes a blurhash-encode request for its screenshots. Failures are logged
+     * and swallowed so one bad app cannot abort the rest of the day's enrichment.
+     */
+    private void enrichPickedApp(final ReviewGamePick p) {
+        // Refresh reviews only if data is stale beyond configured threshold
+        try {
+            final int days = config.getMinReviewsFreshDays();
+            if (days > 0) {
+                final OffsetDateTime cutoff = OffsetDateTime.now().minusDays(days);
+                final SteamAppReviews existingReviews = reviewsRepository.findById(p.getAppId()).orElse(null);
+                final boolean needsRefresh = existingReviews == null
+                        || existingReviews.getUpdatedAt() == null
+                        || existingReviews.getUpdatedAt().isBefore(cutoff);
+                if (needsRefresh) {
+                    log.info("Refreshing reviews for picked appId {} (cutoff={}, existingAt={})", p.getAppId(), cutoff, existingReviews != null ? existingReviews.getUpdatedAt() : null);
+                    reviewsFetcher.fetchForAppId(p.getAppId());
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Failed to conditionally refresh reviews for picked appId {}", p.getAppId(), e);
+        }
+
+        try {
+            detailsFetcher.fetchForAppId(p.getAppId());
+        } catch (Exception e) {
+            log.warn("Failed to refresh details for picked appId {}", p.getAppId(), e);
+        }
+
+        // Publish an event to enqueue BlurhashScreenshotsJob asynchronously for this appId
+        eventPublisher.publishEvent(new BlurhashEncodeRequested(p.getAppId(), null, BlurhashEnqueueListener.Type.SCREENSHOT));
     }
 
     private final SteamAppReviewsRepository reviewsRepository;
@@ -209,7 +223,7 @@ public class ReviewGameStateService {
     private final DailyPickLockRepository pickLockRepository;
     private final ExcludedAppRepository excludedAppRepository;
     private final ReviewGameConfig config;
-    private final CacheManager cacheManager;
+    private final DomainCacheEvictor cacheEvictor;
     private final ApplicationEventPublisher eventPublisher;
 
     public List<String> getBucketLabels() {

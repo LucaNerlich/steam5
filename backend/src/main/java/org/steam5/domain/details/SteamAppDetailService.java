@@ -1,11 +1,10 @@
 package org.steam5.domain.details;
 
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.cache.Cache;
-import org.springframework.cache.CacheManager;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.steam5.repository.details.*;
+import org.steam5.service.DomainCacheEvictor;
 import tools.jackson.databind.JsonNode;
 
 import java.util.ArrayList;
@@ -21,19 +20,19 @@ public class SteamAppDetailService {
     private final PublisherRepository publisherRepository;
     private final GenreRepository genreRepository;
     private final CategoryRepository categoryRepository;
-    private final CacheManager cacheManager;
+    private final DomainCacheEvictor cacheEvictor;
 
     public SteamAppDetailService(final SteamAppDetailRepository repository,
                                  final DeveloperRepository developerRepository,
                                  final PublisherRepository publisherRepository,
                                  final GenreRepository genreRepository, final CategoryRepository categoryRepository,
-                                 final CacheManager cacheManager) {
+                                 final DomainCacheEvictor cacheEvictor) {
         this.repository = repository;
         this.developerRepository = developerRepository;
         this.publisherRepository = publisherRepository;
         this.genreRepository = genreRepository;
         this.categoryRepository = categoryRepository;
-        this.cacheManager = cacheManager;
+        this.cacheEvictor = cacheEvictor;
     }
 
     private static Iterable<JsonNode> safeArray(JsonNode node) {
@@ -222,13 +221,6 @@ public class SteamAppDetailService {
         repository.save(detail);
 
         // Evict caches impacted by details updates
-        final Cache oneDay = cacheManager.getCache("one-day");
-        if (oneDay != null) {
-            oneDay.evict(appId);
-        }
-        final Cache reviewGame = cacheManager.getCache("review-game");
-        if (reviewGame != null) {
-            reviewGame.clear();
-        }
+        cacheEvictor.evictAppDetail(appId);
     }
 }

@@ -64,9 +64,14 @@ export default async function ReviewGuesserRoundPage({params}: { params: Promise
         );
     }
 
-    // Preload existing guesses to avoid client-side flicker for authenticated users
+    // Preload existing guesses to avoid client-side flicker for authenticated users.
+    // Only keep a guess if its appId still matches today's pick for that round — when
+    // picks are regenerated for the same date, stale guesses would otherwise be shown
+    // (they remain dated today on the backend but point at the previous game).
     const myGuesses = await loadMyGuesses();
-    const allResults = Object.fromEntries(myGuesses.map(g => [g.roundIndex, {
+    const appIdForRound = (ri: number): number | undefined => today.picks[ri - 1]?.appId;
+    const freshGuesses = myGuesses.filter(g => g.appId === appIdForRound(g.roundIndex));
+    const allResults = Object.fromEntries(freshGuesses.map(g => [g.roundIndex, {
         appId: g.appId,
         pickName: undefined,
         selectedLabel: g.selectedBucket,
@@ -75,7 +80,7 @@ export default async function ReviewGuesserRoundPage({params}: { params: Promise
         correct: g.actualBucket ? (g.actualBucket === g.selectedBucket) : false,
     }]));
     const currentPrefill = (() => {
-        const g = myGuesses.find(x => x.roundIndex === roundIndex);
+        const g = freshGuesses.find(x => x.roundIndex === roundIndex);
         if (!g) return undefined;
         return {
             selectedLabel: g.selectedBucket,

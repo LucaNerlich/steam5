@@ -66,17 +66,40 @@ public class LeaderboardControllerTest {
 
     @Test
     void allTime_returnsAggregatedLeaders() {
-        LeaderboardController c = new LeaderboardController(guessRepository, reviewGameStateService, userRepository,  seasonService, cacheManager);
-        Guess g1 = new Guess(1L, "u1", LocalDate.now(), 1, 100L, "1-100", "1-100", 5, OffsetDateTime.now());
-        Guess g2 = new Guess(3L, "u2", LocalDate.now(), 1, 300L, "1001-10000", "101-1000", 1, OffsetDateTime.now());
-        when(guessRepository.findAll()).thenReturn(List.of(g1, g2));
+        LeaderboardController c = new LeaderboardController(guessRepository, reviewGameStateService, userRepository, seasonService, cacheManager);
+
+        // allTime() aggregates in SQL via aggregateAllTimeStats(), already ordered by
+        // total points descending — not by walking raw Guess rows.
+        final GuessRepository.AllTimeStatsRow r1 = mock(GuessRepository.AllTimeStatsRow.class);
+        when(r1.getSteamId()).thenReturn("u1");
+        when(r1.getTotalPoints()).thenReturn(5L);
+        when(r1.getRounds()).thenReturn(1L);
+        when(r1.getHits()).thenReturn(1L);
+        when(r1.getFlops()).thenReturn(0L);
+        when(r1.getTooHigh()).thenReturn(0L);
+        when(r1.getTooLow()).thenReturn(0L);
+        when(r1.getAvgPoints()).thenReturn(5.0);
+
+        final GuessRepository.AllTimeStatsRow r2 = mock(GuessRepository.AllTimeStatsRow.class);
+        when(r2.getSteamId()).thenReturn("u2");
+        when(r2.getTotalPoints()).thenReturn(1L);
+        when(r2.getRounds()).thenReturn(1L);
+        when(r2.getHits()).thenReturn(0L);
+        when(r2.getFlops()).thenReturn(0L);
+        when(r2.getTooHigh()).thenReturn(1L);
+        when(r2.getTooLow()).thenReturn(0L);
+        when(r2.getAvgPoints()).thenReturn(1.0);
+
+        when(guessRepository.aggregateAllTimeStats()).thenReturn(List.of(r1, r2));
 
         ResponseEntity<List<LeaderboardController.LeaderEntry>> res = c.allTime();
         assertEquals(200, res.getStatusCode().value());
-        assertNotNull(res.getBody());
         final var bodyAll = res.getBody();
         assertNotNull(bodyAll);
         assertEquals(2, bodyAll.size());
+        assertEquals("u1", bodyAll.get(0).steamId());
+        assertEquals(5L, bodyAll.get(0).totalPoints());
+        assertEquals("u2", bodyAll.get(1).steamId());
     }
 }
 

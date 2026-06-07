@@ -9,6 +9,7 @@ import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
+import org.steam5.domain.Guess;
 import org.steam5.domain.ReviewGamePick;
 import org.steam5.domain.details.SteamAppDetail;
 import org.steam5.repository.GuessRepository;
@@ -16,7 +17,6 @@ import org.steam5.repository.ReviewGamePickRepository;
 import org.steam5.repository.SteamAppReviewsRepository;
 import org.steam5.repository.UserRepository;
 import org.steam5.repository.details.SteamAppDetailRepository;
-import org.steam5.service.AuthTokenService;
 import org.steam5.service.ReviewGameStateService;
 
 import java.lang.reflect.Field;
@@ -50,7 +50,6 @@ public class ReviewGameStateControllerCacheTest {
     private GuessRepository guessRepository;
     private SteamAppReviewsRepository reviewsRepository;
     private UserRepository userRepository;
-    private AuthTokenService authTokenService;
     private ReviewGamePickRepository pickRepository;
     private Scheduler scheduler;
     private MeterRegistry meterRegistry;
@@ -64,30 +63,22 @@ public class ReviewGameStateControllerCacheTest {
         guessRepository = mock(GuessRepository.class);
         reviewsRepository = mock(SteamAppReviewsRepository.class);
         userRepository = mock(UserRepository.class);
-        authTokenService = mock(AuthTokenService.class);
         pickRepository = mock(ReviewGamePickRepository.class);
         scheduler = mock(Scheduler.class);
         meterRegistry = mock(MeterRegistry.class);
         controller = new ReviewGameStateController(service, detailRepository, guessRepository,
-                reviewsRepository, userRepository, authTokenService, pickRepository, scheduler, meterRegistry);
-    }
-
-    private static HttpHeaders bearer(String token) {
-        final HttpHeaders h = new HttpHeaders();
-        h.set(HttpHeaders.AUTHORIZATION, "Bearer " + token);
-        return h;
+                reviewsRepository, userRepository, pickRepository, scheduler, meterRegistry);
     }
 
     // --- Finding 2: per-user data must never be publicly cacheable ---
 
     @Test
     void myToday_returnsPrivateCacheControl() {
-        when(authTokenService.verifyToken("tok")).thenReturn("u1");
         when(service.generateDailyPicks())
                 .thenReturn(List.of(new ReviewGamePick(1L, LocalDate.now(), 42L, OffsetDateTime.now())));
         when(guessRepository.findAllForDay("u1", LocalDate.now())).thenReturn(List.of());
 
-        final ResponseEntity<?> res = controller.myToday(bearer("tok"), null);
+        final ResponseEntity<?> res = controller.myToday("u1");
 
         assertEquals(200, res.getStatusCode().value());
         final String cc = res.getHeaders().getCacheControl();
@@ -95,13 +86,37 @@ public class ReviewGameStateControllerCacheTest {
         assertFalse(cc.contains("public"), "per-user response must not be publicly cacheable");
     }
 
+    // --- Stale-pick safety: guesses for regenerated picks must not be surfaced ---
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void myToday_dropsGuessesNotBelongingToCurrentPicks() {
+        final LocalDate today = LocalDate.now();
+        // Today's current picks contain appId 42 only (the round was regenerated).
+        when(service.generateDailyPicks())
+                .thenReturn(List.of(new ReviewGamePick(1L, today, 42L, OffsetDateTime.now())));
+        // The user has two guesses dated today: one for the current pick (42) and one
+        // left over from a pick that has since been replaced (99).
+        final Guess current = new Guess(1L, "u1", today, 1, 42L, "1-100", "1-100", 5, OffsetDateTime.now());
+        final Guess stale = new Guess(2L, "u1", today, 1, 99L, "101-1000", "1-100", 0, OffsetDateTime.now());
+        when(guessRepository.findAllForDay("u1", today)).thenReturn(List.of(current, stale));
+
+        final ResponseEntity<?> res = controller.myToday("u1");
+
+        assertEquals(200, res.getStatusCode().value());
+        final List<ReviewGameStateController.MyGuessDto> body =
+                (List<ReviewGameStateController.MyGuessDto>) res.getBody();
+        assertNotNull(body);
+        assertEquals(1, body.size(), "only the guess matching a current pick should remain");
+        assertEquals(42L, body.getFirst().appId());
+    }
+
     @Test
     void myDay_today_returnsPrivateLiveCacheControl() {
-        when(authTokenService.verifyToken("tok")).thenReturn("u1");
         final LocalDate today = LocalDate.now();
         when(guessRepository.findAllForDay("u1", today)).thenReturn(List.of());
 
-        final ResponseEntity<?> res = controller.myDay(today.toString(), bearer("tok"), null);
+        final ResponseEntity<?> res = controller.myDay(today.toString(), "u1");
 
         assertEquals(200, res.getStatusCode().value());
         final String cc = res.getHeaders().getCacheControl();
@@ -111,10 +126,9 @@ public class ReviewGameStateControllerCacheTest {
 
     @Test
     void myDay_pastDate_returnsPrivateImmutableCacheControl() {
-        when(authTokenService.verifyToken("tok")).thenReturn("u1");
         when(guessRepository.findAllForDay("u1", LocalDate.parse("2020-01-01"))).thenReturn(List.of());
 
-        final ResponseEntity<?> res = controller.myDay("2020-01-01", bearer("tok"), null);
+        final ResponseEntity<?> res = controller.myDay("2020-01-01", "u1");
 
         assertEquals(200, res.getStatusCode().value());
         final String cc = res.getHeaders().getCacheControl();

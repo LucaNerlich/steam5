@@ -14,6 +14,9 @@ export function tierEmoji(tier: RoundResultTier): string {
     return '🟥';
 }
 
+// Single source of truth for round scoring on the frontend. The backend mirrors
+// this formula in ReviewGameStateController.scorePoints (max=5, step=2); keep the
+// two in sync — a change here must be reflected there.
 export function scoreForRound(buckets: string[], selectedLabel: string, actual: string): {
     bar: string; points: number; distance: number
 } {

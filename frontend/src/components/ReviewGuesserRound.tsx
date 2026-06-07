@@ -1,7 +1,6 @@
 "use client";
 
-import {useActionState, useEffect, useMemo, useRef, useState, useTransition} from "react";
-import {useRouter} from "next/navigation";
+import {useActionState, useEffect, useMemo, useState, useTransition} from "react";
 import type {GuessResponse} from "@/types/review-game";
 import type {GuessActionState} from "../../app/review-guesser/[round]/actions";
 import {submitGuessAction} from "../../app/review-guesser/[round]/actions";
@@ -13,6 +12,7 @@ import RoundShareSummary from "@/components/RoundShareSummary";
 import {buildSteamLoginUrl} from "@/components/SteamLoginButton";
 import {useAuthSignedIn} from "@/contexts/AuthContext";
 import useServerGuesses from "@/lib/hooks/useServerGuesses";
+import useRoundArrowNavigation from "@/lib/hooks/useRoundArrowNavigation";
 import {loadDay, saveRound, type StoredDay} from "@/lib/storage";
 import "@/styles/components/reviewGuesserRound.css";
 import "@/styles/components/reviewRoundResult.css";
@@ -57,7 +57,6 @@ export default function ReviewGuesserRound({
                                                prefilled,
                                                allResults
                                            }: Props) {
-    const router = useRouter();
     const initial: GuessActionState = {ok: false};
     const [state, formAction] = useActionState<GuessActionState, FormData>(submitGuessAction, initial);
     const [isPending, startTransition] = useTransition();
@@ -95,53 +94,7 @@ export default function ReviewGuesserRound({
         return prev >= 1 ? `/review-guesser/${prev}` : null;
     }, [roundIndex]);
     const hasNextRound = roundIndex < totalRounds;
-    const keydownHandlerRef = useRef<(event: KeyboardEvent) => void>(() => {});
-
-    useEffect(() => {
-        keydownHandlerRef.current = (event: KeyboardEvent) => {
-            const shouldIgnoreArrowNavigation = (): boolean => {
-                if (event.defaultPrevented || event.repeat) return true;
-                if (showAuthWarning) return true;
-                if (event.metaKey || event.ctrlKey || event.altKey) return true;
-
-                const target = event.target;
-                if (target instanceof HTMLElement) {
-                    if (target.isContentEditable) return true;
-                    if (target.closest('input, textarea, select, [contenteditable="true"], [role="textbox"]')) {
-                        return true;
-                    }
-                }
-
-                // Fancybox owns arrow keys while media lightbox is active.
-                if (document.querySelector(".fancybox__container.is-open")) return true;
-
-                return false;
-            };
-            if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
-            if (shouldIgnoreArrowNavigation()) return;
-
-            if (event.key === "ArrowLeft") {
-                if (!prevHref) return;
-                event.preventDefault();
-                router.push(prevHref);
-                return;
-            }
-
-            if (!hasNextRound || !nextHref) return;
-            event.preventDefault();
-            router.push(nextHref);
-        };
-    }, [hasNextRound, nextHref, prevHref, router, showAuthWarning]);
-
-    useEffect(() => {
-        const handleKeyDown = (event: KeyboardEvent) => {
-            keydownHandlerRef.current(event);
-        };
-        document.addEventListener("keydown", handleKeyDown);
-        return () => {
-            document.removeEventListener("keydown", handleKeyDown);
-        };
-    }, [router]);
+    useRoundArrowNavigation({prevHref, nextHref, hasNextRound, disabled: showAuthWarning});
 
     // Persist this round's result for the current game date
     useEffect(() => {
@@ -163,11 +116,14 @@ export default function ReviewGuesserRound({
         const maybeServerPrefill = (() => {
             if (prefilled) return prefilled;
             const g = serverGuesses[roundIndex];
-            if (!g) return undefined;
+            // Ignore a guess that belongs to a different pick: results are keyed by
+            // round, but only valid when the appId still matches the current pick
+            // (today's picks may have been regenerated since the guess was made).
+            if (!g || g.appId !== appId) return undefined;
             return {
-                selectedLabel: g.selectedBucket,
-                actualBucket: g.actualBucket ?? '',
-                totalReviews: g.totalReviews ?? 0,
+                selectedLabel: g.selectedLabel,
+                actualBucket: g.actualBucket,
+                totalReviews: g.totalReviews,
             };
         })();
         if (maybeServerPrefill && maybeServerPrefill.selectedLabel && !selectedLabel) {
@@ -182,39 +138,38 @@ export default function ReviewGuesserRound({
         }
         setStored(data);
         const existing = data.results?.[roundIndex];
-        if (existing && existing.selectedLabel) {
+        if (existing && existing.selectedLabel && existing.appId === appId) {
             setSelectedLabel(existing.selectedLabel);
             setSelectionScopeKey(scopeKey);
         }
     }, [gameDate, roundIndex, prefilled, serverGuesses, totalRounds, appId, pickName, selectedLabel, scopeKey]);
 
-    // Determine completion and existing result for this round
+    // Determine completion and existing result for this round.
+    // serverGuesses already arrives in StoredRoundResult shape from the hook.
     const storedResults = stored?.results || {};
-    const clientResults = Object.fromEntries(Object.entries(serverGuesses).map(([k, v]) => [Number(k), {
-        appId: v.appId,
-        pickName: undefined,
-        selectedLabel: v.selectedBucket,
-        actualBucket: v.actualBucket ?? '',
-        totalReviews: v.totalReviews ?? 0,
-        correct: v.actualBucket ? (v.actualBucket === v.selectedBucket) : false,
-    }])) as Record<number, StoredRoundResult>;
     const serverResults: Record<number, StoredRoundResult> = {
-        ...clientResults,
+        ...serverGuesses,
         ...(allResults ?? {}),
     };
-    const storedThisRound = storedResults[roundIndex] || serverResults[roundIndex];
+    // A stored/server result is only valid for this round if it belongs to the
+    // current pick. When today's picks are regenerated, results keyed by round
+    // index would otherwise surface a previous game's guess on the new game.
+    const isForCurrentPick = (r?: StoredRoundResult) => !!r && r.appId === appId;
+    const storedThisRound = isForCurrentPick(storedResults[roundIndex])
+        ? storedResults[roundIndex]
+        : (isForCurrentPick(serverResults[roundIndex]) ? serverResults[roundIndex] : undefined);
 
     // Prefer server response; fallback to stored round result; finally use prefilled from server (authenticated restore)
     const computedPrefill = useMemo(() => {
         if (prefilled) return prefilled;
         const g = serverGuesses[roundIndex];
-        if (!g) return undefined;
+        if (!g || g.appId !== appId) return undefined;
         return {
-            selectedLabel: g.selectedBucket,
-            actualBucket: g.actualBucket ?? '',
-            totalReviews: g.totalReviews ?? 0,
+            selectedLabel: g.selectedLabel,
+            actualBucket: g.actualBucket,
+            totalReviews: g.totalReviews,
         };
-    }, [prefilled, serverGuesses, roundIndex]);
+    }, [prefilled, serverGuesses, roundIndex, appId]);
     const prefilledResponse: GuessResponse | null = computedPrefill && computedPrefill.selectedLabel
         ? {
             appId,

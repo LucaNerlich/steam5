@@ -2,7 +2,6 @@ package org.steam5;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.cache.CacheManager;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
 import org.steam5.config.ReviewGameConfig;
@@ -12,6 +11,7 @@ import org.steam5.repository.DailyPickLockRepository;
 import org.steam5.repository.ExcludedAppRepository;
 import org.steam5.repository.ReviewGamePickRepository;
 import org.steam5.repository.SteamAppReviewsRepository;
+import org.steam5.service.DomainCacheEvictor;
 import org.steam5.service.ReviewGameStateService;
 import org.steam5.service.SteamAppDetailsFetcher;
 import org.steam5.service.SteamAppReviewsFetcher;
@@ -34,7 +34,7 @@ public class ReviewGameStateServiceTest {
     private DailyPickLockRepository pickLockRepository;
     private ExcludedAppRepository excludedAppRepository;
     private ReviewGameConfig config;
-    private CacheManager cacheManager;
+    private DomainCacheEvictor cacheEvictor;
     private ApplicationEventPublisher eventPublisher;
 
     private ReviewGameStateService service;
@@ -48,7 +48,7 @@ public class ReviewGameStateServiceTest {
         pickLockRepository = mock(DailyPickLockRepository.class);
         excludedAppRepository = mock(ExcludedAppRepository.class);
         config = new ReviewGameConfig();
-        cacheManager = mock(CacheManager.class);
+        cacheEvictor = mock(DomainCacheEvictor.class);
         eventPublisher = mock(ApplicationEventPublisher.class);
 
         service = new ReviewGameStateService(
@@ -59,7 +59,7 @@ public class ReviewGameStateServiceTest {
                 pickLockRepository,
                 excludedAppRepository,
                 config,
-                cacheManager,
+                cacheEvictor,
                 eventPublisher
         );
 
@@ -128,7 +128,7 @@ public class ReviewGameStateServiceTest {
                 pickLockRepository,
                 excludedAppRepository,
                 config,
-                cacheManager,
+                cacheEvictor,
                 eventPublisher
         ) {
             @Override
