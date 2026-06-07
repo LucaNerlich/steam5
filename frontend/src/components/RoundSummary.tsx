@@ -3,6 +3,7 @@
 import React from "react";
 import "@/styles/components/reviewRoundSummary.css";
 import {scoreForRound} from "@/lib/scoring";
+import type {RoundResult, StoredDay} from "@/lib/storage";
 
 export default function RoundSummary(props: {
     buckets: string[];
@@ -31,20 +32,10 @@ export default function RoundSummary(props: {
     const {buckets, gameDate, totalRounds, latestRound, latest, results} = props;
     if (!gameDate) return null;
 
-    type RoundResult = {
-        pickName?: string;
-        appId: number;
-        selectedLabel: string;
-        actualBucket: string;
-        totalReviews: number;
-        correct: boolean
-    };
-    type Stored = { totalRounds: number; results: Record<number, RoundResult> };
-
-    let stored: Stored | null = null;
+    let stored: StoredDay | null = null;
     try {
         const raw = typeof window !== 'undefined' ? window.localStorage.getItem(`review-guesser:${gameDate}`) : null;
-        stored = raw ? JSON.parse(raw) as Stored : null;
+        stored = raw ? JSON.parse(raw) as StoredDay : null;
     } catch {
         stored = null;
     }

@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.steam5.domain.BucketLabel;
+import org.steam5.domain.GameDate;
 import org.steam5.domain.Guess;
 import org.steam5.domain.GuessStats;
 import org.steam5.domain.ReviewGamePick;
@@ -92,7 +93,7 @@ public class LeaderboardController {
 
     @GetMapping("/season")
     public ResponseEntity<List<LeaderEntry>> season() {
-        final LocalDate today = OffsetDateTime.now(ZoneOffset.UTC).toLocalDate();
+        final LocalDate today = GameDate.todayUtc();
         final Season season = seasonService.findSeasonContaining(today)
                 .orElseGet(() -> seasonService.ensureSeasonForDate(today));
         final LocalDate asOfDate = season.getEndDate().isBefore(today) ? season.getEndDate() : today;

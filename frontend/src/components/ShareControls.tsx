@@ -5,15 +5,7 @@ import useSWR from "swr";
 import "@/styles/components/reviewShareControls.css";
 import {scoreForRound} from "@/lib/scoring";
 import {ExportIcon} from "@phosphor-icons/react/ssr";
-
-type RoundResult = {
-    pickName?: string;
-    appId: number;
-    selectedLabel: string;
-    actualBucket: string;
-    totalReviews: number;
-    correct: boolean
-};
+import type {RoundResult, StoredDay} from "@/lib/storage";
 
 export default function ShareControls(props: {
     buckets: string[];
@@ -37,8 +29,6 @@ export default function ShareControls(props: {
     const {buckets, gameDate, totalRounds, latestRound, latest, inline, results} = props;
     const [copied, setCopied] = useState(false);
     const isLocalhost = typeof window !== 'undefined' && (location.hostname === 'localhost' || location.hostname === '127.0.0.1');
-
-    type Stored = { totalRounds: number; results: Record<number, RoundResult> };
 
     const namesFetchUrl = gameDate
         ? `/api/review-game/day/summary/${encodeURIComponent(gameDate)}`
@@ -65,13 +55,13 @@ export default function ShareControls(props: {
         return map;
     }, [namesData]);
 
-    let data: Stored | null = null;
+    let data: StoredDay | null = null;
     if (results && Object.keys(results).length > 0) {
         data = {totalRounds, results};
     } else {
         try {
             const raw = typeof window !== 'undefined' ? window.localStorage.getItem(`review-guesser:${gameDate}`) : null;
-            data = raw ? JSON.parse(raw) as Stored : null;
+            data = raw ? JSON.parse(raw) as StoredDay : null;
         } catch {
             data = null;
         }

@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.7.6] - 2026-06-07
+
+### Changed
+
+- Internal refactors with no behaviour change: `RoundResult` / `StoredDay` types are now imported from their canonical location rather than redeclared in two components; award-metric formatting and placement-tier logic each consolidated to a single shared utility; `ordinal` moved to `lib/format`; UTC "today" anchor centralised in `GameDate`; `SeasonController` view-building extracted into a dedicated `SeasonResponseMapper`
+
 ## [1.7.5] - 2026-06-07
 
 ### Changed

@@ -1,4 +1,5 @@
 import type {AwardView} from "@/types/seasons";
+import {placementTier} from "@/lib/format";
 
 type AwardGroup = {
     category: string;
@@ -26,7 +27,7 @@ export function groupAwardsByCategory(awards: AwardView[]): AwardGroup[] {
     return Object.values(grouped);
 }
 
-export function formatAwardMetric(award: AwardView): string {
+export function formatAwardMetric(award: { category: string; metricValue: number }): string {
     switch (award.category) {
         case "MOST_POINTS":
             return `${numberFormatter.format(award.metricValue)} pts`;
@@ -42,9 +43,7 @@ export function formatAwardMetric(award: AwardView): string {
 }
 
 export function rankClassName(level: number): string {
-    if (level === 1) return "season-card__rank season-card__rank--gold";
-    if (level === 2) return "season-card__rank season-card__rank--silver";
-    if (level === 3) return "season-card__rank season-card__rank--bronze";
-    return "season-card__rank";
+    const tier = placementTier(level);
+    return tier === 'neutral' ? 'season-card__rank' : `season-card__rank season-card__rank--${tier}`;
 }
 

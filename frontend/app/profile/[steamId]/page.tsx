@@ -4,7 +4,8 @@ import type {Metadata} from "next";
 import "@/styles/components/profile.css";
 import PerformanceSection from "@/components/PerformanceSection";
 import {Suspense} from "react";
-import {formatDate} from "@/lib/format";
+import {formatDate, ordinal, placementTier} from "@/lib/format";
+import {formatAwardMetric} from "@/lib/seasons";
 
 type ProfileResponse = {
     steamId: string;
@@ -119,7 +120,7 @@ export default async function ProfilePage({params}: { params: { steamId: string 
                                             <li
                                                 className="profile__award-row"
                                                 key={`${season.seasonNumber}-${award.category}-${award.placementLevel}`}>
-                                                <span className={`profile__award-badge ${placementBadgeClass(award.placementLevel)}`}>
+                                                <span className={`profile__award-badge profile__award-badge--${placementTier(award.placementLevel)}`}>
                                                     {ordinal(award.placementLevel)}
                                                 </span>
                                                 <div className="profile__award-content">
@@ -242,44 +243,6 @@ function groupAwardsBySeason(awards: ProfileResponse["awards"]): AwardSeason[] {
         }
     });
     return Array.from(grouped.values()).sort((a, b) => b.seasonNumber - a.seasonNumber);
-}
-
-function ordinal(value: number): string {
-    const mod100 = value % 100;
-    if (mod100 >= 11 && mod100 <= 13) return `${value}th`;
-    switch (value % 10) {
-        case 1:
-            return `${value}st`;
-        case 2:
-            return `${value}nd`;
-        case 3:
-            return `${value}rd`;
-        default:
-            return `${value}th`;
-    }
-}
-
-function placementBadgeClass(level: number): string {
-    if (level === 1) return "profile__award-badge--gold";
-    if (level === 2) return "profile__award-badge--silver";
-    if (level === 3) return "profile__award-badge--bronze";
-    return "profile__award-badge--neutral";
-}
-
-function formatAwardMetric(award: ProfileResponse["awards"][number]): string {
-    const formatter = new Intl.NumberFormat();
-    switch (award.category) {
-        case "MOST_POINTS":
-            return `${formatter.format(award.metricValue)} pts`;
-        case "MOST_HITS":
-            return `${formatter.format(award.metricValue)} hits`;
-        case "HIGHEST_AVG_POINTS_PER_DAY":
-            return `${(award.metricValue / 100).toFixed(2)} avg pts/day`;
-        case "LONGEST_STREAK":
-            return `${award.metricValue} ${award.metricValue === 1 ? "day" : "days"}`;
-        default:
-            return formatter.format(award.metricValue);
-    }
 }
 
 export const revalidate = 300;

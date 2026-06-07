@@ -9,13 +9,12 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
+import org.steam5.domain.GameDate;
 import org.steam5.domain.Season;
 import org.steam5.domain.SeasonStatus;
 import org.steam5.service.SeasonService;
 
 import java.time.LocalDate;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.util.List;
 
 @RestController
@@ -58,7 +57,7 @@ public class SeasonAdminController {
 
     private int finalizeClosedSeasons(List<Season> seasons) {
         int count = 0;
-        LocalDate todayUtc = OffsetDateTime.now(ZoneOffset.UTC).toLocalDate();
+        LocalDate todayUtc = GameDate.todayUtc();
         for (Season season : seasons) {
             if (!season.getEndDate().isAfter(todayUtc)) {
                 seasonService.finalizeSeason(season);
