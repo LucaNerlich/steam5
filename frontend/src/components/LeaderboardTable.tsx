@@ -4,6 +4,12 @@ import "@/styles/components/leaderboard.css";
 import Image from "next/image";
 import useSWR from "swr";
 import {useCallback, useMemo, useState} from "react";
+import {
+    UserAchievement,
+    getAchievementLabel,
+    getAchievementTitle,
+} from "@/lib/achievements";
+import AchievementsTable from "@/components/AchievementsTable";
 
 type LeaderEntry = {
     steamId: string;
@@ -19,16 +25,6 @@ type LeaderEntry = {
     avatar?: string | null;
     avatarBlurdata?: string | null;
     profileUrl?: string | null;
-};
-
-type UserAchievement = {
-    steamId: string;
-    userAchievement: string;
-    avgMinutes?: number;      // Early Bird / Night Owl
-    avgPoints?: number;       // Sharpshooter
-    perfectRounds?: number;  // Bullseye
-    perfectDays?: number;     // Perfect Day
-    totalSeconds?: number;    // Cheetah / Sloth
 };
 
 const fetcher = (url: string) => fetch(url, {
@@ -90,26 +86,6 @@ export default function LeaderboardTable(props: {
 
     const endpointAchievements = `/api/leaderboard/achievements?timeframe=${achievementTimeframe}`;
 
-    const ACHIEVEMENT_LABELS: Record<string, string> = {
-        EARLY_BIRD: 'Early Bird',
-        NIGHT_OWL: 'Night Owl',
-        SHARPSHOOTER: 'Sharpshooter',
-        BULLSEYE: 'Bullseye',
-        PERFECT_DAY: 'Perfect Day',
-        CHEETAH: 'Cheetah',
-        SLOTH: 'Sloth',
-    };
-
-    const ACHIEVEMENT_TITLES: Record<string, string> = {
-        EARLY_BIRD: 'Plays the earliest ☀',
-        NIGHT_OWL: 'Plays the latest 🌙',
-        SHARPSHOOTER: 'Highest average points per guess 🔫',
-        BULLSEYE: 'Most perfect rounds (points = 5) 🎯',
-        PERFECT_DAY: 'Most days with perfect total points 🎩',
-        CHEETAH: 'Least time between first and last guess per day 🐆',
-        SLOTH: 'Most time between first and last guess per day 🦥',
-    };
-
     const { data: achievementsData } = useSWR<{data: UserAchievement[], serverOffsetMinutes: number}>(endpointAchievements, async (url) => {
         const response = await fetch(url, {headers: {accept: 'application/json'}});
         if (!response.ok) throw new Error(`Failed to load ${url}: ${response.status}`);
@@ -139,78 +115,6 @@ export default function LeaderboardTable(props: {
         }
         return m;
     }, [achievementsList, props.mode]);
-
-    const getAchievementLabel = useCallback((key: string | null | undefined) => {
-        if (!key) return null;
-        return ACHIEVEMENT_LABELS[key] ?? key.split('_').map(s => s.charAt(0) + s.slice(1).toLowerCase()).join(' ');
-    }, []);
-
-    const formatDuration = useCallback((seconds: number): string => {
-        if (seconds < 60) return `${seconds}s`;
-        const minutes = Math.floor(seconds / 60);
-        const secs = seconds % 60;
-        if (minutes < 60) return `${minutes}m ${secs}s`;
-        const hours = Math.floor(minutes / 60);
-        const mins = minutes % 60;
-        return `${hours}h ${mins}m`;
-    }, []);
-
-    const formatTimeOfDay = useCallback((minutesSinceMidnightServer: number, serverOffsetMinutes: number = 0): string => {
-        // Convert server time (minutes since midnight in server timezone) to local time
-        // 1. Server minutes since midnight -> UTC minutes since midnight
-        const utcMinutesSinceMidnight = minutesSinceMidnightServer - serverOffsetMinutes;
-        // 2. Get current date in UTC to establish a reference point
-        const now = new Date();
-        const utcDate = new Date(Date.UTC(
-            now.getUTCFullYear(),
-            now.getUTCMonth(),
-            now.getUTCDate(),
-            0, 0, 0, 0
-        ));
-        // 3. Add UTC minutes to get UTC time
-        const utcTime = new Date(utcDate.getTime() + utcMinutesSinceMidnight * 60000);
-        // 4. Convert to local time
-        const localHours = utcTime.getHours();
-        const localMins = utcTime.getMinutes();
-        const period = localHours >= 12 ? 'PM' : 'AM';
-        const displayHours = localHours === 0 ? 12 : localHours > 12 ? localHours - 12 : localHours;
-        return `${displayHours}:${localMins.toString().padStart(2, '0')} ${period}`;
-    }, []);
-
-    const getAchievementTitle = useCallback((key: string | null | undefined, achievement?: UserAchievement) => {
-        if (!key) return undefined;
-        
-        const baseTitle = ACHIEVEMENT_TITLES[key];
-        if (!achievement) return baseTitle;
-        
-        // Add metric information to tooltip
-        switch (key) {
-            case 'EARLY_BIRD':
-            case 'NIGHT_OWL':
-                return (achievement.avgMinutes !== undefined && achievement.avgMinutes !== null)
-                    ? `${baseTitle} (avg: ${formatTimeOfDay(achievement.avgMinutes, serverOffsetMinutes)})`
-                    : baseTitle;
-            case 'SHARPSHOOTER':
-                return (achievement.avgPoints !== undefined && achievement.avgPoints !== null)
-                    ? `${baseTitle} (${achievement.avgPoints.toFixed(2)} pts/guess)`
-                    : baseTitle;
-            case 'BULLSEYE':
-                return (achievement.perfectRounds !== undefined && achievement.perfectRounds !== null)
-                    ? `${baseTitle} (${achievement.perfectRounds} perfect rounds)`
-                    : baseTitle;
-            case 'PERFECT_DAY':
-                return (achievement.perfectDays !== undefined && achievement.perfectDays !== null)
-                    ? `${baseTitle} (${achievement.perfectDays} perfect days)`
-                    : baseTitle;
-            case 'CHEETAH':
-            case 'SLOTH':
-                return (achievement.totalSeconds !== undefined && achievement.totalSeconds !== null)
-                    ? `${baseTitle} (total: ${formatDuration(achievement.totalSeconds)})`
-                    : baseTitle;
-            default:
-                return baseTitle;
-        }
-    }, [formatDuration, formatTimeOfDay]);
 
     type SortKey = 'personaName' | 'totalPoints' | 'rounds' | 'streak' | 'hits' | 'flops' | 'tooHigh' | 'tooLow' | 'avgPoints';
     type SortDir = 'asc' | 'desc';
@@ -334,7 +238,7 @@ export default function LeaderboardTable(props: {
                                         return lbl ? (
                                             <span
                                                 className="leaderboard__achievement"
-                                                title={getAchievementTitle(k, achievement) ?? lbl ?? undefined}
+                                                title={getAchievementTitle(k, achievement, serverOffsetMinutes) ?? lbl ?? undefined}
                                                 style={{
                                                     marginLeft: 8,
                                                     padding: '2px 6px',
@@ -368,113 +272,11 @@ export default function LeaderboardTable(props: {
                 Average points:&nbsp;<strong>{avgTotalPoints.toFixed(2)}</strong>
             </div>
             
-            {achievementsList && achievementsList.length > 0 && (
-                <div className="leaderboard__achievements">
-                    <h3 className="leaderboard__achievements-title">Achievements</h3>
-                    <table className="leaderboard__achievements-table">
-                        <thead>
-                            <tr>
-                                <th>Achievement</th>
-                                <th>Winner</th>
-                                <th className="num">Metric</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {Object.entries(ACHIEVEMENT_LABELS).map(([key, label]) => {
-                                const achievement = achievementsList.find(a => a.userAchievement === key);
-                                if (!achievement) return null;
-                                
-                                // Only show achievements for users who are in the current leaderboard
-                                const entry = data?.find(e => e.steamId === achievement.steamId);
-                                if (!entry) return null;
-                                const metricText = (() => {
-                                    switch (key) {
-                                        case 'EARLY_BIRD':
-                                        case 'NIGHT_OWL':
-                                            if (achievement.avgMinutes !== undefined && achievement.avgMinutes !== null) {
-                                                try {
-                                                    return formatTimeOfDay(achievement.avgMinutes, serverOffsetMinutes);
-                                                } catch (e) {
-                                                    console.error('Error formatting time:', e, achievement);
-                                                    return `${Math.round(achievement.avgMinutes)} min`;
-                                                }
-                                            }
-                                            return null;
-                                        case 'SHARPSHOOTER':
-                                            return (achievement.avgPoints !== undefined && achievement.avgPoints !== null)
-                                                ? `${achievement.avgPoints.toFixed(2)} pts/guess`
-                                                : null;
-                                        case 'BULLSEYE':
-                                            return (achievement.perfectRounds !== undefined && achievement.perfectRounds !== null)
-                                                ? `${achievement.perfectRounds} rounds`
-                                                : null;
-                                        case 'PERFECT_DAY':
-                                            return (achievement.perfectDays !== undefined && achievement.perfectDays !== null)
-                                                ? `${achievement.perfectDays} days`
-                                                : null;
-                                        case 'CHEETAH':
-                                        case 'SLOTH':
-                                            return (achievement.totalSeconds !== undefined && achievement.totalSeconds !== null)
-                                                ? formatDuration(achievement.totalSeconds)
-                                                : null;
-                                        default:
-                                            return null;
-                                    }
-                                })();
-                                
-                                const icon = (() => {
-                                    switch (key) {
-                                        case 'EARLY_BIRD': return '☀';
-                                        case 'NIGHT_OWL': return '🌙';
-                                        case 'SHARPSHOOTER': return '🔫';
-                                        case 'BULLSEYE': return '🎯';
-                                        case 'PERFECT_DAY': return '🎩';
-                                        case 'CHEETAH': return '🐆';
-                                        case 'SLOTH': return '🦥';
-                                        default: return '';
-                                    }
-                                })();
-                                
-                                return (
-                                    <tr key={key}>
-                                        <td data-label="Achievement">
-                                            <span className="leaderboard__achievement-label">
-                                                <span className="leaderboard__achievement-icon">{icon}</span>
-                                                {label}
-                                            </span>
-                                            <span className="leaderboard__achievement-metric-mobile num">
-                                                {metricText || '—'}
-                                            </span>
-                                        </td>
-                                        <td data-label="Winner">
-                                            <div className="leaderboard__achievement-winner">
-                                                {entry?.avatar && (
-                                                    <div className="leaderboard__achievement-avatar-wrap"
-                                                         style={{backgroundImage: entry.avatarBlurdata ? `url(${entry.avatarBlurdata})` : undefined}}>
-                                                        <Image className="leaderboard__achievement-avatar"
-                                                               src={entry.avatar}
-                                                               placeholder={'empty'}
-                                                               alt=""
-                                                               width={20}
-                                                               height={20}/>
-                                                    </div>
-                                                )}
-                                                <a href={`/profile/${encodeURIComponent(achievement.steamId)}`}
-                                                   className="leaderboard__achievement-name">
-                                                    {entry?.personaName || achievement.steamId}
-                                                </a>
-                                            </div>
-                                        </td>
-                                        <td className="num leaderboard__achievement-metric-desktop" data-label="Metric">
-                                            {metricText || '—'}
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
-                </div>
-            )}
+            <AchievementsTable
+                achievements={achievementsList}
+                serverOffsetMinutes={serverOffsetMinutes}
+                leaderboardEntries={data ?? []}
+            />
         </div>
     );
 }

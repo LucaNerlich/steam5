@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.7.4] - 2026-06-07
+
+### Changed
+
+- Internal refactors with no behaviour change: bucket-label parsing, guess-stat aggregation, and streak calculation each centralised in one domain class; achievement-awarding loop in `StatisticsService` collapsed from seven duplicated blocks to a single driven pattern; `LeaderboardTable` achievements section extracted into a standalone `AchievementsTable` component backed by a shared `lib/achievements.ts` utility
+
 ## [1.7.3] - 2026-06-07
 
 ### Fixed

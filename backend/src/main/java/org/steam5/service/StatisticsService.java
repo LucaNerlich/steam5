@@ -16,11 +16,13 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.LinkedHashSet;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.function.Supplier;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.stream.Collectors;
@@ -180,108 +182,77 @@ public class StatisticsService {
         return Collections.unmodifiableList(result);
     }
 
-    private void processAchievements(List<UserLabel> result, Set<String> alreadyAwarded,
-                                     int minRounds, LocalDate startDate, LocalDate endDate) {
-        // 1) Time-of-day based
-        final List<GuessRepository.AvgTimeRow> earliest;
-        final List<GuessRepository.AvgTimeRow> latest;
+    private void processAchievements(final List<UserLabel> result, final Set<String> alreadyAwarded,
+                                     final int minRounds, final LocalDate startDate, final LocalDate endDate) {
+        // Time-of-day
+        awardFirst(result, alreadyAwarded,
+                fetch(() -> guessRepository.findUsersByAvgSubmissionTimeAsc(minRounds),
+                      () -> guessRepository.findUsersByAvgSubmissionTimeAscInRange(startDate, endDate, minRounds),
+                      startDate),
+                GuessRepository.AvgTimeRow::getSteamId,
+                row -> new UserLabel(row.getSteamId(), UserAchievement.EARLY_BIRD, row.getAvgMinutes(), null, null, null, null));
 
-        if (startDate == null) {
-            earliest = guessRepository.findUsersByAvgSubmissionTimeAsc(minRounds);
-            latest = guessRepository.findUsersByAvgSubmissionTimeDesc(minRounds);
-        } else {
-            earliest = guessRepository.findUsersByAvgSubmissionTimeAscInRange(startDate, endDate, minRounds);
-            latest = guessRepository.findUsersByAvgSubmissionTimeDescInRange(startDate, endDate, minRounds);
-        }
+        awardFirst(result, alreadyAwarded,
+                fetch(() -> guessRepository.findUsersByAvgSubmissionTimeDesc(minRounds),
+                      () -> guessRepository.findUsersByAvgSubmissionTimeDescInRange(startDate, endDate, minRounds),
+                      startDate),
+                GuessRepository.AvgTimeRow::getSteamId,
+                row -> new UserLabel(row.getSteamId(), UserAchievement.NIGHT_OWL, row.getAvgMinutes(), null, null, null, null));
 
-        if (!earliest.isEmpty()) {
-            for (GuessRepository.AvgTimeRow row : earliest) {
-                final String steamId = row.getSteamId();
-                if (alreadyAwarded.add(steamId)) {
-                    result.add(new UserLabel(steamId, UserAchievement.EARLY_BIRD,
-                            row.getAvgMinutes(), null, null, null, null));
-                    break;
-                }
-            }
-        }
+        // Accuracy / skill
+        awardFirst(result, alreadyAwarded,
+                fetch(() -> guessRepository.findUsersByAvgPointsDesc(minRounds),
+                      () -> guessRepository.findUsersByAvgPointsDescInRange(startDate, endDate, minRounds),
+                      startDate),
+                GuessRepository.AvgPointsRow::getSteamId,
+                row -> new UserLabel(row.getSteamId(), UserAchievement.SHARPSHOOTER, null, row.getAvgPoints(), null, null, null));
 
-        if (!latest.isEmpty()) {
-            for (GuessRepository.AvgTimeRow row : latest) {
-                final String steamId = row.getSteamId();
-                if (alreadyAwarded.add(steamId)) {
-                    result.add(new UserLabel(steamId, UserAchievement.NIGHT_OWL,
-                            row.getAvgMinutes(), null, null, null, null));
-                    break;
-                }
-            }
-        }
+        awardFirst(result, alreadyAwarded,
+                fetch(() -> guessRepository.findUsersByPerfectRoundsDesc(minRounds),
+                      () -> guessRepository.findUsersByPerfectRoundsDescInRange(startDate, endDate, minRounds),
+                      startDate),
+                GuessRepository.PerfectRoundsRow::getSteamId,
+                row -> new UserLabel(row.getSteamId(), UserAchievement.BULLSEYE, null, null, row.getPerfects(), null, null));
 
-        // 2) Accuracy/skill based — Sharpshooter (highest average points)
-        final List<GuessRepository.AvgPointsRow> sharp = startDate == null
-                ? guessRepository.findUsersByAvgPointsDesc(minRounds)
-                : guessRepository.findUsersByAvgPointsDescInRange(startDate, endDate, minRounds);
+        awardFirst(result, alreadyAwarded,
+                fetch(() -> guessRepository.findUsersByPerfectDaysDesc(minRounds),
+                      () -> guessRepository.findUsersByPerfectDaysDescInRange(startDate, endDate, minRounds),
+                      startDate),
+                GuessRepository.PerfectDaysRow::getSteamId,
+                row -> new UserLabel(row.getSteamId(), UserAchievement.PERFECT_DAY, null, null, null, row.getPerfectDays(), null));
 
-        for (GuessRepository.AvgPointsRow row : sharp) {
-            final String steamId = row.getSteamId();
+        // Speed
+        awardFirst(result, alreadyAwarded,
+                fetch(() -> guessRepository.findUsersByDailyTimeDiffAsc(minRounds),
+                      () -> guessRepository.findUsersByDailyTimeDiffAscInRange(startDate, endDate, minRounds),
+                      startDate),
+                GuessRepository.DailyTimeDiffRow::getSteamId,
+                row -> new UserLabel(row.getSteamId(), UserAchievement.CHEETAH, null, null, null, null, row.getTotalSeconds()));
+
+        awardFirst(result, alreadyAwarded,
+                fetch(() -> guessRepository.findUsersByDailyTimeDiffDesc(minRounds),
+                      () -> guessRepository.findUsersByDailyTimeDiffDescInRange(startDate, endDate, minRounds),
+                      startDate),
+                GuessRepository.DailyTimeDiffRow::getSteamId,
+                row -> new UserLabel(row.getSteamId(), UserAchievement.SLOTH, null, null, null, null, row.getTotalSeconds()));
+    }
+
+    /** Returns the all-time query result when {@code startDate} is null, the ranged result otherwise. */
+    private static <R> List<R> fetch(final Supplier<List<R>> allTime,
+                                     final Supplier<List<R>> ranged,
+                                     final LocalDate startDate) {
+        return startDate == null ? allTime.get() : ranged.get();
+    }
+
+    /** Awards the first non-already-awarded user in {@code candidates}. No-op when the list is empty. */
+    private static <R> void awardFirst(final List<UserLabel> result, final Set<String> alreadyAwarded,
+                                       final List<R> candidates,
+                                       final Function<R, String> getSteamId,
+                                       final Function<R, UserLabel> toLabel) {
+        for (final R row : candidates) {
+            final String steamId = getSteamId.apply(row);
             if (alreadyAwarded.add(steamId)) {
-                result.add(new UserLabel(steamId, UserAchievement.SHARPSHOOTER,
-                        null, row.getAvgPoints(), null, null, null));
-                break;
-            }
-        }
-
-        // 3) Accuracy/skill based — Bullseye (most perfect rounds)
-        final List<GuessRepository.PerfectRoundsRow> bulls = startDate == null
-                ? guessRepository.findUsersByPerfectRoundsDesc(minRounds)
-                : guessRepository.findUsersByPerfectRoundsDescInRange(startDate, endDate, minRounds);
-
-        for (GuessRepository.PerfectRoundsRow row : bulls) {
-            final String steamId = row.getSteamId();
-            if (alreadyAwarded.add(steamId)) {
-                result.add(new UserLabel(steamId, UserAchievement.BULLSEYE,
-                        null, null, row.getPerfects(), null, null));
-                break;
-            }
-        }
-
-        // 4) Accuracy/skill based — Perfect Day (most perfect days)
-        final List<GuessRepository.PerfectDaysRow> pdays = startDate == null
-                ? guessRepository.findUsersByPerfectDaysDesc(minRounds)
-                : guessRepository.findUsersByPerfectDaysDescInRange(startDate, endDate, minRounds);
-
-        for (GuessRepository.PerfectDaysRow row : pdays) {
-            final String steamId = row.getSteamId();
-            if (alreadyAwarded.add(steamId)) {
-                result.add(new UserLabel(steamId, UserAchievement.PERFECT_DAY,
-                        null, null, null, row.getPerfectDays(), null));
-                break;
-            }
-        }
-
-        // 5) Speed based — Cheetah (least time between first and last guess per day, summed)
-        final List<GuessRepository.DailyTimeDiffRow> cheetahs = startDate == null
-                ? guessRepository.findUsersByDailyTimeDiffAsc(minRounds)
-                : guessRepository.findUsersByDailyTimeDiffAscInRange(startDate, endDate, minRounds);
-
-        for (GuessRepository.DailyTimeDiffRow row : cheetahs) {
-            final String steamId = row.getSteamId();
-            if (alreadyAwarded.add(steamId)) {
-                result.add(new UserLabel(steamId, UserAchievement.CHEETAH,
-                        null, null, null, null, row.getTotalSeconds()));
-                break;
-            }
-        }
-
-        // 6) Speed based — Sloth (most time between first and last guess per day, summed)
-        final List<GuessRepository.DailyTimeDiffRow> sloths = startDate == null
-                ? guessRepository.findUsersByDailyTimeDiffDesc(minRounds)
-                : guessRepository.findUsersByDailyTimeDiffDescInRange(startDate, endDate, minRounds);
-
-        for (GuessRepository.DailyTimeDiffRow row : sloths) {
-            final String steamId = row.getSteamId();
-            if (alreadyAwarded.add(steamId)) {
-                result.add(new UserLabel(steamId, UserAchievement.SLOTH,
-                        null, null, null, null, row.getTotalSeconds()));
+                result.add(toLabel.apply(row));
                 break;
             }
         }

@@ -11,6 +11,7 @@ import org.steam5.domain.Season;
 import org.steam5.domain.SeasonAwardCategory;
 import org.steam5.domain.SeasonAwardResult;
 import org.steam5.domain.SeasonStatus;
+import org.steam5.domain.StreakCalculator;
 import org.steam5.repository.GuessRepository;
 import org.steam5.repository.SeasonAwardResultRepository;
 import org.steam5.repository.SeasonRepository;
@@ -258,7 +259,7 @@ public class SeasonService {
         long rounds = coerce(row.getRounds());
         long activeDays = row.getActiveDays() != null ? row.getActiveDays() : participationDates.size();
         double avgPointsPerDay = activeDays > 0 ? (double) totalPoints / activeDays : 0d;
-        long longestStreak = calculateLongestStreak(participationDates);
+        long longestStreak = StreakCalculator.longestStreak(participationDates);
         return new SeasonStats(row.getSteamId(), totalPoints, hits, flops, rounds, activeDays, avgPointsPerDay, longestStreak);
     }
 
@@ -274,28 +275,6 @@ public class SeasonService {
             }
         }
         return map;
-    }
-
-    private static long calculateLongestStreak(List<LocalDate> dates) {
-        long best = 0;
-        long current = 0;
-        LocalDate previous = null;
-        for (LocalDate date : dates) {
-            if (previous == null) {
-                current = 1;
-            } else if (date.equals(previous.plusDays(1))) {
-                current += 1;
-            } else if (date.equals(previous)) {
-                continue;
-            } else {
-                current = 1;
-            }
-            previous = date;
-            if (current > best) {
-                best = current;
-            }
-        }
-        return best;
     }
 
     private List<SeasonAwardResult> generateAwardsForCategory(Season season,

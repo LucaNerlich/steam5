@@ -11,9 +11,12 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.steam5.domain.BucketLabel;
 import org.steam5.domain.Guess;
+import org.steam5.domain.GuessStats;
 import org.steam5.domain.ReviewGamePick;
 import org.steam5.domain.Season;
+import org.steam5.domain.StreakCalculator;
 import org.steam5.domain.User;
 import org.steam5.repository.GuessRepository;
 import org.steam5.repository.UserRepository;
@@ -39,22 +42,6 @@ public class LeaderboardController {
     private final UserRepository userRepository;
     private final SeasonService seasonService;
     private final CacheManager cacheManager;
-
-    private static int bucketOrderFromLabel(String label) {
-        if (label == null) return Integer.MIN_VALUE;
-        final String s = label.trim();
-        try {
-            if (s.endsWith("+")) {
-                return Integer.parseInt(s.substring(0, s.length() - 1));
-            }
-            final int dash = s.indexOf('-');
-            if (dash > 0) {
-                return Integer.parseInt(s.substring(0, dash));
-            }
-        } catch (Exception ignored) {
-        }
-        return Integer.MIN_VALUE;
-    }
 
     @GetMapping("/today")
     @Cacheable(value = "leaderboard-live", key = "'today:' + T(java.time.LocalDate).now()", unless = "#result == null || #result.body == null")
@@ -150,7 +137,7 @@ public class LeaderboardController {
                 .map(row -> {
                     final User user = usersById.get(row.getSteamId());
                     final List<LocalDate> dates = streakDatesById.getOrDefault(row.getSteamId(), List.of());
-                    final int streak = calculateStreak(dates, today);
+                    final int streak = StreakCalculator.currentStreak(dates, today);
                     return getLeaderEntry(
                             row.getSteamId(),
                             row.getTotalPoints() != null ? row.getTotalPoints() : 0L,
@@ -205,46 +192,12 @@ public class LeaderboardController {
                                      final Map<String, List<LocalDate>> streakDatesById,
                                      final LocalDate asOfDate) {
         final String steamId = entry.getKey();
-        final List<Guess> list = entry.getValue();
-        final long totalPoints = list.stream().mapToLong(Guess::getPoints).sum();
-        final long rounds = list.size();
-        final long hits = list.stream().filter(g -> g.getSelectedBucket().equals(g.getActualBucket())).count();
-        final long flops = list.stream().filter(g -> g.getPoints() == 0).count();
-        final long tooHigh = list.stream().filter(g -> bucketOrderFromLabel(g.getSelectedBucket()) > bucketOrderFromLabel(g.getActualBucket())).count();
-        final long tooLow = list.stream().filter(g -> bucketOrderFromLabel(g.getSelectedBucket()) < bucketOrderFromLabel(g.getActualBucket())).count();
-        final double avgPoints = rounds > 0 ? ((double) totalPoints) / rounds : 0.0;
+        final GuessStats stats = GuessStats.from(entry.getValue());
         final User user = usersById.get(steamId);
         final List<LocalDate> dates = streakDatesById.getOrDefault(steamId, List.of());
-        final int streak = calculateStreak(dates, asOfDate);
-        return getLeaderEntry(steamId, totalPoints, rounds, hits, flops, tooHigh, tooLow, avgPoints, streak, user);
-    }
-
-    private int calculateStreak(final List<LocalDate> dates, final LocalDate asOfDate) {
-        // Determine the current streak of consecutive days with at least one guess up to asOfDate.
-        // A one-day grace is applied: if the most recent play was yesterday, the streak is still
-        // considered active (the user may not have played today yet).
-        if (dates.isEmpty()) return 0;
-        final LocalDate latest = dates.get(0); // dates are in descending order
-        final LocalDate expected;
-        if (latest.equals(asOfDate) || latest.equals(asOfDate.minusDays(1))) {
-            expected = latest;
-        } else {
-            // Gap of two or more days — streak is broken.
-            return 0;
-        }
-        int streak = 0;
-        LocalDate next = expected;
-        for (LocalDate d : dates) {
-            if (d.equals(next)) {
-                streak++;
-                next = next.minusDays(1);
-            } else if (d.isBefore(next)) {
-                // first gap — streak ends here
-                break;
-            }
-            // future date (shouldn't happen); skip
-        }
-        return streak;
+        final int streak = StreakCalculator.currentStreak(dates, asOfDate);
+        return getLeaderEntry(steamId, stats.totalPoints(), stats.rounds(), stats.hits(),
+                stats.flops(), stats.tooHigh(), stats.tooLow(), stats.avgPoints(), streak, user);
     }
 
     public record LeaderEntry(String steamId,

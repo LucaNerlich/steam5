@@ -7,9 +7,11 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.steam5.domain.BucketLabel;
 import org.steam5.domain.Guess;
-import org.steam5.domain.User;
+import org.steam5.domain.GuessStats;
 import org.steam5.domain.SeasonAwardResult;
+import org.steam5.domain.User;
 import org.steam5.repository.GuessRepository;
 import org.steam5.repository.UserRepository;
 import org.steam5.repository.SteamAppIndexRepository;
@@ -55,12 +57,7 @@ public class ProfileController {
                         ))
                 ));
 
-        long totalPoints = guesses.stream().mapToLong(Guess::getPoints).sum();
-        long rounds = guesses.size();
-        long hits = guesses.stream().filter(g -> g.getSelectedBucket().equals(g.getActualBucket())).count();
-        long tooHigh = guesses.stream().filter(g -> bucketOrderFromLabel(g.getSelectedBucket()) > bucketOrderFromLabel(g.getActualBucket())).count();
-        long tooLow = guesses.stream().filter(g -> bucketOrderFromLabel(g.getSelectedBucket()) < bucketOrderFromLabel(g.getActualBucket())).count();
-        double avgPoints = rounds > 0 ? ((double) totalPoints) / rounds : 0.0;
+        final GuessStats stats = GuessStats.from(guesses);
 
         // Group guesses by day for convenience in the UI
         Map<LocalDate, List<Guess>> byDay = guesses.stream()
@@ -77,12 +74,12 @@ public class ProfileController {
         out.put("avatarBlurdata", avatarBlurdata);
         out.put("profileUrl", user.getProfileUrl());
         out.put("stats", Map.of(
-                "totalPoints", totalPoints,
-                "rounds", rounds,
-                "hits", hits,
-                "tooHigh", tooHigh,
-                "tooLow", tooLow,
-                "avgPoints", avgPoints
+                "totalPoints", stats.totalPoints(),
+                "rounds", stats.rounds(),
+                "hits", stats.hits(),
+                "tooHigh", stats.tooHigh(),
+                "tooLow", stats.tooLow(),
+                "avgPoints", stats.avgPoints()
         ));
         out.put("days", byDay.entrySet().stream()
                         .sorted(Map.Entry.<LocalDate, List<Guess>>comparingByKey().reversed())
@@ -118,21 +115,6 @@ public class ProfileController {
         return ResponseEntity.ok(out);
     }
 
-    private static int bucketOrderFromLabel(String label) {
-        if (label == null) return Integer.MIN_VALUE;
-        final String s = label.trim();
-        try {
-            if (s.endsWith("+")) {
-                return Integer.parseInt(s.substring(0, s.length() - 1));
-            }
-            final int dash = s.indexOf('-');
-            if (dash > 0) {
-                return Integer.parseInt(s.substring(0, dash));
-            }
-        } catch (Exception ignored) {
-        }
-        return Integer.MIN_VALUE;
-    }
 }
 
 
