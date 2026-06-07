@@ -30,9 +30,7 @@ export default function Footer() {
                         <Link href={Routes.privacy}>Privacy</Link>
                     </small>
                     <small className="footer__meta-line text-muted">
-                        <span>Frontend v{version}</span>
-                        <span> · </span>
-                        <span>Backend v{version}</span>
+                        v{version}
                     </small>
                 </div>
                 <div className="controls">

@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.7.10] - 2026-06-07
+
+### Fixed
+
+- Footer version display simplified to a single `vX.Y.Z` — the separate "Frontend / Backend" labels were redundant since both are always the same version
+
 ## [1.7.9] - 2026-06-07
 
 ### Changed
