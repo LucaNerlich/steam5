@@ -1,27 +1,16 @@
 import type {Metadata} from "next";
 import LeaderboardTable from "@/components/LeaderboardTable";
-import {Suspense} from "react";
-import LeaderboardSkeleton from "@/components/LeaderboardSkeleton";
 import {buildBreadcrumbJsonLd} from "@/lib/seo";
 import {Routes} from "../../../routes";
 import {fetchLeaderboardPageData} from "@/lib/leaderboard";
 
-async function TodayLeaderboardContent() {
+// Matches the 60-second Caffeine TTL on the backend's leaderboard-live cache
+export const revalidate = 60;
+
+export default async function LeaderboardTodayPage() {
     const [leaderboardData, achievementsData] = await fetchLeaderboardPageData(
-        "today", "daily", 5
+        "today", "daily", 60
     );
-
-    return (
-        <LeaderboardTable
-            mode="today"
-            refreshMs={5000}
-            initialData={leaderboardData as any}
-            initialAchievements={achievementsData as any}
-        />
-    );
-}
-
-export default function LeaderboardTodayPage() {
     const breadcrumbJsonLd = buildBreadcrumbJsonLd([
         {name: "Home", url: Routes.home},
         {name: "Leaderboard", url: Routes.leaderboard},
@@ -33,9 +22,12 @@ export default function LeaderboardTodayPage() {
             <script type="application/ld+json" dangerouslySetInnerHTML={{
                 __html: JSON.stringify(breadcrumbJsonLd)
             }} />
-            <Suspense fallback={<LeaderboardSkeleton variant="table"/>}>
-                <TodayLeaderboardContent />
-            </Suspense>
+            <LeaderboardTable
+                mode="today"
+                refreshMs={60000}
+                initialData={leaderboardData as any}
+                initialAchievements={achievementsData as any}
+            />
         </>
     );
 }

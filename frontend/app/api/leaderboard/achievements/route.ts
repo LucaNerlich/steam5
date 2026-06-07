@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 
 const BACKEND_ORIGIN = process.env.NEXT_PUBLIC_API_DOMAIN || "http://localhost:8080";
 
-// Cache based on timeframe: shorter for daily, longer for all-time
-export const revalidate = 5; // Default 5 seconds
+// Revalidate defaults to the shortest TTL (daily); per-fetch revalidate handles longer ones
+export const revalidate = 300;
 
 export async function GET(request: Request) {
   try {
@@ -12,8 +12,8 @@ export async function GET(request: Request) {
 
     const url = `${BACKEND_ORIGIN}/api/stats/users/achievements?timeframe=${encodeURIComponent(timeframe)}`;
 
-    // Use appropriate cache duration based on timeframe
-    const cacheTime = timeframe === 'daily' ? 5 : timeframe === 'weekly' ? 10 : 30;
+    // Match backend Caffeine TTLs: 5min daily, 1hr weekly/season, 24hr all-time
+    const cacheTime = timeframe === 'daily' ? 300 : timeframe === 'weekly' || timeframe === 'season' ? 3600 : 86400;
 
     const res = await fetch(url, {
       headers: { accept: "application/json" },

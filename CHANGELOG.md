@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.7.2] - 2026-06-07
+
+### Fixed
+
+- Leaderboard pages now render fully server-side with data baked into the HTML — the loading skeleton no longer appears on initial page load
+- Frontend SWR poll intervals and Next.js API route cache TTLs are now aligned with backend Caffeine cache TTLs (60 s for today, 10 min for weekly/season/all-time), eliminating redundant backend requests
+- All-time and monthly leaderboard API routes were incorrectly bypassing the Next.js cache (`force-dynamic`); they now use a 10-minute ISR TTL matching the backend
+- Profile page was missing a top gap between the fixed header and the page content
+
 ## [1.7.1] - 2026-06-02
 
 ### Fixed

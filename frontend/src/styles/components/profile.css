@@ -440,6 +440,7 @@
     gap: 1rem;
     min-width: 0;
     overflow: hidden;
+    padding-top: 0.5rem;
 }
 
 .profile > * {

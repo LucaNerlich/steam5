@@ -1,27 +1,16 @@
 import type {Metadata} from "next";
 import LeaderboardTable from "@/components/LeaderboardTable";
-import {Suspense} from "react";
-import LeaderboardSkeleton from "@/components/LeaderboardSkeleton";
 import {buildBreadcrumbJsonLd} from "@/lib/seo";
 import {Routes} from "../../../routes";
 import {fetchLeaderboardPageData} from "@/lib/leaderboard";
 
-async function SeasonLeaderboardContent() {
+// Matches the 10-minute Caffeine TTL on the backend's leaderboard-static cache
+export const revalidate = 600;
+
+export default async function LeaderboardSeasonPage() {
     const [leaderboardData, achievementsData] = await fetchLeaderboardPageData(
-        "season", "season", 10
+        "season", "season", 600
     );
-
-    return (
-        <LeaderboardTable
-            mode="season"
-            refreshMs={10000}
-            initialData={leaderboardData as any}
-            initialAchievements={achievementsData as any}
-        />
-    );
-}
-
-export default function LeaderboardSeasonPage() {
     const breadcrumbJsonLd = buildBreadcrumbJsonLd([
         {name: "Home", url: Routes.home},
         {name: "Leaderboard", url: Routes.leaderboard},
@@ -33,9 +22,12 @@ export default function LeaderboardSeasonPage() {
             <script type="application/ld+json" dangerouslySetInnerHTML={{
                 __html: JSON.stringify(breadcrumbJsonLd)
             }} />
-            <Suspense fallback={<LeaderboardSkeleton variant="table"/>}>
-                <SeasonLeaderboardContent />
-            </Suspense>
+            <LeaderboardTable
+                mode="season"
+                refreshMs={120000}
+                initialData={leaderboardData as any}
+                initialAchievements={achievementsData as any}
+            />
         </>
     );
 }

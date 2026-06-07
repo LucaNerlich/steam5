@@ -2,13 +2,13 @@ import {NextResponse} from "next/server";
 
 const BACKEND_ORIGIN = process.env.NEXT_PUBLIC_API_DOMAIN || "http://localhost:8080";
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 600;
 
 export async function GET() {
     try {
         const res = await fetch(`${BACKEND_ORIGIN}/api/leaderboard/monthly`, {
             headers: {"accept": "application/json"},
-            cache: 'no-store',
+            next: { revalidate: 600 },
         });
         const data = await res.json();
         return NextResponse.json(data, { status: res.status });

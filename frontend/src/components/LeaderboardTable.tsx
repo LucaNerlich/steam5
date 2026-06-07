@@ -73,9 +73,12 @@ export default function LeaderboardTable(props: {
 
     }
 
+    const refreshInterval = props.refreshMs ?? (props.mode === 'today' ? 60000 : 120000);
+
     const {data, error, isLoading} = useSWR<LeaderEntry[]>(endpoint, fetcher, {
-        refreshInterval: props.refreshMs ?? (props.mode === 'today' ? 5000 : 10000),
+        refreshInterval,
         revalidateOnFocus: true,
+        focusThrottleInterval: refreshInterval,
         fallbackData: props.initialData || undefined,
     });
 
@@ -114,9 +117,10 @@ export default function LeaderboardTable(props: {
         const serverOffsetMinutes = parseInt(response.headers.get('X-Server-Timezone-Offset') || '0', 10);
         return { data, serverOffsetMinutes };
     }, {
-        refreshInterval: props.refreshMs ?? (props.mode === 'today' ? 5000 : 10000),
+        refreshInterval,
         revalidateOnFocus: true,
-        dedupingInterval: 2000, // Allow refetch after 2 seconds
+        focusThrottleInterval: refreshInterval,
+        dedupingInterval: refreshInterval,
         fallbackData: props.initialAchievements || undefined,
     });
 

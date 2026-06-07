@@ -2,14 +2,14 @@ import {NextResponse} from "next/server";
 
 const BACKEND_ORIGIN = process.env.NEXT_PUBLIC_API_DOMAIN || "http://localhost:8080";
 
-// Cache for 10 seconds to reduce backend load
-export const revalidate = 10;
+// Matches the 10-minute Caffeine TTL on the backend
+export const revalidate = 600;
 
 export async function GET() {
     try {
         const res = await fetch(`${BACKEND_ORIGIN}/api/leaderboard/season`, {
             headers: {"accept": "application/json"},
-            next: { revalidate: 10 }, // 10 second cache
+            next: { revalidate: 600 },
         });
         const data = await res.json();
         return NextResponse.json(data, { status: res.status });
