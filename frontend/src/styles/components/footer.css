@@ -89,11 +89,15 @@ footer .controls .footer__icon-link {
     background: var(--color-surface);
     color: var(--color-text);
     line-height: 0;
+    transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
 }
 
 footer .controls .theme-toggle:hover,
 footer .controls .footer__icon-link:hover {
-    filter: brightness(1.02);
+    filter: none;
+    transform: translateY(-1px);
+    border-color: var(--color-muted);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08);
 }
 
 footer .controls .theme-toggle svg,

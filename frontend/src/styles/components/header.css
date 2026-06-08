@@ -8,6 +8,17 @@ header {
     border-bottom: 1px solid var(--color-border);
 }
 
+@supports (backdrop-filter: blur(1px)) {
+    header {
+        background: color-mix(in srgb, var(--color-background) 85%, transparent);
+        backdrop-filter: blur(14px) saturate(1.15);
+    }
+}
+
+html.with-fancybox header {
+    right: var(--f-scrollbar-compensate, 0px);
+}
+
 header .container {
     display: flex;
     justify-content: flex-start;

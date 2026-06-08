@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.7.11] - 2026-06-08
+
+### Changed
+
+- Visual polish pass: frosted-glass backdrop blur on the fixed header, animated shimmer on skeleton loaders, satisfying press/hover states on guess buttons, layered card shadows, leaderboard row hover highlight, subtle gradient depth on genre pills, and improved hover lift on footer icon buttons
+
+### Fixed
+
+- Removed the persistent right-side gutter that `scrollbar-gutter: stable` added to all pages
+- Fixed horizontal layout shift (wiggle) on leaderboard pages when the scrollbar appears or disappears as data loads
+- Fixed horizontal layout shift when opening the screenshot lightbox — the fixed header now correctly compensates for the scrollbar disappearing via FancyBox's `--f-scrollbar-compensate` variable
+- Fixed missing top gap between the game hero section and the navigation bar
+
 ## [1.7.10] - 2026-06-07
 
 ### Fixed

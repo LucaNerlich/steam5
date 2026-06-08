@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "org.steam5"
-version = "1.7.10"
+version = "1.7.11"
 
 java {
     toolchain {

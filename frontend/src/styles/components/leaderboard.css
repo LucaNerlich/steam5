@@ -1,3 +1,7 @@
+html:has(.leaderboard-layout) {
+    overflow-y: scroll;
+}
+
 .leaderboard {
     /* keep horizontal scroll at outer container in case table is wider than viewport */
     overflow-x: auto;
@@ -230,6 +234,15 @@
     }
 }
 
+/* Leaderboard row hover */
+.leaderboard__table tbody tr {
+    transition: background 100ms ease;
+}
+
+.leaderboard__table tbody tr:hover td {
+    background: color-mix(in srgb, var(--color-primary) 4%, var(--color-surface));
+}
+
 /* Leaderboard loading skeleton */
 .leaderboard-skeleton {
     margin-top: 0.5rem;
@@ -242,6 +255,11 @@
     margin-bottom: 0.8rem;
 }
 
+@keyframes shimmer {
+    from { background-position: -200% 0; }
+    to   { background-position:  200% 0; }
+}
+
 .leaderboard-skeleton__title,
 .leaderboard-skeleton__subtitle,
 .leaderboard-skeleton__subline,
@@ -249,8 +267,28 @@
 .leaderboard-skeleton__cell,
 .leaderboard-skeleton__avatar,
 .leaderboard-skeleton__avg {
-    background: var(--color-border);
+    background: linear-gradient(
+        90deg,
+        var(--color-border)          25%,
+        var(--color-surface-variant) 50%,
+        var(--color-border)          75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.6s ease infinite;
     border-radius: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .leaderboard-skeleton__title,
+    .leaderboard-skeleton__subtitle,
+    .leaderboard-skeleton__subline,
+    .leaderboard-skeleton__tab,
+    .leaderboard-skeleton__cell,
+    .leaderboard-skeleton__avatar,
+    .leaderboard-skeleton__avg {
+        animation: none;
+        background: var(--color-border);
+    }
 }
 
 .leaderboard-skeleton__title {
