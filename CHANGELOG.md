@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.7.13] - 2026-06-12
+
+### Changed
+
+- Upgraded Spring Boot from 4.0.5 to 4.1.0
+
 ## [1.7.12] - 2026-06-12
 
 ### Fixed
