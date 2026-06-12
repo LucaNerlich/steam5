@@ -20,6 +20,10 @@ function readThemeFromDOM(): Theme {
     return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? "dark" : "light";
 }
 
+function setThemeCookie(theme: Theme) {
+    document.cookie = `theme=${theme}; path=/; max-age=${365 * 24 * 60 * 60}; SameSite=Lax`;
+}
+
 function applyTheme(theme: Theme) {
     currentTheme = theme;
     const root = document.documentElement;
@@ -29,6 +33,7 @@ function applyTheme(theme: Theme) {
         root.removeAttribute("data-theme");
     }
     window.localStorage.setItem("theme", theme);
+    setThemeCookie(theme);
     notifyListeners();
 }
 
@@ -53,10 +58,16 @@ export default function ThemeToggle() {
     const theme = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
     useEffect(() => {
+        // Sync cookie from localStorage for users who don't have it yet
+        const stored = window.localStorage.getItem("theme");
+        if (stored === "light" || stored === "dark") {
+            setThemeCookie(stored as Theme);
+        }
+
         const media = window.matchMedia('(prefers-color-scheme: dark)');
         const handler = () => {
-            const stored = window.localStorage.getItem("theme");
-            if (stored !== "light" && stored !== "dark") {
+            const s = window.localStorage.getItem("theme");
+            if (s !== "light" && s !== "dark") {
                 applyTheme(media.matches ? "dark" : "light");
             }
         };

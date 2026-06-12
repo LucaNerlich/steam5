@@ -222,11 +222,15 @@ export default async function RootLayout({
     children: React.ReactNode;
 }>) {
     const authState = await resolveAuth();
+    const cookieStore = await cookies();
+    const themeCookie = cookieStore.get('theme')?.value;
+    const serverTheme = themeCookie === 'dark' ? 'dark' : themeCookie === 'light' ? 'light' : null;
     return (
         <html
             lang="en"
             className={`${krypton.variable} ${neon.variable} ${argon.variable} ${radon.variable} ${xenon.variable} ${space.variable} ${pixelSquare.variable}`}
             suppressHydrationWarning
+            {...(serverTheme === 'dark' ? { 'data-theme': 'dark' } : {})}
         >
         <head>
             <Script src="/theme-init.js" strategy="beforeInteractive"/>

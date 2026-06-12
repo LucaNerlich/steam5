@@ -1,6 +1,6 @@
 {
     "name": "steam5",
-    "version": "1.7.11",
+    "version": "1.7.12",
     "private": true,
     "homepage": "https://steam5.org",
     "scripts": {
@@ -14,13 +14,13 @@
         "babel-plugin-react-compiler": "^1.0.0",
         "dashjs": "^5.2.0",
         "html-react-parser": "^5.2.17",
-        "next": "^16.2.7",
+        "next": "^16.2.9",
         "react": "^19.2.7",
         "react-dom": "^19.2.7",
         "swr": "^2.4.1"
     },
     "devDependencies": {
-        "@types/node": "^22.19.20",
+        "@types/node": "^22.19.21",
         "@types/react": "^19.2.17",
         "@types/react-dom": "^19.2.3",
         "typescript": "^5.9.3"

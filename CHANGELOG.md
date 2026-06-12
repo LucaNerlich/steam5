@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.7.12] - 2026-06-12
+
+### Fixed
+
+- Fixed dark mode being lost on leaderboard page refresh — theme preference is now stored in a cookie so the server renders the correct `data-theme` on the initial HTML, preventing a flash of light mode on fully SSR'd pages
+
 ## [1.7.11] - 2026-06-08
 
 ### Changed
