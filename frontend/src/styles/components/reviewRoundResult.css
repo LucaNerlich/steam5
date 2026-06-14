@@ -1,3 +1,26 @@
+/* ── Swap slot ──
+   Holds the (server-rendered, static) guess card and the (client-only) result
+   dialog, exactly one of which is shown at a time. The static HTML always ships
+   the guess card; after hydration an already-answered round swaps in the taller
+   dialog. Reserving a per-breakpoint min-height keeps the content below
+   (NewsBox / GameInfoSection) from reflowing when that swap happens. Sized to fit
+   the tallest realistic dialog (signed-out: share + summary + nudge). */
+.review-round__slot {
+    min-height: 390px; /* mobile */
+}
+
+@media (min-width: 641px) {
+    .review-round__slot {
+        min-height: 310px; /* tablet */
+    }
+}
+
+@media (min-width: 769px) {
+    .review-round__slot {
+        min-height: 280px; /* desktop */
+    }
+}
+
 /* ── Result card wrapper ── */
 .review-round__result {
     margin-top: 16px;

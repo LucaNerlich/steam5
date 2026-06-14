@@ -313,6 +313,7 @@ export default function ReviewGuesserRound({
     const shouldShowGuessControls = !(effectiveResponse || storedThisRound || prefilled);
     return (
         <>
+            <div className="review-round__slot">
             {shouldShowGuessControls && (
                 <section className="review-round__guess-card" aria-labelledby="guess-submission">
                     <div className="review-round__guess-header">
@@ -421,6 +422,7 @@ export default function ReviewGuesserRound({
                     </RoundResultActions>
                 </RoundResultDialog>
             )}
+            </div>
 
             <AuthWarningModal
                 isOpen={showAuthWarning}
