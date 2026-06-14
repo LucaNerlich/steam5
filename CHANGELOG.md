@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.8.1] - 2026-06-14
+
+### Changed
+
+- Round-to-round navigation is now instant — each round is served as a cached, prefetchable page and the next round preloads when you hover a guess button, so switching rounds no longer flashes a loading skeleton
+- Shared game/round data is cached for faster loads, while per-user data (your sign-in state and guesses) is never cached
+
 ## [1.8.0] - 2026-06-14
 
 ### Added
