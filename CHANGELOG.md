@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.8.0] - 2026-06-14
+
+### Added
+
+- The sign-in reminder now appears before every round (previously only the first), with an "Ignore this warning" option that permanently dismisses it
+
+### Fixed
+
+- Players whose session ended mid-game (for example after a deployment dropped their login) were silently switched to anonymous play while the header still showed them as signed in, so their guesses stopped counting toward the leaderboard without any indication — the game now detects this, updates the header, and shows a clear notice that you've been signed out and the result was not saved
+
+### Changed
+
+- Sign-in status is now re-checked when you return to the tab or move between rounds, so the header reflects your real session instead of a stale logged-in state
+- Added a frontend unit-test suite (Vitest) covering scoring, formatting, storage, and authentication logic
+
 ## [1.7.13] - 2026-06-12
 
 ### Changed
