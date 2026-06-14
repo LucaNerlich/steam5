@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.8.3] - 2026-06-14
+
+### Fixed
+
+- Revisiting an already-answered round no longer causes the page to jump as the result replaces the guess card — the area now reserves a consistent height across mobile, tablet, and desktop
+
 ## [1.8.2] - 2026-06-14
 
 ### Added
