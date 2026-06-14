@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.8.2] - 2026-06-14
+
+### Added
+
+- Automated weekly Dependabot dependency-update PRs for the backend (Gradle/Spring Boot)
+
 ## [1.8.1] - 2026-06-14
 
 ### Changed
