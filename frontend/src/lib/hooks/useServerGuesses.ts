@@ -17,7 +17,7 @@ type ServerGuess = {
  * renders with. Keeping this here means consumers never see backend field names
  * (selectedBucket/actualBucket) — a rename on the backend is absorbed in one place.
  */
-function toRoundResult(g: ServerGuess): RoundResult {
+export function toRoundResult(g: ServerGuess): RoundResult {
     return {
         appId: g.appId,
         pickName: undefined,

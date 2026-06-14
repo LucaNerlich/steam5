@@ -5,8 +5,9 @@
     "homepage": "https://steam5.org",
     "scripts": {
         "dev": "next dev",
-        "build": "next build",
-        "start": "next start"
+        "build": "vitest run && next build",
+        "start": "next start",
+        "test": "vitest run"
     },
     "dependencies": {
         "@fancyapps/ui": "^6.1.14",
@@ -23,7 +24,8 @@
         "@types/node": "^22.19.21",
         "@types/react": "^19.2.17",
         "@types/react-dom": "^19.2.3",
-        "typescript": "^5.9.3"
+        "typescript": "^5.9.3",
+        "vitest": "^4.1.8"
     },
     "engines": {
         "node": "22",

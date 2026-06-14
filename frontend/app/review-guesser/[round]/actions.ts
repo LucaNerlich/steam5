@@ -7,6 +7,12 @@ export type GuessActionState = {
     ok: boolean;
     error?: string;
     response?: GuessResponse;
+    // The session cookie was present but the backend rejected it (401). The user
+    // believes they are signed in, but they are not.
+    unauthorized?: boolean;
+    // Whether the guess was saved under an authenticated identity. False means it
+    // was submitted anonymously (no cookie) and does not count toward the leaderboard.
+    persisted?: boolean;
 };
 
 export async function submitGuessAction(_prev: GuessActionState | undefined, formData: FormData): Promise<GuessActionState> {
@@ -32,10 +38,17 @@ export async function submitGuessAction(_prev: GuessActionState | undefined, for
             cache: 'no-store',
         });
         if (!res.ok) {
+            // A 401 on the authenticated endpoint means the cookie is present but
+            // invalid/expired — the user thinks they are signed in but is not.
+            if (token && res.status === 401) {
+                return {ok: false, unauthorized: true, error: 'unauthorized'};
+            }
             return {ok: false, error: `Upstream error ${res.status}`};
         }
         const json: GuessResponse = await res.json();
-        return {ok: true, response: json};
+        // persisted is true only when an authenticated request succeeded; a guess
+        // sent to the anonymous endpoint (no cookie) is not saved to the leaderboard.
+        return {ok: true, response: json, persisted: Boolean(token)};
     } catch (e) {
         return {ok: false, error: e instanceof Error ? e.message : 'Unknown error'};
     }

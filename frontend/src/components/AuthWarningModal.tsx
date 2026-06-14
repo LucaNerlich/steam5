@@ -7,12 +7,14 @@ type AuthWarningModalProps = {
     isOpen: boolean;
     onLogin: () => void;
     onSkip: (reason?: "backdrop" | "button" | "escape") => void;
+    onIgnore: () => void;
 };
 
 export default function AuthWarningModal({
     isOpen,
     onLogin,
-    onSkip
+    onSkip,
+    onIgnore
 }: Readonly<AuthWarningModalProps>): React.ReactElement | null {
     const modalRef = useRef<HTMLDivElement | null>(null);
 
@@ -117,6 +119,29 @@ export default function AuthWarningModal({
                         Continue Anyway
                     </button>
                 </div>
+                <button
+                    type="button"
+                    className="auth-warning-modal__ignore"
+                    onClick={onIgnore}
+                >
+                    <svg
+                        className="auth-warning-modal__ignore-icon"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
+                    >
+                        <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/>
+                        <line x1="12" y1="9" x2="12" y2="13"/>
+                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                    Ignore this warning
+                </button>
             </div>
         </div>
     );

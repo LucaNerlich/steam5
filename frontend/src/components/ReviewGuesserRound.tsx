@@ -11,11 +11,12 @@ import RoundResultActions from "@/components/RoundResultActions";
 import ShareControls from "@/components/ShareControls";
 import RoundSummary from "@/components/RoundSummary";
 import {buildSteamLoginUrl} from "@/components/SteamLoginButton";
-import {useAuthSignedIn} from "@/contexts/AuthContext";
+import {useAuth} from "@/contexts/AuthContext";
 import useServerGuesses from "@/lib/hooks/useServerGuesses";
 import useRoundArrowNavigation from "@/lib/hooks/useRoundArrowNavigation";
 import {loadDay, saveRound, type StoredDay, type RoundResult} from "@/lib/storage";
 import {prefillToResponse, resolveEffectiveResponse} from "@/lib/guessResolution";
+import {computeSignedOutDuringPlay, resolveLiveSignedIn, shouldWarnBeforeSubmit} from "@/lib/authGuard";
 import "@/styles/components/reviewGuesserRound.css";
 import "@/styles/components/reviewRoundResult.css";
 import "@/styles/components/reviewShareControls.css";
@@ -40,6 +41,38 @@ interface Props {
 }
 
 type StoredRoundResult = RoundResult;
+
+// Persisted preference: when set, the "not signed in" warning is suppressed on
+// every round so the user is not nagged on each submit.
+const AUTH_WARNING_DISMISSED_COOKIE = "s5_auth_warning_dismissed";
+
+function hasDismissedAuthWarning(): boolean {
+    if (typeof document === "undefined") return false;
+    return document.cookie.split("; ").some((c) => c === `${AUTH_WARNING_DISMISSED_COOKIE}=1`);
+}
+
+function dismissAuthWarning(): void {
+    if (typeof document === "undefined") return;
+    const oneYear = 365 * 24 * 60 * 60;
+    document.cookie = `${AUTH_WARNING_DISMISSED_COOKIE}=1; path=/; max-age=${oneYear}; SameSite=Lax`;
+}
+
+// Freshly verify the session at submit time. The cached signedIn flag can be
+// stale (the s5_token cookie may have been dropped mid-session), and because that
+// cookie is HttpOnly the client cannot inspect it directly — only the server can
+// tell us. Errors are treated as "still signed in" so a transient failure never
+// blocks a guess; the post-submit persisted check is the backstop.
+async function fetchSignedIn(): Promise<boolean> {
+    try {
+        const r = await fetch('/api/auth/me', {cache: 'no-store'});
+        if (r.status === 401) return false;
+        if (!r.ok) return true;
+        const data = await r.json();
+        return Boolean(data?.signedIn);
+    } catch {
+        return true;
+    }
+}
 
 export default function ReviewGuesserRound({
                                                appId,
@@ -206,7 +239,17 @@ export default function ReviewGuesserRound({
     );
 
     // Determine auth state (client-side) to conditionally show the sign-in nudge
-    const signedIn = useAuthSignedIn();
+    const {isSignedIn, isLoading: authLoading, refreshAuth} = useAuth();
+    const signedIn = authLoading ? null : isSignedIn;
+
+    // Detect a silently-lost session: either the backend rejected our cookie (401),
+    // or the UI believed we were signed in but the guess was saved anonymously
+    // (cookie was dropped while the SPA stayed open). In both cases the result did
+    // not count, so re-sync the auth state and surface a clear notice.
+    const signedOutDuringPlay = computeSignedOutDuringPlay(signedIn, state);
+    useEffect(() => {
+        if (signedOutDuringPlay) refreshAuth();
+    }, [signedOutDuringPlay, refreshAuth]);
 
     const cloneFormData = (formData: FormData) => {
         const copy = new FormData();
@@ -222,8 +265,18 @@ export default function ReviewGuesserRound({
         });
     };
 
-    const handleAuthGuardedSubmit = (formData: FormData) => {
-        if (roundIndex === 1 && signedIn === false) {
+    const handleAuthGuardedSubmit = async (formData: FormData) => {
+        const dismissed = hasDismissedAuthWarning();
+        // Determine the live signed-in state. signedIn === false is reliable
+        // (set from the server on load), so trust it directly; a dismissed user
+        // never needs the check. Otherwise the cached value may be stale, so
+        // re-validate before letting the guess count — this catches a session
+        // lost mid-round (the HttpOnly s5_token cookie can vanish without the
+        // client knowing).
+        const fetched = (dismissed || signedIn === false) ? false : await fetchSignedIn();
+        const live = resolveLiveSignedIn(signedIn, fetched);
+        if (shouldWarnBeforeSubmit(dismissed, live)) {
+            if (signedIn !== false) refreshAuth(); // sync header with the fresh value
             setPendingFormData(cloneFormData(formData));
             setShowAuthWarning(true);
             return;
@@ -240,6 +293,16 @@ export default function ReviewGuesserRound({
     const handleSkip = (reason?: "backdrop" | "button" | "escape") => {
         setShowAuthWarning(false);
         if (reason === "backdrop") return;
+        if (pendingFormData) {
+            const data = pendingFormData;
+            setPendingFormData(null);
+            submitGuess(data);
+        }
+    };
+
+    const handleIgnore = () => {
+        dismissAuthWarning();
+        setShowAuthWarning(false);
         if (pendingFormData) {
             const data = pendingFormData;
             setPendingFormData(null);
@@ -266,7 +329,15 @@ export default function ReviewGuesserRound({
                         formAction={handleAuthGuardedSubmit}
                         helperText="Pick the review bucket that best matches this game."
                     />
-                    {state && !state.ok && state.error && (
+                    {signedOutDuringPlay ? (
+                        <p className="text-muted review-round__error">
+                            You&apos;ve been signed out, so this result wasn&apos;t saved.{" "}
+                            <button type="button" className="btn-link" onClick={() => {
+                                window.location.href = buildSteamLoginUrl();
+                            }}>Sign in with Steam</button>
+                            &nbsp;to save your results.
+                        </p>
+                    ) : state && !state.ok && state.error && (
                         <p className="text-muted review-round__error">Error: {state.error}</p>
                     )}
                 </section>
@@ -328,7 +399,15 @@ export default function ReviewGuesserRound({
                                     }
                                     results={!serverGuessesLoading && hasServerResults ? serverResults : undefined}
                                 />
-                                {signedIn === false && (
+                                {signedOutDuringPlay ? (
+                                    <p className="text-muted review-round__signin-nudge">
+                                        You&apos;ve been signed out, so this result wasn&apos;t saved.{" "}
+                                        <button type="button" className="btn-link" onClick={() => {
+                                            window.location.href = buildSteamLoginUrl();
+                                        }}>Sign in with Steam</button>
+                                        &nbsp;to save your results, track streaks, and appear on the leaderboard.
+                                    </p>
+                                ) : signedIn === false && (
                                     <p className="text-muted review-round__signin-nudge">
                                         <button type="button" className="btn-link" onClick={() => {
                                             window.location.href = buildSteamLoginUrl();
@@ -346,6 +425,7 @@ export default function ReviewGuesserRound({
                 isOpen={showAuthWarning}
                 onLogin={handleLogin}
                 onSkip={handleSkip}
+                onIgnore={handleIgnore}
             />
         </>
     );
