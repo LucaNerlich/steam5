@@ -1,0 +1,21 @@
+version: 2
+updates:
+  # Backend only (Gradle / Spring Boot). Most runtime versions are governed by the
+  # Spring Boot BOM, so the headline update here is usually the Spring Boot plugin
+  # itself — bumping it cascades to the BOM-managed starters. Explicitly-versioned
+  # libs (caffeine, jjwt, dotenv) and Gradle plugins are updated individually.
+  - package-ecosystem: "gradle"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    # Roll minor + patch bumps into a single PR to cut noise; majors stay as
+    # their own PRs so they get a deliberate review.
+    groups:
+      backend-minor-patch:
+        update-types:
+          - "minor"
+          - "patch"
