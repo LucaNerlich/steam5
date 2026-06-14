@@ -328,6 +328,7 @@ export default function ReviewGuesserRound({
                         isPending={isPending}
                         formAction={handleAuthGuardedSubmit}
                         helperText="Pick the review bucket that best matches this game."
+                        prefetchHref={hasNextRound ? nextHref : null}
                     />
                     {signedOutDuringPlay ? (
                         <p className="text-muted review-round__error">
