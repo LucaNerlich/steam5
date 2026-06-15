@@ -13,6 +13,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.steam5.auth.SteamOpenIdUtils;
+import org.steam5.domain.User;
+import org.steam5.repository.UserRepository;
 import org.steam5.service.AuthTokenService;
 import org.steam5.service.SteamUserService;
 
@@ -22,6 +24,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -47,6 +50,7 @@ public class AuthController {
 
     private final AuthTokenService tokenService;
     private final SteamUserService steamUserService;
+    private final UserRepository userRepository;
 
     @Value("${auth.redirectBase:https://steam5.org}")
     private String defaultRedirectBase;
@@ -149,9 +153,20 @@ public class AuthController {
         final String token = authHeader.substring(7);
         final String steamId = tokenService.verifyToken(token);
         if (steamId == null) return ResponseEntity.status(401).body(Map.of("valid", false));
+        // Surface the user's small Steam avatar so the header can render it alongside
+        // "Profile" without an extra request. Use the small avatar (not the *Full
+        // variants) since the header image is tiny. HashMap tolerates null fields.
+        final Map<String, Object> body = new HashMap<>();
+        body.put("valid", true);
+        body.put("steamId", steamId);
+        final User user = userRepository.findById(steamId).orElse(null);
+        if (user != null) {
+            body.put("avatar", user.getAvatar());
+            body.put("avatarBlurdata", user.getBlurdataAvatar());
+        }
         // Token validation is per-user and must never be stored by any cache.
         return ResponseEntity.ok()
                 .header(HttpHeaders.CACHE_CONTROL, "no-store")
-                .body(Map.of("valid", true, "steamId", steamId));
+                .body(body);
     }
 }

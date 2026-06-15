@@ -17,7 +17,12 @@ export async function GET() {
         });
         if (!res.ok) return NextResponse.json({signedIn: false}, {status: 200, headers: NO_STORE});
         const data = await res.json();
-        return NextResponse.json({signedIn: Boolean(data.valid), steamId: data.steamId}, {status: 200, headers: NO_STORE});
+        return NextResponse.json({
+            signedIn: Boolean(data.valid),
+            steamId: data.steamId,
+            avatar: data.avatar ?? null,
+            avatarBlurdata: data.avatarBlurdata ?? null,
+        }, {status: 200, headers: NO_STORE});
     } catch {
         return NextResponse.json({signedIn: false}, {status: 200, headers: NO_STORE});
     }

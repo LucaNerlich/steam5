@@ -161,3 +161,22 @@ header .archive-link {
         margin-left: 0.75rem;
     }
 }
+
+/* User avatar in the Profile link — replaces the check icon when available.
+   Matches the 28px icon footprint so the header stays compact on mobile. */
+.header__avatar-wrap {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+    border: 1px solid var(--color-border);
+}
+
+.header__avatar {
+    width: 28px;
+    height: 28px;
+    object-fit: cover;
+    border-radius: 50%;
+    display: block;
+}

@@ -17,7 +17,7 @@ export function buildSteamLoginUrl(): string {
 }
 
 export default function SteamLoginButton(): React.ReactElement {
-    const {isSignedIn, steamId} = useAuth();
+    const {isSignedIn, steamId, avatar, avatarBlurdata} = useAuth();
     const clearedRef = useRef(false);
 
     useEffect(() => {
@@ -45,7 +45,20 @@ export default function SteamLoginButton(): React.ReactElement {
                 <Link href={`/profile/${steamId}`}
                       style={{display: 'flex', alignItems: 'center', gap: '0.15rem'}}
                       title="Your Profile">
-                    <span className="mobile__hide">Profile</span><UserCheckIcon size={28}/>
+                    <span className="mobile__hide">Profile</span>
+                    {avatar ? (
+                        <span className="header__avatar-wrap">
+                            <Image className="header__avatar"
+                                   src={avatar}
+                                   alt=""
+                                   placeholder={avatarBlurdata ? 'blur' : 'empty'}
+                                   blurDataURL={avatarBlurdata || undefined}
+                                   width={28}
+                                   height={28}/>
+                        </span>
+                    ) : (
+                        <UserCheckIcon size={28}/>
+                    )}
                 </Link>
             </div>
         );

@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.9.0] - 2026-06-15
+
+### Added
+
+- The site header now shows your Steam avatar next to "Profile" once you're signed in
+
 ## [1.8.3] - 2026-06-14
 
 ### Fixed
