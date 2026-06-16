@@ -94,9 +94,26 @@ export default function ReviewGuesserRound({
     const [showAuthWarning, setShowAuthWarning] = useState(false);
     const [pendingFormData, setPendingFormData] = useState<FormData | null>(null);
     const [selectionScopeKey, setSelectionScopeKey] = useState<string | null>(null);
-    const [stored, setStored] = useState<StoredDay | null>(null);
+    // Read this day's saved results synchronously so a same-device returning
+    // player's result is known on the first post-mount render — no guess-card
+    // flash before localStorage is consulted. Server-side this is null (no
+    // window), matching the static HTML; the `mounted` gate below keeps the
+    // first client render identical to avoid a hydration mismatch.
+    const [stored, setStored] = useState<StoredDay | null>(() => {
+        if (typeof window === "undefined" || !gameDate) return null;
+        return loadDay(gameDate);
+    });
     const disableClientFetch = Boolean(prefilled) || (allResults && Object.keys(allResults).length >= totalRounds);
     const {guesses: serverGuesses, loading: serverGuessesLoading} = useServerGuesses(disableClientFetch);
+
+    // The slot shows a placeholder until we've resolved whether this round is
+    // already answered, so the guess card never flashes before swapping to the
+    // result. False on the server and the first client render (matching the
+    // static HTML); flipped after mount once client-only state is available.
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     const scopeKey = `${gameDate ?? ''}:${roundIndex}:${appId}`;
 
@@ -205,6 +222,12 @@ export default function ReviewGuesserRound({
         }
     }, [gameDate, roundIndex, prefilled, serverGuesses, totalRounds, appId, pickName, selectedLabel, scopeKey]);
 
+    // Auth state drives which source of truth decides a round's result. Computed
+    // before the result selection below so it can pick the authoritative source.
+    // `signedIn` is null while auth is still loading.
+    const {isSignedIn, isLoading: authLoading, refreshAuth} = useAuth();
+    const signedIn = authLoading ? null : isSignedIn;
+
     // Determine completion and existing result for this round.
     // serverGuesses already arrives in StoredRoundResult shape from the hook.
     const storedResults = stored?.results || {};
@@ -216,9 +239,15 @@ export default function ReviewGuesserRound({
     // current pick. When today's picks are regenerated, results keyed by round
     // index would otherwise surface a previous game's guess on the new game.
     const isForCurrentPick = (r?: StoredRoundResult) => !!r && r.appId === appId;
-    const storedThisRound = isForCurrentPick(storedResults[roundIndex])
-        ? storedResults[roundIndex]
-        : (isForCurrentPick(serverResults[roundIndex]) ? serverResults[roundIndex] : undefined);
+    const localThisRound = isForCurrentPick(storedResults[roundIndex]) ? storedResults[roundIndex] : undefined;
+    const serverThisRound = isForCurrentPick(serverResults[roundIndex]) ? serverResults[roundIndex] : undefined;
+    // Source of truth: for a signed-in player the server (/my/today) is
+    // authoritative — only a result the backend actually persisted counts, so a
+    // localStorage entry (e.g. a guess made while logged out, then a login) must
+    // not mark the round answered and hide the guess card. An anonymous player has
+    // no server record, so their localStorage entry is authoritative. A live
+    // just-submitted response still wins, via resolveEffectiveResponse below.
+    const storedThisRound = signedIn === false ? (localThisRound ?? serverThisRound) : serverThisRound;
 
     // Prefer server response; fallback to stored round result; finally use prefilled from server (authenticated restore)
     const computedPrefill = useMemo(() => {
@@ -233,6 +262,18 @@ export default function ReviewGuesserRound({
     }, [prefilled, serverGuesses, roundIndex, appId]);
     const prefilledResponse = prefillToResponse(appId, computedPrefill);
     const effectiveResponse = resolveEffectiveResponse(state, storedThisRound, prefilledResponse);
+
+    // Whether this round is already answered, from the authoritative source.
+    const hasResult = Boolean(effectiveResponse || storedThisRound || prefilled);
+    // Gate the slot's content until we can commit to result-vs-guess-card without
+    // a visible swap. We wait for mount (client state available) and for auth to
+    // resolve. For a signed-in player we additionally wait for /my/today to settle
+    // so the server — their source of truth — decides which result is shown. An
+    // anonymous player resolves instantly from localStorage. `mounted` persists
+    // across round navigation, so the placeholder only shows on the first load.
+    const resolved = mounted
+        && signedIn !== null
+        && (signedIn === false || !serverGuessesLoading);
 
     // Effective selected label used for rendering (ignore stale selection from previous scope)
     const renderSelectedLabel = selectionScopeKey === scopeKey ? selectedLabel : (computedPrefill?.selectedLabel ?? null);
@@ -270,10 +311,6 @@ export default function ReviewGuesserRound({
         storedThisRound ||
         (!serverGuessesLoading && hasServerResults)
     );
-
-    // Determine auth state (client-side) to conditionally show the sign-in nudge
-    const {isSignedIn, isLoading: authLoading, refreshAuth} = useAuth();
-    const signedIn = authLoading ? null : isSignedIn;
 
     // Detect a silently-lost session: either the backend rejected our cookie (401),
     // or the UI believed we were signed in but the guess was saved anonymously
@@ -346,7 +383,7 @@ export default function ReviewGuesserRound({
         }
     };
 
-    const shouldShowGuessControls = !isStale && !(effectiveResponse || storedThisRound || prefilled);
+    const shouldShowGuessControls = resolved && !isStale && !hasResult;
     return (
         <>
             <div className="review-round__slot">
@@ -362,6 +399,12 @@ export default function ReviewGuesserRound({
                         )}
                     </p>
                 </section>
+            )}
+            {!isStale && !resolved && (
+                // Neutral placeholder while we resolve result-vs-guess-card, so the
+                // guess card never flashes before the result swaps in. Sits inside
+                // the height-reserved slot, so nothing below reflows.
+                <div className="review-round__skeleton" aria-hidden="true"/>
             )}
             {shouldShowGuessControls && (
                 <section className="review-round__guess-card" aria-labelledby="guess-submission">

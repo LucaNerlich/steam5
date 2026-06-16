@@ -1,12 +1,33 @@
 /* ── Swap slot ──
-   Holds the (server-rendered, static) guess card and the (client-only) result
-   dialog, exactly one of which is shown at a time. The static HTML always ships
-   the guess card; after hydration an already-answered round swaps in the taller
-   dialog. Reserving a per-breakpoint min-height keeps the content below
-   (NewsBox / GameInfoSection) from reflowing when that swap happens. Sized to fit
-   the tallest realistic dialog (signed-out: share + summary + nudge). */
+   Holds the guess card and the (client-only) result dialog, exactly one of which
+   is shown at a time. Until the client resolves whether this round is already
+   answered, the slot shows a neutral placeholder (review-round__skeleton) so the
+   guess card never flashes before swapping to the result. Reserving a
+   per-breakpoint min-height keeps the content below (NewsBox / GameInfoSection)
+   from reflowing across these swaps. Sized to fit the tallest realistic dialog
+   (signed-out: share + summary + nudge). */
 .review-round__slot {
     min-height: 390px; /* mobile */
+}
+
+/* Placeholder shown in the slot before result-vs-guess-card is resolved. Mirrors
+   the Suspense fallback in the round page for a consistent loading look. */
+.review-round__skeleton {
+    height: 220px;
+    border-radius: 8px;
+    background: var(--color-border);
+    animation: review-round__skeleton-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes review-round__skeleton-pulse {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 0.7; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .review-round__skeleton {
+        animation: none;
+    }
 }
 
 @media (min-width: 641px) {

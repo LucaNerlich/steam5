@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.9.2] - 2026-06-16
+
+### Fixed
+
+- An already-answered round no longer briefly flashes the guess form before swapping to your result — the round now shows a placeholder until it knows whether you've answered, then settles directly on the result or the guess form
+- For signed-in players, the result shown for a round now reflects what was actually saved to your account, so a guess made while logged out no longer hides the guess form after you sign in
+
 ## [1.9.1] - 2026-06-16
 
 ### Fixed
