@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.9.3] - 2026-06-16
+
+### Changed
+
+- Removed two unused backend dependencies (`spring-boot-starter-data-rest` and `spring-boot-starter-security-oauth2-client`), reducing classpath size and eliminating unnecessary autoconfiguration
+
+### Fixed
+
+- Backend unit tests for `AuthController` now compile and pass after the controller gained a `UserRepository` constructor parameter
+
 ## [1.9.2] - 2026-06-16
 
 ### Fixed

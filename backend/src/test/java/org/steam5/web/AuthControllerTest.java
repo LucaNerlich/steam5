@@ -2,10 +2,12 @@ package org.steam5.web;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.http.ResponseEntity;
+import org.steam5.repository.UserRepository;
 import org.steam5.service.AuthTokenService;
 import org.steam5.service.SteamUserService;
 
 import java.util.Map;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
@@ -17,7 +19,8 @@ public class AuthControllerTest {
     void startLogin_redirectsToSteamOpenId() {
         AuthTokenService token = mock(AuthTokenService.class);
         SteamUserService users = mock(SteamUserService.class);
-        AuthController controller = new AuthController(token, users);
+        UserRepository userRepo = mock(UserRepository.class);
+        AuthController controller = new AuthController(token, users, userRepo);
         ResponseEntity<Void> res = controller.startLogin(null, null);
         assertEquals(302, res.getStatusCode().value());
         assertNotNull(res.getHeaders().getLocation());
@@ -30,7 +33,9 @@ public class AuthControllerTest {
     void validate_token_ok_and_invalid() {
         AuthTokenService token = mock(AuthTokenService.class);
         SteamUserService users = mock(SteamUserService.class);
-        AuthController controller = new AuthController(token, users);
+        UserRepository userRepo = mock(UserRepository.class);
+        when(userRepo.findById("123")).thenReturn(Optional.empty());
+        AuthController controller = new AuthController(token, users, userRepo);
 
         when(token.verifyToken("good")).thenReturn("123");
         when(token.verifyToken("bad")).thenReturn(null);
@@ -55,7 +60,9 @@ public class AuthControllerTest {
     void validate_okResponseIsNeverCached() {
         AuthTokenService token = mock(AuthTokenService.class);
         SteamUserService users = mock(SteamUserService.class);
-        AuthController controller = new AuthController(token, users);
+        UserRepository userRepo = mock(UserRepository.class);
+        when(userRepo.findById("123")).thenReturn(Optional.empty());
+        AuthController controller = new AuthController(token, users, userRepo);
 
         when(token.verifyToken("good")).thenReturn("123");
 
