@@ -2,6 +2,18 @@
 
 import type {GuessResponse} from "@/types/review-game";
 import {cookies} from 'next/headers';
+import {revalidatePath, revalidateTag} from 'next/cache';
+
+// Bust the cached daily picks after the nightly rollover. The round page is
+// force-static with `revalidate = 600` and the `/today` fetch is tagged
+// 'round-today', so without an explicit invalidation Next keeps serving the
+// previous day's statically-cached round until the TTL lapses (or an auth event
+// fires). The client calls this when it detects a stale gameDate so the next
+// render resolves today's picks. Mirrors the auth callback's invalidation.
+export async function revalidateTodayAction(): Promise<void> {
+    revalidateTag('round-today', 'max');
+    revalidatePath('/review-guesser', 'layout');
+}
 
 export type GuessActionState = {
     ok: boolean;

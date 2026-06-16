@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.9.1] - 2026-06-16
+
+### Fixed
+
+- The daily game no longer shows the first visitors after midnight yesterday's round — a stale round now refreshes itself to today's puzzle automatically, and guessing is paused until it does, so submissions no longer fail with an error
+
 ## [1.9.0] - 2026-06-15
 
 ### Added
