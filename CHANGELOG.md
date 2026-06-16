@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.9.5] - 2026-06-16
+
+### Fixed
+
+- Closed a narrow gap in the midnight rollover where an empty "today" round could briefly be cached before the day's puzzle finished generating — empty rounds are no longer cached, so only a fully-ready round is ever served
+- Generating the day's picks now reliably clears the cached round (only after the new picks are committed), guaranteeing the fresh puzzle is served immediately instead of a previously cached one
+
 ## [1.9.4] - 2026-06-16
 
 ### Fixed

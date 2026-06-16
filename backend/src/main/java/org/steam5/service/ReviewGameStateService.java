@@ -7,6 +7,8 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.steam5.config.ReviewGameConfig;
 import org.steam5.domain.GameDate;
 import org.steam5.domain.ReviewGamePick;
@@ -121,9 +123,31 @@ public class ReviewGameStateService {
             for (ReviewGamePick p : saved) {
                 enrichPickedApp(p);
             }
-            cacheEvictor.evictReviewGameState();
+            evictReviewGameStateAfterCommit();
         }
         return saved;
+    }
+
+    /**
+     * Drop the review-game cache once the new picks are durably committed. Evicting
+     * inline (this method is {@code @Transactional}) would clear the cache before the
+     * picks are visible to other transactions, leaving a window where a concurrent
+     * request repopulates the cache from the pre-generation state — and would wrongly
+     * clear it if the transaction later rolls back. Registering an {@code afterCommit}
+     * callback guarantees the cache is dropped exactly when, and only if, the new picks
+     * land. With no active transaction (e.g. a plain unit test) we evict immediately.
+     */
+    private void evictReviewGameStateAfterCommit() {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    cacheEvictor.evictReviewGameState();
+                }
+            });
+        } else {
+            cacheEvictor.evictReviewGameState();
+        }
     }
 
     /**

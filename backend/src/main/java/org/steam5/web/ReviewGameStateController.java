@@ -85,6 +85,17 @@ public class ReviewGameStateController {
     private static final String CACHE_ONLY_2XX =
             "#result == null || !#result.statusCode.is2xxSuccessful()";
 
+    // Live "today" endpoints additionally must NOT cache an empty round. After the
+    // 00:00 UTC key rollover, the new day's picks are generated lazily on the first
+    // request; if that request races (lock contention / transient failure) and returns
+    // an empty round, caching it would pin the "key advanced but not regenerated" state
+    // for the whole day. Skipping the cache on empty keeps every request driving
+    // generation until real picks exist, so only a fully-populated round is ever cached.
+    private static final String CACHE_ONLY_2XX_NONEMPTY_PICKS =
+            CACHE_ONLY_2XX + " || #result.body == null || #result.body.picks.isEmpty()";
+    private static final String CACHE_ONLY_2XX_NONEMPTY_LIST =
+            CACHE_ONLY_2XX + " || #result.body == null || #result.body.isEmpty()";
+
     private static int scorePoints(List<String> buckets, String selected, String actual) {
         int si = buckets.indexOf(selected);
         int ai = buckets.indexOf(actual);
@@ -211,7 +222,7 @@ public class ReviewGameStateController {
     }
 
     @GetMapping("/today/details")
-    @Cacheable(value = "review-game", key = "'today-details:' + T(org.steam5.domain.GameDate).todayUtc()", unless = CACHE_ONLY_2XX)
+    @Cacheable(value = "review-game", key = "'today-details:' + T(org.steam5.domain.GameDate).todayUtc()", unless = CACHE_ONLY_2XX_NONEMPTY_LIST)
     public ResponseEntity<List<SteamAppDetail>> getTodayDetails(@RequestHeader HttpHeaders headers) {
         final List<ReviewGamePick> picks = service.generateDailyPicks();
         final List<Long> appIds = picks.stream().map(ReviewGamePick::getAppId).toList();
@@ -327,7 +338,7 @@ public class ReviewGameStateController {
     }
 
     @GetMapping("/today")
-    @Cacheable(value = "review-game", key = "'today-picks:' + T(org.steam5.domain.GameDate).todayUtc()", unless = CACHE_ONLY_2XX)
+    @Cacheable(value = "review-game", key = "'today-picks:' + T(org.steam5.domain.GameDate).todayUtc()", unless = CACHE_ONLY_2XX_NONEMPTY_PICKS)
     public ResponseEntity<ReviewGameStateDto> getToday(@RequestHeader HttpHeaders headers) {
         final List<ReviewGamePick> picks = service.generateDailyPicks();
         final List<Long> appIds = picks.stream().map(ReviewGamePick::getAppId).toList();

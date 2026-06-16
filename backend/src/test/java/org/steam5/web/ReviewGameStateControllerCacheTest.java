@@ -182,6 +182,41 @@ public class ReviewGameStateControllerCacheTest {
         assertTrue(unless(expr, null), "null must not be cached");
     }
 
+    // --- Rollover gap: the live "today" endpoints must never cache an empty round, so a
+    // race during post-midnight lazy generation can't pin a not-yet-regenerated day. ---
+
+    @Test
+    void getToday_doesNotCacheEmptyRound() throws Exception {
+        final Expression expr = cacheUnlessExpr("CACHE_ONLY_2XX_NONEMPTY_PICKS");
+
+        final ReviewGameStateController.ReviewGameStateDto empty =
+                new ReviewGameStateController.ReviewGameStateDto(LocalDate.now(), List.of(), List.of(), List.of());
+        assertTrue(unless(expr, ResponseEntity.ok(empty)), "an empty round must NOT be cached");
+
+        final SteamAppDetail detail = mock(SteamAppDetail.class);
+        final ReviewGameStateController.ReviewGameStateDto populated =
+                new ReviewGameStateController.ReviewGameStateDto(LocalDate.now(), List.of("1-100"), List.of("Title"), List.of(detail));
+        assertFalse(unless(expr, ResponseEntity.ok(populated)), "a populated round must be cached");
+
+        assertTrue(unless(expr, ResponseEntity.status(304).build()), "304 must never be cached");
+    }
+
+    @Test
+    void getTodayDetails_doesNotCacheEmptyList() throws Exception {
+        final Expression expr = cacheUnlessExpr("CACHE_ONLY_2XX_NONEMPTY_LIST");
+
+        assertTrue(unless(expr, ResponseEntity.ok(List.of())), "an empty details list must NOT be cached");
+        assertFalse(unless(expr, ResponseEntity.ok(List.of(mock(SteamAppDetail.class)))), "a non-empty list must be cached");
+        assertTrue(unless(expr, ResponseEntity.status(304).build()), "304 must never be cached");
+    }
+
+    /** Reads a private static SpEL string constant from the controller and parses it. */
+    private static Expression cacheUnlessExpr(String constantName) throws Exception {
+        final Field f = ReviewGameStateController.class.getDeclaredField(constantName);
+        f.setAccessible(true);
+        return new SpelExpressionParser().parseExpression((String) f.get(null));
+    }
+
     private static boolean unless(Expression expr, ResponseEntity<?> result) {
         final StandardEvaluationContext ctx = new StandardEvaluationContext();
         ctx.setVariable("result", result);

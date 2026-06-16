@@ -105,6 +105,15 @@ public class ReviewGameStateServiceTest {
     }
 
     @Test
+    void generateDailyPicks_evictsReviewGameCacheWhenPicksCreated() {
+        // Regenerating the day's picks must invalidate the review-game cache so the
+        // fresh round is served immediately rather than a previously cached one.
+        final List<ReviewGamePick> picks = service.generateDailyPicks();
+        assertFalse(picks.isEmpty());
+        verify(cacheEvictor).evictReviewGameState();
+    }
+
+    @Test
     void generateDailyPicks_anchorsToUtcDateNotJvmLocalDate() {
         // The daily round must resolve "today" in UTC so it aligns with the UTC-scheduled
         // Quartz job and the UTC frontend; a JVM-local date would roll over early/late and
