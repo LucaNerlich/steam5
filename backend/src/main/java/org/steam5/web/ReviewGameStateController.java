@@ -12,6 +12,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.steam5.domain.GameDate;
 import org.steam5.domain.ReviewGamePick;
 import org.steam5.domain.SteamAppReviews;
 import org.steam5.domain.User;
@@ -210,7 +211,7 @@ public class ReviewGameStateController {
     }
 
     @GetMapping("/today/details")
-    @Cacheable(value = "review-game", key = "'details'", unless = CACHE_ONLY_2XX)
+    @Cacheable(value = "review-game", key = "'today-details:' + T(org.steam5.domain.GameDate).todayUtc()", unless = CACHE_ONLY_2XX)
     public ResponseEntity<List<SteamAppDetail>> getTodayDetails(@RequestHeader HttpHeaders headers) {
         final List<ReviewGamePick> picks = service.generateDailyPicks();
         final List<Long> appIds = picks.stream().map(ReviewGamePick::getAppId).toList();
@@ -233,7 +234,7 @@ public class ReviewGameStateController {
         if (steamId == null) return ResponseEntity.status(401).build();
 
         final List<ReviewGamePick> picks = service.generateDailyPicks();
-        final LocalDate date = picks.isEmpty() ? LocalDate.now() : picks.getFirst().getPickDate();
+        final LocalDate date = picks.isEmpty() ? GameDate.todayUtc() : picks.getFirst().getPickDate();
 
         // Only return guesses that belong to today's current picks. If picks were
         // regenerated for the same date, the user's earlier guesses remain dated
@@ -283,7 +284,7 @@ public class ReviewGameStateController {
                 totalReviewsByAppId.getOrDefault(g.getAppId(), 0)
         )).toList();
 
-        final boolean isToday = day.equals(LocalDate.now());
+        final boolean isToday = day.equals(GameDate.todayUtc());
         // Per-user data: never let a shared/CDN cache store it (would leak one
         // user's guesses to another). `private` restricts caching to the caller's
         // own browser.
@@ -304,7 +305,7 @@ public class ReviewGameStateController {
         final LocalDate end;
         try {
             start = from == null || from.isBlank() ? LocalDate.of(1970, 1, 1) : LocalDate.parse(from);
-            end = to == null || to.isBlank() ? LocalDate.now() : LocalDate.parse(to);
+            end = to == null || to.isBlank() ? GameDate.todayUtc() : LocalDate.parse(to);
         } catch (DateTimeParseException e) {
             return ResponseEntity.badRequest().build();
         }
@@ -326,7 +327,7 @@ public class ReviewGameStateController {
     }
 
     @GetMapping("/today")
-    @Cacheable(value = "review-game", key = "'picks'", unless = CACHE_ONLY_2XX)
+    @Cacheable(value = "review-game", key = "'today-picks:' + T(org.steam5.domain.GameDate).todayUtc()", unless = CACHE_ONLY_2XX)
     public ResponseEntity<ReviewGameStateDto> getToday(@RequestHeader HttpHeaders headers) {
         final List<ReviewGamePick> picks = service.generateDailyPicks();
         final List<Long> appIds = picks.stream().map(ReviewGamePick::getAppId).toList();
@@ -345,7 +346,7 @@ public class ReviewGameStateController {
             throw new ReviewGameException(500, "Number of appIds and details don't match");
         }
 
-        final LocalDate date = picks.isEmpty() ? LocalDate.now() : picks.getFirst().getPickDate();
+        final LocalDate date = picks.isEmpty() ? GameDate.todayUtc() : picks.getFirst().getPickDate();
         final String etag = weakEtagForPicks(details);
         if (etag != null && headers.getIfNoneMatch().contains(etag)) {
             return ResponseEntity.status(304)
@@ -457,7 +458,7 @@ public class ReviewGameStateController {
 
         // date = today’s picks date
         final List<ReviewGamePick> picks = service.generateDailyPicks();
-        final java.time.LocalDate date = picks.isEmpty() ? java.time.LocalDate.now() : picks.getFirst().getPickDate();
+        final java.time.LocalDate date = picks.isEmpty() ? GameDate.todayUtc() : picks.getFirst().getPickDate();
         // Compute roundIndex strictly from ordered picks; default to -1 if not found
         final List<Long> pickOrder = picks.stream().map(ReviewGamePick::getAppId).toList();
         final int foundIdx = pickOrder.indexOf(req.appId);
@@ -523,7 +524,7 @@ public class ReviewGameStateController {
         if (appIds.size() != details.size()) {
             throw new ReviewGameException(500, "Number of appIds and details don't match for day " + date);
         }
-        final boolean isToday = day.equals(java.time.LocalDate.now());
+        final boolean isToday = day.equals(GameDate.todayUtc());
         final String etag = weakEtagForPicks(details);
         if (etag != null && headers.getIfNoneMatch().contains(etag)) {
             final String cc = isToday ? CACHE_LIVE : CACHE_HISTORICAL;
@@ -629,7 +630,7 @@ public class ReviewGameStateController {
             @RequestParam(value = "from", required = false) String from,
             @RequestParam(value = "to", required = false) String to) {
         final java.time.LocalDate start = from == null || from.isBlank() ? java.time.LocalDate.of(1970, 1, 1) : java.time.LocalDate.parse(from);
-        final java.time.LocalDate end = to == null || to.isBlank() ? java.time.LocalDate.now() : java.time.LocalDate.parse(to);
+        final java.time.LocalDate end = to == null || to.isBlank() ? GameDate.todayUtc() : java.time.LocalDate.parse(to);
         if (end.isBefore(start)) return ResponseEntity.badRequest().build();
         final var result = computeAlwaysPickForRange(start, end);
         return ResponseEntity.ok()

@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.9.4] - 2026-06-16
+
+### Fixed
+
+- The daily round and leaderboards no longer get stuck showing yesterday's puzzle after the midnight (UTC) rollover — "today" is now resolved consistently in UTC and cached per day, so a stale round can no longer be served once a new day begins
+
 ## [1.9.3] - 2026-06-16
 
 ### Changed

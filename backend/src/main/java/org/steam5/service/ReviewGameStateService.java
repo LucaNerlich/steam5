@@ -8,6 +8,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.steam5.config.ReviewGameConfig;
+import org.steam5.domain.GameDate;
 import org.steam5.domain.ReviewGamePick;
 import org.steam5.domain.SteamAppReviews;
 import org.steam5.http.SteamApiException;
@@ -32,7 +33,7 @@ public class ReviewGameStateService {
 
     @Transactional
     public List<ReviewGamePick> generateDailyPicks() {
-        final LocalDate today = LocalDate.now();
+        final LocalDate today = GameDate.todayUtc();
         final List<ReviewGamePick> existing = pickRepository.findByPickDate(today);
         if (!existing.isEmpty()) {
             return existing;

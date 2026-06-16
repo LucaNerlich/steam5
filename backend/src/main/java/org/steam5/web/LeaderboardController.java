@@ -45,20 +45,20 @@ public class LeaderboardController {
     private final CacheManager cacheManager;
 
     @GetMapping("/today")
-    @Cacheable(value = "leaderboard-live", key = "'today:' + T(java.time.LocalDate).now()", unless = "#result == null || #result.body == null")
+    @Cacheable(value = "leaderboard-live", key = "'today:' + T(org.steam5.domain.GameDate).todayUtc()", unless = "#result == null || #result.body == null")
     public ResponseEntity<List<LeaderEntry>> today() {
         final List<ReviewGamePick> picks = reviewGameStateService.generateDailyPicks();
-        final LocalDate date = picks.isEmpty() ? LocalDate.now() : picks.getFirst().getPickDate();
+        final LocalDate date = picks.isEmpty() ? GameDate.todayUtc() : picks.getFirst().getPickDate();
         final List<Guess> guesses = guessRepository.findAllByDate(date);
         return getGuessResponse(guesses, date);
     }
 
     @GetMapping("/weekly")
-    @Cacheable(value = "leaderboard-static", key = "'weekly:' + #floating + ':' + T(java.time.LocalDate).now()", unless = "#result == null || #result.body == null")
+    @Cacheable(value = "leaderboard-static", key = "'weekly:' + #floating + ':' + T(org.steam5.domain.GameDate).todayUtc()", unless = "#result == null || #result.body == null")
     public ResponseEntity<List<LeaderEntry>> weekly(@RequestParam(name = "floating", required = false, defaultValue = "false") boolean floating) {
         final List<ReviewGamePick> picks = reviewGameStateService.generateDailyPicks();
 
-        final LocalDate today = picks.isEmpty() ? LocalDate.now() : picks.getFirst().getPickDate();
+        final LocalDate today = picks.isEmpty() ? GameDate.todayUtc() : picks.getFirst().getPickDate();
         final LocalDate start;
         final LocalDate end;
 
@@ -78,10 +78,10 @@ public class LeaderboardController {
     }
 
     @GetMapping("/monthly")
-    @Cacheable(value = "leaderboard-static", key = "'monthly:' + T(java.time.LocalDate).now()", unless = "#result == null || #result.body == null")
+    @Cacheable(value = "leaderboard-static", key = "'monthly:' + T(org.steam5.domain.GameDate).todayUtc()", unless = "#result == null || #result.body == null")
     public ResponseEntity<List<LeaderEntry>> monthly() {
         final List<ReviewGamePick> picks = reviewGameStateService.generateDailyPicks();
-        final LocalDate today = picks.isEmpty() ? LocalDate.now() : picks.getFirst().getPickDate();
+        final LocalDate today = picks.isEmpty() ? GameDate.todayUtc() : picks.getFirst().getPickDate();
         
         // Last 30 days including today
         final LocalDate start = today.minusDays(29);
@@ -117,9 +117,9 @@ public class LeaderboardController {
     }
 
     @GetMapping(value = {"", "/", "/all"})
-    @Cacheable(value = "leaderboard-static", key = "'all-time:' + T(java.time.LocalDate).now()", unless = "#result == null || #result.body == null")
+    @Cacheable(value = "leaderboard-static", key = "'all-time:' + T(org.steam5.domain.GameDate).todayUtc()", unless = "#result == null || #result.body == null")
     public ResponseEntity<List<LeaderEntry>> allTime() {
-        final LocalDate today = LocalDate.now();
+        final LocalDate today = GameDate.todayUtc();
         final List<GuessRepository.AllTimeStatsRow> rows = guessRepository.aggregateAllTimeStats();
         if (rows.isEmpty()) {
             return ResponseEntity.ok(List.of());

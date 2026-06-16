@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
 import org.steam5.config.ReviewGameConfig;
+import org.steam5.domain.GameDate;
 import org.steam5.domain.ReviewGamePick;
 import org.steam5.job.events.BlurhashEncodeRequested;
 import org.steam5.repository.DailyPickLockRepository;
@@ -101,6 +102,15 @@ public class ReviewGameStateServiceTest {
 
         // Save picks returns the same list with ids
         when(pickRepository.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
+    }
+
+    @Test
+    void generateDailyPicks_anchorsToUtcDateNotJvmLocalDate() {
+        // The daily round must resolve "today" in UTC so it aligns with the UTC-scheduled
+        // Quartz job and the UTC frontend; a JVM-local date would roll over early/late and
+        // serve the wrong day. Verify the existence check queries the UTC date.
+        service.generateDailyPicks();
+        verify(pickRepository).findByPickDate(GameDate.todayUtc());
     }
 
     @Test

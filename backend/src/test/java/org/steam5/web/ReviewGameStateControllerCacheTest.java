@@ -4,11 +4,13 @@ import io.micrometer.core.instrument.MeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.quartz.Scheduler;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.expression.Expression;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
+import org.steam5.domain.GameDate;
 import org.steam5.domain.Guess;
 import org.steam5.domain.ReviewGamePick;
 import org.steam5.domain.details.SteamAppDetail;
@@ -184,5 +186,29 @@ public class ReviewGameStateControllerCacheTest {
         final StandardEvaluationContext ctx = new StandardEvaluationContext();
         ctx.setVariable("result", result);
         return Boolean.TRUE.equals(expr.getValue(ctx, Boolean.class));
+    }
+
+    // --- Stale-round root cause: the live cache keys must embed today's UTC date so a
+    // previous day's cached entry can never be served after the 00:00 UTC rollover. ---
+
+    @Test
+    void getToday_cacheKeyEmbedsTodayUtcDate() throws Exception {
+        assertEquals("today-picks:" + GameDate.todayUtc(),
+                evalCacheKey("getToday", HttpHeaders.class),
+                "the /today cache key must be scoped to the UTC date, not a static 'picks' key");
+    }
+
+    @Test
+    void getTodayDetails_cacheKeyEmbedsTodayUtcDate() throws Exception {
+        assertEquals("today-details:" + GameDate.todayUtc(),
+                evalCacheKey("getTodayDetails", HttpHeaders.class),
+                "the /today/details cache key must be scoped to the UTC date");
+    }
+
+    /** Reads a method's @Cacheable key SpEL and evaluates it (the key uses a T(GameDate) static call). */
+    private static String evalCacheKey(String method, Class<?>... params) throws Exception {
+        final Cacheable c = ReviewGameStateController.class.getMethod(method, params).getAnnotation(Cacheable.class);
+        final Expression expr = new SpelExpressionParser().parseExpression(c.key());
+        return expr.getValue(new StandardEvaluationContext(), String.class);
     }
 }
