@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.9.7] - 2026-06-17
+
+### Changed
+
+- Reverted the round page's rendering back to the stable v1.8.0 approach: the daily round is server-rendered on each request (with your already-submitted guesses preloaded), replacing the recent client-side fetch experiment that loaded the round less reliably
+
 ## [1.9.6] - 2026-06-17
 
 ### Fixed
