@@ -1,74 +1,15 @@
 import type {Metadata} from "next";
 import type {ReviewGameState} from "@/types/review-game";
-import Link from "next/link";
-import ReviewGuesserHero from "@/components/ReviewGuesserHero";
-import GameInfoSection from "@/components/GameInfoSection";
-import NewsBox from "@/components/NewsBox";
-import ReviewGuesserRound from "@/components/ReviewGuesserRound";
-import {Suspense} from "react";
+import ReviewGuesserClient from "@/components/ReviewGuesserClient";
 import {BACKEND_ORIGIN as backend} from "@/lib/backend";
 
-export const revalidate = 600;
-// Render each round on demand, then cache it as static. force-static — combined
-// with the page no longer reading the auth cookie — lets Next fully prefetch a
-// round's content, so navigation resolves from cache instead of streaming through
-// the loading skeleton. No build-time prerender is involved.
-export const dynamic = 'force-static';
-
-async function loadToday(): Promise<ReviewGameState> {
-    const res = await fetch(`${backend}/api/review-game/today`, {
-        headers: {"accept": "application/json"},
-        next: {revalidate: 600, tags: ['round-today']},
-    });
-    if (!res.ok) {
-        throw new Error(`Failed to load daily picks: ${res.status}`);
-    }
-    return res.json();
-}
+// Round data is fetched on the client (see ReviewGuesserClient). The page itself
+// is a thin shell — no server-side fetch of the picks and no caching of the round
+// HTML — so it renders instantly and always shows today's fresh round.
 export default async function ReviewGuesserRoundPage({params}: { params: Promise<{ round: string }> }) {
     const {round} = await params;
     const roundIndex = Math.max(1, Number.parseInt(round || '1', 10));
-    const today = await loadToday();
-
-    const totalRounds = today.picks.length;
-    const pick = today.picks[roundIndex - 1];
-
-    if (!pick) {
-        return (
-            <section className="container">
-                <p>No pick for this round. You may have finished all rounds.</p>
-                <Link href="/review-guesser/1">Go to first round</Link>
-            </section>
-        );
-    }
-
-    // Per-user guesses are loaded on the client (useServerGuesses) rather than here,
-    // so this page stays free of dynamic inputs (no cookies / no-store) and can be
-    // ISR-cached and fully prefetched — making round navigation instant instead of
-    // re-rendering through the loading skeleton on every click.
-    return (
-        <section className="container">
-            <ReviewGuesserHero today={today}
-                               pick={pick}
-                               roundIndex={roundIndex}/>
-
-            <Suspense fallback={<div style={{height: 220, background: 'var(--color-border)', borderRadius: 8}}/>}>
-                <ReviewGuesserRound
-                    appId={pick.appId}
-                    buckets={today.buckets}
-                    bucketTitles={today.bucketTitles}
-                    roundIndex={roundIndex}
-                    totalRounds={totalRounds}
-                    pickName={pick.name}
-                    gameDate={today.date}
-                />
-            </Suspense>
-
-            {roundIndex === 1 && <NewsBox/>}
-
-            <GameInfoSection pick={pick}/>
-        </section>
-    );
+    return <ReviewGuesserClient round={roundIndex}/>;
 }
 
 export async function generateMetadata({params}: { params: Promise<{ round: string }> }): Promise<Metadata> {
@@ -76,7 +17,7 @@ export async function generateMetadata({params}: { params: Promise<{ round: stri
     try {
         const today: ReviewGameState = await fetch(`${backend}/api/review-game/today`, {
             headers: {"accept": "application/json"},
-            next: {revalidate: 600, tags: ['round-today']}
+            next: {revalidate: 600}
         }).then(r => r.json());
         const roundIndex = Math.max(1, Number.parseInt(round || '1', 10));
         const pick = today.picks[roundIndex - 1];

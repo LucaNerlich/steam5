@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.9.6] - 2026-06-17
+
+### Fixed
+
+- The daily round no longer sits on "Loading today's round…" for several seconds before the game appears — the round now loads its data directly in the browser and shows a brief skeleton instead
+- Submitting a guess now always shows the full result (your pick vs. the actual bucket, the review count, and points earned) instead of a near-empty "Hit/Flop" panel
+
+### Changed
+
+- Round pages now fetch today's puzzle fresh in the browser on each visit rather than serving a server-cached copy, so you always see the current day's round — this removes the cached-round staleness and self-healing workarounds added in 1.9.1–1.9.5
+
 ## [1.9.5] - 2026-06-16
 
 ### Fixed

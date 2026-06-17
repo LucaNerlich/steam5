@@ -1,10 +1,9 @@
 "use client";
 
-import {useActionState, useEffect, useMemo, useRef, useState, useTransition} from "react";
-import {useRouter} from "next/navigation";
+import {useActionState, useEffect, useMemo, useState, useTransition} from "react";
 import type {GuessResponse} from "@/types/review-game";
 import type {GuessActionState} from "../../app/review-guesser/[round]/actions";
-import {revalidateTodayAction, submitGuessAction} from "../../app/review-guesser/[round]/actions";
+import {submitGuessAction} from "../../app/review-guesser/[round]/actions";
 import GuessButtons from "@/components/GuessButtons";
 import AuthWarningModal from "@/components/AuthWarningModal";
 import RoundResultDialog from "@/components/RoundResultDialog";
@@ -18,7 +17,6 @@ import useRoundArrowNavigation from "@/lib/hooks/useRoundArrowNavigation";
 import {loadDay, saveRound, type StoredDay, type RoundResult} from "@/lib/storage";
 import {prefillToResponse, resolveEffectiveResponse} from "@/lib/guessResolution";
 import {computeSignedOutDuringPlay, resolveLiveSignedIn, shouldWarnBeforeSubmit} from "@/lib/authGuard";
-import {isRoundStale, nextHealStep, type HealAttempt} from "@/lib/roundFreshness";
 import "@/styles/components/reviewGuesserRound.css";
 import "@/styles/components/reviewRoundResult.css";
 import "@/styles/components/reviewShareControls.css";
@@ -95,10 +93,8 @@ export default function ReviewGuesserRound({
     const [pendingFormData, setPendingFormData] = useState<FormData | null>(null);
     const [selectionScopeKey, setSelectionScopeKey] = useState<string | null>(null);
     // Read this day's saved results synchronously so a same-device returning
-    // player's result is known on the first post-mount render — no guess-card
-    // flash before localStorage is consulted. Server-side this is null (no
-    // window), matching the static HTML; the `mounted` gate below keeps the
-    // first client render identical to avoid a hydration mismatch.
+    // player's result is known on the first render — no guess-card flash before
+    // localStorage is consulted.
     const [stored, setStored] = useState<StoredDay | null>(() => {
         if (typeof window === "undefined" || !gameDate) return null;
         return loadDay(gameDate);
@@ -108,45 +104,13 @@ export default function ReviewGuesserRound({
 
     // The slot shows a placeholder until we've resolved whether this round is
     // already answered, so the guess card never flashes before swapping to the
-    // result. False on the server and the first client render (matching the
-    // static HTML); flipped after mount once client-only state is available.
+    // result. Flipped after mount once client-only state (localStorage) is read.
     const [mounted, setMounted] = useState(false);
     useEffect(() => {
         setMounted(true);
     }, []);
 
     const scopeKey = `${gameDate ?? ''}:${roundIndex}:${appId}`;
-
-    const router = useRouter();
-    // A rendered gameDate older than today's UTC date means the force-static round
-    // page was cached before the nightly rollover. Submitting against it would 400
-    // (the backend has already advanced to today's picks), so we self-heal instead.
-    const isStale = isRoundStale(gameDate);
-    // Self-heal: bust the round-today cache, then re-render so the now-untagged
-    // fetch resolves today's picks. nextHealStep caps retries per stale date so the
-    // 00:00–00:01 UTC window — where the backend still serves yesterday until its
-    // job runs — can't spin in a refresh loop.
-    const healAttemptRef = useRef<HealAttempt>(null);
-    const [healExhausted, setHealExhausted] = useState(false);
-    useEffect(() => {
-        if (!isStale || !gameDate) return;
-        const step = nextHealStep(gameDate, healAttemptRef.current);
-        if (!step.shouldHeal) {
-            setHealExhausted(true);
-            return;
-        }
-        healAttemptRef.current = step.nextAttempt;
-        const id = window.setTimeout(() => {
-            void revalidateTodayAction().then(() => router.refresh());
-        }, step.delayMs);
-        return () => window.clearTimeout(id);
-    }, [isStale, gameDate, router]);
-
-    const retryHeal = () => {
-        healAttemptRef.current = null;
-        setHealExhausted(false);
-        void revalidateTodayAction().then(() => router.refresh());
-    };
 
     // @view-transition { navigation: auto } in globals.css overrides Next.js's
     // default scroll-to-top on client navigations, so we reset manually.
@@ -336,9 +300,6 @@ export default function ReviewGuesserRound({
     };
 
     const handleAuthGuardedSubmit = async (formData: FormData) => {
-        // Never let a guess go out against a stale (pre-rollover) round; the
-        // self-heal effect is refreshing the page to today's picks.
-        if (isStale) return;
         const dismissed = hasDismissedAuthWarning();
         // Determine the live signed-in state. signedIn === false is reliable
         // (set from the server on load), so trust it directly; a dismissed user
@@ -383,24 +344,11 @@ export default function ReviewGuesserRound({
         }
     };
 
-    const shouldShowGuessControls = resolved && !isStale && !hasResult;
+    const shouldShowGuessControls = resolved && !hasResult;
     return (
         <>
             <div className="review-round__slot">
-            {isStale && (
-                <section className="review-round__guess-card" aria-live="polite">
-                    <p className="text-muted">
-                        {healExhausted ? "Today's round is being prepared." : "Loading today's round…"}
-                        {healExhausted && (
-                            <>
-                                {" "}
-                                <button type="button" className="btn-link" onClick={retryHeal}>Refresh</button>
-                            </>
-                        )}
-                    </p>
-                </section>
-            )}
-            {!isStale && !resolved && (
+            {!resolved && (
                 // Neutral placeholder while we resolve result-vs-guess-card, so the
                 // guess card never flashes before the result swaps in. Sits inside
                 // the height-reserved slot, so nothing below reflows.
