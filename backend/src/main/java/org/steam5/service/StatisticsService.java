@@ -13,18 +13,11 @@ import org.steam5.repository.ReviewsBucketRepository;
 import org.steam5.repository.details.SteamAppDetailRepository;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.function.Supplier;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.*;
+import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 @Service
@@ -37,6 +30,31 @@ public class StatisticsService {
     private final GuessRepository guessRepository;
     private final SeasonService seasonService;
     private final CacheManager cacheManager;
+
+    /**
+     * Returns the all-time query result when {@code startDate} is null, the ranged result otherwise.
+     */
+    private static <R> List<R> fetch(final Supplier<List<R>> allTime,
+                                     final Supplier<List<R>> ranged,
+                                     final LocalDate startDate) {
+        return startDate == null ? allTime.get() : ranged.get();
+    }
+
+    /**
+     * Awards the first non-already-awarded user in {@code candidates}. No-op when the list is empty.
+     */
+    private static <R> void awardFirst(final List<UserLabel> result, final Set<String> alreadyAwarded,
+                                       final List<R> candidates,
+                                       final Function<R, String> getSteamId,
+                                       final Function<R, UserLabel> toLabel) {
+        for (final R row : candidates) {
+            final String steamId = getSteamId.apply(row);
+            if (alreadyAwarded.add(steamId)) {
+                result.add(toLabel.apply(row));
+                break;
+            }
+        }
+    }
 
     @Cacheable(value = "stats-long", key = "'stats-genres-'+#limit", unless = "#result == null")
     public List<LabelCount> topGenres(int limit) {
@@ -100,8 +118,7 @@ public class StatisticsService {
         if (cache != null) {
             final Cache.ValueWrapper wrapper = cache.get(cacheKey);
             if (wrapper != null && wrapper.get() instanceof List<?> cached) {
-                @SuppressWarnings("unchecked")
-                final List<UserLabel> cachedEntries = (List<UserLabel>) cached;
+                @SuppressWarnings("unchecked") final List<UserLabel> cachedEntries = (List<UserLabel>) cached;
                 return cachedEntries;
             }
         }
@@ -128,11 +145,10 @@ public class StatisticsService {
         //   on the leaderboard, so this threshold should be low enough to not exclude
         //   legitimate leaderboard participants.
         final int MIN_ROUNDS = switch (timeframe) {
-            case ALL_TIME -> 10;  // Reduced from 35 - leaderboard has no minimum
-            case MONTHLY -> 5;    // Reduced from 25 - leaderboard has no minimum
-            case WEEKLY -> 3;     // Reduced from 15 - leaderboard has no minimum
-            case DAILY -> 1;      // Reduced from 5 - leaderboard has no minimum
-            case SEASON -> 5;
+            case ALL_TIME -> 100;
+            case MONTHLY, SEASON -> 50;
+            case WEEKLY -> 30;
+            case DAILY -> 5;
         };
 
         final Set<String> alreadyAwarded = new HashSet<>();
@@ -187,114 +203,54 @@ public class StatisticsService {
         // Time-of-day
         awardFirst(result, alreadyAwarded,
                 fetch(() -> guessRepository.findUsersByAvgSubmissionTimeAsc(minRounds),
-                      () -> guessRepository.findUsersByAvgSubmissionTimeAscInRange(startDate, endDate, minRounds),
-                      startDate),
+                        () -> guessRepository.findUsersByAvgSubmissionTimeAscInRange(startDate, endDate, minRounds),
+                        startDate),
                 GuessRepository.AvgTimeRow::getSteamId,
                 row -> new UserLabel(row.getSteamId(), UserAchievement.EARLY_BIRD, row.getAvgMinutes(), null, null, null, null));
 
         awardFirst(result, alreadyAwarded,
                 fetch(() -> guessRepository.findUsersByAvgSubmissionTimeDesc(minRounds),
-                      () -> guessRepository.findUsersByAvgSubmissionTimeDescInRange(startDate, endDate, minRounds),
-                      startDate),
+                        () -> guessRepository.findUsersByAvgSubmissionTimeDescInRange(startDate, endDate, minRounds),
+                        startDate),
                 GuessRepository.AvgTimeRow::getSteamId,
                 row -> new UserLabel(row.getSteamId(), UserAchievement.NIGHT_OWL, row.getAvgMinutes(), null, null, null, null));
 
         // Accuracy / skill
         awardFirst(result, alreadyAwarded,
                 fetch(() -> guessRepository.findUsersByAvgPointsDesc(minRounds),
-                      () -> guessRepository.findUsersByAvgPointsDescInRange(startDate, endDate, minRounds),
-                      startDate),
+                        () -> guessRepository.findUsersByAvgPointsDescInRange(startDate, endDate, minRounds),
+                        startDate),
                 GuessRepository.AvgPointsRow::getSteamId,
                 row -> new UserLabel(row.getSteamId(), UserAchievement.SHARPSHOOTER, null, row.getAvgPoints(), null, null, null));
 
         awardFirst(result, alreadyAwarded,
                 fetch(() -> guessRepository.findUsersByPerfectRoundsDesc(minRounds),
-                      () -> guessRepository.findUsersByPerfectRoundsDescInRange(startDate, endDate, minRounds),
-                      startDate),
+                        () -> guessRepository.findUsersByPerfectRoundsDescInRange(startDate, endDate, minRounds),
+                        startDate),
                 GuessRepository.PerfectRoundsRow::getSteamId,
                 row -> new UserLabel(row.getSteamId(), UserAchievement.BULLSEYE, null, null, row.getPerfects(), null, null));
 
         awardFirst(result, alreadyAwarded,
                 fetch(() -> guessRepository.findUsersByPerfectDaysDesc(minRounds),
-                      () -> guessRepository.findUsersByPerfectDaysDescInRange(startDate, endDate, minRounds),
-                      startDate),
+                        () -> guessRepository.findUsersByPerfectDaysDescInRange(startDate, endDate, minRounds),
+                        startDate),
                 GuessRepository.PerfectDaysRow::getSteamId,
                 row -> new UserLabel(row.getSteamId(), UserAchievement.PERFECT_DAY, null, null, null, row.getPerfectDays(), null));
 
         // Speed
         awardFirst(result, alreadyAwarded,
                 fetch(() -> guessRepository.findUsersByDailyTimeDiffAsc(minRounds),
-                      () -> guessRepository.findUsersByDailyTimeDiffAscInRange(startDate, endDate, minRounds),
-                      startDate),
+                        () -> guessRepository.findUsersByDailyTimeDiffAscInRange(startDate, endDate, minRounds),
+                        startDate),
                 GuessRepository.DailyTimeDiffRow::getSteamId,
                 row -> new UserLabel(row.getSteamId(), UserAchievement.CHEETAH, null, null, null, null, row.getTotalSeconds()));
 
         awardFirst(result, alreadyAwarded,
                 fetch(() -> guessRepository.findUsersByDailyTimeDiffDesc(minRounds),
-                      () -> guessRepository.findUsersByDailyTimeDiffDescInRange(startDate, endDate, minRounds),
-                      startDate),
+                        () -> guessRepository.findUsersByDailyTimeDiffDescInRange(startDate, endDate, minRounds),
+                        startDate),
                 GuessRepository.DailyTimeDiffRow::getSteamId,
                 row -> new UserLabel(row.getSteamId(), UserAchievement.SLOTH, null, null, null, null, row.getTotalSeconds()));
-    }
-
-    /** Returns the all-time query result when {@code startDate} is null, the ranged result otherwise. */
-    private static <R> List<R> fetch(final Supplier<List<R>> allTime,
-                                     final Supplier<List<R>> ranged,
-                                     final LocalDate startDate) {
-        return startDate == null ? allTime.get() : ranged.get();
-    }
-
-    /** Awards the first non-already-awarded user in {@code candidates}. No-op when the list is empty. */
-    private static <R> void awardFirst(final List<UserLabel> result, final Set<String> alreadyAwarded,
-                                       final List<R> candidates,
-                                       final Function<R, String> getSteamId,
-                                       final Function<R, UserLabel> toLabel) {
-        for (final R row : candidates) {
-            final String steamId = getSteamId.apply(row);
-            if (alreadyAwarded.add(steamId)) {
-                result.add(toLabel.apply(row));
-                break;
-            }
-        }
-    }
-
-    public enum Timeframe {
-        ALL_TIME,
-        SEASON,
-        MONTHLY,
-        WEEKLY,
-        DAILY
-    }
-
-    public enum BucketMode {EQUAL_WIDTH, EQUAL_COUNT, LINEAR_WINSORIZED, LOG_SPACE}
-
-    public record LabelCount(String label, long count) {
-    }
-
-    public record Bucket(int bucket, Long lower, Long upper, String label, long count) {
-    }
-
-    public enum UserAchievement {
-        EARLY_BIRD,    // plays the earliest, on avg
-        NIGHT_OWL,    // plays the latest, on avg
-        SHARPSHOOTER, // highest average points per guess
-        BULLSEYE,     // most perfect rounds (points = 5)
-        PERFECT_DAY,  // most days with perfect total points
-        CHEETAH,      // least time between first and last guess per day (summed)
-        SLOTH         // most time between first and last guess per day (summed)
-    }
-
-    // "Achievement" Labels with metrics
-    public record UserLabel(
-            String steamId,
-            UserAchievement userAchievement,
-            // Metrics - only one will be populated based on achievement type
-            Double avgMinutes,      // For EARLY_BIRD, NIGHT_OWL
-            Double avgPoints,       // For SHARPSHOOTER
-            Long perfectRounds,      // For BULLSEYE
-            Long perfectDays,        // For PERFECT_DAY
-            Long totalSeconds        // For CHEETAH, SLOTH
-    ) {
     }
 
     @Cacheable(value = "stats-hourly", key = "'top-games-by-reviews-' + #limit", unless = "#result == null")
@@ -351,6 +307,45 @@ public class StatisticsService {
                 highest != null ? new DailyAvgScore(highest.getGameDate(), highest.getAvgScore(), highest.getPlayerCount()) : null,
                 lowest != null ? new DailyAvgScore(lowest.getGameDate(), lowest.getAvgScore(), lowest.getPlayerCount()) : null
         );
+    }
+
+    public enum Timeframe {
+        ALL_TIME,
+        SEASON,
+        MONTHLY,
+        WEEKLY,
+        DAILY
+    }
+
+    public enum BucketMode {EQUAL_WIDTH, EQUAL_COUNT, LINEAR_WINSORIZED, LOG_SPACE}
+
+    public enum UserAchievement {
+        EARLY_BIRD,    // plays the earliest, on avg
+        NIGHT_OWL,    // plays the latest, on avg
+        SHARPSHOOTER, // highest average points per guess
+        BULLSEYE,     // most perfect rounds (points = 5)
+        PERFECT_DAY,  // most days with perfect total points
+        CHEETAH,      // least time between first and last guess per day (summed)
+        SLOTH         // most time between first and last guess per day (summed)
+    }
+
+    public record LabelCount(String label, long count) {
+    }
+
+    public record Bucket(int bucket, Long lower, Long upper, String label, long count) {
+    }
+
+    // "Achievement" Labels with metrics
+    public record UserLabel(
+            String steamId,
+            UserAchievement userAchievement,
+            // Metrics - only one will be populated based on achievement type
+            Double avgMinutes,      // For EARLY_BIRD, NIGHT_OWL
+            Double avgPoints,       // For SHARPSHOOTER
+            Long perfectRounds,      // For BULLSEYE
+            Long perfectDays,        // For PERFECT_DAY
+            Long totalSeconds        // For CHEETAH, SLOTH
+    ) {
     }
 
     public record TopGameByReviews(Long appId, String name, Long totalReviews, String pickDate, Integer roundIndex) {
