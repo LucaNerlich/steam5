@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.10.0] - 2026-07-01
+
+### Added
+
+- The leaderboard period switcher (Today / Weekly / Season / All-time) now has a highlight that smoothly slides to the selected period instead of the highlight jumping instantly — the animation is disabled automatically if you have "reduce motion" enabled
+
+### Changed
+
+- Raised the minimum number of rounds a player must have played to qualify for achievements, so achievement standings better reflect consistent participation
+
 ## [1.9.7] - 2026-06-17
 
 ### Changed
