@@ -22,6 +22,7 @@ html:has(.leaderboard-layout) {
 }
 
 .leaderboard__toggle {
+    position: relative;
     display: flex;
     flex-wrap: wrap;
     gap: 0.45rem;
@@ -32,7 +33,27 @@ html:has(.leaderboard-layout) {
     background: color-mix(in srgb, var(--color-surface-variant) 70%, var(--color-surface));
 }
 
+/* Sliding highlight that tracks the active toggle button */
+.leaderboard__toggle-indicator {
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: 0;
+    border: 1px solid color-mix(in srgb, var(--color-primary) 60%, var(--color-border));
+    border-radius: 0.5rem;
+    background: color-mix(in srgb, var(--color-primary) 12%, var(--color-surface));
+    opacity: 0;
+    pointer-events: none;
+    transition: transform 250ms ease, width 250ms ease, height 250ms ease;
+}
+
+.leaderboard__toggle-indicator.is-ready {
+    opacity: 1;
+}
+
 .leaderboard__toggle .leaderboard__toggle-btn {
+    position: relative;
+    z-index: 1;
     flex: 1 1 calc(25% - 0.45rem);
     min-width: 0;
     justify-content: center;
@@ -43,8 +64,14 @@ html:has(.leaderboard-layout) {
 .leaderboard__toggle .leaderboard__toggle-btn.is-active {
     font-weight: 700;
     text-decoration: none;
-    border-color: color-mix(in srgb, var(--color-primary) 60%, var(--color-border));
-    background: color-mix(in srgb, var(--color-primary) 12%, var(--color-surface));
+    border-color: transparent;
+    background: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .leaderboard__toggle-indicator {
+        transition: none;
+    }
 }
 
 .leaderboard__table {
