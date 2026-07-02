@@ -22,6 +22,22 @@
     border-color: var(--color-border);
 }
 
+.player-spotlight--best-day-ever {
+    border-color: color-mix(in srgb, var(--color-score-close) 45%, var(--color-border));
+}
+
+.player-spotlight--beat-the-odds {
+    border-color: color-mix(in srgb, var(--color-score-near) 45%, var(--color-border));
+}
+
+.player-spotlight--welcome-back {
+    border-color: color-mix(in srgb, var(--color-success) 35%, var(--color-border));
+}
+
+.player-spotlight--most-improved {
+    border-color: color-mix(in srgb, var(--color-accent) 40%, var(--color-border));
+}
+
 .player-spotlight__eyebrow {
     margin: 0 0 4px;
     font-size: x-small;

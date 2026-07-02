@@ -3,7 +3,15 @@ import Link from "next/link";
 import "@/styles/components/playerSpotlight.css";
 import {BACKEND_ORIGIN as backend} from "@/lib/backend";
 
-type InsightType = "DAY_STREAK" | "WEEKLY_ACHIEVEMENT" | "HOT_STREAK" | "MILESTONE";
+type InsightType =
+    | "DAY_STREAK"
+    | "BEST_DAY_EVER"
+    | "BEAT_THE_ODDS"
+    | "WELCOME_BACK"
+    | "MOST_IMPROVED"
+    | "WEEKLY_ACHIEVEMENT"
+    | "HOT_STREAK"
+    | "MILESTONE";
 
 type SpotlightResponse = {
     steamId: string;
@@ -18,6 +26,10 @@ type SpotlightResponse = {
 
 const INSIGHT_MODIFIER: Record<InsightType, string> = {
     DAY_STREAK: "day-streak",
+    BEST_DAY_EVER: "best-day-ever",
+    BEAT_THE_ODDS: "beat-the-odds",
+    WELCOME_BACK: "welcome-back",
+    MOST_IMPROVED: "most-improved",
     WEEKLY_ACHIEVEMENT: "weekly-achievement",
     HOT_STREAK: "hot-streak",
     MILESTONE: "milestone",
@@ -25,6 +37,10 @@ const INSIGHT_MODIFIER: Record<InsightType, string> = {
 
 const INSIGHT_EMOJI: Record<InsightType, string> = {
     DAY_STREAK: "🔥",
+    BEST_DAY_EVER: "🏆",
+    BEAT_THE_ODDS: "🎯",
+    WELCOME_BACK: "👋",
+    MOST_IMPROVED: "📊",
     WEEKLY_ACHIEVEMENT: "🏅",
     HOT_STREAK: "📈",
     MILESTONE: "⭐",
