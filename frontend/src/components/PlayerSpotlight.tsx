@@ -3,7 +3,7 @@ import Link from "next/link";
 import "@/styles/components/playerSpotlight.css";
 import {BACKEND_ORIGIN as backend} from "@/lib/backend";
 
-type InsightType =
+export type InsightType =
     | "DAY_STREAK"
     | "BEST_DAY_EVER"
     | "BEAT_THE_ODDS"
@@ -35,7 +35,7 @@ const INSIGHT_MODIFIER: Record<InsightType, string> = {
     MILESTONE: "milestone",
 };
 
-const INSIGHT_EMOJI: Record<InsightType, string> = {
+export const INSIGHT_EMOJI: Record<InsightType, string> = {
     DAY_STREAK: "🔥",
     BEST_DAY_EVER: "🏆",
     BEAT_THE_ODDS: "🎯",

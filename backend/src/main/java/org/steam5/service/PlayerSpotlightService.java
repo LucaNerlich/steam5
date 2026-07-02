@@ -2,6 +2,7 @@ package org.steam5.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.steam5.domain.GameDate;
@@ -101,6 +102,16 @@ public class PlayerSpotlightService {
 
     public Optional<SpotlightResponse> getTodaySpotlight() {
         return playerSpotlightRepository.findById(GameDate.todayUtc()).map(this::toResponse);
+    }
+
+    /** Condensed history (most recent 10) of spotlights a player has been featured in, for their profile page. */
+    @Transactional(readOnly = true)
+    @Cacheable(value = "player-spotlights", key = "#steamId")
+    public List<SpotlightHistoryEntry> listSpotlightsForPlayer(final String steamId) {
+        return playerSpotlightRepository.findTop10BySteamIdOrderByGameDateDesc(steamId).stream()
+                .map(s -> new SpotlightHistoryEntry(s.getGameDate(), s.getInsightType(), s.getHeadline(),
+                        s.getDetail(), s.getStatLabel(), s.getStatValue()))
+                .toList();
     }
 
     private SpotlightResponse toResponse(final PlayerSpotlight spotlight) {
@@ -437,6 +448,16 @@ public class PlayerSpotlightService {
     }
 
     private record AchievementText(String headline, String detail, String statLabel, Double statValue) {
+    }
+
+    public record SpotlightHistoryEntry(
+            LocalDate gameDate,
+            PlayerSpotlightInsightType insightType,
+            String headline,
+            String detail,
+            String statLabel,
+            Double statValue
+    ) {
     }
 
     public record SpotlightResponse(

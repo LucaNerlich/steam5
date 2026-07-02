@@ -372,6 +372,31 @@ class PlayerSpotlightServiceTest {
     }
 
     @Test
+    void listSpotlightsForPlayerMapsPersistedEntitiesToHistoryEntries() {
+        final PlayerSpotlight yesterday = new PlayerSpotlight();
+        yesterday.setGameDate(today.minusDays(1));
+        yesterday.setSteamId("historyPlayer");
+        yesterday.setInsightType(PlayerSpotlightInsightType.HOT_STREAK);
+        yesterday.setHeadline("In red-hot form!");
+        yesterday.setDetail("Averaging 4.0 pts/round over the last 14 days — well above their usual 2.0.");
+        yesterday.setStatLabel("Recent avg");
+        yesterday.setStatValue(4.0);
+
+        when(playerSpotlightRepository.findTop10BySteamIdOrderByGameDateDesc("historyPlayer"))
+                .thenReturn(List.of(yesterday));
+
+        final List<PlayerSpotlightService.SpotlightHistoryEntry> history =
+                service.listSpotlightsForPlayer("historyPlayer");
+
+        assertEquals(1, history.size());
+        final PlayerSpotlightService.SpotlightHistoryEntry entry = history.get(0);
+        assertEquals(today.minusDays(1), entry.gameDate());
+        assertEquals(PlayerSpotlightInsightType.HOT_STREAK, entry.insightType());
+        assertEquals("In red-hot form!", entry.headline());
+        assertEquals(4.0, entry.statValue());
+    }
+
+    @Test
     void fallsBackToWeeklyAchievementWhenNoCompetitiveTierQualifies() {
         final GuessRepository.AllTimeStatsRow achiever = allTimeRow("achiever", 100, 2.0);
         stubAllTimeStats(achiever);

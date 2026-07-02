@@ -15,6 +15,7 @@ import org.steam5.domain.User;
 import org.steam5.repository.GuessRepository;
 import org.steam5.repository.UserRepository;
 import org.steam5.repository.SteamAppIndexRepository;
+import org.steam5.service.PlayerSpotlightService;
 import org.steam5.service.SeasonService;
 
 import java.time.LocalDate;
@@ -34,6 +35,7 @@ public class ProfileController {
     private final GuessRepository guessRepository;
     private final SteamAppIndexRepository appIndexRepository;
     private final SeasonService seasonService;
+    private final PlayerSpotlightService playerSpotlightService;
 
     @GetMapping("/{steamId}")
     public ResponseEntity<?> getProfile(@PathVariable("steamId") String steamId) {
@@ -109,6 +111,19 @@ public class ProfileController {
                         "placementLevel", result.getPlacementLevel(),
                         "metricValue", result.getMetricValue(),
                         "tiebreakRoll", result.getTiebreakRoll()
+                ))
+                .toList());
+
+        final List<PlayerSpotlightService.SpotlightHistoryEntry> spotlights =
+                playerSpotlightService.listSpotlightsForPlayer(steamId);
+        out.put("spotlights", spotlights.stream()
+                .map(s -> Map.of(
+                        "gameDate", s.gameDate().toString(),
+                        "insightType", s.insightType().name(),
+                        "headline", s.headline(),
+                        "detail", s.detail(),
+                        "statLabel", s.statLabel(),
+                        "statValue", s.statValue()
                 ))
                 .toList());
 

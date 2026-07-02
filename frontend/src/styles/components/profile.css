@@ -96,6 +96,61 @@
     font-size: 0.85rem;
 }
 
+.profile__spotlight-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.profile__spotlight-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.45rem 0.25rem;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.profile__spotlight-row:last-child {
+    border-bottom: none;
+}
+
+.profile__spotlight-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    flex-shrink: 0;
+    border-radius: 999px;
+    background: var(--color-border);
+    font-size: 1rem;
+}
+
+.profile__spotlight-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    min-width: 0;
+}
+
+.profile__spotlight-headline {
+    margin: 0;
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+.profile__spotlight-date {
+    font-weight: 400;
+    color: var(--color-muted);
+    font-size: 0.85rem;
+}
+
+.profile__spotlight-detail {
+    margin: 0;
+    color: var(--color-muted);
+    font-size: 0.85rem;
+}
+
 
 /* Performance section */
 
