@@ -9,6 +9,7 @@ public enum PlayerSpotlightInsightType {
     BEST_DAY_EVER,
     BEAT_THE_ODDS,
     WELCOME_BACK,
+    MOST_IMPROVED,
     WEEKLY_ACHIEVEMENT,
     HOT_STREAK,
     MILESTONE

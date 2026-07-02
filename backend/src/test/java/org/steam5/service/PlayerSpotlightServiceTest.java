@@ -280,4 +280,34 @@ class PlayerSpotlightServiceTest {
         assertEquals("returner", captor.getValue().getSteamId());
         assertEquals(PlayerSpotlightInsightType.WELCOME_BACK, captor.getValue().getInsightType());
     }
+
+    @Test
+    void mostImprovedTierWinsWhenRecentFormIsClearlyBetterThanBefore() {
+        final GuessRepository.AllTimeStatsRow improver = allTimeRow("improver", 100, 2.0);
+        stubAllTimeStats(improver);
+
+        final List<GuessRepository.UserDateRow> dates = consecutiveDaysEnding("improver", today, 1);
+        when(guessRepository.findDistinctDatesUpToForUsers(anyList(), eq(today)))
+                .thenReturn(dates);
+
+        final LocalDate last30Start = today.minusDays(30);
+        final LocalDate last30End = today.minusDays(1);
+        final LocalDate prior30Start = today.minusDays(60);
+        final LocalDate prior30End = today.minusDays(31);
+
+        final List<Guess> last30 = new ArrayList<>();
+        for (int i = 0; i < 15; i++) last30.add(guess("improver", last30Start.plusDays(i), 4));
+        final List<Guess> prior30 = new ArrayList<>();
+        for (int i = 0; i < 15; i++) prior30.add(guess("improver", prior30Start.plusDays(i), 2));
+
+        when(guessRepository.findBySteamIdBetween("improver", last30Start, last30End)).thenReturn(last30);
+        when(guessRepository.findBySteamIdBetween("improver", prior30Start, prior30End)).thenReturn(prior30);
+
+        service.computeAndPersistForToday();
+
+        final ArgumentCaptor<PlayerSpotlight> captor = ArgumentCaptor.forClass(PlayerSpotlight.class);
+        verify(playerSpotlightRepository).save(captor.capture());
+        assertEquals("improver", captor.getValue().getSteamId());
+        assertEquals(PlayerSpotlightInsightType.MOST_IMPROVED, captor.getValue().getInsightType());
+    }
 }

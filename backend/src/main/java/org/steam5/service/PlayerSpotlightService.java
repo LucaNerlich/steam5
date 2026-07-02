@@ -51,6 +51,10 @@ public class PlayerSpotlightService {
     private static final int BEAT_THE_ODDS_MIN_POINTS = 4;
     private static final int WELCOME_BACK_MIN_GAP_DAYS = 4;
     private static final double WELCOME_BACK_MIN_RETURN_DAY_AVG = 3.0;
+    private static final int MOST_IMPROVED_WINDOW_DAYS = 30;
+    private static final int MOST_IMPROVED_MIN_ROUNDS_PER_WINDOW = 10;
+    private static final double MOST_IMPROVED_RELATIVE_THRESHOLD = 1.15;
+    private static final double MOST_IMPROVED_ABSOLUTE_DELTA = 0.3;
     private static final int HOT_STREAK_WINDOW_DAYS = 14;
     private static final int MIN_RECENT_ROUNDS_FOR_HOT_STREAK = 5;
     private static final double HOT_STREAK_RELATIVE_THRESHOLD = 1.2; // recent avg must be >= 20% above all-time avg
@@ -116,6 +120,7 @@ public class PlayerSpotlightService {
         addIfQualifying(qualifying, PlayerSpotlightInsightType.BEST_DAY_EVER, evaluateBestDayEverTier(eligible, yesterday));
         addIfQualifying(qualifying, PlayerSpotlightInsightType.BEAT_THE_ODDS, evaluateBeatTheOddsTier(eligible, yesterday));
         addIfQualifying(qualifying, PlayerSpotlightInsightType.WELCOME_BACK, evaluateWelcomeBackTier(eligible));
+        addIfQualifying(qualifying, PlayerSpotlightInsightType.MOST_IMPROVED, evaluateMostImprovedTier(eligible, today));
         addIfQualifying(qualifying, PlayerSpotlightInsightType.HOT_STREAK, evaluateHotStreakTier(eligible, today));
 
         if (!qualifying.isEmpty()) {
@@ -266,6 +271,36 @@ public class PlayerSpotlightService {
                     gapDays, returnDayAvg);
             tier.add(new Tiered(c.steamId(), PlayerSpotlightInsightType.WELCOME_BACK,
                     "Welcome back!", detail, "Days away", (double) gapDays));
+        }
+        return tier;
+    }
+
+    private List<Tiered> evaluateMostImprovedTier(final List<Candidate> eligible, final LocalDate today) {
+        final LocalDate last30Start = today.minusDays(MOST_IMPROVED_WINDOW_DAYS);
+        final LocalDate last30End = today.minusDays(1);
+        final LocalDate prior30Start = today.minusDays(2L * MOST_IMPROVED_WINDOW_DAYS);
+        final LocalDate prior30End = today.minusDays(MOST_IMPROVED_WINDOW_DAYS + 1L);
+
+        final List<Tiered> tier = new ArrayList<>();
+        for (final Candidate c : eligible) {
+            final List<Guess> last30 = guessRepository.findBySteamIdBetween(c.steamId(), last30Start, last30End);
+            final List<Guess> prior30 = guessRepository.findBySteamIdBetween(c.steamId(), prior30Start, prior30End);
+            if (last30.size() < MOST_IMPROVED_MIN_ROUNDS_PER_WINDOW
+                    || prior30.size() < MOST_IMPROVED_MIN_ROUNDS_PER_WINDOW) {
+                continue;
+            }
+
+            final double last30Avg = last30.stream().mapToInt(Guess::getPoints).average().orElse(0.0);
+            final double prior30Avg = prior30.stream().mapToInt(Guess::getPoints).average().orElse(0.0);
+            final boolean qualifies = last30Avg >= prior30Avg * MOST_IMPROVED_RELATIVE_THRESHOLD
+                    && (last30Avg - prior30Avg) >= MOST_IMPROVED_ABSOLUTE_DELTA;
+            if (!qualifies) continue;
+
+            final String detail = String.format(
+                    "Leveled up: averaging %.1f pts/round over the last %d days, up from %.1f the month before.",
+                    last30Avg, MOST_IMPROVED_WINDOW_DAYS, prior30Avg);
+            tier.add(new Tiered(c.steamId(), PlayerSpotlightInsightType.MOST_IMPROVED,
+                    "Most improved!", detail, "Last-30d avg", last30Avg));
         }
         return tier;
     }
