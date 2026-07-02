@@ -134,17 +134,26 @@ public class PlayerSpotlightService {
             return Optional.empty();
         }
 
+        // Batch-prefetch every eligible candidate's guess history in one query, instead of
+        // each tier evaluator querying per-candidate — BEST_DAY_EVER, WELCOME_BACK,
+        // MOST_IMPROVED, and HOT_STREAK all just filter/aggregate this same in-memory map
+        // to their own date window, eliminating what was an N+1 (and 2N for MOST_IMPROVED)
+        // pattern across those four tiers.
+        final List<String> eligibleIds = eligible.stream().map(Candidate::steamId).toList();
+        final Map<String, List<Guess>> historyByPlayer = guessRepository.findBySteamIdIn(eligibleIds).stream()
+                .collect(Collectors.groupingBy(Guess::getSteamId));
+
         // "Competitive pool": every tier here that has >=1 qualifying candidate goes
         // into a lottery, so no single ambient tier (e.g. DAY_STREAK) can dominate
         // just because it's the easiest to qualify for on any given day.
         final LocalDate yesterday = today.minusDays(1);
         final List<QualifyingTier> qualifying = new ArrayList<>();
         addIfQualifying(qualifying, PlayerSpotlightInsightType.DAY_STREAK, evaluateDayStreakTier(eligible, today));
-        addIfQualifying(qualifying, PlayerSpotlightInsightType.BEST_DAY_EVER, evaluateBestDayEverTier(eligible, yesterday));
+        addIfQualifying(qualifying, PlayerSpotlightInsightType.BEST_DAY_EVER, evaluateBestDayEverTier(eligible, yesterday, historyByPlayer));
         addIfQualifying(qualifying, PlayerSpotlightInsightType.BEAT_THE_ODDS, evaluateBeatTheOddsTier(eligible, yesterday));
-        addIfQualifying(qualifying, PlayerSpotlightInsightType.WELCOME_BACK, evaluateWelcomeBackTier(eligible));
-        addIfQualifying(qualifying, PlayerSpotlightInsightType.MOST_IMPROVED, evaluateMostImprovedTier(eligible, today));
-        addIfQualifying(qualifying, PlayerSpotlightInsightType.HOT_STREAK, evaluateHotStreakTier(eligible, today));
+        addIfQualifying(qualifying, PlayerSpotlightInsightType.WELCOME_BACK, evaluateWelcomeBackTier(eligible, historyByPlayer));
+        addIfQualifying(qualifying, PlayerSpotlightInsightType.MOST_IMPROVED, evaluateMostImprovedTier(eligible, today, historyByPlayer));
+        addIfQualifying(qualifying, PlayerSpotlightInsightType.HOT_STREAK, evaluateHotStreakTier(eligible, today, historyByPlayer));
 
         if (!qualifying.isEmpty()) {
             final Random random = new Random(today.toEpochDay());
@@ -220,10 +229,11 @@ public class PlayerSpotlightService {
         return tier;
     }
 
-    private List<Tiered> evaluateBestDayEverTier(final List<Candidate> eligible, final LocalDate yesterday) {
+    private List<Tiered> evaluateBestDayEverTier(final List<Candidate> eligible, final LocalDate yesterday,
+                                                  final Map<String, List<Guess>> historyByPlayer) {
         final List<Tiered> tier = new ArrayList<>();
         for (final Candidate c : eligible) {
-            final List<Guess> history = guessRepository.findBySteamIdOrderByGameDateDescRoundIndexAsc(c.steamId());
+            final List<Guess> history = historyByPlayer.getOrDefault(c.steamId(), List.of());
             final Map<LocalDate, Integer> dailyTotals = history.stream()
                     .collect(Collectors.groupingBy(Guess::getGameDate, Collectors.summingInt(Guess::getPoints)));
 
@@ -259,22 +269,28 @@ public class PlayerSpotlightService {
         final int roundIndex = hardestRound.get().getRoundIndex();
         final double hardAvg = hardestRound.get().getAvgScore();
 
+        // One query for everyone's guess on the hardest round, instead of one query per
+        // candidate for findBySteamIdAndGameDateAndRoundIndex.
+        final Map<String, Guess> guessByPlayer = guessRepository.findByGameDateAndRoundIndex(yesterday, roundIndex)
+                .stream()
+                .collect(Collectors.toMap(Guess::getSteamId, Function.identity(), (a, b) -> a));
+
         final List<Tiered> tier = new ArrayList<>();
         for (final Candidate c : eligible) {
-            final Optional<Guess> theirGuess =
-                    guessRepository.findBySteamIdAndGameDateAndRoundIndex(c.steamId(), yesterday, roundIndex);
-            if (theirGuess.isEmpty() || theirGuess.get().getPoints() < BEAT_THE_ODDS_MIN_POINTS) continue;
+            final Guess theirGuess = guessByPlayer.get(c.steamId());
+            if (theirGuess == null || theirGuess.getPoints() < BEAT_THE_ODDS_MIN_POINTS) continue;
 
             final String detail = String.format(
                     "Nailed yesterday's toughest round (round %d, %.1f avg pts across all players) with %d points.",
-                    roundIndex, hardAvg, theirGuess.get().getPoints());
+                    roundIndex, hardAvg, theirGuess.getPoints());
             tier.add(new Tiered(c.steamId(), PlayerSpotlightInsightType.BEAT_THE_ODDS,
-                    "Beat the odds!", detail, "Round points", (double) theirGuess.get().getPoints()));
+                    "Beat the odds!", detail, "Round points", (double) theirGuess.getPoints()));
         }
         return tier;
     }
 
-    private List<Tiered> evaluateWelcomeBackTier(final List<Candidate> eligible) {
+    private List<Tiered> evaluateWelcomeBackTier(final List<Candidate> eligible,
+                                                  final Map<String, List<Guess>> historyByPlayer) {
         final List<Tiered> tier = new ArrayList<>();
         for (final Candidate c : eligible) {
             final List<LocalDate> datesDesc = c.datesDesc();
@@ -285,8 +301,12 @@ public class PlayerSpotlightService {
             final long gapDays = ChronoUnit.DAYS.between(previous, mostRecent);
             if (gapDays < WELCOME_BACK_MIN_GAP_DAYS) continue;
 
-            final List<Guess> returnDayGuesses = guessRepository.findAllForDay(c.steamId(), mostRecent);
-            final double returnDayAvg = returnDayGuesses.stream().mapToInt(Guess::getPoints).average().orElse(0.0);
+            final List<Guess> history = historyByPlayer.getOrDefault(c.steamId(), List.of());
+            final double returnDayAvg = history.stream()
+                    .filter(g -> g.getGameDate().equals(mostRecent))
+                    .mapToInt(Guess::getPoints)
+                    .average()
+                    .orElse(0.0);
             if (returnDayAvg < WELCOME_BACK_MIN_RETURN_DAY_AVG) continue;
 
             final String detail = String.format(
@@ -298,7 +318,8 @@ public class PlayerSpotlightService {
         return tier;
     }
 
-    private List<Tiered> evaluateMostImprovedTier(final List<Candidate> eligible, final LocalDate today) {
+    private List<Tiered> evaluateMostImprovedTier(final List<Candidate> eligible, final LocalDate today,
+                                                   final Map<String, List<Guess>> historyByPlayer) {
         final LocalDate last30Start = today.minusDays(MOST_IMPROVED_WINDOW_DAYS);
         final LocalDate last30End = today.minusDays(1);
         final LocalDate prior30Start = today.minusDays(2L * MOST_IMPROVED_WINDOW_DAYS);
@@ -306,8 +327,13 @@ public class PlayerSpotlightService {
 
         final List<Tiered> tier = new ArrayList<>();
         for (final Candidate c : eligible) {
-            final List<Guess> last30 = guessRepository.findBySteamIdBetween(c.steamId(), last30Start, last30End);
-            final List<Guess> prior30 = guessRepository.findBySteamIdBetween(c.steamId(), prior30Start, prior30End);
+            final List<Guess> history = historyByPlayer.getOrDefault(c.steamId(), List.of());
+            final List<Guess> last30 = history.stream()
+                    .filter(g -> !g.getGameDate().isBefore(last30Start) && !g.getGameDate().isAfter(last30End))
+                    .toList();
+            final List<Guess> prior30 = history.stream()
+                    .filter(g -> !g.getGameDate().isBefore(prior30Start) && !g.getGameDate().isAfter(prior30End))
+                    .toList();
             if (last30.size() < MOST_IMPROVED_MIN_ROUNDS_PER_WINDOW
                     || prior30.size() < MOST_IMPROVED_MIN_ROUNDS_PER_WINDOW) {
                 continue;
@@ -341,11 +367,15 @@ public class PlayerSpotlightService {
         return tier;
     }
 
-    private List<Tiered> evaluateHotStreakTier(final List<Candidate> eligible, final LocalDate today) {
+    private List<Tiered> evaluateHotStreakTier(final List<Candidate> eligible, final LocalDate today,
+                                                final Map<String, List<Guess>> historyByPlayer) {
         final LocalDate windowStart = today.minusDays(HOT_STREAK_WINDOW_DAYS - 1L);
         final List<Tiered> tier = new ArrayList<>();
         for (final Candidate c : eligible) {
-            final List<Guess> recent = guessRepository.findBySteamIdBetween(c.steamId(), windowStart, today);
+            final List<Guess> history = historyByPlayer.getOrDefault(c.steamId(), List.of());
+            final List<Guess> recent = history.stream()
+                    .filter(g -> !g.getGameDate().isBefore(windowStart) && !g.getGameDate().isAfter(today))
+                    .toList();
             if (recent.size() < MIN_RECENT_ROUNDS_FOR_HOT_STREAK) continue;
 
             final double allTimeAvg = c.allTime().getAvgPoints() != null ? c.allTime().getAvgPoints() : 0.0;

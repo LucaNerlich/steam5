@@ -14,7 +14,6 @@ import org.steam5.repository.UserRepository;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.Random;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -44,9 +43,9 @@ class PlayerSpotlightServiceTest {
         when(playerSpotlightRepository.existsById(any())).thenReturn(false);
         when(statisticsService.getUserAchievementsWeekly()).thenReturn(List.of());
         when(guessRepository.findBySteamIdBetween(anyString(), any(), any())).thenReturn(List.of());
-        when(guessRepository.findBySteamIdOrderByGameDateDescRoundIndexAsc(anyString())).thenReturn(List.of());
+        when(guessRepository.findBySteamIdIn(anyList())).thenReturn(List.of());
         when(guessRepository.findRoundAvgScoresInRange(any(), any())).thenReturn(List.of());
-        when(guessRepository.findAllForDay(anyString(), any())).thenReturn(List.of());
+        when(guessRepository.findByGameDateAndRoundIndex(any(), anyInt())).thenReturn(List.of());
     }
 
     // NOTE: mocks referenced by an outer when(...).thenReturn(...) must be fully built
@@ -216,7 +215,7 @@ class PlayerSpotlightServiceTest {
                 guess("recordBreaker", yesterday.minusDays(5), 12),
                 guess("recordBreaker", yesterday, 24)
         );
-        when(guessRepository.findBySteamIdOrderByGameDateDescRoundIndexAsc("recordBreaker")).thenReturn(history);
+        when(guessRepository.findBySteamIdIn(anyList())).thenReturn(history);
 
         service.computeAndPersistForToday();
 
@@ -244,8 +243,7 @@ class PlayerSpotlightServiceTest {
 
         final Guess theirGuess = guess("oddsBeater", yesterday, 5);
         theirGuess.setRoundIndex(3);
-        when(guessRepository.findBySteamIdAndGameDateAndRoundIndex("oddsBeater", yesterday, 3))
-                .thenReturn(Optional.of(theirGuess));
+        when(guessRepository.findByGameDateAndRoundIndex(yesterday, 3)).thenReturn(List.of(theirGuess));
 
         service.computeAndPersistForToday();
 
@@ -268,7 +266,7 @@ class PlayerSpotlightServiceTest {
         dates.add(dateRow("returner", beforeGap));
         when(guessRepository.findDistinctDatesUpToForUsers(anyList(), eq(today))).thenReturn(dates);
 
-        when(guessRepository.findAllForDay("returner", mostRecent)).thenReturn(List.of(
+        when(guessRepository.findBySteamIdIn(anyList())).thenReturn(List.of(
                 guess("returner", mostRecent, 4),
                 guess("returner", mostRecent, 3)
         ));
@@ -291,17 +289,12 @@ class PlayerSpotlightServiceTest {
                 .thenReturn(dates);
 
         final LocalDate last30Start = today.minusDays(30);
-        final LocalDate last30End = today.minusDays(1);
         final LocalDate prior30Start = today.minusDays(60);
-        final LocalDate prior30End = today.minusDays(31);
 
-        final List<Guess> last30 = new ArrayList<>();
-        for (int i = 0; i < 15; i++) last30.add(guess("improver", last30Start.plusDays(i), 4));
-        final List<Guess> prior30 = new ArrayList<>();
-        for (int i = 0; i < 15; i++) prior30.add(guess("improver", prior30Start.plusDays(i), 2));
-
-        when(guessRepository.findBySteamIdBetween("improver", last30Start, last30End)).thenReturn(last30);
-        when(guessRepository.findBySteamIdBetween("improver", prior30Start, prior30End)).thenReturn(prior30);
+        final List<Guess> history = new ArrayList<>();
+        for (int i = 0; i < 15; i++) history.add(guess("improver", last30Start.plusDays(i), 4));
+        for (int i = 0; i < 15; i++) history.add(guess("improver", prior30Start.plusDays(i), 2));
+        when(guessRepository.findBySteamIdIn(anyList())).thenReturn(history);
 
         service.computeAndPersistForToday();
 
@@ -331,27 +324,23 @@ class PlayerSpotlightServiceTest {
         when(guessRepository.findDistinctDatesUpToForUsers(anyList(), eq(today))).thenReturn(allDates);
 
         final LocalDate last30Start = today.minusDays(30);
-        final LocalDate last30End = today.minusDays(1);
         final LocalDate prior30Start = today.minusDays(60);
-        final LocalDate prior30End = today.minusDays(31);
 
-        final List<Guess> last30 = new ArrayList<>();
-        for (int i = 0; i < 15; i++) last30.add(guess("improver", last30Start.plusDays(i), 4));
-        final List<Guess> prior30 = new ArrayList<>();
-        for (int i = 0; i < 15; i++) prior30.add(guess("improver", prior30Start.plusDays(i), 2));
-
-        when(guessRepository.findBySteamIdBetween("improver", last30Start, last30End)).thenReturn(last30);
-        when(guessRepository.findBySteamIdBetween("improver", prior30Start, prior30End)).thenReturn(prior30);
+        final List<Guess> history = new ArrayList<>();
+        for (int i = 0; i < 15; i++) history.add(guess("improver", last30Start.plusDays(i), 4));
+        for (int i = 0; i < 15; i++) history.add(guess("improver", prior30Start.plusDays(i), 2));
+        when(guessRepository.findBySteamIdIn(anyList())).thenReturn(history);
 
         // Neither candidate spuriously qualifies for the other's tier or for
         // BEST_DAY_EVER / BEAT_THE_ODDS / WELCOME_BACK / HOT_STREAK:
-        // - "streaker" has only 1 all-time-window guess stubbed (the setUp() default
-        //   empty list for findBySteamIdBetween), so it never clears the
-        //   MOST_IMPROVED_MIN_ROUNDS_PER_WINDOW/HOT_STREAK round-count floors.
+        // - "streaker" has no entries in the stubbed findBySteamIdIn(...) result (only
+        //   "improver" does), so historyByPlayer.getOrDefault("streaker", ...) is always
+        //   empty — it never clears any tier's round-count floor.
         // - "improver" has only a single date in datesDesc, so its current streak is
-        //   1 (< MIN_DAY_STREAK) and it has no second date for WELCOME_BACK's gap check.
-        // - BEST_DAY_EVER and BEAT_THE_ODDS rely on findBySteamIdOrderByGameDateDescRoundIndexAsc
-        //   / findRoundAvgScoresInRange, both left at setUp()'s default empty-list stubs.
+        //   1 (< MIN_DAY_STREAK) and it has no second date for WELCOME_BACK's gap check;
+        //   its stubbed history also falls entirely outside HOT_STREAK's 14-day window.
+        // - BEAT_THE_ODDS relies on findRoundAvgScoresInRange, left at setUp()'s default
+        //   empty-list stub.
         service.computeAndPersistForToday();
 
         final ArgumentCaptor<PlayerSpotlight> captor = ArgumentCaptor.forClass(PlayerSpotlight.class);
