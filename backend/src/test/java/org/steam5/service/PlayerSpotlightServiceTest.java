@@ -46,6 +46,7 @@ class PlayerSpotlightServiceTest {
         when(guessRepository.findBySteamIdBetween(anyString(), any(), any())).thenReturn(List.of());
         when(guessRepository.findBySteamIdOrderByGameDateDescRoundIndexAsc(anyString())).thenReturn(List.of());
         when(guessRepository.findRoundAvgScoresInRange(any(), any())).thenReturn(List.of());
+        when(guessRepository.findAllForDay(anyString(), any())).thenReturn(List.of());
     }
 
     // NOTE: mocks referenced by an outer when(...).thenReturn(...) must be fully built
@@ -252,5 +253,31 @@ class PlayerSpotlightServiceTest {
         verify(playerSpotlightRepository).save(captor.capture());
         assertEquals("oddsBeater", captor.getValue().getSteamId());
         assertEquals(PlayerSpotlightInsightType.BEAT_THE_ODDS, captor.getValue().getInsightType());
+    }
+
+    @Test
+    void welcomeBackTierWinsWhenCandidateReturnedAfterAGapAndPlayedWell() {
+        final LocalDate mostRecent = today.minusDays(1);
+        final LocalDate beforeGap = mostRecent.minusDays(6); // gap of 6 days, >= the 4-day threshold
+
+        final GuessRepository.AllTimeStatsRow returner = allTimeRow("returner", 100, 2.0);
+        stubAllTimeStats(returner);
+
+        final List<GuessRepository.UserDateRow> dates = new ArrayList<>();
+        dates.add(dateRow("returner", mostRecent));
+        dates.add(dateRow("returner", beforeGap));
+        when(guessRepository.findDistinctDatesUpToForUsers(anyList(), eq(today))).thenReturn(dates);
+
+        when(guessRepository.findAllForDay("returner", mostRecent)).thenReturn(List.of(
+                guess("returner", mostRecent, 4),
+                guess("returner", mostRecent, 3)
+        ));
+
+        service.computeAndPersistForToday();
+
+        final ArgumentCaptor<PlayerSpotlight> captor = ArgumentCaptor.forClass(PlayerSpotlight.class);
+        verify(playerSpotlightRepository).save(captor.capture());
+        assertEquals("returner", captor.getValue().getSteamId());
+        assertEquals(PlayerSpotlightInsightType.WELCOME_BACK, captor.getValue().getInsightType());
     }
 }

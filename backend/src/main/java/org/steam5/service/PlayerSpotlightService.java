@@ -15,6 +15,7 @@ import org.steam5.repository.PlayerSpotlightRepository;
 import org.steam5.repository.UserRepository;
 
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -48,6 +49,8 @@ public class PlayerSpotlightService {
     private static final int MIN_PRIOR_DAYS_FOR_BEST_DAY_EVER = 2;
     private static final double HARD_ROUND_MAX_AVG_SCORE = 2.0;
     private static final int BEAT_THE_ODDS_MIN_POINTS = 4;
+    private static final int WELCOME_BACK_MIN_GAP_DAYS = 4;
+    private static final double WELCOME_BACK_MIN_RETURN_DAY_AVG = 3.0;
     private static final int HOT_STREAK_WINDOW_DAYS = 14;
     private static final int MIN_RECENT_ROUNDS_FOR_HOT_STREAK = 5;
     private static final double HOT_STREAK_RELATIVE_THRESHOLD = 1.2; // recent avg must be >= 20% above all-time avg
@@ -112,6 +115,7 @@ public class PlayerSpotlightService {
         addIfQualifying(qualifying, PlayerSpotlightInsightType.DAY_STREAK, evaluateDayStreakTier(eligible, today));
         addIfQualifying(qualifying, PlayerSpotlightInsightType.BEST_DAY_EVER, evaluateBestDayEverTier(eligible, yesterday));
         addIfQualifying(qualifying, PlayerSpotlightInsightType.BEAT_THE_ODDS, evaluateBeatTheOddsTier(eligible, yesterday));
+        addIfQualifying(qualifying, PlayerSpotlightInsightType.WELCOME_BACK, evaluateWelcomeBackTier(eligible));
         addIfQualifying(qualifying, PlayerSpotlightInsightType.HOT_STREAK, evaluateHotStreakTier(eligible, today));
 
         if (!qualifying.isEmpty()) {
@@ -238,6 +242,30 @@ public class PlayerSpotlightService {
                     roundIndex, hardAvg, theirGuess.get().getPoints());
             tier.add(new Tiered(c.steamId(), PlayerSpotlightInsightType.BEAT_THE_ODDS,
                     "Beat the odds!", detail, "Round points", (double) theirGuess.get().getPoints()));
+        }
+        return tier;
+    }
+
+    private List<Tiered> evaluateWelcomeBackTier(final List<Candidate> eligible) {
+        final List<Tiered> tier = new ArrayList<>();
+        for (final Candidate c : eligible) {
+            final List<LocalDate> datesDesc = c.datesDesc();
+            if (datesDesc.size() < 2) continue;
+
+            final LocalDate mostRecent = datesDesc.get(0);
+            final LocalDate previous = datesDesc.get(1);
+            final long gapDays = ChronoUnit.DAYS.between(previous, mostRecent);
+            if (gapDays < WELCOME_BACK_MIN_GAP_DAYS) continue;
+
+            final List<Guess> returnDayGuesses = guessRepository.findAllForDay(c.steamId(), mostRecent);
+            final double returnDayAvg = returnDayGuesses.stream().mapToInt(Guess::getPoints).average().orElse(0.0);
+            if (returnDayAvg < WELCOME_BACK_MIN_RETURN_DAY_AVG) continue;
+
+            final String detail = String.format(
+                    "Took a %d-day break and came back strong, averaging %.1f pts/round on their return.",
+                    gapDays, returnDayAvg);
+            tier.add(new Tiered(c.steamId(), PlayerSpotlightInsightType.WELCOME_BACK,
+                    "Welcome back!", detail, "Days away", (double) gapDays));
         }
         return tier;
     }
