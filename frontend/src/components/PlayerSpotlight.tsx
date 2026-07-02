@@ -51,10 +51,16 @@ async function loadSpotlight(): Promise<SpotlightResponse | null> {
         const res = await fetch(`${backend}/api/stats/spotlight/today`, {
             headers: {"accept": "application/json"},
             next: {revalidate: 300, tags: ["spotlight-today"]},
+            signal: AbortSignal.timeout(3000),
         });
-        if (!res.ok) return null; // includes 204 No Content — nobody eligible yet
+        if (res.status === 204) return null; // nobody eligible today — expected, not an error
+        if (!res.ok) {
+            console.error(`PlayerSpotlight: unexpected ${res.status} response from spotlight endpoint`);
+            return null;
+        }
         return await res.json();
-    } catch {
+    } catch (err) {
+        console.error("PlayerSpotlight: failed to load spotlight", err);
         return null;
     }
 }
@@ -63,13 +69,16 @@ export default async function PlayerSpotlight(): Promise<React.ReactElement | nu
     const spotlight = await loadSpotlight();
     if (!spotlight) return null;
 
-    const modifier = INSIGHT_MODIFIER[spotlight.insightType];
+    // Fall back to the MILESTONE styling/emoji for any insightType the frontend
+    // doesn't recognize yet (e.g. a new backend tier deployed before this build).
+    const modifier = INSIGHT_MODIFIER[spotlight.insightType] ?? "milestone";
+    const emoji = INSIGHT_EMOJI[spotlight.insightType] ?? "⭐";
 
     return (
         <aside className={`player-spotlight player-spotlight--${modifier}`} aria-label="Player spotlight">
             <p className="player-spotlight__eyebrow">Good vibes</p>
             <p className="player-spotlight__headline">
-                <span className="player-spotlight__emoji" aria-hidden="true">{INSIGHT_EMOJI[spotlight.insightType]}</span>
+                <span className="player-spotlight__emoji" aria-hidden="true">{emoji}</span>
                 {' '}
                 <Link href={`/profile/${encodeURIComponent(spotlight.steamId)}`}>
                     <strong>{spotlight.personaName}</strong>

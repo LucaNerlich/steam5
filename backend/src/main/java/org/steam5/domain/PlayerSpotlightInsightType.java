@@ -36,7 +36,7 @@ public enum PlayerSpotlightInsightType {
     BEAT_THE_ODDS,
     WELCOME_BACK,
     MOST_IMPROVED,
-    WEEKLY_ACHIEVEMENT,
     HOT_STREAK,
+    WEEKLY_ACHIEVEMENT,
     MILESTONE
 }

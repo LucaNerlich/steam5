@@ -372,6 +372,26 @@ class PlayerSpotlightServiceTest {
     }
 
     @Test
+    void fallsBackToWeeklyAchievementWhenNoCompetitiveTierQualifies() {
+        final GuessRepository.AllTimeStatsRow achiever = allTimeRow("achiever", 100, 2.0);
+        stubAllTimeStats(achiever);
+
+        final List<GuessRepository.UserDateRow> dates = consecutiveDaysEnding("achiever", today, 1);
+        when(guessRepository.findDistinctDatesUpToForUsers(anyList(), eq(today))).thenReturn(dates);
+
+        final StatisticsService.UserLabel label = new StatisticsService.UserLabel(
+                "achiever", StatisticsService.UserAchievement.SHARPSHOOTER, null, 4.2, null, null, null);
+        when(statisticsService.getUserAchievementsWeekly()).thenReturn(List.of(label));
+
+        service.computeAndPersistForToday();
+
+        final ArgumentCaptor<PlayerSpotlight> captor = ArgumentCaptor.forClass(PlayerSpotlight.class);
+        verify(playerSpotlightRepository).save(captor.capture());
+        assertEquals("achiever", captor.getValue().getSteamId());
+        assertEquals(PlayerSpotlightInsightType.WEEKLY_ACHIEVEMENT, captor.getValue().getInsightType());
+    }
+
+    @Test
     void milestoneTierUsesNiceNumberFramingWhenRoundsAreCloseToAMilestone() {
         final GuessRepository.AllTimeStatsRow almostCentury = mock(GuessRepository.AllTimeStatsRow.class);
         when(almostCentury.getSteamId()).thenReturn("almostCentury");
@@ -390,5 +410,29 @@ class PlayerSpotlightServiceTest {
         verify(playerSpotlightRepository).save(captor.capture());
         assertEquals(PlayerSpotlightInsightType.MILESTONE, captor.getValue().getInsightType());
         assertEquals("Closing in on 100 rounds — only 2 away!", captor.getValue().getDetail());
+    }
+
+    @Test
+    void milestoneTierUsesNiceNumberFramingWhenLifetimePointsAreCloseToAMilestone() {
+        // Rounds (150) sit far from any ROUND_MILESTONES entry, so this only passes
+        // if the lifetime-points branch (checked via .or(...) after the rounds check)
+        // is actually reached and correctly formatted.
+        final GuessRepository.AllTimeStatsRow almostThousandPoints = mock(GuessRepository.AllTimeStatsRow.class);
+        when(almostThousandPoints.getSteamId()).thenReturn("almostThousandPoints");
+        when(almostThousandPoints.getRounds()).thenReturn(150L);
+        when(almostThousandPoints.getAvgPoints()).thenReturn(2.0);
+        when(almostThousandPoints.getTotalPoints()).thenReturn(995L);
+        stubAllTimeStats(almostThousandPoints);
+
+        final List<GuessRepository.UserDateRow> dates = consecutiveDaysEnding("almostThousandPoints", today, 1);
+        when(guessRepository.findDistinctDatesUpToForUsers(anyList(), eq(today)))
+                .thenReturn(dates);
+
+        service.computeAndPersistForToday();
+
+        final ArgumentCaptor<PlayerSpotlight> captor = ArgumentCaptor.forClass(PlayerSpotlight.class);
+        verify(playerSpotlightRepository).save(captor.capture());
+        assertEquals(PlayerSpotlightInsightType.MILESTONE, captor.getValue().getInsightType());
+        assertEquals("Closing in on 1,000 lifetime points — only 5 away!", captor.getValue().getDetail());
     }
 }
