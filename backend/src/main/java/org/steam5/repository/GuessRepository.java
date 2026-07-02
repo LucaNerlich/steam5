@@ -18,6 +18,20 @@ public interface GuessRepository extends JpaRepository<Guess, Long> {
      */
     List<Guess> findBySteamIdOrderByGameDateDescRoundIndexAsc(String steamId);
 
+    /**
+     * Batched form of {@link #findBySteamIdOrderByGameDateDescRoundIndexAsc(String)} for a
+     * whole candidate pool at once (e.g. PlayerSpotlightService), avoiding an N+1 pattern
+     * across per-tier per-candidate lookups. Callers group the result by steamId in memory.
+     */
+    List<Guess> findBySteamIdIn(List<String> steamIds);
+
+    /**
+     * All players' guesses for one specific (date, round) pair in a single query — used to
+     * check every eligible candidate's result on a single shared round (e.g. "yesterday's
+     * hardest round") without querying per candidate.
+     */
+    List<Guess> findByGameDateAndRoundIndex(LocalDate gameDate, int roundIndex);
+
     @Query("select g from Guess g where g.steamId = :steamId and g.gameDate = :date order by g.roundIndex asc")
     List<Guess> findAllForDay(@Param("steamId") String steamId, @Param("date") LocalDate date);
 

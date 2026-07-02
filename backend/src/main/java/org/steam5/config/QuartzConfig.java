@@ -107,4 +107,17 @@ public class QuartzConfig {
                 )
                 .build();
     }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "jobs.player-spotlight", name = "enabled", havingValue = "true", matchIfMissing = false)
+    public Trigger triggerPlayerSpotlightJob(@Qualifier("PlayerSpotlightJob") JobDetail job) {
+        return TriggerBuilder.newTrigger().forJob(job)
+                .withIdentity("PlayerSpotlightJob_Trigger")
+                // daily at 00:15, after season backfill/finalizer have settled streak data
+                .withSchedule(
+                        CronScheduleBuilder.cronSchedule("0 15 0 * * ?")
+                                .inTimeZone(TimeZone.getTimeZone("UTC"))
+                )
+                .build();
+    }
 }

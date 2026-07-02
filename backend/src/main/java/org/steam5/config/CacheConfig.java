@@ -150,6 +150,15 @@ public class CacheConfig {
                         .build()
         );
 
+        final CaffeineCache playerSpotlights = new CaffeineCache(
+                "player-spotlights",
+                Caffeine.newBuilder()
+                        .expireAfterWrite(1, TimeUnit.HOURS)
+                        .maximumSize(500)
+                        .recordStats()
+                        .build()
+        );
+
         final SimpleCacheManager cacheManager = new SimpleCacheManager();
         cacheManager.setCaches(List.of(
                 cacheOneHour,
@@ -166,7 +175,8 @@ public class CacheConfig {
                 seasonAwardsResponse,
                 seasonDetailResponse,
                 seasonAwards,
-                playerAwards
+                playerAwards,
+                playerSpotlights
         ));
         return cacheManager;
     }

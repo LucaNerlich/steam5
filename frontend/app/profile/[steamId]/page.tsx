@@ -8,6 +8,7 @@ import {formatDate, ordinal, placementTier} from "@/lib/format";
 import {flattenDayRounds} from "@/lib/rounds";
 import {BACKEND_ORIGIN as backend} from "@/lib/backend";
 import {formatAwardMetric} from "@/lib/seasons";
+import {INSIGHT_EMOJI, type InsightType} from "@/components/PlayerSpotlight";
 
 type ProfileResponse = {
     steamId: string;
@@ -45,6 +46,14 @@ type ProfileResponse = {
         metricValue: number;
         tiebreakRoll?: number | null;
     }>;
+    spotlights: Array<{
+        gameDate: string;
+        insightType: InsightType;
+        headline: string;
+        detail: string;
+        statLabel?: string | null;
+        statValue?: number | null;
+    }>;
 };
 
 export default async function ProfilePage({params}: { params: { steamId: string } }) {
@@ -63,6 +72,7 @@ export default async function ProfilePage({params}: { params: { steamId: string 
 
     const awards = data.awards ?? [];
     const awardSeasons = groupAwardsBySeason(awards);
+    const spotlights = data.spotlights ?? [];
 
     return (
         <section className="container">
@@ -136,6 +146,29 @@ export default async function ProfilePage({params}: { params: { steamId: string 
                                 </article>
                             ))}
                         </div>
+                    )}
+                </section>
+
+                <section aria-labelledby="spotlights-title">
+                    <h2 id="spotlights-title">Spotlight history</h2>
+                    {spotlights.length === 0 ? (
+                        <p className="muted">No spotlight appearances yet.</p>
+                    ) : (
+                        <ul className="profile__spotlight-list">
+                            {spotlights.map(s => (
+                                <li className="profile__spotlight-row" key={s.gameDate}>
+                                    <span className="profile__spotlight-badge" aria-hidden="true">
+                                        {INSIGHT_EMOJI[s.insightType] ?? "⭐"}
+                                    </span>
+                                    <div className="profile__spotlight-content">
+                                        <p className="profile__spotlight-headline">
+                                            {s.headline} <span className="profile__spotlight-date">{formatDate(s.gameDate)}</span>
+                                        </p>
+                                        <p className="profile__spotlight-detail">{s.detail}</p>
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
                     )}
                 </section>
 
