@@ -33,10 +33,19 @@ import java.util.stream.Collectors;
  * round 1. Eligibility requires an established, currently-active player (min
  * rounds all-time, played recently) so the spotlight never features a fluke.
  * <p>
- * Selection is "best story wins": the highest-priority tier
- * ({@link PlayerSpotlightInsightType}) that has at least one qualifying
- * candidate is used, with a date-seeded random pick among ties so the same
- * story holds for the whole day but rotates daily.
+ * Selection is a lottery, not a priority ladder: every tier in the fixed-order
+ * "competitive pool" (DAY_STREAK, BEST_DAY_EVER, BEAT_THE_ODDS, WELCOME_BACK,
+ * MOST_IMPROVED, HOT_STREAK) that has at least one qualifying candidate is
+ * added to a list, and one entry is drawn uniformly at random via
+ * {@code new Random(today.toEpochDay())}. This means no single ambient tier
+ * (e.g. DAY_STREAK, which is easy to qualify for) can dominate just because
+ * it's evaluated first — it only gets an edge if it's the ONLY tier that
+ * qualifies. When the competitive pool has zero qualifying tiers, two
+ * sequential fallbacks are tried in order: WEEKLY_ACHIEVEMENT, then
+ * MILESTONE (which always has at least one candidate among the eligible
+ * pool, guaranteeing a spotlight is always produced). Ties within a chosen
+ * tier are broken by the same date-seeded {@link Random}, so the result is
+ * stable for the whole day but rotates daily.
  */
 @Service
 @RequiredArgsConstructor

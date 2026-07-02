@@ -312,6 +312,66 @@ class PlayerSpotlightServiceTest {
     }
 
     @Test
+    void lotteryPicksAmongMultipleQualifyingCompetitiveTiers() {
+        // Two candidates, each qualifying for a *different* competitive tier at the
+        // same time: "streaker" qualifies for DAY_STREAK (reusing the fixture from
+        // dayStreakTierOutranksMilestoneFallback) and "improver" qualifies for
+        // MOST_IMPROVED (reusing the fixture from
+        // mostImprovedTierWinsWhenRecentFormIsClearlyBetterThanBefore). This is the
+        // first test in the suite where qualifying.size() > 1, so it's the first to
+        // actually exercise the random draw in compute() rather than the
+        // single-candidate short-circuit every other tier test relies on.
+        final GuessRepository.AllTimeStatsRow streaker = allTimeRow("streaker", 100, 2.0);
+        final GuessRepository.AllTimeStatsRow improver = allTimeRow("improver", 100, 2.0);
+        stubAllTimeStats(streaker, improver);
+
+        final List<GuessRepository.UserDateRow> allDates = new ArrayList<>();
+        allDates.addAll(consecutiveDaysEnding("streaker", today, 6)); // active 6-day streak, >= MIN_DAY_STREAK
+        allDates.addAll(consecutiveDaysEnding("improver", today, 1)); // only played today — too short for DAY_STREAK
+        when(guessRepository.findDistinctDatesUpToForUsers(anyList(), eq(today))).thenReturn(allDates);
+
+        final LocalDate last30Start = today.minusDays(30);
+        final LocalDate last30End = today.minusDays(1);
+        final LocalDate prior30Start = today.minusDays(60);
+        final LocalDate prior30End = today.minusDays(31);
+
+        final List<Guess> last30 = new ArrayList<>();
+        for (int i = 0; i < 15; i++) last30.add(guess("improver", last30Start.plusDays(i), 4));
+        final List<Guess> prior30 = new ArrayList<>();
+        for (int i = 0; i < 15; i++) prior30.add(guess("improver", prior30Start.plusDays(i), 2));
+
+        when(guessRepository.findBySteamIdBetween("improver", last30Start, last30End)).thenReturn(last30);
+        when(guessRepository.findBySteamIdBetween("improver", prior30Start, prior30End)).thenReturn(prior30);
+
+        // Neither candidate spuriously qualifies for the other's tier or for
+        // BEST_DAY_EVER / BEAT_THE_ODDS / WELCOME_BACK / HOT_STREAK:
+        // - "streaker" has only 1 all-time-window guess stubbed (the setUp() default
+        //   empty list for findBySteamIdBetween), so it never clears the
+        //   MOST_IMPROVED_MIN_ROUNDS_PER_WINDOW/HOT_STREAK round-count floors.
+        // - "improver" has only a single date in datesDesc, so its current streak is
+        //   1 (< MIN_DAY_STREAK) and it has no second date for WELCOME_BACK's gap check.
+        // - BEST_DAY_EVER and BEAT_THE_ODDS rely on findBySteamIdOrderByGameDateDescRoundIndexAsc
+        //   / findRoundAvgScoresInRange, both left at setUp()'s default empty-list stubs.
+        service.computeAndPersistForToday();
+
+        final ArgumentCaptor<PlayerSpotlight> captor = ArgumentCaptor.forClass(PlayerSpotlight.class);
+        verify(playerSpotlightRepository).save(captor.capture());
+
+        // Independently reproduce the documented lottery: qualifying tiers are collected
+        // in compute()'s fixed evaluation order (DAY_STREAK before MOST_IMPROVED here),
+        // then one is drawn via new Random(today.toEpochDay()).nextInt(qualifying.size()).
+        final List<PlayerSpotlightInsightType> qualifyingInOrder =
+                List.of(PlayerSpotlightInsightType.DAY_STREAK, PlayerSpotlightInsightType.MOST_IMPROVED);
+        final int expectedIndex = new Random(today.toEpochDay()).nextInt(qualifyingInOrder.size());
+        final PlayerSpotlightInsightType expectedType = qualifyingInOrder.get(expectedIndex);
+        final String expectedSteamId =
+                expectedType == PlayerSpotlightInsightType.DAY_STREAK ? "streaker" : "improver";
+
+        assertEquals(expectedType, captor.getValue().getInsightType());
+        assertEquals(expectedSteamId, captor.getValue().getSteamId());
+    }
+
+    @Test
     void milestoneTierUsesNiceNumberFramingWhenRoundsAreCloseToAMilestone() {
         final GuessRepository.AllTimeStatsRow almostCentury = mock(GuessRepository.AllTimeStatsRow.class);
         when(almostCentury.getSteamId()).thenReturn("almostCentury");
