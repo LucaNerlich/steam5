@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.steam5.service.PlayerSpotlightService;
 import org.steam5.service.StatisticsService;
 
 import java.util.LinkedHashMap;
@@ -22,6 +23,7 @@ import java.util.Map;
 public class StatisticsController {
 
     private final StatisticsService statisticsService;
+    private final PlayerSpotlightService playerSpotlightService;
 
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Map<String, String>> indexJson() {
@@ -32,7 +34,17 @@ public class StatisticsController {
         links.put("reviewBuckets", "/api/stats/reviews/buckets");
         links.put("userAchievements", "/api/stats/users/achievements");
         links.put("gameStatistics", "/api/stats/game");
+        links.put("spotlight", "/api/stats/spotlight/today");
         return ResponseEntity.ok(links);
+    }
+
+    @GetMapping(value = "/spotlight/today", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<PlayerSpotlightService.SpotlightResponse> spotlightToday() {
+        return playerSpotlightService.getTodaySpotlight()
+                .map(spotlight -> ResponseEntity.ok()
+                        .header("Cache-Control", "public, s-maxage=3600, max-age=300")
+                        .body(spotlight))
+                .orElseGet(() -> ResponseEntity.noContent().build());
     }
 
     @GetMapping(value = "/genres", produces = MediaType.APPLICATION_JSON_VALUE)

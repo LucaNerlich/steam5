@@ -32,3 +32,5 @@ jobs:
     enabled: true
   seasons-backfill:
     enabled: true
+  player-spotlight:
+    enabled: true
