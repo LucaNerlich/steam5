@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.11.0] - 2026-07-02
+
+### Added
+
+- A "Player Spotlight" box now appears on round 1 of each day, highlighting one active player with a good-vibes story — an active streak, a personal-best day, nailing the day's toughest round, a comeback after a break, steady improvement over the month, or a milestone
+- Player profiles now show a history of the Spotlight appearances that player has had
+
 ## [1.10.0] - 2026-07-01
 
 ### Added
