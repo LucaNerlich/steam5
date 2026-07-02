@@ -45,6 +45,7 @@ public class PlayerSpotlightService {
     private static final int MIN_TOTAL_ROUNDS = 70;
     private static final int RECENCY_WINDOW_DAYS = 14;
     private static final int MIN_DAY_STREAK = 5;
+    private static final int MIN_PRIOR_DAYS_FOR_BEST_DAY_EVER = 2;
     private static final int HOT_STREAK_WINDOW_DAYS = 14;
     private static final int MIN_RECENT_ROUNDS_FOR_HOT_STREAK = 5;
     private static final double HOT_STREAK_RELATIVE_THRESHOLD = 1.2; // recent avg must be >= 20% above all-time avg
@@ -104,8 +105,10 @@ public class PlayerSpotlightService {
         // "Competitive pool": every tier here that has >=1 qualifying candidate goes
         // into a lottery, so no single ambient tier (e.g. DAY_STREAK) can dominate
         // just because it's the easiest to qualify for on any given day.
+        final LocalDate yesterday = today.minusDays(1);
         final List<QualifyingTier> qualifying = new ArrayList<>();
         addIfQualifying(qualifying, PlayerSpotlightInsightType.DAY_STREAK, evaluateDayStreakTier(eligible, today));
+        addIfQualifying(qualifying, PlayerSpotlightInsightType.BEST_DAY_EVER, evaluateBestDayEverTier(eligible, yesterday));
         addIfQualifying(qualifying, PlayerSpotlightInsightType.HOT_STREAK, evaluateHotStreakTier(eligible, today));
 
         if (!qualifying.isEmpty()) {
@@ -178,6 +181,34 @@ public class PlayerSpotlightService {
                     : String.format("On a %d-day streak of playing every day.", currentStreak);
             tier.add(new Tiered(c.steamId(), PlayerSpotlightInsightType.DAY_STREAK,
                     "On a hot streak!", detail, "Day streak", (double) currentStreak));
+        }
+        return tier;
+    }
+
+    private List<Tiered> evaluateBestDayEverTier(final List<Candidate> eligible, final LocalDate yesterday) {
+        final List<Tiered> tier = new ArrayList<>();
+        for (final Candidate c : eligible) {
+            final List<Guess> history = guessRepository.findBySteamIdOrderByGameDateDescRoundIndexAsc(c.steamId());
+            final Map<LocalDate, Integer> dailyTotals = history.stream()
+                    .collect(Collectors.groupingBy(Guess::getGameDate, Collectors.summingInt(Guess::getPoints)));
+
+            final Integer yesterdayTotal = dailyTotals.get(yesterday);
+            if (yesterdayTotal == null) continue;
+
+            final List<Integer> priorTotals = dailyTotals.entrySet().stream()
+                    .filter(e -> !e.getKey().equals(yesterday))
+                    .map(Map.Entry::getValue)
+                    .toList();
+            if (priorTotals.size() < MIN_PRIOR_DAYS_FOR_BEST_DAY_EVER) continue;
+
+            final int previousBest = Collections.max(priorTotals);
+            if (yesterdayTotal <= previousBest) continue;
+
+            final String detail = String.format(
+                    "Scored %d points yesterday — a new personal best, beating their previous high of %d.",
+                    yesterdayTotal, previousBest);
+            tier.add(new Tiered(c.steamId(), PlayerSpotlightInsightType.BEST_DAY_EVER,
+                    "Best day ever!", detail, "Yesterday's points", (double) yesterdayTotal));
         }
         return tier;
     }

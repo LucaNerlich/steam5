@@ -4,6 +4,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.steam5.domain.GameDate;
+import org.steam5.domain.Guess;
 import org.steam5.domain.PlayerSpotlight;
 import org.steam5.domain.PlayerSpotlightInsightType;
 import org.steam5.repository.GuessRepository;
@@ -42,6 +43,7 @@ class PlayerSpotlightServiceTest {
         when(playerSpotlightRepository.existsById(any())).thenReturn(false);
         when(statisticsService.getUserAchievementsWeekly()).thenReturn(List.of());
         when(guessRepository.findBySteamIdBetween(anyString(), any(), any())).thenReturn(List.of());
+        when(guessRepository.findBySteamIdOrderByGameDateDescRoundIndexAsc(anyString())).thenReturn(List.of());
     }
 
     // NOTE: mocks referenced by an outer when(...).thenReturn(...) must be fully built
@@ -69,6 +71,14 @@ class PlayerSpotlightServiceTest {
             rows.add(dateRow(steamId, lastDate.minusDays(i)));
         }
         return rows;
+    }
+
+    private Guess guess(String steamId, LocalDate date, int points) {
+        final Guess g = new Guess();
+        g.setSteamId(steamId);
+        g.setGameDate(date);
+        g.setPoints(points);
+        return g;
     }
 
     private void stubAllTimeStats(GuessRepository.AllTimeStatsRow... rows) {
@@ -187,5 +197,29 @@ class PlayerSpotlightServiceTest {
         final List<String> sorted = List.of("playerA", "playerB").stream().sorted().toList();
         final int expectedIndex = new Random(today.toEpochDay()).nextInt(sorted.size());
         assertEquals(sorted.get(expectedIndex), picked);
+    }
+
+    @Test
+    void bestDayEverTierWinsWhenYesterdayIsANewPersonalRecord() {
+        final LocalDate yesterday = today.minusDays(1);
+        final GuessRepository.AllTimeStatsRow recordBreaker = allTimeRow("recordBreaker", 100, 2.0);
+        stubAllTimeStats(recordBreaker);
+
+        final List<GuessRepository.UserDateRow> dates = consecutiveDaysEnding("recordBreaker", yesterday, 1);
+        when(guessRepository.findDistinctDatesUpToForUsers(anyList(), eq(today))).thenReturn(dates);
+
+        final List<Guess> history = List.of(
+                guess("recordBreaker", yesterday.minusDays(10), 8),
+                guess("recordBreaker", yesterday.minusDays(5), 12),
+                guess("recordBreaker", yesterday, 24)
+        );
+        when(guessRepository.findBySteamIdOrderByGameDateDescRoundIndexAsc("recordBreaker")).thenReturn(history);
+
+        service.computeAndPersistForToday();
+
+        final ArgumentCaptor<PlayerSpotlight> captor = ArgumentCaptor.forClass(PlayerSpotlight.class);
+        verify(playerSpotlightRepository).save(captor.capture());
+        assertEquals("recordBreaker", captor.getValue().getSteamId());
+        assertEquals(PlayerSpotlightInsightType.BEST_DAY_EVER, captor.getValue().getInsightType());
     }
 }
