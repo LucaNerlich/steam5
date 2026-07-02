@@ -101,24 +101,34 @@ public class PlayerSpotlightService {
             return Optional.empty();
         }
 
-        final List<Tiered> dayStreakTier = evaluateDayStreakTier(eligible, today);
-        if (!dayStreakTier.isEmpty()) {
-            return Optional.of(toEntity(today, pickOne(dayStreakTier, today)));
+        // "Competitive pool": every tier here that has >=1 qualifying candidate goes
+        // into a lottery, so no single ambient tier (e.g. DAY_STREAK) can dominate
+        // just because it's the easiest to qualify for on any given day.
+        final List<QualifyingTier> qualifying = new ArrayList<>();
+        addIfQualifying(qualifying, PlayerSpotlightInsightType.DAY_STREAK, evaluateDayStreakTier(eligible, today));
+        addIfQualifying(qualifying, PlayerSpotlightInsightType.HOT_STREAK, evaluateHotStreakTier(eligible, today));
+
+        if (!qualifying.isEmpty()) {
+            final Random random = new Random(today.toEpochDay());
+            final QualifyingTier chosen = qualifying.get(random.nextInt(qualifying.size()));
+            return Optional.of(toEntity(today, pickOne(chosen.candidates(), random)));
         }
 
         final List<Tiered> achievementTier = evaluateWeeklyAchievementTier(eligible);
         if (!achievementTier.isEmpty()) {
-            return Optional.of(toEntity(today, pickOne(achievementTier, today)));
-        }
-
-        final List<Tiered> hotStreakTier = evaluateHotStreakTier(eligible, today);
-        if (!hotStreakTier.isEmpty()) {
-            return Optional.of(toEntity(today, pickOne(hotStreakTier, today)));
+            return Optional.of(toEntity(today, pickOne(achievementTier, new Random(today.toEpochDay()))));
         }
 
         // Guaranteed fallback: always show someone among the eligible pool.
         final List<Tiered> milestoneTier = evaluateMilestoneTier(eligible);
-        return Optional.of(toEntity(today, pickOne(milestoneTier, today)));
+        return Optional.of(toEntity(today, pickOne(milestoneTier, new Random(today.toEpochDay()))));
+    }
+
+    private void addIfQualifying(final List<QualifyingTier> qualifying, final PlayerSpotlightInsightType type,
+                                  final List<Tiered> candidates) {
+        if (!candidates.isEmpty()) {
+            qualifying.add(new QualifyingTier(type, candidates));
+        }
     }
 
     private List<Candidate> findEligibleCandidates(final LocalDate today) {
@@ -247,12 +257,11 @@ public class PlayerSpotlightService {
         };
     }
 
-    /** Stable-for-the-day, rotating-by-date pick among candidates tied in the same tier. */
-    private Tiered pickOne(final List<Tiered> tier, final LocalDate today) {
+    /** Stable-for-the-day pick among candidates tied in the same tier, using the caller's Random. */
+    private Tiered pickOne(final List<Tiered> tier, final Random random) {
         final List<Tiered> sorted = tier.stream()
                 .sorted(Comparator.comparing(Tiered::steamId))
                 .toList();
-        final Random random = new Random(today.toEpochDay());
         return sorted.get(random.nextInt(sorted.size()));
     }
 
@@ -273,6 +282,9 @@ public class PlayerSpotlightService {
 
     private record Tiered(String steamId, PlayerSpotlightInsightType insightType, String headline, String detail,
                            String statLabel, Double statValue) {
+    }
+
+    private record QualifyingTier(PlayerSpotlightInsightType type, List<Tiered> candidates) {
     }
 
     private record AchievementText(String headline, String detail, String statLabel, Double statValue) {
