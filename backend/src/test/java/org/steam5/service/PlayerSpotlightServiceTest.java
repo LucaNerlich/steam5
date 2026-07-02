@@ -310,4 +310,25 @@ class PlayerSpotlightServiceTest {
         assertEquals("improver", captor.getValue().getSteamId());
         assertEquals(PlayerSpotlightInsightType.MOST_IMPROVED, captor.getValue().getInsightType());
     }
+
+    @Test
+    void milestoneTierUsesNiceNumberFramingWhenRoundsAreCloseToAMilestone() {
+        final GuessRepository.AllTimeStatsRow almostCentury = mock(GuessRepository.AllTimeStatsRow.class);
+        when(almostCentury.getSteamId()).thenReturn("almostCentury");
+        when(almostCentury.getRounds()).thenReturn(98L);
+        when(almostCentury.getAvgPoints()).thenReturn(2.0);
+        when(almostCentury.getTotalPoints()).thenReturn(400L);
+        stubAllTimeStats(almostCentury);
+
+        final List<GuessRepository.UserDateRow> dates = consecutiveDaysEnding("almostCentury", today, 1);
+        when(guessRepository.findDistinctDatesUpToForUsers(anyList(), eq(today)))
+                .thenReturn(dates);
+
+        service.computeAndPersistForToday();
+
+        final ArgumentCaptor<PlayerSpotlight> captor = ArgumentCaptor.forClass(PlayerSpotlight.class);
+        verify(playerSpotlightRepository).save(captor.capture());
+        assertEquals(PlayerSpotlightInsightType.MILESTONE, captor.getValue().getInsightType());
+        assertEquals("Closing in on 100 rounds — only 2 away!", captor.getValue().getDetail());
+    }
 }

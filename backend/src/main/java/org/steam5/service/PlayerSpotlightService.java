@@ -59,6 +59,9 @@ public class PlayerSpotlightService {
     private static final int MIN_RECENT_ROUNDS_FOR_HOT_STREAK = 5;
     private static final double HOT_STREAK_RELATIVE_THRESHOLD = 1.2; // recent avg must be >= 20% above all-time avg
     private static final double HOT_STREAK_ABSOLUTE_DELTA = 0.3;    // ...and at least this many points better
+    private static final List<Long> ROUND_MILESTONES = List.of(100L, 250L, 500L, 1000L);
+    private static final List<Long> POINTS_MILESTONES = List.of(1000L, 5000L, 10000L);
+    private static final long MILESTONE_TRAILING_WINDOW = 5;
 
     private final GuessRepository guessRepository;
     private final UserRepository userRepository;
@@ -345,14 +348,28 @@ public class PlayerSpotlightService {
     private List<Tiered> evaluateMilestoneTier(final List<Candidate> eligible) {
         final List<Tiered> tier = new ArrayList<>();
         for (final Candidate c : eligible) {
+            final long rounds = c.allTime().getRounds();
+            final long totalPoints = c.allTime().getTotalPoints() != null ? c.allTime().getTotalPoints() : 0L;
             final double avgPoints = c.allTime().getAvgPoints() != null ? c.allTime().getAvgPoints() : 0.0;
-            final String detail = String.format(
-                    "Has played %d rounds and counting, averaging %.1f pts/round.",
-                    c.allTime().getRounds(), avgPoints);
+
+            final String detail = nearestMilestoneDetail(rounds, ROUND_MILESTONES, "rounds")
+                    .or(() -> nearestMilestoneDetail(totalPoints, POINTS_MILESTONES, "lifetime points"))
+                    .orElseGet(() -> String.format("Has played %d rounds and counting, averaging %.1f pts/round.",
+                            rounds, avgPoints));
+
             tier.add(new Tiered(c.steamId(), PlayerSpotlightInsightType.MILESTONE,
-                    "A steady presence!", detail, "Rounds played", (double) c.allTime().getRounds()));
+                    "A steady presence!", detail, "Rounds played", (double) rounds));
         }
         return tier;
+    }
+
+    private Optional<String> nearestMilestoneDetail(final long value, final List<Long> milestones, final String unitLabel) {
+        return milestones.stream()
+                .filter(milestone -> Math.abs(value - milestone) <= MILESTONE_TRAILING_WINDOW)
+                .findFirst()
+                .map(milestone -> value >= milestone
+                        ? String.format("Just crossed %,d %s — now at %,d!", milestone, unitLabel, value)
+                        : String.format("Closing in on %,d %s — only %,d away!", milestone, unitLabel, milestone - value));
     }
 
     private AchievementText describeAchievement(final StatisticsService.UserLabel label) {
