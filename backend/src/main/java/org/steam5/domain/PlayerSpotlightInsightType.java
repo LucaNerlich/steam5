@@ -7,6 +7,7 @@ package org.steam5.domain;
 public enum PlayerSpotlightInsightType {
     DAY_STREAK,
     BEST_DAY_EVER,
+    BEAT_THE_ODDS,
     WEEKLY_ACHIEVEMENT,
     HOT_STREAK,
     MILESTONE

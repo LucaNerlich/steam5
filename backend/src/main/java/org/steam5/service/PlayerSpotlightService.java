@@ -46,6 +46,8 @@ public class PlayerSpotlightService {
     private static final int RECENCY_WINDOW_DAYS = 14;
     private static final int MIN_DAY_STREAK = 5;
     private static final int MIN_PRIOR_DAYS_FOR_BEST_DAY_EVER = 2;
+    private static final double HARD_ROUND_MAX_AVG_SCORE = 2.0;
+    private static final int BEAT_THE_ODDS_MIN_POINTS = 4;
     private static final int HOT_STREAK_WINDOW_DAYS = 14;
     private static final int MIN_RECENT_ROUNDS_FOR_HOT_STREAK = 5;
     private static final double HOT_STREAK_RELATIVE_THRESHOLD = 1.2; // recent avg must be >= 20% above all-time avg
@@ -109,6 +111,7 @@ public class PlayerSpotlightService {
         final List<QualifyingTier> qualifying = new ArrayList<>();
         addIfQualifying(qualifying, PlayerSpotlightInsightType.DAY_STREAK, evaluateDayStreakTier(eligible, today));
         addIfQualifying(qualifying, PlayerSpotlightInsightType.BEST_DAY_EVER, evaluateBestDayEverTier(eligible, yesterday));
+        addIfQualifying(qualifying, PlayerSpotlightInsightType.BEAT_THE_ODDS, evaluateBeatTheOddsTier(eligible, yesterday));
         addIfQualifying(qualifying, PlayerSpotlightInsightType.HOT_STREAK, evaluateHotStreakTier(eligible, today));
 
         if (!qualifying.isEmpty()) {
@@ -209,6 +212,32 @@ public class PlayerSpotlightService {
                     yesterdayTotal, previousBest);
             tier.add(new Tiered(c.steamId(), PlayerSpotlightInsightType.BEST_DAY_EVER,
                     "Best day ever!", detail, "Yesterday's points", (double) yesterdayTotal));
+        }
+        return tier;
+    }
+
+    private List<Tiered> evaluateBeatTheOddsTier(final List<Candidate> eligible, final LocalDate yesterday) {
+        final List<GuessRepository.RoundAvgScoreRow> rows = guessRepository.findRoundAvgScoresInRange(yesterday, yesterday);
+        final Optional<GuessRepository.RoundAvgScoreRow> hardestRound = rows.stream()
+                .min(Comparator.comparing(GuessRepository.RoundAvgScoreRow::getAvgScore));
+        if (hardestRound.isEmpty() || hardestRound.get().getAvgScore() >= HARD_ROUND_MAX_AVG_SCORE) {
+            return List.of();
+        }
+
+        final int roundIndex = hardestRound.get().getRoundIndex();
+        final double hardAvg = hardestRound.get().getAvgScore();
+
+        final List<Tiered> tier = new ArrayList<>();
+        for (final Candidate c : eligible) {
+            final Optional<Guess> theirGuess =
+                    guessRepository.findBySteamIdAndGameDateAndRoundIndex(c.steamId(), yesterday, roundIndex);
+            if (theirGuess.isEmpty() || theirGuess.get().getPoints() < BEAT_THE_ODDS_MIN_POINTS) continue;
+
+            final String detail = String.format(
+                    "Nailed yesterday's toughest round (round %d, %.1f avg pts across all players) with %d points.",
+                    roundIndex, hardAvg, theirGuess.get().getPoints());
+            tier.add(new Tiered(c.steamId(), PlayerSpotlightInsightType.BEAT_THE_ODDS,
+                    "Beat the odds!", detail, "Round points", (double) theirGuess.get().getPoints()));
         }
         return tier;
     }

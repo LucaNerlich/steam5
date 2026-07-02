@@ -14,6 +14,7 @@ import org.steam5.repository.UserRepository;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Random;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -44,6 +45,7 @@ class PlayerSpotlightServiceTest {
         when(statisticsService.getUserAchievementsWeekly()).thenReturn(List.of());
         when(guessRepository.findBySteamIdBetween(anyString(), any(), any())).thenReturn(List.of());
         when(guessRepository.findBySteamIdOrderByGameDateDescRoundIndexAsc(anyString())).thenReturn(List.of());
+        when(guessRepository.findRoundAvgScoresInRange(any(), any())).thenReturn(List.of());
     }
 
     // NOTE: mocks referenced by an outer when(...).thenReturn(...) must be fully built
@@ -221,5 +223,34 @@ class PlayerSpotlightServiceTest {
         verify(playerSpotlightRepository).save(captor.capture());
         assertEquals("recordBreaker", captor.getValue().getSteamId());
         assertEquals(PlayerSpotlightInsightType.BEST_DAY_EVER, captor.getValue().getInsightType());
+    }
+
+    @Test
+    void beatTheOddsTierWinsWhenCandidateAcedTheHardestRoundOfTheDay() {
+        final LocalDate yesterday = today.minusDays(1);
+        final GuessRepository.AllTimeStatsRow oddsBeater = allTimeRow("oddsBeater", 100, 2.0);
+        stubAllTimeStats(oddsBeater);
+
+        final List<GuessRepository.UserDateRow> dates = consecutiveDaysEnding("oddsBeater", yesterday, 1);
+        when(guessRepository.findDistinctDatesUpToForUsers(anyList(), eq(today))).thenReturn(dates);
+
+        final GuessRepository.RoundAvgScoreRow hardRound = mock(GuessRepository.RoundAvgScoreRow.class);
+        when(hardRound.getGameDate()).thenReturn(yesterday);
+        when(hardRound.getRoundIndex()).thenReturn(3);
+        when(hardRound.getAvgScore()).thenReturn(1.2);
+        when(hardRound.getPlayerCount()).thenReturn(20L);
+        when(guessRepository.findRoundAvgScoresInRange(yesterday, yesterday)).thenReturn(List.of(hardRound));
+
+        final Guess theirGuess = guess("oddsBeater", yesterday, 5);
+        theirGuess.setRoundIndex(3);
+        when(guessRepository.findBySteamIdAndGameDateAndRoundIndex("oddsBeater", yesterday, 3))
+                .thenReturn(Optional.of(theirGuess));
+
+        service.computeAndPersistForToday();
+
+        final ArgumentCaptor<PlayerSpotlight> captor = ArgumentCaptor.forClass(PlayerSpotlight.class);
+        verify(playerSpotlightRepository).save(captor.capture());
+        assertEquals("oddsBeater", captor.getValue().getSteamId());
+        assertEquals(PlayerSpotlightInsightType.BEAT_THE_ODDS, captor.getValue().getInsightType());
     }
 }
