@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.12.1] - 2026-07-03
+
+### Fixed
+
+- On the "How to Play" page, achievement icons now lead each entry, matching the Player Spotlight list, instead of trailing inside the description text
+
 ## [1.12.0] - 2026-07-03
 
 ### Added
