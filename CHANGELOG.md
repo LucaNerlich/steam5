@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.12.0] - 2026-07-03
+
+### Added
+
+- A new "How to Play" page explains the full game: the review-bucket guessing loop, scoring, streaks, leaderboards and seasons, all achievements, and every Player Spotlight highlight — linked from the footer and from a "How to play?" link next to the guess buttons on the round page
+
 ## [1.11.0] - 2026-07-02
 
 ### Added
