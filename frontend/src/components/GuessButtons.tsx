@@ -1,7 +1,10 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import {useFormStatus} from "react-dom";
+import {QuestionIcon} from "@phosphor-icons/react/ssr";
+import {Routes} from "../../app/routes";
 import "@/styles/components/reviewGuessButtons.css";
 
 type GuessButtonsProps = {
@@ -59,7 +62,14 @@ export default function GuessButtons(props: Readonly<GuessButtonsProps>): React.
 
     return (
         <div className="review-round__guess-body">
-            {helperText ? <p className="review-round__guess-helper">{helperText}</p> : null}
+            {helperText ? (
+                <p className="review-round__guess-helper">
+                    {helperText}{' '}
+                    <Link href={Routes.howToPlay} className="review-round__how-to-link">
+                        <QuestionIcon size={14} weight="bold"/> How to play?
+                    </Link>
+                </p>
+            ) : null}
             <form className="review-round__buttons" onSubmit={handleSubmit} aria-busy={isPending}>
                 <input type="hidden" name="appId" value={appId}/>
                 {buckets.map((label, i) => (

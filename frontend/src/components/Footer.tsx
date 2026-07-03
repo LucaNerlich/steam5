@@ -21,6 +21,8 @@ export default function Footer() {
                         <SeasonCountdown/>
                     </small>
                     <small className="footer__meta-line footer__meta-links text-muted">
+                        <Link href={Routes.howToPlay}>How to Play</Link>
+                        <span>·</span>
                         <Link href={Routes.archive}>Archive</Link>
                         <span>·</span>
                         <Link href={Routes.leaderboardToday}>Leaderboard</Link>

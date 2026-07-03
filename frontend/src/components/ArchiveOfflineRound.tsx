@@ -1,10 +1,13 @@
 "use client";
 
 import React, {useCallback, useMemo, useState} from "react";
+import Link from "next/link";
 import RoundResultDialog from "@/components/RoundResultDialog";
 import RoundResultActions from "@/components/RoundResultActions";
 import type {GuessResponse} from "@/types/review-game";
 import {loadDay, saveRound, type StoredDay} from "@/lib/storage";
+import {QuestionIcon} from "@phosphor-icons/react/ssr";
+import {Routes} from "../../app/routes";
 import "@/styles/components/reviewGuesserRound.css";
 import "@/styles/components/reviewRoundResult.css";
 import "@/styles/components/reviewGuessButtons.css";
@@ -71,7 +74,12 @@ export default function ArchiveOfflineRound(props: Readonly<Props>): React.React
                         <h2 id={`guess-submission-${roundIndex}`}>Submit Your Guess (Offline Play)</h2>
                     </div>
                     <div className="review-round__guess-body">
-                        <p className="review-round__guess-helper">Pick the review bucket that best matches this game.</p>
+                        <p className="review-round__guess-helper">
+                            Pick the review bucket that best matches this game.{' '}
+                            <Link href={Routes.howToPlay} className="review-round__how-to-link">
+                                <QuestionIcon size={14} weight="bold"/> How to play?
+                            </Link>
+                        </p>
                         <div className="review-round__buttons">
                             {buckets.map((label, i) => (
                                 <button

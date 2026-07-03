@@ -30,6 +30,19 @@
     line-height: 1.35;
 }
 
+.review-round__how-to-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    color: var(--color-muted);
+    text-decoration: underline;
+    white-space: nowrap;
+}
+
+.review-round__how-to-link:hover {
+    color: var(--color-primary);
+}
+
 .review-round__buttons {
     display: flex;
     gap: 8px;

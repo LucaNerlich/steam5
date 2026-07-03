@@ -1,0 +1,24 @@
+.how-to-play__buckets,
+.how-to-play__achievements,
+.how-to-play__spotlight {
+    margin: 0.5rem 0 1rem 0;
+    padding: 0;
+    list-style: none;
+}
+
+.how-to-play__buckets li,
+.how-to-play__achievements li,
+.how-to-play__spotlight li {
+    padding: 0.4rem 0.6rem;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.how-to-play__buckets li:last-child,
+.how-to-play__achievements li:last-child,
+.how-to-play__spotlight li:last-child {
+    border-bottom: none;
+}
+
+.how-to-play__spotlight-icon {
+    margin-right: 0.35rem;
+}
