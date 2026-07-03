@@ -1,7 +1,7 @@
 import type {Metadata} from "next";
 import Link from "next/link";
 import {BACKEND_ORIGIN as backend} from "@/lib/backend";
-import {ACHIEVEMENT_LABELS, ACHIEVEMENT_TITLES} from "@/lib/achievements";
+import {ACHIEVEMENT_LABELS, ACHIEVEMENT_TITLES, ACHIEVEMENT_ICONS} from "@/lib/achievements";
 import {INSIGHT_EMOJI, type InsightType} from "@/components/PlayerSpotlight";
 import type {BucketsResponse} from "@/types/review-game";
 import {Routes} from "../routes";
@@ -163,11 +163,17 @@ export default async function HowToPlayPage() {
                 keep results meaningful:
             </p>
             <ul className="how-to-play__achievements">
-                {Object.entries(ACHIEVEMENT_LABELS).map(([key, label]) => (
-                    <li key={key}>
-                        <strong>{label}</strong> &mdash; {ACHIEVEMENT_TITLES[key]}
-                    </li>
-                ))}
+                {Object.entries(ACHIEVEMENT_LABELS).map(([key, label]) => {
+                    const icon = ACHIEVEMENT_ICONS[key];
+                    const rawTitle = ACHIEVEMENT_TITLES[key] ?? '';
+                    const title = icon && rawTitle.endsWith(icon) ? rawTitle.slice(0, -icon.length).trimEnd() : rawTitle;
+                    return (
+                        <li key={key}>
+                            <span className="how-to-play__achievement-icon" aria-hidden="true">{icon}</span>
+                            <strong>{label}</strong> &mdash; {title}
+                        </li>
+                    );
+                })}
             </ul>
 
             <h2>Player Spotlight</h2>
