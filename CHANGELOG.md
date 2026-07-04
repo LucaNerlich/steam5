@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.12.2] - 2026-07-04
+
+### Fixed
+
+- Player Spotlight no longer picks players who played only a handful of rounds recently but were otherwise inactive — it now requires genuinely active play (at least 35 rounds in the last 2 weeks), not just having played on one day
+
 ## [1.12.1] - 2026-07-03
 
 ### Fixed
