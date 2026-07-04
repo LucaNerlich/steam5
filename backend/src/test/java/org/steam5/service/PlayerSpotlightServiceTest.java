@@ -46,6 +46,23 @@ class PlayerSpotlightServiceTest {
         when(guessRepository.findBySteamIdIn(anyList())).thenReturn(List.of());
         when(guessRepository.findRoundAvgScoresInRange(any(), any())).thenReturn(List.of());
         when(guessRepository.findByGameDateAndRoundIndex(any(), anyInt())).thenReturn(List.of());
+        // Default: every requested steamId gets enough (35) low-signal rounds in the recency
+        // window to clear the new activity floor, so most tests don't need to hand-stub this.
+        // Only the count matters here — this is a separate mock from findBySteamIdIn, so it
+        // can never interfere with any tier's own history-based fixture. Tests that need a
+        // candidate to be genuinely inactive override this explicitly (see
+        // excludesPlayersNotActiveInLastTwoWeeks and the dormant-veteran regression test).
+        when(guessRepository.findBySteamIdInAndGameDateBetween(anyList(), any(), any()))
+                .thenAnswer(invocation -> {
+                    final List<String> steamIds = invocation.getArgument(0);
+                    final List<Guess> rows = new ArrayList<>();
+                    for (final String steamId : steamIds) {
+                        for (int i = 0; i < 35; i++) {
+                            rows.add(guess(steamId, today, 2));
+                        }
+                    }
+                    return rows;
+                });
     }
 
     // NOTE: mocks referenced by an outer when(...).thenReturn(...) must be fully built
@@ -115,6 +132,40 @@ class PlayerSpotlightServiceTest {
         allDates.addAll(consecutiveDaysEnding("stale", today.minusDays(20), 1)); // last played 20 days ago
         allDates.addAll(consecutiveDaysEnding("active", today, 1));
         when(guessRepository.findDistinctDatesUpToForUsers(anyList(), eq(today))).thenReturn(allDates);
+
+        // Override the default (which would otherwise auto-grant "stale" 35 recent rounds
+        // too): "stale" is genuinely dormant, so it's simply omitted here, leaving it with a
+        // recent-rounds count of 0.
+        final List<Guess> recentRounds = new ArrayList<>();
+        for (int i = 0; i < 35; i++) recentRounds.add(guess("active", today, 2));
+        when(guessRepository.findBySteamIdInAndGameDateBetween(anyList(), any(), any())).thenReturn(recentRounds);
+
+        service.computeAndPersistForToday();
+
+        final ArgumentCaptor<PlayerSpotlight> captor = ArgumentCaptor.forClass(PlayerSpotlight.class);
+        verify(playerSpotlightRepository).save(captor.capture());
+        assertEquals("active", captor.getValue().getSteamId());
+    }
+
+    @Test
+    void excludesPlayerWithEnoughAllTimeRoundsButNotEnoughRecentRounds() {
+        // Reproduces the reported production bug: a player with 200 all-time rounds who went
+        // quiet, then played a single light day of just 5 rounds "today" — enough to have
+        // satisfied the OLD "played at least once in the last 14 days" check, but far short of
+        // the new 35-rounds-in-14-days activity floor, so this dormant player must be excluded.
+        final GuessRepository.AllTimeStatsRow dormantVeteran = allTimeRow("dormantVeteran", 200, 2.0);
+        final GuessRepository.AllTimeStatsRow active = allTimeRow("active", 100, 2.0);
+        stubAllTimeStats(dormantVeteran, active);
+
+        final List<GuessRepository.UserDateRow> allDates = new ArrayList<>();
+        allDates.addAll(consecutiveDaysEnding("dormantVeteran", today, 1)); // played today, but just a fluke
+        allDates.addAll(consecutiveDaysEnding("active", today, 1));
+        when(guessRepository.findDistinctDatesUpToForUsers(anyList(), eq(today))).thenReturn(allDates);
+
+        final List<Guess> recentRounds = new ArrayList<>();
+        for (int i = 0; i < 5; i++) recentRounds.add(guess("dormantVeteran", today, 2)); // only 5 in the window
+        for (int i = 0; i < 35; i++) recentRounds.add(guess("active", today, 2));
+        when(guessRepository.findBySteamIdInAndGameDateBetween(anyList(), any(), any())).thenReturn(recentRounds);
 
         service.computeAndPersistForToday();
 

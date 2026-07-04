@@ -55,6 +55,7 @@ public class PlayerSpotlightService {
 
     private static final int MIN_TOTAL_ROUNDS = 70;
     private static final int RECENCY_WINDOW_DAYS = 14;
+    private static final int MIN_ROUNDS_IN_RECENCY_WINDOW = 35;
     private static final int MIN_DAY_STREAK = 5;
     private static final int MIN_PRIOR_DAYS_FOR_BEST_DAY_EVER = 2;
     private static final double HARD_ROUND_MAX_AVG_SCORE = 2.0;
@@ -197,13 +198,24 @@ public class PlayerSpotlightService {
                         Collectors.mapping(GuessRepository.UserDateRow::getGameDate, Collectors.toList())
                 ));
 
-        final LocalDate recencyCutoff = today.minusDays(RECENCY_WINDOW_DAYS);
+        // Established (>=70 all-time) isn't enough on its own — a long-dormant veteran who
+        // banked those rounds long ago, then plays a single light day, would otherwise still
+        // qualify. Require genuine current activity: >=35 rounds within the last 14 days. This
+        // subsumes the old "played on at least one day in the last 14 days" check (any candidate
+        // clearing a >0 round-count floor necessarily has at least one date in the window too),
+        // so that separate date check is removed.
+        final LocalDate recencyWindowStart = today.minusDays(RECENCY_WINDOW_DAYS - 1L);
+        final Map<String, Long> recentRoundsBySteamId = guessRepository
+                .findBySteamIdInAndGameDateBetween(candidateIds, recencyWindowStart, today).stream()
+                .collect(Collectors.groupingBy(Guess::getSteamId, Collectors.counting()));
+
         final List<Candidate> eligible = new ArrayList<>();
         for (final String steamId : candidateIds) {
-            final List<LocalDate> datesDesc = datesByUser.getOrDefault(steamId, List.of());
-            if (datesDesc.isEmpty() || datesDesc.get(0).isBefore(recencyCutoff)) {
+            final long roundsInWindow = recentRoundsBySteamId.getOrDefault(steamId, 0L);
+            if (roundsInWindow < MIN_ROUNDS_IN_RECENCY_WINDOW) {
                 continue;
             }
+            final List<LocalDate> datesDesc = datesByUser.getOrDefault(steamId, List.of());
             eligible.add(new Candidate(steamId, eligibleAllTime.get(steamId), datesDesc));
         }
         return eligible;

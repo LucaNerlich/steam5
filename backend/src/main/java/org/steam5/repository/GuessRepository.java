@@ -32,6 +32,14 @@ public interface GuessRepository extends JpaRepository<Guess, Long> {
      */
     List<Guess> findByGameDateAndRoundIndex(LocalDate gameDate, int roundIndex);
 
+    /**
+     * Per-user round counts within a bounded date range, for a specific list of steamIds —
+     * used by PlayerSpotlightService's "currently active" eligibility floor. Bounded so a
+     * pool of long-dormant all-time-qualified players doesn't require fetching their full
+     * (irrelevant) history just to check recent activity.
+     */
+    List<Guess> findBySteamIdInAndGameDateBetween(List<String> steamIds, LocalDate start, LocalDate end);
+
     @Query("select g from Guess g where g.steamId = :steamId and g.gameDate = :date order by g.roundIndex asc")
     List<Guess> findAllForDay(@Param("steamId") String steamId, @Param("date") LocalDate date);
 
