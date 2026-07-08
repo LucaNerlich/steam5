@@ -412,6 +412,70 @@ class PlayerSpotlightServiceTest {
     }
 
     @Test
+    void cooldownExcludesRecentlyFeaturedTierFromLottery() {
+        // Same two-candidate, two-tier setup as lotteryPicksAmongMultipleQualifyingCompetitiveTiers
+        // ("streaker" qualifies for DAY_STREAK, "improver" for MOST_IMPROVED), but DAY_STREAK was
+        // already featured yesterday. The cooldown should drop it from today's pool, leaving
+        // MOST_IMPROVED as the only (and thus deterministic) winner — no need to replicate the RNG.
+        final GuessRepository.AllTimeStatsRow streaker = allTimeRow("streaker", 100, 2.0);
+        final GuessRepository.AllTimeStatsRow improver = allTimeRow("improver", 100, 2.0);
+        stubAllTimeStats(streaker, improver);
+
+        final List<GuessRepository.UserDateRow> allDates = new ArrayList<>();
+        allDates.addAll(consecutiveDaysEnding("streaker", today, 6));
+        allDates.addAll(consecutiveDaysEnding("improver", today, 1));
+        when(guessRepository.findDistinctDatesUpToForUsers(anyList(), eq(today))).thenReturn(allDates);
+
+        final LocalDate last30Start = today.minusDays(30);
+        final LocalDate prior30Start = today.minusDays(60);
+        final List<Guess> history = new ArrayList<>();
+        for (int i = 0; i < 15; i++) history.add(guess("improver", last30Start.plusDays(i), 4));
+        for (int i = 0; i < 15; i++) history.add(guess("improver", prior30Start.plusDays(i), 2));
+        when(guessRepository.findBySteamIdIn(anyList())).thenReturn(history);
+
+        final PlayerSpotlight recentDayStreak = new PlayerSpotlight();
+        recentDayStreak.setGameDate(today.minusDays(1));
+        recentDayStreak.setSteamId("someoneElse");
+        recentDayStreak.setInsightType(PlayerSpotlightInsightType.DAY_STREAK);
+        recentDayStreak.setHeadline("On a hot streak!");
+        recentDayStreak.setDetail("On a 6-day streak of playing every day.");
+        when(playerSpotlightRepository.findByGameDateBetween(any(), any())).thenReturn(List.of(recentDayStreak));
+
+        service.computeAndPersistForToday();
+
+        final ArgumentCaptor<PlayerSpotlight> captor = ArgumentCaptor.forClass(PlayerSpotlight.class);
+        verify(playerSpotlightRepository).save(captor.capture());
+        assertEquals(PlayerSpotlightInsightType.MOST_IMPROVED, captor.getValue().getInsightType());
+        assertEquals("improver", captor.getValue().getSteamId());
+    }
+
+    @Test
+    void cooldownIsIgnoredWhenExcludingTheOnlyQualifyingTierWouldLeaveNoSpotlight() {
+        final GuessRepository.AllTimeStatsRow streaker = allTimeRow("streaker", 100, 2.0);
+        stubAllTimeStats(streaker);
+
+        final List<GuessRepository.UserDateRow> dates = consecutiveDaysEnding("streaker", today, 6);
+        when(guessRepository.findDistinctDatesUpToForUsers(anyList(), eq(today))).thenReturn(dates);
+
+        // DAY_STREAK is the only qualifying tier today, but it was also featured yesterday.
+        // The cooldown must not suppress the entire competitive pool just to enforce variety.
+        final PlayerSpotlight recentDayStreak = new PlayerSpotlight();
+        recentDayStreak.setGameDate(today.minusDays(1));
+        recentDayStreak.setSteamId("streaker");
+        recentDayStreak.setInsightType(PlayerSpotlightInsightType.DAY_STREAK);
+        recentDayStreak.setHeadline("On a hot streak!");
+        recentDayStreak.setDetail("On a 5-day streak of playing every day.");
+        when(playerSpotlightRepository.findByGameDateBetween(any(), any())).thenReturn(List.of(recentDayStreak));
+
+        service.computeAndPersistForToday();
+
+        final ArgumentCaptor<PlayerSpotlight> captor = ArgumentCaptor.forClass(PlayerSpotlight.class);
+        verify(playerSpotlightRepository).save(captor.capture());
+        assertEquals(PlayerSpotlightInsightType.DAY_STREAK, captor.getValue().getInsightType());
+        assertEquals("streaker", captor.getValue().getSteamId());
+    }
+
+    @Test
     void listSpotlightsForPlayerMapsPersistedEntitiesToHistoryEntries() {
         final PlayerSpotlight yesterday = new PlayerSpotlight();
         yesterday.setGameDate(today.minusDays(1));

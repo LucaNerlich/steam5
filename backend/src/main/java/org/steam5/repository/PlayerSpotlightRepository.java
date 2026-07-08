@@ -10,4 +10,7 @@ public interface PlayerSpotlightRepository extends JpaRepository<PlayerSpotlight
 
     /** Most recent spotlights for a player, newest first, capped for a "condensed" profile list. */
     List<PlayerSpotlight> findTop10BySteamIdOrderByGameDateDesc(String steamId);
+
+    /** Spotlights in a date range, used to look up which insight types were recently featured. */
+    List<PlayerSpotlight> findByGameDateBetween(LocalDate start, LocalDate end);
 }

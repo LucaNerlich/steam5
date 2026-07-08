@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.12.3] - 2026-07-08
+
+### Fixed
+
+- Player Spotlight no longer lets the same type of highlight (e.g. "on a hot streak") repeat several days in a row — recently-featured highlight types now sit out for a few days so a wider variety of stories gets shown
+
 ## [1.12.2] - 2026-07-04
 
 ### Fixed

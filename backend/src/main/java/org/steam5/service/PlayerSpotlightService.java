@@ -41,7 +41,12 @@ import java.util.stream.Collectors;
  * {@code new Random(today.toEpochDay())}. This means no single ambient tier
  * (e.g. DAY_STREAK, which is easy to qualify for) can dominate just because
  * it's evaluated first — it only gets an edge if it's the ONLY tier that
- * qualifies. When the competitive pool has zero qualifying tiers, two
+ * qualifies. But some tiers (DAY_STREAK, HOT_STREAK) are ambient enough that
+ * they're often the only one qualifying on a given day, which would still let
+ * them repeat night after night. To spread variety, any tier featured within
+ * the last {@link #TIER_COOLDOWN_DAYS} days is dropped from the pool before
+ * the draw — unless doing so would empty the pool, in which case the cooldown
+ * is ignored so a spotlight is still produced. When the competitive pool has zero qualifying tiers, two
  * sequential fallbacks are tried in order: WEEKLY_ACHIEVEMENT, then
  * MILESTONE (which always has at least one candidate among the eligible
  * pool, guaranteeing a spotlight is always produced). Ties within a chosen
@@ -53,6 +58,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public class PlayerSpotlightService {
 
+    private static final int TIER_COOLDOWN_DAYS = 3;
     private static final int MIN_TOTAL_ROUNDS = 70;
     private static final int RECENCY_WINDOW_DAYS = 14;
     private static final int MIN_ROUNDS_IN_RECENCY_WINDOW = 35;
@@ -157,8 +163,14 @@ public class PlayerSpotlightService {
         addIfQualifying(qualifying, PlayerSpotlightInsightType.HOT_STREAK, evaluateHotStreakTier(eligible, today, historyByPlayer));
 
         if (!qualifying.isEmpty()) {
+            final Set<PlayerSpotlightInsightType> recentlyFeatured = recentlyFeaturedInsightTypes(today);
+            final List<QualifyingTier> freshQualifying = qualifying.stream()
+                    .filter(tier -> !recentlyFeatured.contains(tier.type()))
+                    .toList();
+            final List<QualifyingTier> pool = freshQualifying.isEmpty() ? qualifying : freshQualifying;
+
             final Random random = new Random(today.toEpochDay());
-            final QualifyingTier chosen = qualifying.get(random.nextInt(qualifying.size()));
+            final QualifyingTier chosen = pool.get(random.nextInt(pool.size()));
             return Optional.of(toEntity(today, pickOne(chosen.candidates(), random)));
         }
 
@@ -177,6 +189,15 @@ public class PlayerSpotlightService {
         if (!candidates.isEmpty()) {
             qualifying.add(new QualifyingTier(type, candidates));
         }
+    }
+
+    /** Insight types featured on any of the {@link #TIER_COOLDOWN_DAYS} days before today, so the lottery can skip them. */
+    private Set<PlayerSpotlightInsightType> recentlyFeaturedInsightTypes(final LocalDate today) {
+        final LocalDate windowStart = today.minusDays(TIER_COOLDOWN_DAYS);
+        final LocalDate windowEnd = today.minusDays(1);
+        return playerSpotlightRepository.findByGameDateBetween(windowStart, windowEnd).stream()
+                .map(PlayerSpotlight::getInsightType)
+                .collect(Collectors.toSet());
     }
 
     private List<Candidate> findEligibleCandidates(final LocalDate today) {
