@@ -181,8 +181,13 @@ export default function ShareControls(props: {
     if (inline) {
         return (
             <div className="share-inline">
-                <button type="button" className="btn-success" disabled={namesLoading} onClick={copyToClipboard}
-                        title={namesLoading ? 'Preparing…' : undefined}>Share Results <ExportIcon size={28}/>
+                <button
+                    type="button"
+                    className="btn-success"
+                    disabled={namesLoading}
+                    onClick={copyToClipboard}
+                    title={namesLoading ? 'Preparing…' : undefined}
+                    data-umami-event="share-results">Share Results <ExportIcon size={28}/>
                 </button>
                 <span className={`share-copied ${copied ? 'is-visible' : ''}`}>Copied</span>
             </div>
@@ -191,8 +196,13 @@ export default function ShareControls(props: {
     return (
         <div className="review-round__share">
             <div className="share-inline">
-                <button type="button" className="btn-success" disabled={namesLoading} onClick={copyToClipboard}
-                        title={namesLoading ? 'Preparing…' : undefined}>Share Results <ExportIcon size={28}/>
+                <button
+                    type="button"
+                    className="btn-success"
+                    disabled={namesLoading}
+                    onClick={copyToClipboard}
+                    title={namesLoading ? 'Preparing…' : undefined}
+                    data-umami-event="share-results">Share Results <ExportIcon size={28}/>
                 </button>
                 <span className={`share-copied ${copied ? 'is-visible' : ''}`}>Copied</span>
             </div>
