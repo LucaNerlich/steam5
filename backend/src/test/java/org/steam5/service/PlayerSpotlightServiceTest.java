@@ -210,13 +210,87 @@ class PlayerSpotlightServiceTest {
     }
 
     @Test
-    void doesNothingWhenNoOneIsEligible() {
-        final GuessRepository.AllTimeStatsRow tooFewRounds = allTimeRow("tooFewRounds", 10, 2.0);
-        stubAllTimeStats(tooFewRounds);
+    void doesNothingWhenNoOneHasEverPlayed() {
+        // Not even the last-resort relaxation in findEligibleCandidates() can invent a
+        // candidate when literally nobody has ever recorded a round.
+        stubAllTimeStats();
 
         service.computeAndPersistForToday();
 
         verify(playerSpotlightRepository, never()).save(any());
+    }
+
+    @Test
+    void fallsBackToLastResortCandidateWhenNoOneMeetsTheEstablishedBar() {
+        // Nobody clears the normal 70-rounds/35-in-14-days bar, but someone has played at
+        // least once — the box should still appear via the last-resort relaxation rather than
+        // disappearing for the day.
+        final GuessRepository.AllTimeStatsRow tooFewRounds = allTimeRow("tooFewRounds", 10, 2.0);
+        stubAllTimeStats(tooFewRounds);
+
+        final List<GuessRepository.UserDateRow> dates = consecutiveDaysEnding("tooFewRounds", today, 1);
+        when(guessRepository.findDistinctDatesUpToForUsers(anyList(), eq(today))).thenReturn(dates);
+
+        service.computeAndPersistForToday();
+
+        final ArgumentCaptor<PlayerSpotlight> captor = ArgumentCaptor.forClass(PlayerSpotlight.class);
+        verify(playerSpotlightRepository).save(captor.capture());
+        assertEquals("tooFewRounds", captor.getValue().getSteamId());
+        assertEquals(PlayerSpotlightInsightType.MILESTONE, captor.getValue().getInsightType());
+    }
+
+    @Test
+    void playerCooldownExcludesRecentlyFeaturedPlayerWhenAlternativesExist() {
+        final GuessRepository.AllTimeStatsRow recentlyFeatured = allTimeRow("recentlyFeatured", 100, 2.0);
+        final GuessRepository.AllTimeStatsRow freshPlayer = allTimeRow("freshPlayer", 100, 2.0);
+        stubAllTimeStats(recentlyFeatured, freshPlayer);
+
+        final List<GuessRepository.UserDateRow> allDates = new ArrayList<>();
+        allDates.addAll(consecutiveDaysEnding("recentlyFeatured", today, 1));
+        allDates.addAll(consecutiveDaysEnding("freshPlayer", today, 1));
+        when(guessRepository.findDistinctDatesUpToForUsers(anyList(), eq(today))).thenReturn(allDates);
+
+        // Both candidates only qualify for the MILESTONE fallback (single date, no other
+        // tier-qualifying signal), so once the cooldown drops "recentlyFeatured", "freshPlayer"
+        // is the only remaining candidate — no need to replicate the RNG.
+        final PlayerSpotlight yesterdaySpotlight = new PlayerSpotlight();
+        yesterdaySpotlight.setGameDate(today.minusDays(1));
+        yesterdaySpotlight.setSteamId("recentlyFeatured");
+        yesterdaySpotlight.setInsightType(PlayerSpotlightInsightType.MILESTONE);
+        yesterdaySpotlight.setHeadline("A steady presence!");
+        yesterdaySpotlight.setDetail("Has played 99 rounds and counting, averaging 2.0 pts/round.");
+        when(playerSpotlightRepository.findByGameDateBetween(any(), any())).thenReturn(List.of(yesterdaySpotlight));
+
+        service.computeAndPersistForToday();
+
+        final ArgumentCaptor<PlayerSpotlight> captor = ArgumentCaptor.forClass(PlayerSpotlight.class);
+        verify(playerSpotlightRepository).save(captor.capture());
+        assertEquals("freshPlayer", captor.getValue().getSteamId());
+    }
+
+    @Test
+    void playerCooldownIsIgnoredWhenExcludingTheOnlyEligiblePlayerWouldLeaveNoSpotlight() {
+        final GuessRepository.AllTimeStatsRow onlyPlayer = allTimeRow("onlyPlayer", 100, 2.0);
+        stubAllTimeStats(onlyPlayer);
+
+        final List<GuessRepository.UserDateRow> dates = consecutiveDaysEnding("onlyPlayer", today, 1);
+        when(guessRepository.findDistinctDatesUpToForUsers(anyList(), eq(today))).thenReturn(dates);
+
+        // "onlyPlayer" is the only eligible candidate today, but was also featured yesterday.
+        // The player cooldown must not suppress the entire pool just to enforce variety.
+        final PlayerSpotlight yesterdaySpotlight = new PlayerSpotlight();
+        yesterdaySpotlight.setGameDate(today.minusDays(1));
+        yesterdaySpotlight.setSteamId("onlyPlayer");
+        yesterdaySpotlight.setInsightType(PlayerSpotlightInsightType.MILESTONE);
+        yesterdaySpotlight.setHeadline("A steady presence!");
+        yesterdaySpotlight.setDetail("Has played 99 rounds and counting, averaging 2.0 pts/round.");
+        when(playerSpotlightRepository.findByGameDateBetween(any(), any())).thenReturn(List.of(yesterdaySpotlight));
+
+        service.computeAndPersistForToday();
+
+        final ArgumentCaptor<PlayerSpotlight> captor = ArgumentCaptor.forClass(PlayerSpotlight.class);
+        verify(playerSpotlightRepository).save(captor.capture());
+        assertEquals("onlyPlayer", captor.getValue().getSteamId());
     }
 
     @Test
@@ -246,9 +320,9 @@ class PlayerSpotlightServiceTest {
         final String picked = captor.getValue().getSteamId();
 
         // Both candidates are tied in the MILESTONE tier — the winner must match the
-        // documented tie-break: sort by steamId, then a Random seeded by the epoch day.
+        // documented tie-break: sort by steamId, then a Random seeded by the mixed epoch day.
         final List<String> sorted = List.of("playerA", "playerB").stream().sorted().toList();
-        final int expectedIndex = new Random(today.toEpochDay()).nextInt(sorted.size());
+        final int expectedIndex = new Random(PlayerSpotlightService.mixSeed(today.toEpochDay())).nextInt(sorted.size());
         assertEquals(sorted.get(expectedIndex), picked);
     }
 
@@ -399,10 +473,10 @@ class PlayerSpotlightServiceTest {
 
         // Independently reproduce the documented lottery: qualifying tiers are collected
         // in compute()'s fixed evaluation order (DAY_STREAK before MOST_IMPROVED here),
-        // then one is drawn via new Random(today.toEpochDay()).nextInt(qualifying.size()).
+        // then one is drawn via new Random(mixSeed(today.toEpochDay())).nextInt(qualifying.size()).
         final List<PlayerSpotlightInsightType> qualifyingInOrder =
                 List.of(PlayerSpotlightInsightType.DAY_STREAK, PlayerSpotlightInsightType.MOST_IMPROVED);
-        final int expectedIndex = new Random(today.toEpochDay()).nextInt(qualifyingInOrder.size());
+        final int expectedIndex = new Random(PlayerSpotlightService.mixSeed(today.toEpochDay())).nextInt(qualifyingInOrder.size());
         final PlayerSpotlightInsightType expectedType = qualifyingInOrder.get(expectedIndex);
         final String expectedSteamId =
                 expectedType == PlayerSpotlightInsightType.DAY_STREAK ? "streaker" : "improver";
@@ -538,7 +612,10 @@ class PlayerSpotlightServiceTest {
         final ArgumentCaptor<PlayerSpotlight> captor = ArgumentCaptor.forClass(PlayerSpotlight.class);
         verify(playerSpotlightRepository).save(captor.capture());
         assertEquals(PlayerSpotlightInsightType.MILESTONE, captor.getValue().getInsightType());
-        assertEquals("Closing in on 100 rounds — only 2 away!", captor.getValue().getDetail());
+        final List<String> possibleDetails = PlayerSpotlightService.MILESTONE_CLOSING_IN_DETAILS.stream()
+                .map(template -> String.format(template, 100L, "rounds", 2L))
+                .toList();
+        assertTrue(possibleDetails.contains(captor.getValue().getDetail()));
     }
 
     @Test
@@ -562,6 +639,9 @@ class PlayerSpotlightServiceTest {
         final ArgumentCaptor<PlayerSpotlight> captor = ArgumentCaptor.forClass(PlayerSpotlight.class);
         verify(playerSpotlightRepository).save(captor.capture());
         assertEquals(PlayerSpotlightInsightType.MILESTONE, captor.getValue().getInsightType());
-        assertEquals("Closing in on 1,000 lifetime points — only 5 away!", captor.getValue().getDetail());
+        final List<String> possibleDetails = PlayerSpotlightService.MILESTONE_CLOSING_IN_DETAILS.stream()
+                .map(template -> String.format(template, 1000L, "lifetime points", 5L))
+                .toList();
+        assertTrue(possibleDetails.contains(captor.getValue().getDetail()));
     }
 }
