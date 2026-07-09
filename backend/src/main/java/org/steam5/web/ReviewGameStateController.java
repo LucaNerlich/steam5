@@ -41,6 +41,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -627,6 +628,20 @@ public class ReviewGameStateController {
                 .eTag(etag)
                 .header("Cache-Control", cacheControl)
                 .body(out);
+    }
+
+    // Deliberately not @Cacheable: the value is intentionally random, and caching it
+    // (even briefly) would make every visitor land on the same day for the cache's
+    // lifetime, defeating the point of a "random" archive link.
+    @GetMapping("/archive/random")
+    public ResponseEntity<Map<String, String>> randomArchiveDate() {
+        final Optional<LocalDate> date = pickRepository.findRandomArchiveDate(GameDate.todayUtc());
+        if (date.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok()
+                .header("Cache-Control", "no-store")
+                .body(Map.of("date", date.get().toString()));
     }
 
     private record Range(long lower, Long upper) {

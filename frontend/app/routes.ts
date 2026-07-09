@@ -11,6 +11,7 @@ export const Routes = {
     leaderboardWeekly: '/review-guesser/leaderboard/weekly',
     leaderboardToday: '/review-guesser/leaderboard/today',
     archive: '/review-guesser/archive',
+    randomArchive: '/review-guesser/random',
     seasons: '/review-guesser/seasons',
     seasonDetail: (seasonNumber: number | string) => `/review-guesser/seasons/${seasonNumber}`,
     imprint: '/imprint',

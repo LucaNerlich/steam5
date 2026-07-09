@@ -17,6 +17,7 @@ import useRoundArrowNavigation from "@/lib/hooks/useRoundArrowNavigation";
 import {loadDay, saveRound, type StoredDay, type RoundResult} from "@/lib/storage";
 import {prefillToResponse, resolveEffectiveResponse} from "@/lib/guessResolution";
 import {computeSignedOutDuringPlay, resolveLiveSignedIn, shouldWarnBeforeSubmit} from "@/lib/authGuard";
+import {Routes} from "../../app/routes";
 import "@/styles/components/reviewGuesserRound.css";
 import "@/styles/components/reviewRoundResult.css";
 import "@/styles/components/reviewShareControls.css";
@@ -358,6 +359,7 @@ export default function ReviewGuesserRound({
                         appId={appId}
                         prevHref={prevHref}
                         nextHref={roundIndex < totalRounds ? nextHref : null}
+                        randomArchiveHref={roundIndex >= totalRounds ? Routes.randomArchive : null}
                     >
                         {canShowShare && (
                             <>

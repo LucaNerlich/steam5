@@ -38,6 +38,7 @@ export default function ArchiveOfflineRound(props: Readonly<Props>): React.React
 
     const prevHref = roundIndex > 1 ? `#round-${roundIndex - 1}` : null;
     const nextHref = roundIndex < totalRounds ? `#round-${roundIndex + 1}` : null;
+    const randomArchiveHref = roundIndex >= totalRounds ? Routes.randomArchive : null;
 
     const localResponse: GuessResponse | null = useMemo(() => {
         if (!offlineAnswer || !selectedLabel) return null;
@@ -113,7 +114,12 @@ export default function ArchiveOfflineRound(props: Readonly<Props>): React.React
                         correct: stored?.results?.[roundIndex]?.correct ?? false,
                     }) as GuessResponse}
                 >
-                    <RoundResultActions appId={appId} prevHref={prevHref} nextHref={nextHref}/>
+                    <RoundResultActions
+                        appId={appId}
+                        prevHref={prevHref}
+                        nextHref={nextHref}
+                        randomArchiveHref={randomArchiveHref}
+                    />
                 </RoundResultDialog>
             )}
         </div>
