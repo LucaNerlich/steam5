@@ -9,6 +9,7 @@ async function loadRandomArchiveDate(): Promise<string | null> {
         const res = await fetch(`${backend}/api/review-game/archive/random`, {
             cache: 'no-store',
             headers: {accept: 'application/json'},
+            signal: AbortSignal.timeout(3000),
         });
         if (!res.ok) return null;
         const data: {date?: string} = await res.json();
