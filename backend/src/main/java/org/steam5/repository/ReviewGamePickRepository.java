@@ -10,6 +10,7 @@ import org.steam5.domain.ReviewGamePick;
 import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface ReviewGamePickRepository extends JpaRepository<ReviewGamePick, Long> {
@@ -43,6 +44,20 @@ public interface ReviewGamePickRepository extends JpaRepository<ReviewGamePick, 
 
     @Query("select distinct p.pickDate from ReviewGamePick p order by p.pickDate desc")
     List<LocalDate> listDistinctPickDates(Pageable pageable);
+
+    /**
+     * Picks a single random historical pick date, excluding {@code today} (the
+     * in-progress/live day). Uses a subquery rather than {@code SELECT DISTINCT ...
+     * ORDER BY random()} directly, since Postgres rejects ordering by an expression
+     * not in the DISTINCT select list.
+     */
+    @Query(value = """
+            WITH eligible AS (
+                SELECT DISTINCT pick_date FROM review_game_pick WHERE pick_date < :today
+            )
+            SELECT pick_date FROM eligible ORDER BY random() LIMIT 1
+            """, nativeQuery = true)
+    Optional<LocalDate> findRandomArchiveDate(@Param("today") LocalDate today);
 
     interface MonthlyArchivePickRow {
         LocalDate getPickDate();

@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import {ReactNode} from "react";
-import {ArrowLeftIcon, ArrowRightIcon, SteamLogoIcon} from "@phosphor-icons/react/ssr";
+import {ArrowLeftIcon, ArrowRightIcon, ShuffleIcon, SteamLogoIcon} from "@phosphor-icons/react/ssr";
 
 export default function RoundResultActions(props: {
     appId: number;
     prevHref: string | null;
     nextHref: string | null;
+    randomArchiveHref?: string | null;
     children?: ReactNode;
 }) {
     const hasPrev = Boolean(props.prevHref);
@@ -30,10 +31,16 @@ export default function RoundResultActions(props: {
                     </Link>
                 )}
             </div>
-            {props.nextHref && (
+            {props.nextHref ? (
                 <div className="review-round__actions-primary">
                     <Link href={props.nextHref} className="btn-cta" aria-label="Go to next round">
                         Next round <ArrowRightIcon size={28}/>
+                    </Link>
+                </div>
+            ) : props.randomArchiveHref && (
+                <div className="review-round__actions-primary">
+                    <Link href={props.randomArchiveHref} className="btn-cta" aria-label="Play a random archived round">
+                        Random archived round <ShuffleIcon size={28}/>
                     </Link>
                 </div>
             )}
