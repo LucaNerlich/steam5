@@ -21,9 +21,9 @@ export default function RoundResultActions(props: {
                     target="_blank"
                     rel="noopener noreferrer"
                     className="btn-ghost"
-                    aria-label="Open this game on Steam"
-                    data-umami-event="open-on-steam">
-                    Open on Steam <SteamLogoIcon size={28}/>
+                    aria-label="View this game on Steam"
+                    data-umami-event="view-on-steam">
+                    View on Steam <SteamLogoIcon size={28}/>
                 </Link>
                 {props.prevHref && (
                     <Link href={props.prevHref} className="btn-ghost" aria-label="Go to previous round">
