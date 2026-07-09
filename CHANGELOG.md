@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.13.0] - 2026-07-09
+
+### Added
+
+- After submitting the last round of the day (or the last round of any archived day), a "Random archived round" link now appears so you can keep playing instead of hitting a dead end — it jumps straight to the guess card of a random past day
+
 ## [1.12.3] - 2026-07-08
 
 ### Fixed
