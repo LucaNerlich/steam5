@@ -690,7 +690,7 @@ public class PlayerSpotlightService {
      * unrelated days. Stable for the day, rotates across days.
      */
     static Random copyRandom(final LocalDate today, final Enum<?> salt) {
-        return new Random(mixSeed(today.toEpochDay()) ^ salt.ordinal());
+        return new Random(mixSeed(today.toEpochDay()) ^ (salt.ordinal() + 1));
     }
 
     private static String pickPhrase(final List<String> pool, final Random random) {
