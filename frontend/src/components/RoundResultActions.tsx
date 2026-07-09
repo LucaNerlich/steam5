@@ -39,7 +39,11 @@ export default function RoundResultActions(props: {
                 </div>
             ) : props.randomArchiveHref && (
                 <div className="review-round__actions-primary">
-                    <Link href={props.randomArchiveHref} className="btn-cta" aria-label="Play a random archived round">
+                    <Link
+                        href={props.randomArchiveHref}
+                        className="btn-cta"
+                        aria-label="Play a random archived round"
+                        data-umami-event="random-archive-round">
                         Random archived round <ShuffleIcon size={28}/>
                     </Link>
                 </div>
