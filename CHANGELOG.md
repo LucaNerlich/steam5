@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.13.1] - 2026-07-10
+
+### Changed
+
+- Renamed the "Open in Steam" button to "View on Steam" for clarity
+
+### Fixed
+
+- Player Spotlight highlights now rotate more reliably in smaller player pools, so the same highlight type shows up less often
+
 ## [1.13.0] - 2026-07-09
 
 ### Added
