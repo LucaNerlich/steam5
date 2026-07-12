@@ -1,19 +1,21 @@
 "use client";
 
-import React from "react";
+import React, {type ReactNode} from "react";
 import type {GuessResponse} from "@/types/review-game";
 import {ArrowRightIcon} from "@phosphor-icons/react/ssr";
 import type {RoundResultTier} from "@/lib/scoring";
 import {tierEmoji} from "@/lib/scoring";
 import "@/styles/components/reviewRoundResult.css";
 
-export default function RoundResult({result, selectedLabel, actualBucket, headerText, tier}: {
+export default function RoundResult(props: {
     result: GuessResponse;
     selectedLabel?: string | null;
     actualBucket: string;
     headerText: string;
     tier: RoundResultTier;
+    headerRight?: ReactNode;
 }): React.ReactElement {
+    const {result, selectedLabel, actualBucket, headerText, tier} = props;
     const correct = result.correct;
     const showComparison = !!selectedLabel;
 
@@ -21,10 +23,13 @@ export default function RoundResult({result, selectedLabel, actualBucket, header
         <div className="result-body">
             <div className={`result-header result-header--${tier}`}
                  aria-live="polite">
-                <span className="result-header__icon result-header__icon--square" aria-hidden="true">{tierEmoji(tier)}</span>
-                <span className="result-header__text">
-                    {headerText}
-                </span>
+                <div className="result-header__left">
+                    <span className="result-header__icon result-header__icon--square" aria-hidden="true">{tierEmoji(tier)}</span>
+                    <span className="result-header__text">
+                        {headerText}
+                    </span>
+                </div>
+                {props.headerRight}
             </div>
 
             {showComparison && (

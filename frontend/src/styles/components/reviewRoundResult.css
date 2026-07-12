@@ -80,11 +80,18 @@
 .result-header {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
     padding: 0.625rem 0.875rem;
     font-weight: 700;
     font-size: 1rem;
     border-radius: 9px 9px 0 0;
+    justify-content: space-between;
+    /* no gap here — gap lives in __left */
+}
+
+.result-header__left {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 
 .result-header--exact {

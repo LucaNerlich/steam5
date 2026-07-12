@@ -88,6 +88,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/seasons/**").permitAll()
                         .requestMatchers("/api/stats/**").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/ws/ticket").permitAll()
+                        .requestMatchers("/ws/presence").permitAll()
                         .anyRequest().authenticated()
                 )
                 // Fix #5: both custom filters are anchored before BasicAuthenticationFilter.
