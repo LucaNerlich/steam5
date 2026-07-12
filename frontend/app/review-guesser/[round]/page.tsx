@@ -96,8 +96,6 @@ export default async function ReviewGuesserRoundPage({params}: { params: Promise
                                pick={pick}
                                roundIndex={roundIndex}/>
 
-            <OtherPlayersNow scopeKey={`${today.date}:${roundIndex}:${pick.appId}`}/>
-
             <Suspense fallback={<div style={{height: 220, background: 'var(--color-border)', borderRadius: 8}}/>}>
                 <ReviewGuesserRound
                     appId={pick.appId}
@@ -111,6 +109,8 @@ export default async function ReviewGuesserRoundPage({params}: { params: Promise
                     allResults={allResults}
                 />
             </Suspense>
+
+            <OtherPlayersNow scopeKey={`${today.date}:${roundIndex}:${pick.appId}`}/>
 
             {roundIndex === 1 && <PlayerSpotlight/>}
             {roundIndex === 1 && <NewsBox/>}

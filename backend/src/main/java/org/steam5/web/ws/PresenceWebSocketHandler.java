@@ -39,7 +39,9 @@ public class PresenceWebSocketHandler extends TextWebSocketHandler {
                 final Optional<User> user = userRepository.findById(steamId);
                 user.ifPresent(u -> {
                     session.getAttributes().put(RoundPresenceService.ATTR_PERSONA_NAME, u.getPersonaName());
-                    session.getAttributes().put(RoundPresenceService.ATTR_AVATAR, u.getAvatar());
+                    final String avatarUrl = (u.getAvatarFull() != null && !u.getAvatarFull().isBlank())
+                            ? u.getAvatarFull() : u.getAvatar();
+                    session.getAttributes().put(RoundPresenceService.ATTR_AVATAR, avatarUrl);
                 });
             } catch (Exception e) {
                 log.debug("Failed to load user {} for presence session {}: {}",

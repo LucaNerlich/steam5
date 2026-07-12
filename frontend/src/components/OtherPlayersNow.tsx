@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import {useRoundPresence, type PlayerInfo} from "@/lib/hooks/useRoundPresence";
 import "@/styles/components/otherPlayersNow.css";
 
@@ -19,19 +20,19 @@ function initialsFor(name: string | null): string {
 
 function PlayerAvatar({player}: {player: PlayerInfo}): React.ReactElement {
     const displayName = player.personaName || "Player";
-    if (player.avatar) {
-        return (
-            <img
-                className="other-players__avatar"
-                src={player.avatar}
-                alt={displayName}
-                title={displayName}
-                loading="lazy"
-                referrerPolicy="no-referrer"
-            />
-        );
-    }
-    return (
+    const profileUrl = `/profile/${player.steamId}`;
+    const content = player.avatar ? (
+        <img
+            className="other-players__avatar"
+            src={player.avatar}
+            alt={displayName}
+            title={displayName}
+            width={32}
+            height={32}
+            loading="lazy"
+            referrerPolicy="no-referrer"
+        />
+    ) : (
         <span
             className="other-players__avatar"
             title={displayName}
@@ -39,6 +40,11 @@ function PlayerAvatar({player}: {player: PlayerInfo}): React.ReactElement {
         >
             {initialsFor(player.personaName)}
         </span>
+    );
+    return (
+        <Link href={profileUrl} aria-label={`View ${displayName}'s Steam profile`}>
+            {content}
+        </Link>
     );
 }
 
