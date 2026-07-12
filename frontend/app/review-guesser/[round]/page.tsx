@@ -4,6 +4,7 @@ import Link from "next/link";
 import ReviewGuesserHero from "@/components/ReviewGuesserHero";
 import GameInfoSection from "@/components/GameInfoSection";
 import NewsBox from "@/components/NewsBox";
+import OtherPlayersNow from "@/components/OtherPlayersNow";
 import PlayerSpotlight from "@/components/PlayerSpotlight";
 import ReviewGuesserRound from "@/components/ReviewGuesserRound";
 import {Suspense} from "react";
@@ -94,6 +95,8 @@ export default async function ReviewGuesserRoundPage({params}: { params: Promise
             <ReviewGuesserHero today={today}
                                pick={pick}
                                roundIndex={roundIndex}/>
+
+            <OtherPlayersNow scopeKey={`${today.date}:${roundIndex}:${pick.appId}`}/>
 
             <Suspense fallback={<div style={{height: 220, background: 'var(--color-border)', borderRadius: 8}}/>}>
                 <ReviewGuesserRound
