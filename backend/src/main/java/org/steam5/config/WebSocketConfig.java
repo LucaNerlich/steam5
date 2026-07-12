@@ -53,7 +53,7 @@ public class WebSocketConfig implements WebSocketConfigurer {
      */
     static class PresenceHandshakeInterceptor implements HandshakeInterceptor {
 
-        private static final Pattern SCOPE_KEY_PATTERN = Pattern.compile("^\\d{4}-\\d{2}-\\d{2}:\\d+:\\d+$");
+        private static final Pattern SCOPE_KEY_PATTERN = Pattern.compile("^\\d{4}-\\d{2}-\\d{2}(:\\d+:\\d+)?$");
         private final List<String> allowedOrigins;
 
         PresenceHandshakeInterceptor(final List<String> allowedOrigins) {

@@ -8,6 +8,7 @@ import GuessButtons from "@/components/GuessButtons";
 import AuthWarningModal from "@/components/AuthWarningModal";
 import RoundResultDialog from "@/components/RoundResultDialog";
 import RoundResultActions from "@/components/RoundResultActions";
+import OtherPlayersNow from "@/components/OtherPlayersNow";
 import ShareControls from "@/components/ShareControls";
 import RoundSummary from "@/components/RoundSummary";
 import {buildSteamLoginUrl} from "@/components/SteamLoginButton";
@@ -318,6 +319,7 @@ export default function ReviewGuesserRound({
                 <section className="review-round__guess-card" aria-labelledby="guess-submission">
                     <div className="review-round__guess-header">
                         <h2 id="guess-submission">Submit Your Guess</h2>
+                        <OtherPlayersNow scopeKey={gameDate ?? ''}/>
                     </div>
                     <GuessButtons
                         appId={appId}
@@ -354,6 +356,7 @@ export default function ReviewGuesserRound({
                         actualBucket: computedPrefill?.actualBucket ?? '',
                         correct: computedPrefill?.actualBucket ? (computedPrefill.actualBucket === (computedPrefill?.selectedLabel ?? '')) : false,
                     }) as GuessResponse}
+                    headerRight={<OtherPlayersNow scopeKey={gameDate ?? ''}/>}
                 >
                     <RoundResultActions
                         appId={appId}

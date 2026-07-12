@@ -34,6 +34,7 @@ export default function RoundResultDialog(props: {
     selectedLabel: string | null | undefined;
     result: GuessResponse;
     children?: ReactNode;
+    headerRight?: ReactNode;
 }) {
     const correct = props.result.correct;
     const headerText = resolveHeaderText(correct, props.buckets, props.selectedLabel, props.result.actualBucket);
@@ -50,6 +51,7 @@ export default function RoundResultDialog(props: {
                 actualBucket={props.result.actualBucket}
                 headerText={headerText}
                 tier={tier}
+                headerRight={props.headerRight}
             />
             <div className="result-footer">
                 <span className="result-detail">

@@ -4,7 +4,6 @@ import Link from "next/link";
 import ReviewGuesserHero from "@/components/ReviewGuesserHero";
 import GameInfoSection from "@/components/GameInfoSection";
 import NewsBox from "@/components/NewsBox";
-import OtherPlayersNow from "@/components/OtherPlayersNow";
 import PlayerSpotlight from "@/components/PlayerSpotlight";
 import ReviewGuesserRound from "@/components/ReviewGuesserRound";
 import {Suspense} from "react";
@@ -109,8 +108,6 @@ export default async function ReviewGuesserRoundPage({params}: { params: Promise
                     allResults={allResults}
                 />
             </Suspense>
-
-            <OtherPlayersNow scopeKey={`${today.date}:${roundIndex}:${pick.appId}`}/>
 
             {roundIndex === 1 && <PlayerSpotlight/>}
             {roundIndex === 1 && <NewsBox/>}

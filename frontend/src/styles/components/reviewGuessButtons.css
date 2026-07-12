@@ -8,6 +8,9 @@
 }
 
 .review-round__guess-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     padding: 0.625rem 0.875rem;
     background: color-mix(in srgb, var(--color-primary) 8%, var(--color-surface));
     border-bottom: 1px solid var(--color-border);
