@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.14.0] - 2026-07-12
+
+### Added
+
+- A live "playing now" indicator now appears on the guess card and round result, showing how many other players are viewing the same round in real time, along with the avatars of other online players — visible to everyone, whether or not you're signed in
+
 ## [1.13.1] - 2026-07-10
 
 ### Changed
