@@ -54,12 +54,10 @@ public class RoundPresenceService {
     public void unregister(final WebSocketSession session) {
         final String scopeKey = scopeKeyOf(session);
         if (scopeKey == null) return;
-        final CopyOnWriteArrayList<WebSocketSession> list = sessionsByScope.get(scopeKey);
-        if (list == null) return;
-        list.remove(session);
-        if (list.isEmpty()) {
-            sessionsByScope.remove(scopeKey, list);
-        }
+        sessionsByScope.compute(scopeKey, (k, list) -> {
+            list.remove(session);
+            return list.isEmpty() ? null : list;
+        });
     }
 
     public void broadcastSnapshot(final String scopeKey) {
@@ -67,23 +65,28 @@ public class RoundPresenceService {
         final CopyOnWriteArrayList<WebSocketSession> list = sessionsByScope.get(scopeKey);
         if (list == null || list.isEmpty()) return;
 
-        final Snapshot snapshot = computeSnapshot(list);
-        final String payload;
+        final Snapshot fullSnapshot = computeSnapshot(list);
+        final Snapshot countsOnly = new Snapshot(fullSnapshot.totalCount(), fullSnapshot.anonymousCount(), List.of());
+        final String fullPayload;
+        final String countsPayload;
         try {
-            payload = objectMapper.writeValueAsString(snapshot);
+            fullPayload = objectMapper.writeValueAsString(fullSnapshot);
+            countsPayload = objectMapper.writeValueAsString(countsOnly);
         } catch (RuntimeException e) {
             log.warn("Failed to serialize presence snapshot for scope {}", scopeKey, e);
             return;
         }
 
-        final TextMessage message = new TextMessage(payload);
+        final TextMessage fullMessage = new TextMessage(fullPayload);
+        final TextMessage countsMessage = new TextMessage(countsPayload);
         for (final WebSocketSession session : list) {
             if (!session.isOpen()) {
                 list.remove(session);
                 continue;
             }
             try {
-                session.sendMessage(message);
+                final boolean anonymous = session.getAttributes().get(ATTR_STEAM_ID) == null;
+                session.sendMessage(anonymous ? countsMessage : fullMessage);
             } catch (IOException | IllegalStateException e) {
                 log.debug("Pruning failed presence session {} for scope {}: {}",
                         session.getId(), scopeKey, e.toString());

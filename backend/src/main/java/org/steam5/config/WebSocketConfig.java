@@ -18,6 +18,7 @@ import java.net.URI;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 @Slf4j
 @Configuration
@@ -52,6 +53,7 @@ public class WebSocketConfig implements WebSocketConfigurer {
      */
     static class PresenceHandshakeInterceptor implements HandshakeInterceptor {
 
+        private static final Pattern SCOPE_KEY_PATTERN = Pattern.compile("^\\d{4}-\\d{2}-\\d{2}:\\d+:\\d+$");
         private final List<String> allowedOrigins;
 
         PresenceHandshakeInterceptor(final List<String> allowedOrigins) {
@@ -76,6 +78,11 @@ public class WebSocketConfig implements WebSocketConfigurer {
 
             if (scopeKey == null || scopeKey.isBlank()) {
                 log.debug("Rejecting presence handshake — missing scopeKey");
+                return false;
+            }
+
+            if (!SCOPE_KEY_PATTERN.matcher(scopeKey).matches()) {
+                log.debug("Rejecting presence handshake — malformed scopeKey '{}'", scopeKey);
                 return false;
             }
 

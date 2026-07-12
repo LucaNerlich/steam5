@@ -89,7 +89,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/stats/**").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/ws/**").permitAll()
-                        .requestMatchers("/ws/**").permitAll()
+                        .requestMatchers("/ws/presence").permitAll()
                         .anyRequest().authenticated()
                 )
                 // Fix #5: both custom filters are anchored before BasicAuthenticationFilter.

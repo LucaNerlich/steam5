@@ -2,8 +2,10 @@ package org.steam5.service;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
+import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -125,6 +127,33 @@ class RoundPresenceServiceTest {
     @Test
     void broadcastIsSafeWhenScopeHasNoSessions() {
         assertDoesNotThrow(() -> service.broadcastSnapshot("unknownScope"));
+    }
+
+    @Test
+    void broadcastSendsCountsOnlyToAnonymousSessions() throws IOException {
+        final WebSocketSession authed = sessionFor("scopeA", "1", "Alice", "http://avatar/a");
+        final WebSocketSession anon = sessionFor("scopeA", null, null, null);
+
+        service.register(authed);
+        service.register(anon);
+        service.broadcastSnapshot("scopeA");
+
+        // Authenticated session receives full snapshot
+        final var authedCaptor = ArgumentCaptor.forClass(TextMessage.class);
+        verify(authed).sendMessage(authedCaptor.capture());
+        final var authedSnapshot = new ObjectMapper().readValue(
+                authedCaptor.getValue().getPayload(), RoundPresenceService.Snapshot.class);
+        assertEquals(2, authedSnapshot.totalCount());
+        assertEquals(1, authedSnapshot.players().size());
+
+        // Anonymous session receives counts-only snapshot
+        final var anonCaptor = ArgumentCaptor.forClass(TextMessage.class);
+        verify(anon).sendMessage(anonCaptor.capture());
+        final var anonSnapshot = new ObjectMapper().readValue(
+                anonCaptor.getValue().getPayload(), RoundPresenceService.Snapshot.class);
+        assertEquals(2, anonSnapshot.totalCount());
+        assertEquals(1, anonSnapshot.anonymousCount());
+        assertTrue(anonSnapshot.players().isEmpty());
     }
 
     private static final AtomicInteger SESSION_ID = new AtomicInteger();
