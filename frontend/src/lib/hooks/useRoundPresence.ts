@@ -2,6 +2,7 @@
 
 import {useEffect, useRef, useState} from "react";
 import {useAuth} from "@/contexts/AuthContext";
+import {BACKEND_ORIGIN} from "@/lib/backend";
 
 export interface PlayerInfo {
     steamId: string;
@@ -17,7 +18,6 @@ export interface PresenceSnapshot {
 
 const EMPTY_SNAPSHOT: PresenceSnapshot = {totalCount: 0, anonymousCount: 0, players: []};
 
-const BACKEND_ORIGIN = process.env.NEXT_PUBLIC_API_DOMAIN || "http://localhost:8080";
 const MAX_RETRIES = 5;
 const BASE_DELAY_MS = 1000;
 const MAX_DELAY_MS = 30000;
@@ -89,7 +89,7 @@ export function useRoundPresence(scopeKey: string | null): PresenceSnapshot & {c
             if (disposed) return;
 
             const wsOrigin = toWsOrigin(BACKEND_ORIGIN);
-            const url = `${wsOrigin}/ws/presence?scopeKey=${encodeURIComponent(scopeKey)}&ticket=${ticket ?? ""}`;
+            const url = `${wsOrigin}/ws/presence?scopeKey=${encodeURIComponent(scopeKey)}&ticket=${encodeURIComponent(ticket ?? "")}`;
 
             let ws: WebSocket;
             try {
@@ -146,11 +146,33 @@ export function useRoundPresence(scopeKey: string | null): PresenceSnapshot & {c
             }, delay);
         };
 
+        const handleRecovery = () => {
+            if (disposed || closedByUserRef.current) return;
+            if (retryCountRef.current >= MAX_RETRIES) {
+                retryCountRef.current = 0;
+                scheduleReconnect();
+            }
+        };
+
+        const handleOnline = handleRecovery;
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === "visible") {
+                handleRecovery();
+            }
+        };
+
+        window.addEventListener("online", handleOnline);
+        window.addEventListener("focus", handleRecovery);
+        document.addEventListener("visibilitychange", handleVisibilityChange);
+
         void connect();
 
         return () => {
             disposed = true;
             closedByUserRef.current = true;
+            window.removeEventListener("online", handleOnline);
+            window.removeEventListener("focus", handleRecovery);
+            document.removeEventListener("visibilitychange", handleVisibilityChange);
             clearReconnect();
             closeSocket();
             setConnected(false);

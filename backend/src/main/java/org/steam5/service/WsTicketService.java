@@ -2,6 +2,7 @@ package org.steam5.service;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.UUID;
@@ -18,6 +19,7 @@ import java.util.concurrent.TimeUnit;
  * ticket string. Entries expire 30 seconds after issue and each ticket is
  * consumed on first validation to prevent reuse.</p>
  */
+@Slf4j
 @Service
 public class WsTicketService {
 
@@ -40,6 +42,9 @@ public class WsTicketService {
         final String steamId = tickets.getIfPresent(ticket);
         if (steamId != null) {
             tickets.invalidate(ticket);
+            log.info("WS ticket validated successfully for steamId={}", steamId);
+        } else {
+            log.warn("WS ticket validation failed — ticket not found or expired");
         }
         return steamId;
     }

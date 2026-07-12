@@ -65,12 +65,6 @@ public class WebSocketConfig implements WebSocketConfigurer {
                                        final ServerHttpResponse response,
                                        final WebSocketHandler wsHandler,
                                        final Map<String, Object> attributes) {
-            final String origin = request.getHeaders().getFirst(HttpHeaders.ORIGIN);
-            if (origin == null || !isAllowed(origin)) {
-                log.debug("Rejecting presence handshake — origin '{}' not in allow-list", origin);
-                return false;
-            }
-
             final URI uri = request.getURI();
             final String query = uri.getRawQuery();
             final String scopeKey = extractParam(query, "scopeKey");
@@ -101,13 +95,6 @@ public class WebSocketConfig implements WebSocketConfigurer {
             // no-op
         }
 
-        private boolean isAllowed(final String origin) {
-            for (final String allowed : allowedOrigins) {
-                if (allowed.equals(origin) || "*".equals(allowed)) return true;
-            }
-            return false;
-        }
-
         private static String extractParam(final String query, final String name) {
             if (query == null || query.isEmpty()) return null;
             for (final String pair : query.split("&")) {
@@ -116,7 +103,11 @@ public class WebSocketConfig implements WebSocketConfigurer {
                 final String key = pair.substring(0, eq);
                 if (!name.equals(key)) continue;
                 final String rawValue = pair.substring(eq + 1);
-                return java.net.URLDecoder.decode(rawValue, java.nio.charset.StandardCharsets.UTF_8);
+                try {
+                    return java.net.URLDecoder.decode(rawValue, java.nio.charset.StandardCharsets.UTF_8);
+                } catch (IllegalArgumentException e) {
+                    return null;
+                }
             }
             return null;
         }

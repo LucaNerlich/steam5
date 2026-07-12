@@ -39,7 +39,7 @@ public class RoundPresenceService {
     public static final String ATTR_PERSONA_NAME = "personaName";
     public static final String ATTR_AVATAR = "avatar";
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper;
     private final ConcurrentHashMap<String, CopyOnWriteArrayList<WebSocketSession>> sessionsByScope =
             new ConcurrentHashMap<>();
 
