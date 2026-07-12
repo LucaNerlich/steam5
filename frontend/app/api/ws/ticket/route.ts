@@ -7,13 +7,23 @@ const isDevelopment = process.env.NODE_ENV === 'development';
 // Per-user, short-lived — must never be cached by Next, a CDN, or a proxy.
 const NO_STORE = {"Cache-Control": "private, no-store"} as const;
 
+function isLoopbackOrigin(origin: string): boolean {
+    try {
+        const {hostname} = new URL(origin);
+        return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1';
+    } catch {
+        return false;
+    }
+}
+
 export async function GET() {
     const token = (await cookies()).get('s5_token')?.value;
     // Anonymous mode: client connects without a ticket.
     if (!token) return NextResponse.json({ticket: null}, {status: 200, headers: NO_STORE});
 
-    // Validate HTTPS in production before sending bearer tokens.
-    if (!isDevelopment && !BACKEND_ORIGIN.startsWith('https://')) {
+    // Bearer tokens must not cross the network in plaintext — but a loopback
+    // backend never leaves the host, so it's exempt from the HTTPS requirement.
+    if (!isDevelopment && !isLoopbackOrigin(BACKEND_ORIGIN) && !BACKEND_ORIGIN.startsWith('https://')) {
         console.error('[ws-ticket] Backend origin must use HTTPS in production:', BACKEND_ORIGIN);
         return NextResponse.json({ticket: null}, {status: 200, headers: NO_STORE});
     }

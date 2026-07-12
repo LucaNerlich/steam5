@@ -65,28 +65,26 @@ public class RoundPresenceService {
         final CopyOnWriteArrayList<WebSocketSession> list = sessionsByScope.get(scopeKey);
         if (list == null || list.isEmpty()) return;
 
-        final Snapshot fullSnapshot = computeSnapshot(list);
-        final Snapshot countsOnly = new Snapshot(fullSnapshot.totalCount(), fullSnapshot.anonymousCount(), List.of());
-        final String fullPayload;
-        final String countsPayload;
+        final Snapshot snapshot = computeSnapshot(list);
+        final String payload;
         try {
-            fullPayload = objectMapper.writeValueAsString(fullSnapshot);
-            countsPayload = objectMapper.writeValueAsString(countsOnly);
+            payload = objectMapper.writeValueAsString(snapshot);
         } catch (RuntimeException e) {
             log.warn("Failed to serialize presence snapshot for scope {}", scopeKey, e);
             return;
         }
 
-        final TextMessage fullMessage = new TextMessage(fullPayload);
-        final TextMessage countsMessage = new TextMessage(countsPayload);
+        // Player identity (steamId/personaName/avatar) is public Steam profile
+        // data, so every session gets the same snapshot regardless of its own
+        // auth status.
+        final TextMessage message = new TextMessage(payload);
         for (final WebSocketSession session : list) {
             if (!session.isOpen()) {
                 list.remove(session);
                 continue;
             }
             try {
-                final boolean anonymous = session.getAttributes().get(ATTR_STEAM_ID) == null;
-                session.sendMessage(anonymous ? countsMessage : fullMessage);
+                session.sendMessage(message);
             } catch (IOException | IllegalStateException e) {
                 log.debug("Pruning failed presence session {} for scope {}: {}",
                         session.getId(), scopeKey, e.toString());
