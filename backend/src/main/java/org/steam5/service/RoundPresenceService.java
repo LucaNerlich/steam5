@@ -54,7 +54,7 @@ public class RoundPresenceService {
     public void unregister(final WebSocketSession session) {
         final String scopeKey = scopeKeyOf(session);
         if (scopeKey == null) return;
-        sessionsByScope.compute(scopeKey, (k, list) -> {
+        sessionsByScope.computeIfPresent(scopeKey, (k, list) -> {
             list.remove(session);
             return list.isEmpty() ? null : list;
         });

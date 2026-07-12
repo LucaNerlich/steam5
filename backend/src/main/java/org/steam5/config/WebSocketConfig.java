@@ -65,6 +65,12 @@ public class WebSocketConfig implements WebSocketConfigurer {
                                        final ServerHttpResponse response,
                                        final WebSocketHandler wsHandler,
                                        final Map<String, Object> attributes) {
+            final String origin = request.getHeaders().getFirst(HttpHeaders.ORIGIN);
+            if (origin == null || !isAllowed(origin)) {
+                log.debug("Rejecting presence handshake — origin '{}' not in allow-list", origin);
+                return false;
+            }
+
             final URI uri = request.getURI();
             final String query = uri.getRawQuery();
             final String scopeKey = extractParam(query, "scopeKey");
@@ -85,6 +91,13 @@ public class WebSocketConfig implements WebSocketConfigurer {
                 attributes.put("ticket", ticket);
             }
             return true;
+        }
+
+        private boolean isAllowed(final String origin) {
+            for (final String allowed : allowedOrigins) {
+                if (allowed.equals(origin) || "*".equals(allowed)) return true;
+            }
+            return false;
         }
 
         @Override

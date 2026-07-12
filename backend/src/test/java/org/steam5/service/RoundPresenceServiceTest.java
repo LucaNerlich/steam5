@@ -23,7 +23,7 @@ class RoundPresenceServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new RoundPresenceService();
+        service = new RoundPresenceService(new ObjectMapper());
     }
 
     @Test
