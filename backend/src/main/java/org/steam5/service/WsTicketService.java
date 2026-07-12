@@ -39,9 +39,8 @@ public class WsTicketService {
 
     public String validateTicket(final String ticket) {
         if (ticket == null) return null;
-        final String steamId = tickets.getIfPresent(ticket);
+        final String steamId = tickets.asMap().remove(ticket);
         if (steamId != null) {
-            tickets.invalidate(ticket);
             log.info("WS ticket validated successfully for steamId={}", steamId);
         } else {
             log.warn("WS ticket validation failed — ticket not found or expired");

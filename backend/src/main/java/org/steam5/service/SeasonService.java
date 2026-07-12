@@ -35,6 +35,7 @@ public class SeasonService {
     private final SeasonAwardResultRepository awardResultRepository;
     private final GuessRepository guessRepository;
     private final SeasonProperties seasonProperties;
+    private final SeasonCreatorService seasonCreator;
 
     private static final int TIE_ROLL_MAX = 1_000_000;
 
@@ -149,7 +150,7 @@ public class SeasonService {
         return seasonRepository.findByStartDateLessThanEqualAndEndDateGreaterThanEqual(date, date)
                 .orElseGet(() -> {
                     try {
-                        return createSeasonsUntil(date);
+                        return seasonCreator.createSeasonsUntil(date);
                     } catch (DataIntegrityViolationException e) {
                         return seasonRepository
                                 .findByStartDateLessThanEqualAndEndDateGreaterThanEqual(date, date)
@@ -229,23 +230,6 @@ public class SeasonService {
         managed.setAwardsFinalizedAt(OffsetDateTime.now());
         managed.setUpdatedAt(OffsetDateTime.now());
         return seasonRepository.save(managed);
-    }
-
-    private Season createSeasonsUntil(LocalDate date) {
-        Season last = seasonRepository.findTopByOrderBySeasonNumberDesc().orElse(null);
-        if (last == null) {
-            LocalDate startDate = date;
-            return seasonRepository.save(buildSeason(1, startDate, SeasonStatus.ACTIVE));
-        }
-
-        Season current = last;
-        int nextNumber = last.getSeasonNumber() + 1;
-        LocalDate nextStart = last.getEndDate().plusDays(1);
-        while (current.getEndDate().isBefore(date)) {
-            current = seasonRepository.save(buildSeason(nextNumber++, nextStart, SeasonStatus.ACTIVE));
-            nextStart = current.getEndDate().plusDays(1);
-        }
-        return current;
     }
 
     private Season buildSeason(int seasonNumber, LocalDate startDate, SeasonStatus status) {
