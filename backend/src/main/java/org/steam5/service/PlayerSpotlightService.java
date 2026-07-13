@@ -227,7 +227,7 @@ public class PlayerSpotlightService {
         }
     }
 
-    @Cacheable(value = "stats-short", key = "'spotlight-today:' + T(org.steam5.domain.GameDate).todayUtc()", unless = "#result == null || !#result.isPresent()")
+    @Cacheable(value = "stats-short", key = "'spotlight-today:' + T(org.steam5.domain.GameDate).todayUtc()", unless = "#result == null")
     public Optional<SpotlightResponse> getTodaySpotlight() {
         return playerSpotlightRepository.findById(GameDate.todayUtc()).map(this::toResponse);
     }

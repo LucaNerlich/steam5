@@ -42,7 +42,7 @@ function formatDeception(game: HardestGame): string {
 }
 
 function formatMostMissed(game: HardestGame): string {
-    if (!game.mostCommonWrongBucket || game.mostCommonWrongBucketCount == null) {
+    if (!game.mostCommonWrongBucket || game.mostCommonWrongBucketCount === null) {
         return game.actualBucket ? `— → ✓ ${game.actualBucket}` : "—";
     }
     return `${game.mostCommonWrongBucket} (${game.mostCommonWrongBucketCount}×) → ✓ ${game.actualBucket}`;
