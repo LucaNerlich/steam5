@@ -60,7 +60,10 @@ export default function OtherPlayersNow(props: Readonly<OtherPlayersNowProps>): 
     const label = totalCount === 1 ? "1 playing now" : `${totalCount} playing now`;
 
     return (
-        <div className="other-players" aria-live="polite">
+        <div
+            className={`other-players${players.length >= 5 ? " other-players--many" : ""}`}
+            aria-live="polite"
+        >
             {visible.length > 0 && (
                 <div className="other-players__avatars mobile__hide">
                     {visible.map((player) => (
