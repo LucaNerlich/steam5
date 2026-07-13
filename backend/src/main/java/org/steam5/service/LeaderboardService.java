@@ -48,8 +48,10 @@ public class LeaderboardService {
     }
 
     /**
-     * Aggregates all-time stats (pre-computed in SQL, already ordered by total points
-     * descending) into a leaderboard.
+     * Builds an all-time leaderboard from precomputed statistics while calculating each user's current streak.
+     *
+     * @param today the date used to calculate current streaks
+     * @return leaderboard entries in the order provided by the aggregated statistics
      */
     public List<LeaderEntry> buildAllTimeLeaderboard(final LocalDate today) {
         final List<GuessRepository.AllTimeStatsRow> rows = guessRepository.aggregateAllTimeStats();
@@ -87,6 +89,15 @@ public class LeaderboardService {
                 .toList();
     }
 
+    /**
+     * Builds a leaderboard entry from a user's guesses and activity dates.
+     *
+     * @param entry          the user's Steam ID and guesses
+     * @param usersById      user profiles keyed by Steam ID
+     * @param streakDatesById game dates keyed by Steam ID
+     * @param asOfDate       date used to calculate the current streak
+     * @return the computed leaderboard entry
+     */
     private LeaderEntry buildEntry(final Map.Entry<String, List<Guess>> entry,
                                     final Map<String, User> usersById,
                                     final Map<String, List<LocalDate>> streakDatesById,
@@ -100,6 +111,13 @@ public class LeaderboardService {
                 stats.flops(), stats.tooHigh(), stats.tooLow(), stats.avgPoints(), streak, user);
     }
 
+    /**
+     * Builds a leaderboard entry with resolved user profile details and statistics.
+     *
+     * @param steamId the user's Steam ID, used as the persona name when no name is available
+     * @param user the user's profile data, if available
+     * @return a leaderboard entry containing the supplied statistics and profile details
+     */
     private LeaderEntry getLeaderEntry(final String steamId, final long totalPoints, final long rounds, final long hits, final long flops, final long tooHigh, final long tooLow, final double avgPoints, final int streak, final User user) {
         final String personaName = user != null && user.getPersonaName() != null && !user.getPersonaName().isBlank() ? user.getPersonaName() : steamId;
         final String avatar = user != null && user.getAvatarFull() != null && !user.getAvatarFull().isBlank() ? user.getAvatarFull() : null;

@@ -34,6 +34,11 @@ public class LeaderboardController {
     private final CacheManager cacheManager;
     private final LeaderboardService leaderboardService;
 
+    /**
+     * Builds the leaderboard for the current review game date.
+     *
+     * @return the leaderboard entries for the current review game date
+     */
     @GetMapping("/today")
     @Cacheable(value = "leaderboard-live", key = "'today:' + T(org.steam5.domain.GameDate).todayUtc()", unless = "#result == null || #result.body == null")
     public ResponseEntity<List<LeaderboardService.LeaderEntry>> today() {
@@ -43,6 +48,13 @@ public class LeaderboardController {
         return ResponseEntity.ok(leaderboardService.buildLeaderboard(guesses, date));
     }
 
+    /**
+     * Builds the weekly leaderboard for either the current rolling period or the previous full week.
+     *
+     * @param floating whether to include the seven days ending on the current date; otherwise, uses the
+     *                 Monday-through-Sunday week immediately before the current week
+     * @return leaderboard entries for the selected period
+     */
     @GetMapping("/weekly")
     @Cacheable(value = "leaderboard-static", key = "'weekly:' + #floating + ':' + T(org.steam5.domain.GameDate).todayUtc()", unless = "#result == null || #result.body == null")
     public ResponseEntity<List<LeaderboardService.LeaderEntry>> weekly(@RequestParam(name = "floating", required = false, defaultValue = "false") boolean floating) {
@@ -67,6 +79,11 @@ public class LeaderboardController {
         return ResponseEntity.ok(leaderboardService.buildLeaderboard(guesses, today));
     }
 
+    /**
+     * Builds the leaderboard for the 30-day period ending on the current game date.
+     *
+     * @return the leaderboard entries for the last 30 days, including the current game date
+     */
     @GetMapping("/monthly")
     @Cacheable(value = "leaderboard-static", key = "'monthly:' + T(org.steam5.domain.GameDate).todayUtc()", unless = "#result == null || #result.body == null")
     public ResponseEntity<List<LeaderboardService.LeaderEntry>> monthly() {
@@ -81,6 +98,11 @@ public class LeaderboardController {
         return ResponseEntity.ok(leaderboardService.buildLeaderboard(guesses, today));
     }
 
+    /**
+     * Builds the leaderboard for the current season through the current date or the season end date.
+     *
+     * @return the season leaderboard entries
+     */
     @GetMapping("/season")
     public ResponseEntity<List<LeaderboardService.LeaderEntry>> season() {
         final LocalDate today = GameDate.todayUtc();
@@ -106,6 +128,11 @@ public class LeaderboardController {
         return response;
     }
 
+    /**
+     * Retrieves the all-time leaderboard as of the current UTC date.
+     *
+     * @return the all-time leaderboard entries
+     */
     @GetMapping(value = {"", "/", "/all"})
     @Cacheable(value = "leaderboard-static", key = "'all-time:' + T(org.steam5.domain.GameDate).todayUtc()", unless = "#result == null || #result.body == null")
     public ResponseEntity<List<LeaderboardService.LeaderEntry>> allTime() {
