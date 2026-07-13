@@ -46,7 +46,6 @@ AUTH_JWT_SECRET=dev-jwt-secret-change-me-32-bytes-minimum-length
 - The frontend redirects `/` to `/review-guesser/1` (HTTP 308). Use `curl -L` when testing.
 - Actuator (port 8081) requires authentication via Spring Security in the dev profile.
 - All Quartz jobs are enabled in the `dev` profile (`application-dev.yml`). Jobs that call the Steam API will log errors with a dummy API key but do not block startup.
-- Backend tests: 2 tests (`AuthControllerTest.validate_token_ok_and_invalid` and `LeaderboardControllerTest.allTime_returnsAggregatedLeaders`) are pre-existing failures due to test/production code drift. The remaining 17 tests pass.
 - Flyway migrations and Hibernate `ddl-auto: update` both run on startup. Schema is auto-managed.
 - No ESLint config exists for the frontend; use `pnpm build` as the lint/type check.
 - Node 22 is installed via nvm. Source nvm before running frontend commands: `export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"`
