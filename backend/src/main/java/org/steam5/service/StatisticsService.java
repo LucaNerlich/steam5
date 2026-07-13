@@ -294,6 +294,40 @@ public class StatisticsService {
                 .toList();
     }
 
+    @Cacheable(value = "stats-hourly", key = "'hardest-games-' + #limit", unless = "#result == null")
+    public List<HardestGame> getHardestGames(int limit) {
+        final List<GuessRepository.HardestGameRow> rows = guessRepository.findHardestGames(limit, 5);
+        return rows.stream()
+                .map(row -> {
+                    final long tooHigh = row.getTooHighCount() != null ? row.getTooHighCount() : 0L;
+                    final long tooLow = row.getTooLowCount() != null ? row.getTooLowCount() : 0L;
+                    final long total = row.getTotalGuesses() != null ? row.getTotalGuesses() : 0L;
+                    final long maxSide = Math.max(tooHigh, tooLow);
+                    final double deceptionRate = total > 0 ? (double) maxSide / (double) total : 0.0;
+                    final String deceptionDirection;
+                    if (tooHigh > tooLow) {
+                        deceptionDirection = "over";
+                    } else if (tooLow > tooHigh) {
+                        deceptionDirection = "under";
+                    } else {
+                        deceptionDirection = "none";
+                    }
+                    return new HardestGame(
+                            row.getAppId(),
+                            row.getAppName(),
+                            row.getAvgScore(),
+                            row.getPlayerCount(),
+                            deceptionRate,
+                            deceptionDirection,
+                            row.getMostCommonWrongBucket(),
+                            row.getMostCommonWrongBucketCount(),
+                            row.getActualBucket(),
+                            row.getLatestPickDate()
+                    );
+                })
+                .toList();
+    }
+
     @Cacheable(value = "stats-hourly", key = "'daily-avg-scores'", unless = "#result == null")
     public DailyAvgScoreStats getDailyAvgScoreStats() {
         final List<GuessRepository.DailyAvgScoreRow> allScores = guessRepository.findDailyAvgScoresDesc();
@@ -358,6 +392,20 @@ public class StatisticsService {
     }
 
     public record GameStatistics(List<TopGameByReviews> topGamesByReviewCount, DailyAvgScoreStats dailyAvgScores) {
+    }
+
+    public record HardestGame(
+            Long appId,
+            String appName,
+            Double avgScore,
+            Long playerCount,
+            Double deceptionRate,
+            String deceptionDirection,
+            String mostCommonWrongBucket,
+            Long mostCommonWrongBucketCount,
+            String actualBucket,
+            LocalDate latestPickDate
+    ) {
     }
 }
 
