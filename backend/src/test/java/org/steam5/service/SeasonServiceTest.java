@@ -210,6 +210,15 @@ class SeasonServiceTest {
         verify(seasonRepository, times(1)).findById(4L);
     }
 
+    @Test
+    void findSeason_returnsEmptyWhenNotFound() {
+        when(seasonRepository.findById(404L)).thenReturn(Optional.empty());
+
+        Optional<Season> result = service.findSeason(404L);
+
+        assertTrue(result.isEmpty());
+    }
+
     // findSeasonByNumber --------------------------------------------------------------------
 
     @Test
@@ -224,6 +233,15 @@ class SeasonServiceTest {
         verify(seasonRepository, times(1)).findBySeasonNumber(7);
     }
 
+    @Test
+    void findSeasonByNumber_returnsEmptyWhenNotFound() {
+        when(seasonRepository.findBySeasonNumber(999)).thenReturn(Optional.empty());
+
+        Optional<Season> result = service.findSeasonByNumber(999);
+
+        assertTrue(result.isEmpty());
+    }
+
     // findLatestSeason ----------------------------------------------------------------------
 
     @Test
@@ -236,6 +254,15 @@ class SeasonServiceTest {
         assertTrue(result.isPresent());
         assertSame(s, result.get());
         verify(seasonRepository, times(1)).findTopByOrderBySeasonNumberDesc();
+    }
+
+    @Test
+    void findLatestSeason_returnsEmptyWhenNoSeasonsExist() {
+        when(seasonRepository.findTopByOrderBySeasonNumberDesc()).thenReturn(Optional.empty());
+
+        Optional<Season> result = service.findLatestSeason();
+
+        assertTrue(result.isEmpty());
     }
 
     // findActiveSeasons ---------------------------------------------------------------------
@@ -254,6 +281,15 @@ class SeasonServiceTest {
         verify(seasonRepository, times(1)).findAllByStatusOrderBySeasonNumberAsc(SeasonStatus.ACTIVE);
     }
 
+    @Test
+    void findActiveSeasons_returnsEmptyListWhenNoneActive() {
+        when(seasonRepository.findAllByStatusOrderBySeasonNumberAsc(SeasonStatus.ACTIVE)).thenReturn(List.of());
+
+        List<Season> result = service.findActiveSeasons();
+
+        assertTrue(result.isEmpty());
+    }
+
     // listAwardsForSeason / listAwardsForPlayer ----------------------------------------------
 
     @Test
@@ -269,6 +305,16 @@ class SeasonServiceTest {
     }
 
     @Test
+    void listAwardsForSeason_returnsEmptyListWhenNoAwards() {
+        when(awardResultRepository.findAllBySeasonIdOrderByCategoryAscPlacementLevelAsc(6L))
+                .thenReturn(List.of());
+
+        List<SeasonAwardResult> result = service.listAwardsForSeason(6L);
+
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
     void listAwardsForPlayer_delegatesToRepository() {
         SeasonAwardResult award = mock(SeasonAwardResult.class);
         when(awardResultRepository.findAllBySteamIdOrderBySeasonSeasonNumberDescPlacementLevelAsc("steam123"))
@@ -279,6 +325,16 @@ class SeasonServiceTest {
         assertEquals(List.of(award), result);
         verify(awardResultRepository, times(1))
                 .findAllBySteamIdOrderBySeasonSeasonNumberDescPlacementLevelAsc("steam123");
+    }
+
+    @Test
+    void listAwardsForPlayer_returnsEmptyListWhenNoAwards() {
+        when(awardResultRepository.findAllBySteamIdOrderBySeasonSeasonNumberDescPlacementLevelAsc("unknownSteamId"))
+                .thenReturn(List.of());
+
+        List<SeasonAwardResult> result = service.listAwardsForPlayer("unknownSteamId");
+
+        assertTrue(result.isEmpty());
     }
 
     // buildSeasonReport (stats aggregation path) ---------------------------------------------
