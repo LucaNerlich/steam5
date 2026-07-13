@@ -51,6 +51,18 @@ class SeasonServiceTest {
         return s;
     }
 
+    private static GuessRepository.SeasonStatRow statRow(String steamId, long totalPoints, long hits,
+                                                          long flops, long rounds, long activeDays) {
+        GuessRepository.SeasonStatRow row = mock(GuessRepository.SeasonStatRow.class);
+        when(row.getSteamId()).thenReturn(steamId);
+        when(row.getTotalPoints()).thenReturn(totalPoints);
+        when(row.getHits()).thenReturn(hits);
+        when(row.getFlops()).thenReturn(flops);
+        when(row.getRounds()).thenReturn(rounds);
+        when(row.getActiveDays()).thenReturn(activeDays);
+        return row;
+    }
+
     // ensureSeasonForDate ---------------------------------------------------------------
 
     @Test
@@ -348,21 +360,8 @@ class SeasonServiceTest {
         LocalDate end = LocalDate.of(2020, 1, 30);
         Season completed = seasonWith(1, start, end, SeasonStatus.FINALIZED);
 
-        GuessRepository.SeasonStatRow rowA = mock(GuessRepository.SeasonStatRow.class);
-        when(rowA.getSteamId()).thenReturn("playerA");
-        when(rowA.getTotalPoints()).thenReturn(50L);
-        when(rowA.getHits()).thenReturn(5L);
-        when(rowA.getFlops()).thenReturn(1L);
-        when(rowA.getRounds()).thenReturn(10L);
-        when(rowA.getActiveDays()).thenReturn(8L);
-
-        GuessRepository.SeasonStatRow rowB = mock(GuessRepository.SeasonStatRow.class);
-        when(rowB.getSteamId()).thenReturn("playerB");
-        when(rowB.getTotalPoints()).thenReturn(80L);
-        when(rowB.getHits()).thenReturn(6L);
-        when(rowB.getFlops()).thenReturn(0L);
-        when(rowB.getRounds()).thenReturn(12L);
-        when(rowB.getActiveDays()).thenReturn(10L);
+        GuessRepository.SeasonStatRow rowA = statRow("playerA", 50L, 5L, 1L, 10L, 8L);
+        GuessRepository.SeasonStatRow rowB = statRow("playerB", 80L, 6L, 0L, 12L, 10L);
 
         when(guessRepository.findSeasonStats(start, end)).thenReturn(List.of(rowA, rowB));
         when(guessRepository.findSeasonDates(start, end)).thenReturn(List.of());
@@ -505,21 +504,8 @@ class SeasonServiceTest {
         seasonProperties.getAwards().setCategories(List.of(SeasonAwardCategory.MOST_POINTS));
         seasonProperties.getAwards().setMinRounds(1);
 
-        GuessRepository.SeasonStatRow rowA = mock(GuessRepository.SeasonStatRow.class);
-        when(rowA.getSteamId()).thenReturn("playerA");
-        when(rowA.getTotalPoints()).thenReturn(100L);
-        when(rowA.getHits()).thenReturn(10L);
-        when(rowA.getFlops()).thenReturn(2L);
-        when(rowA.getRounds()).thenReturn(20L);
-        when(rowA.getActiveDays()).thenReturn(15L);
-
-        GuessRepository.SeasonStatRow rowB = mock(GuessRepository.SeasonStatRow.class);
-        when(rowB.getSteamId()).thenReturn("playerB");
-        when(rowB.getTotalPoints()).thenReturn(50L);
-        when(rowB.getHits()).thenReturn(5L);
-        when(rowB.getFlops()).thenReturn(1L);
-        when(rowB.getRounds()).thenReturn(18L);
-        when(rowB.getActiveDays()).thenReturn(10L);
+        GuessRepository.SeasonStatRow rowA = statRow("playerA", 100L, 10L, 2L, 20L, 15L);
+        GuessRepository.SeasonStatRow rowB = statRow("playerB", 50L, 5L, 1L, 18L, 10L);
 
         when(seasonRepository.findById(20L)).thenReturn(Optional.of(season));
         when(guessRepository.findSeasonStats(season.getStartDate(), season.getEndDate()))
@@ -553,21 +539,8 @@ class SeasonServiceTest {
         seasonProperties.getAwards().setCategories(List.of(SeasonAwardCategory.MOST_POINTS));
         // default minRounds is 15
 
-        GuessRepository.SeasonStatRow qualifies = mock(GuessRepository.SeasonStatRow.class);
-        when(qualifies.getSteamId()).thenReturn("qualifies");
-        when(qualifies.getTotalPoints()).thenReturn(30L);
-        when(qualifies.getHits()).thenReturn(3L);
-        when(qualifies.getFlops()).thenReturn(0L);
-        when(qualifies.getRounds()).thenReturn(20L);
-        when(qualifies.getActiveDays()).thenReturn(15L);
-
-        GuessRepository.SeasonStatRow tooFewRounds = mock(GuessRepository.SeasonStatRow.class);
-        when(tooFewRounds.getSteamId()).thenReturn("tooFewRounds");
-        when(tooFewRounds.getTotalPoints()).thenReturn(999L);
-        when(tooFewRounds.getHits()).thenReturn(5L);
-        when(tooFewRounds.getFlops()).thenReturn(0L);
-        when(tooFewRounds.getRounds()).thenReturn(5L);
-        when(tooFewRounds.getActiveDays()).thenReturn(5L);
+        GuessRepository.SeasonStatRow qualifies = statRow("qualifies", 30L, 3L, 0L, 20L, 15L);
+        GuessRepository.SeasonStatRow tooFewRounds = statRow("tooFewRounds", 999L, 5L, 0L, 5L, 5L);
 
         when(seasonRepository.findById(21L)).thenReturn(Optional.of(season));
         when(guessRepository.findSeasonStats(season.getStartDate(), season.getEndDate()))
