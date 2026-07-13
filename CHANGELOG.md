@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.15.0] - 2026-07-13
+
+### Added
+
+- New "Hardest Games" page ranking Steam games by lowest average score, with deception metrics showing whether players tend to over- or under-guess review counts, and which review bucket is most frequently missed
+
+### Fixed
+
+- Fixed the "other players now" avatar row overlapping or misaligning on narrow phone screens with 5+ concurrent players
+- Fixed the guess-header column layout breaking on slightly wider phone screens (around 420px)
+
 ## [1.14.0] - 2026-07-12
 
 ### Added
