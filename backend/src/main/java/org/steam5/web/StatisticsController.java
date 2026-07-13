@@ -36,7 +36,9 @@ public class StatisticsController {
         links.put("gameStatistics", "/api/stats/game");
         links.put("hardestGames", "/api/stats/game/hardest");
         links.put("spotlight", "/api/stats/spotlight/today");
-        return ResponseEntity.ok(links);
+        return ResponseEntity.ok()
+                .header("Cache-Control", "public, s-maxage=3600, max-age=3600")
+                .body(links);
     }
 
     @GetMapping(value = "/spotlight/today", produces = MediaType.APPLICATION_JSON_VALUE)
