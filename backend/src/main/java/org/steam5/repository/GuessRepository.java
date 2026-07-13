@@ -502,8 +502,8 @@ public interface GuessRepository extends JpaRepository<Guess, Long> {
                 COUNT(*)                                                            AS totalGuesses,
                 MAX(tw.selected_bucket)                                             AS mostCommonWrongBucket,
                 MAX(tw.cnt)                                                         AS mostCommonWrongBucketCount,
-                MAX(g.actual_bucket)                                                AS actual_bucket,
-                MAX(g.game_date)                                                    AS latest_pick_date
+                MAX(g.actual_bucket)                                                AS actualBucket,
+                MAX(g.game_date)                                                    AS latestPickDate
             FROM guesses g
             LEFT JOIN steam_app_index sai ON sai.app_id = g.app_id
             LEFT JOIN top_wrong tw ON tw.app_id = g.app_id
