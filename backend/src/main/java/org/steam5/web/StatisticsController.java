@@ -34,8 +34,11 @@ public class StatisticsController {
         links.put("reviewBuckets", "/api/stats/reviews/buckets");
         links.put("userAchievements", "/api/stats/users/achievements");
         links.put("gameStatistics", "/api/stats/game");
+        links.put("hardestGames", "/api/stats/game/hardest");
         links.put("spotlight", "/api/stats/spotlight/today");
-        return ResponseEntity.ok(links);
+        return ResponseEntity.ok()
+                .header("Cache-Control", "public, s-maxage=3600, max-age=3600")
+                .body(links);
     }
 
     @GetMapping(value = "/spotlight/today", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -113,6 +116,16 @@ public class StatisticsController {
         return ResponseEntity.ok()
                 .header("Cache-Control", "public, s-maxage=3600, max-age=600")
                 .body(stats);
+    }
+
+    @GetMapping(value = "/game/hardest", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<StatisticsService.HardestGame>> hardestGames(
+            @RequestParam(name = "limit", defaultValue = "25") int limit) {
+        final int normalizedLimit = Math.max(1, Math.min(limit, 100));
+        final List<StatisticsService.HardestGame> result = statisticsService.getHardestGames(normalizedLimit);
+        return ResponseEntity.ok()
+                .header("Cache-Control", "public, s-maxage=3600, max-age=600")
+                .body(result);
     }
 }
 

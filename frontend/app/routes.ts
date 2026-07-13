@@ -14,6 +14,7 @@ export const Routes = {
     randomArchive: '/review-guesser/random',
     seasons: '/review-guesser/seasons',
     seasonDetail: (seasonNumber: number | string) => `/review-guesser/seasons/${seasonNumber}`,
+    hardestGames: '/review-guesser/hardest',
     imprint: '/imprint',
     privacy: '/privacy',
     howToPlay: '/how-to-play',
