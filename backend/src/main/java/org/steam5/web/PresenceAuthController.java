@@ -29,6 +29,14 @@ public class PresenceAuthController {
     private final PresenceRateLimiter presenceRateLimiter;
     private final PresenceMetrics presenceMetrics;
 
+    /**
+     * Issues a short-lived WebSocket handshake ticket for an authenticated user and scope.
+     *
+     * @param steamId the authenticated user's identifier
+     * @param body    the optional request body containing the required {@code scopeKey}
+     * @return a successful ticket response, or an error response for unauthenticated requests,
+     *         invalid scope keys, or exceeded rate limits
+     */
     @PostMapping("/ticket")
     public ResponseEntity<?> issueTicket(@CurrentUser final String steamId,
                                          @RequestBody(required = false) final Map<String, String> body) {

@@ -8,6 +8,12 @@ import "@/styles/components/otherPlayersNow.css";
 
 const MAX_VISIBLE_AVATARS = 8;
 
+/**
+ * Generates a fallback initial for a player's name.
+ *
+ * @param name - The player's name, or `null` when unavailable
+ * @returns The uppercase first character of the trimmed name, or `?` when no name is provided
+ */
 function initialsFor(name: string | null): string {
     if (!name) return "?";
     const trimmed = name.trim();
@@ -15,6 +21,12 @@ function initialsFor(name: string | null): string {
     return trimmed.charAt(0).toUpperCase();
 }
 
+/**
+ * Renders a player's avatar linked to their Steam profile.
+ *
+ * @param player - The player whose avatar and profile link are rendered.
+ * @returns The linked avatar element.
+ */
 function PlayerAvatar({player}: {player: PlayerInfo}): React.ReactElement {
     const displayName = player.personaName || "Player";
     const profileUrl = `/profile/${player.steamId}`;
@@ -45,12 +57,24 @@ function PlayerAvatar({player}: {player: PlayerInfo}): React.ReactElement {
     );
 }
 
+/**
+ * Creates the player presence label for the current round.
+ *
+ * @param uniquePlayerCount - The number of unique players currently present
+ * @param reconnecting - Whether the presence connection is reconnecting
+ * @returns The appropriate presence status label
+ */
 function presenceLabel(uniquePlayerCount: number, reconnecting: boolean): string {
     if (reconnecting) return "Reconnecting…";
     if (uniquePlayerCount === 1) return "1 playing now";
     return `${uniquePlayerCount} playing now`;
 }
 
+/**
+ * Displays the number of players currently active in the round and their avatars when available.
+ *
+ * @returns The presence indicator, or `null` when the round has no active presence to display.
+ */
 export default function OtherPlayersNow(): React.ReactElement | null {
     const {uniquePlayerCount, players, connected, reconnecting} = useRoundPresenceContext();
 

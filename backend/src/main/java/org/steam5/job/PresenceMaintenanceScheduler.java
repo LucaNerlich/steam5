@@ -14,6 +14,9 @@ public class PresenceMaintenanceScheduler {
 
     private final RoundPresenceService presenceService;
 
+    /**
+     * Prunes idle and closed presence sessions and rebroadcasts updated presence counts.
+     */
     @Scheduled(fixedDelayString = "${presence.sweep-interval-ms:30000}")
     public void sweepPresenceSessions() {
         presenceService.sweepIdleAndClosed();

@@ -72,6 +72,11 @@ public class SecurityConfig {
         return http.build();
     }
 
+    /**
+     * Configures security for application endpoints and registers authentication and rate-limiting filters.
+     *
+     * @return the configured application security filter chain
+     */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http,
                                                    AdminTokenFilter adminTokenFilter,

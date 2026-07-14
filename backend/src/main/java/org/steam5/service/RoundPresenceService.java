@@ -67,6 +67,12 @@ public class RoundPresenceService {
     private final ConcurrentHashMap<String, AtomicInteger> connectionsByIp = new ConcurrentHashMap<>();
     private final Object registerLock = new Object();
 
+    /**
+     * Registers a WebSocket session if the configured connection limits allow it.
+     *
+     * @param session the WebSocket session to register
+     * @return {@code OK} when registered, or the applicable limit result when registration is rejected
+     */
     public RegisterResult register(final WebSocketSession session) {
         final String scopeKey = scopeKeyOf(session);
         if (scopeKey == null) return RegisterResult.SCOPE_LIMIT;
@@ -99,6 +105,11 @@ public class RoundPresenceService {
         }
     }
 
+    /**
+     * Removes a session from its scope and updates the active connection counters.
+     *
+     * @param session the WebSocket session to remove
+     */
     public void unregister(final WebSocketSession session) {
         final String scopeKey = scopeKeyOf(session);
         if (scopeKey == null) return;
@@ -110,10 +121,19 @@ public class RoundPresenceService {
         });
     }
 
+    /**
+     * Updates the session's last-activity timestamp.
+     */
     public void touchActivity(final WebSocketSession session) {
         session.getAttributes().put(ATTR_LAST_ACTIVITY, System.currentTimeMillis());
     }
 
+    /**
+     * Processes a client message and refreshes the session activity timestamp for ping or pong messages.
+     *
+     * @param session the WebSocket session associated with the message
+     * @param payload the client message payload
+     */
     public void handleClientMessage(final WebSocketSession session, final String payload) {
         try {
             final JsonNode node = objectMapper.readTree(payload);
@@ -169,6 +189,11 @@ public class RoundPresenceService {
         scopesToBroadcast.forEach(this::broadcastSnapshot);
     }
 
+    /**
+     * Broadcasts the current presence snapshot to all open sessions in a scope.
+     *
+     * @param scopeKey the scope whose presence snapshot should be broadcast
+     */
     public void broadcastSnapshot(final String scopeKey) {
         if (scopeKey == null) return;
         final CopyOnWriteArrayList<WebSocketSession> list = sessionsByScope.get(scopeKey);
@@ -204,6 +229,13 @@ public class RoundPresenceService {
         }
     }
 
+    /**
+     * Builds a presence snapshot from the currently open sessions.
+     *
+     * @param sessions the sessions to include in the snapshot
+     * @return a snapshot containing connection totals, anonymous session counts,
+     *         unique player counts, and authenticated player information
+     */
     Snapshot computeSnapshot(final List<WebSocketSession> sessions) {
         int totalCount = 0;
         int anonymousCount = 0;
@@ -235,20 +267,42 @@ public class RoundPresenceService {
         return new Snapshot(totalCount, anonymousCount, uniquePlayerCount, new ArrayList<>(playersById.values()));
     }
 
+    /**
+     * Gets the number of currently active registered connections.
+     *
+     * @return the active connection count
+     */
     public int activeConnectionCount() {
         return globalConnections.get();
     }
 
+    /**
+     * Gets the number of sessions registered for a scope.
+     *
+     * @param scopeKey the scope key to query
+     * @return the number of registered sessions, or {@code 0} if the scope has no sessions
+     */
     int scopeSize(final String scopeKey) {
         final CopyOnWriteArrayList<WebSocketSession> list = sessionsByScope.get(scopeKey);
         return list == null ? 0 : list.size();
     }
 
+    /**
+     * Retrieves the sessions registered under a scope.
+     *
+     * @param scopeKey the scope whose sessions should be retrieved
+     * @return an immutable snapshot of the sessions for the scope, or an empty list when no sessions are registered
+     */
     List<WebSocketSession> sessionsFor(final String scopeKey) {
         final CopyOnWriteArrayList<WebSocketSession> list = sessionsByScope.get(scopeKey);
         return list == null ? List.of() : List.copyOf(list);
     }
 
+    /**
+     * Decrements the global connection count and the session's client IP count.
+     *
+     * @param session the session whose connection counters are being removed
+     */
     private void decrementConnectionCounters(final WebSocketSession session) {
         globalConnections.updateAndGet(current -> Math.max(0, current - 1));
         final String clientIp = clientIpOf(session);
@@ -260,10 +314,22 @@ public class RoundPresenceService {
         }
     }
 
+    /**
+     * Retrieves the scope key associated with a WebSocket session.
+     *
+     * @param session the WebSocket session whose scope key is read
+     * @return the session's scope key, or {@code null} if none is associated
+     */
     private static String scopeKeyOf(final WebSocketSession session) {
         return (String) session.getAttributes().get(ATTR_SCOPE_KEY);
     }
 
+    /**
+     * Retrieves the client IP address associated with a WebSocket session.
+     *
+     * @param session the WebSocket session
+     * @return the client IP address, or {@code null} if none is associated
+     */
     private static String clientIpOf(final WebSocketSession session) {
         return (String) session.getAttributes().get(ATTR_CLIENT_IP);
     }

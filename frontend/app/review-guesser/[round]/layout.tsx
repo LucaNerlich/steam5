@@ -4,6 +4,11 @@ import {BACKEND_ORIGIN as backend} from "@/lib/backend";
 
 export const revalidate = 60;
 
+/**
+ * Loads the current review game date.
+ *
+ * @returns The game date, or `null` if it cannot be loaded or is unavailable.
+ */
 async function loadTodayDate(): Promise<string | null> {
     try {
         const res = await fetch(`${backend}/api/review-game/today`, {
@@ -18,6 +23,11 @@ async function loadTodayDate(): Promise<string | null> {
     }
 }
 
+/**
+ * Provides review-guesser content with presence scoped to today's game date.
+ *
+ * @returns The review-guesser content, optionally wrapped with round presence context.
+ */
 export default async function ReviewGuesserRoundLayout({children}: {children: ReactNode}) {
     const gameDate = await loadTodayDate();
     if (!gameDate) {

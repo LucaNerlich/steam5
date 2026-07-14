@@ -30,6 +30,14 @@ public class PresenceWebSocketHandler extends TextWebSocketHandler {
     private final UserRepository userRepository;
     private final PresenceMetrics presenceMetrics;
 
+    /**
+     * Authenticates and registers a presence session, enriching it with identity details when available.
+     *
+     * <p>Sessions with invalid tickets or rejected registrations are closed with a policy-violation
+     * status. A presence snapshot is broadcast after successful registration.</p>
+     *
+     * @param session the newly established WebSocket session
+     */
     @Override
     public void afterConnectionEstablished(final WebSocketSession session) {
         final String scopeKey = (String) session.getAttributes().get(RoundPresenceService.ATTR_SCOPE_KEY);
@@ -78,11 +86,23 @@ public class PresenceWebSocketHandler extends TextWebSocketHandler {
         presenceService.broadcastSnapshot(scopeKey);
     }
 
+    /**
+     * Processes a text message received from a WebSocket client.
+     *
+     * @param session the WebSocket session that sent the message
+     * @param message the received text message
+     */
     @Override
     protected void handleTextMessage(final WebSocketSession session, final TextMessage message) {
         presenceService.handleClientMessage(session, message.getPayload());
     }
 
+    /**
+     * Removes the closed session from presence tracking and broadcasts the updated presence snapshot.
+     *
+     * @param session the closed WebSocket session
+     * @param status  the reason the connection was closed
+     */
     @Override
     public void afterConnectionClosed(final WebSocketSession session, final CloseStatus status) {
         final String scopeKey = (String) session.getAttributes().get(RoundPresenceService.ATTR_SCOPE_KEY);

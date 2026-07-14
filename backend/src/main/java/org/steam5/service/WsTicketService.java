@@ -33,6 +33,13 @@ public class WsTicketService {
             .maximumSize(TICKET_MAX_SIZE)
             .build();
 
+    /**
+     * Creates a short-lived WebSocket authentication ticket bound to a Steam ID and scope.
+     *
+     * @param steamId  the Steam ID associated with the ticket
+     * @param scopeKey the scope authorized by the ticket
+     * @return the generated authentication ticket
+     */
     public String issueTicket(final String steamId, final String scopeKey) {
         final String ticket = UUID.randomUUID().toString();
         tickets.put(ticket, new TicketEntry(steamId, scopeKey));
@@ -40,8 +47,11 @@ public class WsTicketService {
     }
 
     /**
-     * Validates and consumes a ticket. Returns the steamId when the ticket is
-     * valid for the requested scope, otherwise {@code null}.
+     * Validates and consumes a WebSocket authentication ticket for the requested scope.
+     *
+     * @param ticket   the ticket to validate
+     * @param scopeKey the scope associated with the request
+     * @return the ticket owner's Steam ID if the ticket matches the scope, or {@code null} if it is invalid, expired, or already consumed
      */
     public String validateTicket(final String ticket, final String scopeKey) {
         if (ticket == null || scopeKey == null || scopeKey.isBlank()) return null;

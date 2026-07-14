@@ -37,6 +37,11 @@ public class PresenceHandshakeInterceptor implements HandshakeInterceptor {
     private final PresenceRateLimiter presenceRateLimiter;
     private final PresenceMetrics presenceMetrics;
 
+    /**
+     * Creates an interceptor configured with the allowed handshake origins.
+     *
+     * @param originsCsv comma-separated list of allowed origins
+     */
     public PresenceHandshakeInterceptor(
             @Value("${cors.allowedOrigins:https://steam5.org,https://next.steam5.org,http://localhost:3000}") final String originsCsv,
             final PresenceRateLimiter presenceRateLimiter,
@@ -49,6 +54,13 @@ public class PresenceHandshakeInterceptor implements HandshakeInterceptor {
         this.presenceMetrics = presenceMetrics;
     }
 
+    /**
+     * Validates and prepares a presence WebSocket handshake.
+     *
+     * @param request    the handshake request to validate
+     * @param attributes the WebSocket session attributes to populate on success
+     * @return {@code true} if the handshake is allowed, {@code false} otherwise
+     */
     @Override
     public boolean beforeHandshake(final ServerHttpRequest request,
                                    final ServerHttpResponse response,
@@ -102,6 +114,11 @@ public class PresenceHandshakeInterceptor implements HandshakeInterceptor {
         // no-op
     }
 
+    /**
+     * Provides the origins permitted for WebSocket handshakes.
+     *
+     * @return the configured allowed origins
+     */
     public List<String> getAllowedOrigins() {
         return allowedOrigins;
     }
@@ -110,6 +127,13 @@ public class PresenceHandshakeInterceptor implements HandshakeInterceptor {
         return allowedOrigins.contains(origin);
     }
 
+    /**
+     * Creates a short, privacy-preserving reference for a client IP address.
+     *
+     * @param clientIp the client IP address to reference
+     * @return an {@code ipHash:} value based on the first four bytes of the SHA-256 digest,
+     *         or {@code unknown} when the address is blank or hashing is unavailable
+     */
     static String loggableClientRef(final String clientIp) {
         if (clientIp == null || clientIp.isBlank()) {
             return "unknown";
@@ -128,6 +152,12 @@ public class PresenceHandshakeInterceptor implements HandshakeInterceptor {
         }
     }
 
+    /**
+     * Resolves the remote client IP address from a servlet-backed request.
+     *
+     * @param request the HTTP request
+     * @return the remote client IP address, or {@code null} when the request is not servlet-backed
+     */
     private static String resolveClientIp(final ServerHttpRequest request) {
         if (request instanceof ServletServerHttpRequest servletRequest) {
             return servletRequest.getServletRequest().getRemoteAddr();
@@ -135,6 +165,13 @@ public class PresenceHandshakeInterceptor implements HandshakeInterceptor {
         return null;
     }
 
+    /**
+     * Extracts the first value associated with a query parameter name.
+     *
+     * @param query the raw query string
+     * @param name  the query parameter name
+     * @return the first parameter value, or {@code null} when the query is empty or the parameter has no values
+     */
     static String extractParam(final String query, final String name) {
         if (query == null || query.isEmpty()) return null;
         final List<String> values = UriComponentsBuilder.newInstance()

@@ -76,6 +76,20 @@ async function fetchSignedIn(): Promise<boolean> {
     }
 }
 
+/**
+ * Renders the guessing interface and result view for a review round.
+ *
+ * @param appId - The identifier of the current game.
+ * @param buckets - The available review buckets.
+ * @param bucketTitles - Display titles for the review buckets.
+ * @param roundIndex - The current round number.
+ * @param totalRounds - The total number of rounds in the game.
+ * @param pickName - The name of the current pick.
+ * @param gameDate - The date identifying the game.
+ * @param prefilled - An optional previously submitted result to display.
+ * @param allResults - Optional results from other rounds.
+ * @returns The rendered guessing controls, round result, and related actions.
+ */
 export default function ReviewGuesserRound({
                                                appId,
                                                buckets,

@@ -25,6 +25,12 @@ public class PresenceRateLimitFilter extends OncePerRequestFilter {
 
     private final PresenceRateLimiter presenceRateLimiter;
 
+    /**
+     * Determines whether the request should bypass presence ticket rate limiting.
+     *
+     * @param request the incoming HTTP request
+     * @return {@code true} unless the request is a {@code POST} to {@code /api/ws/ticket}
+     */
     @Override
     protected boolean shouldNotFilter(final HttpServletRequest request) {
         String path = request.getRequestURI();
@@ -35,6 +41,15 @@ public class PresenceRateLimitFilter extends OncePerRequestFilter {
         return !"POST".equalsIgnoreCase(request.getMethod()) || !TICKET_PATH.equals(path);
     }
 
+    /**
+     * Enforces the presence ticket rate limit for the request's client IP.
+     *
+     * @param request  the incoming HTTP request
+     * @param response the HTTP response
+     * @param chain    the filter chain
+     * @throws IOException      if writing the response or continuing the chain fails
+     * @throws ServletException if continuing the filter chain fails
+     */
     @Override
     protected void doFilterInternal(final HttpServletRequest request,
                                     final HttpServletResponse response,

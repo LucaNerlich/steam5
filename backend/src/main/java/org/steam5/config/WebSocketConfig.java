@@ -16,6 +16,11 @@ public class WebSocketConfig implements WebSocketConfigurer {
     private final PresenceWebSocketHandler presenceHandler;
     private final PresenceHandshakeInterceptor handshakeInterceptor;
 
+    /**
+     * Registers the presence WebSocket endpoint and its handshake interceptor.
+     *
+     * @param registry the registry used to configure WebSocket handlers
+     */
     @Override
     public void registerWebSocketHandlers(final WebSocketHandlerRegistry registry) {
         registry.addHandler(presenceHandler, "/ws/presence")

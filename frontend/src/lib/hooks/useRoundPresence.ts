@@ -28,12 +28,24 @@ const BASE_DELAY_MS = 1000;
 const MAX_DELAY_MS = 30000;
 const CLIENT_PING_INTERVAL_MS = 30000;
 
+/**
+ * Converts an HTTP origin to its corresponding WebSocket origin.
+ *
+ * @param origin - The origin to convert
+ * @returns The WebSocket-form origin, or `origin` when it uses another scheme
+ */
 function toWsOrigin(origin: string): string {
     if (origin.startsWith("https://")) return "wss://" + origin.slice("https://".length);
     if (origin.startsWith("http://")) return "ws://" + origin.slice("http://".length);
     return origin;
 }
 
+/**
+ * Retrieves a WebSocket ticket for the specified scope.
+ *
+ * @param scopeKey - The scope identifier used to request the ticket.
+ * @returns The ticket string, or `null` if the request fails or the response does not contain a valid ticket.
+ */
 async function fetchTicket(scopeKey: string): Promise<string | null> {
     try {
         const res = await fetch(
@@ -48,6 +60,12 @@ async function fetchTicket(scopeKey: string): Promise<string | null> {
     }
 }
 
+/**
+ * Tracks the real-time presence of players within a round.
+ *
+ * @param scopeKey - Identifier for the round or presence scope to monitor
+ * @returns The current presence snapshot and connection status
+ */
 export function useRoundPresence(scopeKey: string | null): PresenceSnapshot & {
     connected: boolean;
     reconnecting: boolean;

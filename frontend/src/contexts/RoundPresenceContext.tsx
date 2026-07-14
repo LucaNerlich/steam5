@@ -16,7 +16,10 @@ interface RoundPresenceProviderProps {
 }
 
 /**
- * Keeps one presence WebSocket alive across round navigation within the same game day.
+ * Provides round presence state to descendant components for the specified scope.
+ *
+ * @param props - Provider properties, including the presence scope and descendant content.
+ * @returns The context provider element.
  */
 export function RoundPresenceProvider(props: Readonly<RoundPresenceProviderProps>): React.ReactElement {
     const {scopeKey, children} = props;
@@ -28,6 +31,12 @@ export function RoundPresenceProvider(props: Readonly<RoundPresenceProviderProps
     );
 }
 
+/**
+ * Accesses the presence state provided by the nearest round presence provider.
+ *
+ * @returns The current round presence state
+ * @throws An error if used outside a `RoundPresenceProvider`
+ */
 export function useRoundPresenceContext(): RoundPresenceState {
     const ctx = useContext(RoundPresenceContext);
     if (!ctx) {
