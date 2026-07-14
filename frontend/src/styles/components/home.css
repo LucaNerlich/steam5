@@ -18,7 +18,6 @@
 }
 
 .home__secondary {
-    display: grid;
     gap: 1rem;
 }
 
@@ -29,7 +28,6 @@
 }
 
 .home__secondary-title {
-    grid-column: 1 / -1;
     margin: 1rem;
     font-size: clamp(1.1rem, 1rem + 0.4vw, 1.35rem);
 }
