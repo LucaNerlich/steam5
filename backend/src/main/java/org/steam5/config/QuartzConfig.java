@@ -6,8 +6,10 @@ import org.quartz.Trigger;
 import org.quartz.TriggerBuilder;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.quartz.autoconfigure.SchedulerFactoryBeanCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.steam5.job.AutowiringSpringBeanJobFactory;
 
 import java.util.TimeZone;
 
@@ -15,6 +17,11 @@ import static org.quartz.SimpleScheduleBuilder.simpleSchedule;
 
 @Configuration
 public class QuartzConfig {
+
+    @Bean
+    public SchedulerFactoryBeanCustomizer autowiringJobFactoryCustomizer() {
+        return schedulerFactoryBean -> schedulerFactoryBean.setJobFactory(new AutowiringSpringBeanJobFactory());
+    }
 
     @Bean
     @ConditionalOnProperty(prefix = "jobs.steam-app-details", name = "enabled", havingValue = "true", matchIfMissing = false)

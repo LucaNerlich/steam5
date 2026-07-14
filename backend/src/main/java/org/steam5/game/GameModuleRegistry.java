@@ -1,11 +1,9 @@
 package org.steam5.game;
 
-import org.steam5.game.price.PriceGameModule;
-import org.steam5.game.review.ReviewGameModule;
-import org.steam5.game.year.YearGameModule;
 import org.springframework.stereotype.Component;
 
 import java.util.EnumMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -14,12 +12,8 @@ public class GameModuleRegistry {
 
     private final Map<GameId, DailyGameModule<?>> modulesById = new EnumMap<>(GameId.class);
 
-    public GameModuleRegistry(final ReviewGameModule reviewGameModule,
-                              final YearGameModule yearGameModule,
-                              final PriceGameModule priceGameModule) {
-        register(reviewGameModule);
-        register(yearGameModule);
-        register(priceGameModule);
+    public GameModuleRegistry(final List<DailyGameModule<?>> modules) {
+        modules.forEach(this::register);
     }
 
     private void register(final DailyGameModule<?> module) {

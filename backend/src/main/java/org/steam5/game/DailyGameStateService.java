@@ -2,7 +2,6 @@ package org.steam5.game;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.steam5.domain.GameDate;
@@ -14,7 +13,11 @@ import java.util.List;
 @Slf4j
 public class DailyGameStateService {
 
-    @Transactional
+    /**
+     * Deliberately not {@code @Transactional}: the lock-poll loop and {@link DailyGameModule#createPicks}
+     * make external HTTP calls, which must not run while holding a DB transaction/connection open.
+     * Lock acquisition and persistence stay transactional via each module's repository calls.
+     */
     public <P> List<P> generateDailyPicks(final DailyGameModule<P> module) {
         final LocalDate today = GameDate.todayUtc();
         final List<P> existing = module.findPicksForDate(today);
@@ -31,7 +34,8 @@ public class DailyGameStateService {
                 }
                 try {
                     Thread.sleep(100);
-                } catch (InterruptedException ignored) {
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
                     break;
                 }
             }

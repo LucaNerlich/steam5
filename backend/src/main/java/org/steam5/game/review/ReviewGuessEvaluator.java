@@ -8,6 +8,9 @@ import java.util.regex.Pattern;
 
 public final class ReviewGuessEvaluator {
 
+    private static final Pattern RANGE_PATTERN = Pattern.compile("(?i)(\\d+)[-–—](\\d+)");
+    private static final Pattern SINGLE_NUMBER_PATTERN = Pattern.compile("(\\d+)");
+
     private ReviewGuessEvaluator() {
     }
 
@@ -36,7 +39,7 @@ public final class ReviewGuessEvaluator {
             }
             prev = b;
         }
-        return bounds.getLast() + "+";
+        return (bounds.getLast() + ReviewPickGenerator.MIN_BUCKET_BOUND) + "+";
     }
 
     public static boolean isCorrectForLabel(final String label, final long totalReviews) {
@@ -58,7 +61,7 @@ public final class ReviewGuessEvaluator {
             final long lower = digits.isEmpty() ? 0L : Long.parseLong(digits);
             return new Range(lower, null);
         }
-        final Matcher matcher = Pattern.compile("(?i)(\\d+)[-–—](\\d+)").matcher(s);
+        final Matcher matcher = RANGE_PATTERN.matcher(s);
         if (matcher.find()) {
             final long a = Long.parseLong(matcher.group(1));
             final long b = Long.parseLong(matcher.group(2));
@@ -66,7 +69,7 @@ public final class ReviewGuessEvaluator {
             final long upper = Math.max(a, b);
             return new Range(lower, upper);
         }
-        final Matcher one = Pattern.compile("(\\d+)").matcher(s);
+        final Matcher one = SINGLE_NUMBER_PATTERN.matcher(s);
         if (one.find()) {
             final long v = Long.parseLong(one.group(1));
             return new Range(v, v);

@@ -178,7 +178,7 @@ public class ReviewPickGenerator {
             labels.add((prev == MIN_BUCKET_BOUND ? "1-" + b : (prev + MIN_BUCKET_BOUND) + "-" + b));
             prev = b;
         }
-        labels.add(bounds.getLast() + "+");
+        labels.add((bounds.getLast() + MIN_BUCKET_BOUND) + "+");
         return labels;
     }
 
