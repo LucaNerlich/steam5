@@ -31,7 +31,8 @@ import java.util.regex.Pattern;
 @Component
 public class PresenceHandshakeInterceptor implements HandshakeInterceptor {
 
-    public static final Pattern SCOPE_KEY_PATTERN = Pattern.compile("^\\d{4}-\\d{2}-\\d{2}(:\\d+:\\d+)?$");
+    /** {@code site} = site-wide presence across all games; date keys kept for compatibility. */
+    public static final Pattern SCOPE_KEY_PATTERN = Pattern.compile("^(site|\\d{4}-\\d{2}-\\d{2}(:\\d+:\\d+)?)$");
 
     private final List<String> allowedOrigins;
     private final PresenceRateLimiter presenceRateLimiter;

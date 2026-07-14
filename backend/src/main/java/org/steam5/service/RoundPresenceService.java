@@ -25,12 +25,12 @@ import java.util.concurrent.atomic.AtomicInteger;
  * In-memory registry of active WebSocket sessions per game-day scope. Broadcasts
  * per-scope presence snapshots when membership changes.
  *
- * <p>Presence is scoped to a game day ({@code YYYY-MM-DD}). All live round pages
- * for that day share one pool so counts reflect everyone playing today's game.</p>
+ * <p>Clients use the {@code site} scope key so counts reflect everyone playing
+ * any Steam5 game. Legacy per-day keys ({@code YYYY-MM-DD}) remain accepted.</p>
  *
  * <p>Session attribute keys:</p>
  * <ul>
- *   <li>{@link #ATTR_SCOPE_KEY} — game day in the form {@code YYYY-MM-DD}</li>
+ *   <li>{@link #ATTR_SCOPE_KEY} — {@code site} for site-wide presence, or legacy {@code YYYY-MM-DD}</li>
  *   <li>{@link #ATTR_CLIENT_IP} — client IP captured at handshake</li>
  *   <li>{@link #ATTR_STEAM_ID} — verified steamId, or {@code null} for anonymous</li>
  *   <li>{@link #ATTR_PERSONA_NAME} — display name (authenticated only)</li>

@@ -7,6 +7,11 @@ import static org.junit.jupiter.api.Assertions.*;
 class PresenceHandshakeInterceptorTest {
 
     @Test
+    void scopeKeyPatternAcceptsSiteWideScope() {
+        assertTrue(PresenceHandshakeInterceptor.SCOPE_KEY_PATTERN.matcher("site").matches());
+    }
+
+    @Test
     void scopeKeyPatternAcceptsGameDay() {
         assertTrue(PresenceHandshakeInterceptor.SCOPE_KEY_PATTERN.matcher("2026-07-14").matches());
     }

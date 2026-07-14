@@ -1,5 +1,6 @@
 import {NextRequest, NextResponse} from 'next/server';
 import {cookies} from 'next/headers';
+import {SITE_PRESENCE_SCOPE_PATTERN} from '@/lib/presence';
 
 const BACKEND_ORIGIN = process.env.API_DOMAIN || process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
 const isDevelopment = process.env.NODE_ENV === 'development';
@@ -23,13 +24,10 @@ function isLoopbackOrigin(origin: string): boolean {
 }
 
 /**
- * Determines whether a scope key matches the expected date-based format.
- *
- * @param scopeKey - The scope key to validate
- * @returns `true` if the scope key contains a `YYYY-MM-DD` date with an optional numeric suffix, `false` otherwise.
+ * Determines whether a scope key matches the backend presence format.
  */
 function isValidScopeKey(scopeKey: string): boolean {
-    return /^\d{4}-\d{2}-\d{2}(:\d+:\d+)?$/.test(scopeKey);
+    return SITE_PRESENCE_SCOPE_PATTERN.test(scopeKey);
 }
 
 /**
