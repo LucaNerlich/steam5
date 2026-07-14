@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.15.2] - 2026-07-14
+
+### Fixed
+
+- Fixed the Docker healthcheck pointing at the wrong port and using invalid syntax, which was causing production deployments to be rolled back as "unhealthy"
+
 ## [1.15.1] - 2026-07-14
 
 ### Fixed
