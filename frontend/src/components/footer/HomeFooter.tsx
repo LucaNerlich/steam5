@@ -11,7 +11,7 @@ export default function HomeFooter() {
                 <small className="footer__meta-line footer__meta-links text-muted">
                     <Link href={Routes.reviewGuesser1}>Review Guesser</Link>
                     <span>·</span>
-                    <Link href={Routes.yearGuesser}>Year Guesser</Link>
+                    <Link href={Routes.yearGuesser1}>Year Guesser</Link>
                     <span>·</span>
                     <Link href={Routes.priceGuesser}>Price Guesser</Link>
                     <span>·</span>

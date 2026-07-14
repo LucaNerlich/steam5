@@ -8,7 +8,7 @@ export default function YearGuesserFooter() {
     return (
         <FooterShell className="footer--game footer--year">
             <div className="footer__meta">
-                <small className="footer__meta-line text-muted">Release Year Guesser · coming soon</small>
+                <small className="footer__meta-line text-muted">Release Year Guesser</small>
                 <small className="footer__meta-line footer__meta-links text-muted">
                     <Link href={Routes.home}>All games</Link>
                     <span>·</span>

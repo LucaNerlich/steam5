@@ -42,7 +42,7 @@ export default async function Home() {
                 <GameTeaserCard
                     title="Release Year Guesser"
                     description="Three shorter daily rounds. Look at screenshots and details, then guess which release-year bucket the game belongs in."
-                    href={Routes.yearGuesser}
+                    href={Routes.yearGuesser1}
                     badge="Coming soon"
                     icon="📅"
                     hintPreview="Guess the year freely; far-off misses unlock tiered hints for fewer points."

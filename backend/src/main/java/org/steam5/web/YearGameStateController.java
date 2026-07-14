@@ -201,6 +201,11 @@ public class YearGameStateController {
         if (progress.getBestDistance() == null) {
             return ResponseEntity.badRequest().build();
         }
+        if (req.hintLevel() <= progress.getHintsUsed()) {
+            final String content = service.buildHintContent(req.hintLevel(), req.appId());
+            final int maxPoints = YearGuessEvaluator.maxPointsForHintsUsed(progress.getHintsUsed(), service.getConfig());
+            return ResponseEntity.ok(new HintResponse(req.hintLevel(), content, progress.getHintsUsed(), maxPoints));
+        }
         if (req.hintLevel() != progress.getHintsUsed() + 1) {
             return ResponseEntity.badRequest().build();
         }
@@ -497,6 +502,8 @@ public class YearGameStateController {
                              Integer guessedYear,
                              Integer actualYear,
                              int hintsUsed,
+                             Integer bestDistance,
+                             List<Integer> unlockableHintLevels,
                              boolean completed,
                              int points) {
     }
@@ -573,12 +580,18 @@ public class YearGameStateController {
     }
 
     private MyGuessDto toMyGuessDto(final YearGuess guess) {
+        final Integer bestDistance = guess.getBestDistance();
+        final List<Integer> unlockable = guess.isCompleted() || bestDistance == null
+                ? List.of()
+                : YearGuessEvaluator.unlockableHintLevels(bestDistance, guess.getHintsUsed(), service.getConfig());
         return new MyGuessDto(
                 guess.getRoundIndex(),
                 guess.getAppId(),
                 guess.getGuessedYear(),
                 guess.isCompleted() ? guess.getActualYear() : null,
                 guess.getHintsUsed(),
+                bestDistance,
+                unlockable,
                 guess.isCompleted(),
                 guess.getPoints()
         );
