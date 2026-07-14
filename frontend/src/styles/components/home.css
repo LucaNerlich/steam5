@@ -19,6 +19,7 @@
 
 .home__secondary {
     gap: 1rem;
+    display: grid;
 }
 
 @media (min-width: 768px) {
