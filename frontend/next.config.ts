@@ -52,6 +52,11 @@ const nextConfig: NextConfig = {
                 destination: '/review-guesser/leaderboard',
                 permanent: true,
             },
+            {
+                source: '/review-guesser/hardest',
+                destination: '/review-guesser/leaderboard/hardest',
+                permanent: true,
+            },
 
         ];
     }
