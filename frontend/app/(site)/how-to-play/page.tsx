@@ -4,7 +4,7 @@ import {BACKEND_ORIGIN as backend} from "@/lib/backend";
 import {ACHIEVEMENT_LABELS, ACHIEVEMENT_TITLES, ACHIEVEMENT_ICONS} from "@/lib/achievements";
 import {INSIGHT_EMOJI, type InsightType} from "@/components/PlayerSpotlight";
 import type {BucketsResponse} from "@/types/review-game";
-import {Routes} from "../routes";
+import {Routes} from "../../routes";
 import "@/styles/components/reviewRules.css";
 import "@/styles/components/howToPlay.css";
 

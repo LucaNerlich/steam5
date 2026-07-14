@@ -4,7 +4,6 @@ import { cookies } from "next/headers";
 import "@/styles/globals.css";
 import UmamiAnalytics from "@/components/UmamiAnalytics";
 import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 import { AuthProvider } from "@/contexts/AuthContext";
 import localFont from "next/font/local";
 
@@ -251,7 +250,6 @@ export default async function RootLayout({
             <main>
                 {children}
             </main>
-            <Footer/>
             <UmamiAnalytics/>
         </AuthProvider>
         </body>
