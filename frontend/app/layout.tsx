@@ -230,6 +230,7 @@ export default async function RootLayout({
             lang="en"
             className={`${krypton.variable} ${neon.variable} ${argon.variable} ${radon.variable} ${xenon.variable} ${space.variable} ${pixelSquare.variable}`}
             suppressHydrationWarning
+            data-scroll-behavior="smooth"
             {...(serverTheme === 'dark' ? { 'data-theme': 'dark' } : {})}
         >
         <head>
