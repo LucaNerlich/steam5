@@ -9,6 +9,7 @@ import org.springframework.http.server.ServletServerHttpRequest;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.server.HandshakeInterceptor;
+import org.springframework.web.util.UriComponentsBuilder;
 import org.steam5.service.PresenceMetrics;
 import org.steam5.service.PresenceRateLimiter;
 import org.steam5.service.RoundPresenceService;
@@ -117,18 +118,11 @@ public class PresenceHandshakeInterceptor implements HandshakeInterceptor {
 
     static String extractParam(final String query, final String name) {
         if (query == null || query.isEmpty()) return null;
-        for (final String pair : query.split("&")) {
-            final int eq = pair.indexOf('=');
-            if (eq < 0) continue;
-            final String key = pair.substring(0, eq);
-            if (!name.equals(key)) continue;
-            final String rawValue = pair.substring(eq + 1);
-            try {
-                return java.net.URLDecoder.decode(rawValue, java.nio.charset.StandardCharsets.UTF_8);
-            } catch (IllegalArgumentException e) {
-                return null;
-            }
-        }
-        return null;
+        final List<String> values = UriComponentsBuilder.newInstance()
+                .query(query)
+                .build()
+                .getQueryParams()
+                .get(name);
+        return (values != null && !values.isEmpty()) ? values.get(0) : null;
     }
 }

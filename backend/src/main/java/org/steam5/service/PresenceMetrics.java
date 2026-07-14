@@ -17,8 +17,10 @@ public class PresenceMetrics {
     private final Counter ticketsIssued;
     private final Counter ticketsInvalid;
     private final Counter idleTimeouts;
+    private final MeterRegistry meterRegistry;
 
     public PresenceMetrics(final MeterRegistry meterRegistry, @Lazy final RoundPresenceService presenceService) {
+        this.meterRegistry = meterRegistry;
         this.handshakeRejected = Counter.builder("presence.handshake.rejected")
                 .description("Presence WebSocket handshakes rejected")
                 .tag("application", "steam5")
@@ -64,5 +66,14 @@ public class PresenceMetrics {
 
     public void recordIdleTimeout() {
         idleTimeouts.increment();
+    }
+
+    public void recordRegistrationRejected(final String reason) {
+        Counter.builder("presence.registration.rejected")
+                .description("Presence session registrations rejected after handshake")
+                .tag("application", "steam5")
+                .tag("reason", reason)
+                .register(meterRegistry)
+                .increment();
     }
 }

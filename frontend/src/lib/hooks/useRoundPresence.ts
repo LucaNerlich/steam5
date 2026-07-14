@@ -62,6 +62,7 @@ export function useRoundPresence(scopeKey: string | null): PresenceSnapshot & {
     const pingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const closedByUserRef = useRef(false);
     const retryCountRef = useRef(0);
+    const connectionIdRef = useRef(0);
 
     useEffect(() => {
         closedByUserRef.current = false;
@@ -121,8 +122,11 @@ export function useRoundPresence(scopeKey: string | null): PresenceSnapshot & {
         const connect = async () => {
             if (disposed) return;
             setReconnecting(retryCountRef.current > 0);
+            const connectionId = ++connectionIdRef.current;
             const ticket = isSignedIn ? await fetchTicket(scopeKey) : null;
-            if (disposed) return;
+            if (disposed || connectionIdRef.current !== connectionId) return;
+
+            closeSocket();
 
             const wsOrigin = toWsOrigin(BACKEND_ORIGIN);
             const url = `${wsOrigin}/ws/presence?scopeKey=${encodeURIComponent(scopeKey)}&ticket=${encodeURIComponent(ticket ?? "")}`;
@@ -138,7 +142,7 @@ export function useRoundPresence(scopeKey: string | null): PresenceSnapshot & {
             socketRef.current = ws;
 
             ws.onopen = () => {
-                if (disposed) return;
+                if (disposed || socketRef.current !== ws) return;
                 retryCountRef.current = 0;
                 setConnected(true);
                 setReconnecting(false);
@@ -146,7 +150,7 @@ export function useRoundPresence(scopeKey: string | null): PresenceSnapshot & {
             };
 
             ws.onmessage = (ev) => {
-                if (disposed) return;
+                if (disposed || socketRef.current !== ws) return;
                 try {
                     const data = JSON.parse(ev.data) as Partial<PresenceSnapshot>;
                     setSnapshot({
@@ -167,7 +171,7 @@ export function useRoundPresence(scopeKey: string | null): PresenceSnapshot & {
             };
 
             ws.onclose = () => {
-                if (disposed) return;
+                if (disposed || socketRef.current !== ws) return;
                 setConnected(false);
                 clearPing();
                 socketRef.current = null;
@@ -189,8 +193,8 @@ export function useRoundPresence(scopeKey: string | null): PresenceSnapshot & {
 
         const handleRecovery = () => {
             if (disposed || closedByUserRef.current) return;
-            if (socketRef.current?.readyState === WebSocket.OPEN) return;
-            retryCountRef.current = 0;
+            const readyState = socketRef.current?.readyState;
+            if (readyState === WebSocket.OPEN || readyState === WebSocket.CONNECTING) return;
             clearReconnect();
             void connect();
         };

@@ -37,7 +37,7 @@ public class PresenceWebSocketHandler extends TextWebSocketHandler {
 
         if (ticket != null && !ticket.isBlank()) {
             final String steamId = wsTicketService.validateTicket(ticket, scopeKey);
-            if (steamId != null) {
+            if (steamId != null && !steamId.isBlank()) {
                 session.getAttributes().put(RoundPresenceService.ATTR_STEAM_ID, steamId);
                 try {
                     final Optional<User> user = userRepository.findById(steamId);
@@ -51,15 +51,22 @@ public class PresenceWebSocketHandler extends TextWebSocketHandler {
                     log.debug("Failed to load user {} for presence session {}: {}",
                             steamId, session.getId(), e.toString());
                 }
-            } else {
+            } else if (steamId == null) {
+                log.debug("Rejecting presence session {} — invalid ticket", session.getId());
                 presenceMetrics.recordTicketInvalid();
+                try {
+                    session.close(CloseStatus.POLICY_VIOLATION);
+                } catch (Exception e) {
+                    log.debug("Failed to close session with invalid ticket {}: {}", session.getId(), e.toString());
+                }
+                return;
             }
         }
 
         final RoundPresenceService.RegisterResult result = presenceService.register(session);
         if (result != RoundPresenceService.RegisterResult.OK) {
             log.debug("Rejecting presence session {} — {}", session.getId(), result);
-            presenceMetrics.recordHandshakeRejected();
+            presenceMetrics.recordRegistrationRejected(result.name());
             try {
                 session.close(CloseStatus.POLICY_VIOLATION);
             } catch (Exception e) {

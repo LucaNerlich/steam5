@@ -65,35 +65,38 @@ public class RoundPresenceService {
             new ConcurrentHashMap<>();
     private final AtomicInteger globalConnections = new AtomicInteger();
     private final ConcurrentHashMap<String, AtomicInteger> connectionsByIp = new ConcurrentHashMap<>();
+    private final Object registerLock = new Object();
 
     public RegisterResult register(final WebSocketSession session) {
         final String scopeKey = scopeKeyOf(session);
         if (scopeKey == null) return RegisterResult.SCOPE_LIMIT;
 
-        if (globalConnections.get() >= properties.getMaxGlobalConnections()) {
-            return RegisterResult.GLOBAL_LIMIT;
-        }
-        if (scopeSize(scopeKey) >= properties.getMaxScopeConnections()) {
-            return RegisterResult.SCOPE_LIMIT;
-        }
-
-        final String clientIp = clientIpOf(session);
-        if (clientIp != null) {
-            final AtomicInteger ipCount = connectionsByIp.computeIfAbsent(clientIp, k -> new AtomicInteger(0));
-            if (ipCount.get() >= properties.getMaxIpConnections()) {
-                return RegisterResult.IP_LIMIT;
+        synchronized (registerLock) {
+            if (globalConnections.get() >= properties.getMaxGlobalConnections()) {
+                return RegisterResult.GLOBAL_LIMIT;
             }
-        }
+            if (scopeSize(scopeKey) >= properties.getMaxScopeConnections()) {
+                return RegisterResult.SCOPE_LIMIT;
+            }
 
-        sessionsByScope
-                .computeIfAbsent(scopeKey, k -> new CopyOnWriteArrayList<>())
-                .add(session);
-        globalConnections.incrementAndGet();
-        if (clientIp != null) {
-            connectionsByIp.computeIfAbsent(clientIp, k -> new AtomicInteger(0)).incrementAndGet();
+            final String clientIp = clientIpOf(session);
+            if (clientIp != null) {
+                final AtomicInteger ipCount = connectionsByIp.computeIfAbsent(clientIp, k -> new AtomicInteger(0));
+                if (ipCount.get() >= properties.getMaxIpConnections()) {
+                    return RegisterResult.IP_LIMIT;
+                }
+            }
+
+            sessionsByScope
+                    .computeIfAbsent(scopeKey, k -> new CopyOnWriteArrayList<>())
+                    .add(session);
+            globalConnections.incrementAndGet();
+            if (clientIp != null) {
+                connectionsByIp.computeIfAbsent(clientIp, k -> new AtomicInteger(0)).incrementAndGet();
+            }
+            touchActivity(session);
+            return RegisterResult.OK;
         }
-        touchActivity(session);
-        return RegisterResult.OK;
     }
 
     public void unregister(final WebSocketSession session) {
