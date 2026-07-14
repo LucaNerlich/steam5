@@ -85,6 +85,7 @@ games:
   year:
     do-not-repeat-days: 365
     bucket-boundaries: [1999, 2009, 2019]
+    bucket-titles: ['retro', '2000s', '2010s', 'modern']
     rounds-per-day: 3
   price:
     do-not-repeat-days: 365

@@ -45,7 +45,9 @@ public class YearGameModule implements DailyGameModule<YearGamePick> {
 
     @Override
     public void afterPicksCreated(final List<YearGamePick> picks) {
-        // enrichment hooks added when year game ships
+        for (YearGamePick pick : picks) {
+            pickGenerator.enrichPickedApp(pick);
+        }
     }
 
     @Override
