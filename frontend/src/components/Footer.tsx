@@ -27,8 +27,6 @@ export default function Footer() {
                         <span>·</span>
                         <Link href={Routes.leaderboardToday}>Leaderboard</Link>
                         <span>·</span>
-                        <Link href={Routes.leaderboardHardest}>Hardest Games</Link>
-                        <span>·</span>
                         <Link href={Routes.imprint}>Imprint</Link>
                         <span>·</span>
                         <Link href={Routes.privacy}>Privacy</Link>
