@@ -201,7 +201,7 @@ html:has(.leaderboard-layout) {
         padding: 0.52rem 0.55rem;
     }
 
-    .leaderboard__toggle .leaderboard__toggle-btn:last-child:nth-child(odd) {
+    .leaderboard__toggle .leaderboard__toggle-btn:last-child:nth-child(even) {
         grid-column: 1 / -1;
     }
 
