@@ -148,11 +148,7 @@ export function useRoundPresence(scopeKey: string | null): PresenceSnapshot & {
             ws.onmessage = (ev) => {
                 if (disposed) return;
                 try {
-                    const data = JSON.parse(ev.data) as Partial<PresenceSnapshot> & {type?: string};
-                    if (data.type === "ping") {
-                        ws.send(JSON.stringify({type: "pong"}));
-                        return;
-                    }
+                    const data = JSON.parse(ev.data) as Partial<PresenceSnapshot>;
                     setSnapshot({
                         totalCount: typeof data.totalCount === "number" ? data.totalCount : 0,
                         anonymousCount: typeof data.anonymousCount === "number" ? data.anonymousCount : 0,

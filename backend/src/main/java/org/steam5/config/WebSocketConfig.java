@@ -20,6 +20,6 @@ public class WebSocketConfig implements WebSocketConfigurer {
     public void registerWebSocketHandlers(final WebSocketHandlerRegistry registry) {
         registry.addHandler(presenceHandler, "/ws/presence")
                 .addInterceptors(handshakeInterceptor)
-                .setAllowedOriginPatterns("*");
+                .setAllowedOriginPatterns(handshakeInterceptor.getAllowedOrigins().toArray(new String[0]));
     }
 }

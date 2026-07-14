@@ -97,6 +97,10 @@ public class PresenceHandshakeInterceptor implements HandshakeInterceptor {
         // no-op
     }
 
+    public List<String> getAllowedOrigins() {
+        return allowedOrigins;
+    }
+
     private boolean isAllowed(final String origin) {
         for (final String allowed : allowedOrigins) {
             if (allowed.equals(origin) || "*".equals(allowed)) return true;
