@@ -14,7 +14,6 @@ backend and a Next.js frontend.
 - Java 21, Spring Boot 3.5
 - Gradle (wrapper included)
 - PostgreSQL, JPA/Hibernate
-- Flyway for DB migrations
 - Quartz for scheduled jobs
 - Actuator for health/metrics
 
@@ -92,15 +91,6 @@ Run tests:
 ```bash
 cd backend && ./gradlew test
 ```
-
----
-
-## Database & migrations
-
-Flyway is enabled and will apply SQL files in `backend/src/main/resources/db/migration` on startup.
-
-- Initial migration: `V1__create_initial_schema.sql` (to be filled with the tables below).
-- Naming: `V{N}__{snake_case_description}.sql` (e.g., `V2__add_user_tables.sql`).
 
 ---
 
