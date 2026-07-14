@@ -28,11 +28,6 @@ export default async function Home() {
 
     return (
         <section className="container home">
-            <header className="home__intro">
-                <h1>Steam5</h1>
-                <p>Daily Steam guessing games — review counts today, release years and prices coming soon.</p>
-            </header>
-
             {today && firstPick ? (
                 <HomeReviewHero today={today} pick={firstPick}/>
             ) : (

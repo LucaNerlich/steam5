@@ -62,7 +62,11 @@ const nextConfig: NextConfig = {
                 destination: '/review-guesser/leaderboard/hardest',
                 permanent: true,
             },
-
+            {
+                source: '/how-to-play',
+                destination: '/review-guesser/how-to-play',
+                permanent: true,
+            },
         ];
     }
 };

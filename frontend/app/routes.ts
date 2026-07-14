@@ -19,5 +19,5 @@ export const Routes = {
     seasonDetail: (seasonNumber: number | string) => `/review-guesser/seasons/${seasonNumber}`,
     imprint: '/imprint',
     privacy: '/privacy',
-    howToPlay: '/how-to-play',
+    howToPlay: '/review-guesser/how-to-play',
 }
