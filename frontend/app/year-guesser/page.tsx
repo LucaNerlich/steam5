@@ -7,11 +7,11 @@ export default function YearGuesserEntryPage() {
 
 export const metadata: Metadata = {
     title: 'Release Year Guesser',
-    description: 'Guess Steam game release years in three daily rounds. Wrong guesses unlock tiered hints — each hint lowers your max points.',
+    description: 'Guess Steam game release years in one daily round. Wrong guesses unlock tiered hints — each hint lowers your max points.',
     alternates: {canonical: '/year-guesser'},
     openGraph: {
         title: 'Release Year Guesser',
-        description: 'Guess Steam game release years in three daily rounds.',
+        description: 'Guess Steam game release years in one daily round.',
         url: '/year-guesser',
         images: ['/opengraph-image'],
     },

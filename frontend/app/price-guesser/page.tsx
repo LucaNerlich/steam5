@@ -13,7 +13,7 @@ export default function PriceGuesserPage() {
             title="Price Guesser"
             icon="💲"
             tagline="What does this game cost?"
-            description="Three quick rounds per day. Pick a price bucket instead of typing an exact amount — we start with USD tiers and may expand later."
+            description="One quick round per day. Pick a price bucket instead of typing an exact amount — we start with USD tiers and may expand later."
             bucketExample="Free · Under $5 · $5–$15 · $15–$30 · $30+"
             hintTiers={[
                 {

@@ -94,7 +94,7 @@ export async function generateMetadata({params}: {params: Promise<{round: string
             : 'Release Year Guesser';
         const description = pick
             ? `${pick.name} — When did this game release on Steam?`
-            : `Guess Steam release years in three daily rounds.`;
+            : `Guess Steam release years in one daily round.`;
         const base = (process.env.NEXT_PUBLIC_DOMAIN || 'https://steam5.org').replace(/\/$/, '');
         const firstShot = pick?.screenshots?.[0];
         const rawImg = firstShot?.pathFull || firstShot?.pathThumbnail || '/opengraph-image';
@@ -114,7 +114,7 @@ export async function generateMetadata({params}: {params: Promise<{round: string
     } catch {
         return {
             title: 'Release Year Guesser',
-            description: 'Guess Steam release years in three daily rounds.',
+            description: 'Guess Steam release years in one daily round.',
             alternates: {canonical: `/year-guesser/${round || '1'}`},
         };
     }

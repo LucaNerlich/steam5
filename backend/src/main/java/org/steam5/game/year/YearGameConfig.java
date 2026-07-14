@@ -14,7 +14,7 @@ import java.util.List;
 public class YearGameConfig {
 
     private int doNotRepeatDays = 365;
-    private int roundsPerDay = 3;
+    private int roundsPerDay = 1;
     private int maxPoints = 5;
     /**
      * Wrong-guess distance thresholds to unlock hints 1, 2, and 3 respectively.

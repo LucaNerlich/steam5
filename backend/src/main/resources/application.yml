@@ -84,14 +84,14 @@ review:
 games:
   year:
     do-not-repeat-days: 365
-    rounds-per-day: 3
+    rounds-per-day: 1
     max-points: 5
     hint-distance-thresholds: [12, 6, 2]
     narrow-range-window-years: 2
   price:
     do-not-repeat-days: 365
     bucket-boundaries: [499, 1499, 2999]
-    rounds-per-day: 3
+    rounds-per-day: 1
     currency: USD
 
 presence:

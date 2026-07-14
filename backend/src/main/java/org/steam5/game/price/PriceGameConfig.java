@@ -16,6 +16,6 @@ public class PriceGameConfig {
     private int doNotRepeatDays = 365;
     private List<Integer> bucketBoundaries = List.of(499, 1499, 2999);
     private List<String> bucketTitles = List.of();
-    private int roundsPerDay = 3;
+    private int roundsPerDay = 1;
     private String currency = "USD";
 }

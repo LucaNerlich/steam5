@@ -41,7 +41,7 @@ export default async function Home() {
             <div className="home__secondary">
                 <GameTeaserCard
                     title="Release Year Guesser"
-                    description="Three shorter daily rounds. Look at screenshots and details, then guess which release-year bucket the game belongs in."
+                    description="One daily round. Look at screenshots and details, then guess when the game released on Steam."
                     href={Routes.yearGuesser1}
                     badge="Coming soon"
                     icon="📅"
