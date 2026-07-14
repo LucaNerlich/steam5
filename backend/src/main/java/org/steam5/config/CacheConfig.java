@@ -42,6 +42,24 @@ public class CacheConfig {
                         .build()
         );
 
+        final CaffeineCache cacheYearGame = new CaffeineCache(
+                "year-game",
+                Caffeine.newBuilder()
+                        .expireAfterWrite(24, TimeUnit.HOURS)
+                        .maximumSize(200)
+                        .recordStats()
+                        .build()
+        );
+
+        final CaffeineCache cachePriceGame = new CaffeineCache(
+                "price-game",
+                Caffeine.newBuilder()
+                        .expireAfterWrite(24, TimeUnit.HOURS)
+                        .maximumSize(200)
+                        .recordStats()
+                        .build()
+        );
+
         final CaffeineCache cacheStatsLong = new CaffeineCache(
                 "stats-long",
                 Caffeine.newBuilder()
@@ -164,6 +182,8 @@ public class CacheConfig {
                 cacheOneHour,
                 cacheOneDay,
                 cacheReviewGame,
+                cacheYearGame,
+                cachePriceGame,
                 cacheStatsLong,
                 cacheStatsHourly,
                 cacheStatsShort,

@@ -60,6 +60,30 @@ public class QuartzConfig {
     }
 
     @Bean
+    @ConditionalOnProperty(prefix = "jobs.year-game-state", name = "enabled", havingValue = "true", matchIfMissing = false)
+    public Trigger triggerYearGameStateJob(@Qualifier("YearGameStateJob") JobDetail job) {
+        return TriggerBuilder.newTrigger().forJob(job)
+                .withIdentity("YearGameStateJob_Trigger")
+                .withSchedule(
+                        CronScheduleBuilder.cronSchedule("0 2 0 * * ?")
+                                .inTimeZone(TimeZone.getTimeZone("UTC"))
+                )
+                .build();
+    }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "jobs.price-game-state", name = "enabled", havingValue = "true", matchIfMissing = false)
+    public Trigger triggerPriceGameStateJob(@Qualifier("PriceGameStateJob") JobDetail job) {
+        return TriggerBuilder.newTrigger().forJob(job)
+                .withIdentity("PriceGameStateJob_Trigger")
+                .withSchedule(
+                        CronScheduleBuilder.cronSchedule("0 3 0 * * ?")
+                                .inTimeZone(TimeZone.getTimeZone("UTC"))
+                )
+                .build();
+    }
+
+    @Bean
     @ConditionalOnProperty(prefix = "jobs.blurhash", name = "enabled", havingValue = "true", matchIfMissing = false)
     public Trigger triggerBlurhashScreenshotJob(@Qualifier("BlurhashScreenshotsJob") JobDetail job) {
         return TriggerBuilder.newTrigger().forJob(job)

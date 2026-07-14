@@ -81,6 +81,17 @@ review:
     # refresh reviews for picked apps when older than N days
     min-reviews-fresh-days: ${MIN_REVIEWS_FRESH_DAYS:7}
 
+games:
+  year:
+    do-not-repeat-days: 365
+    bucket-boundaries: [1999, 2009, 2019]
+    rounds-per-day: 3
+  price:
+    do-not-repeat-days: 365
+    bucket-boundaries: [499, 1499, 2999]
+    rounds-per-day: 3
+    currency: USD
+
 presence:
   max-global-connections: ${PRESENCE_MAX_GLOBAL_CONNECTIONS:5000}
   max-scope-connections: ${PRESENCE_MAX_SCOPE_CONNECTIONS:500}
@@ -116,6 +127,10 @@ jobs:
     enabled: ${JOB_INGEST_DETAILS:false}
   review-game-state:
     enabled: ${JOB_GENERATE_REVIEW_STATE:false}
+  year-game-state:
+    enabled: ${JOB_GENERATE_YEAR_STATE:false}
+  price-game-state:
+    enabled: ${JOB_GENERATE_PRICE_STATE:false}
   blurhash:
     enabled: ${JOB_BLURHASH:false}
   blurhashAvatar:

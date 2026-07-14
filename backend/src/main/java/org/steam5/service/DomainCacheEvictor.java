@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.stereotype.Component;
+import org.steam5.game.GameId;
 
 /**
  * Single owner of the domain cache topology: which Caffeine caches exist and which
@@ -19,6 +20,8 @@ import org.springframework.stereotype.Component;
 public class DomainCacheEvictor {
 
     static final String REVIEW_GAME = "review-game";
+    static final String YEAR_GAME = "year-game";
+    static final String PRICE_GAME = "price-game";
     static final String ONE_DAY = "one-day";
 
     private final CacheManager cacheManager;
@@ -28,7 +31,15 @@ public class DomainCacheEvictor {
      * since the cached picks/state are no longer current.
      */
     public void evictReviewGameState() {
-        clear(REVIEW_GAME);
+        evictGameState(GameId.REVIEW_GUESSER);
+    }
+
+    public void evictGameState(final GameId gameId) {
+        clear(switch (gameId) {
+            case REVIEW_GUESSER -> REVIEW_GAME;
+            case RELEASE_YEAR_GUESSER -> YEAR_GAME;
+            case PRICE_GUESSER -> PRICE_GAME;
+        });
     }
 
     /**
