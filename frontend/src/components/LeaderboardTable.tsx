@@ -10,6 +10,7 @@ import {
     getAchievementTitle,
 } from "@/lib/achievements";
 import AchievementsTable from "@/components/AchievementsTable";
+import SortableTH from "@/components/SortableTH";
 
 type LeaderEntry = {
     steamId: string;
@@ -172,24 +173,15 @@ export default function LeaderboardTable(props: {
     if (isLoading && !props.initialData) return <p className="text-muted">Loading leaderboard…</p>;
     if (!data) return <p className="text-muted">Loading leaderboard…</p>;
 
-    const SortableTH = ({
-                            label,
-                            keyName,
-                            title,
-                            alignNum
-                        }: { label: string; keyName: SortKey; title?: string; alignNum?: boolean }) => {
-        const isActive = sortKey === keyName;
-        const aria = isActive ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none';
-        return (
-            <th scope="col" className={alignNum ? 'num' : undefined} title={title} aria-sort={aria}>
-                <button className={`sortable${isActive ? ' is-active' : ''}`} onClick={() => requestSort(keyName)}
-                        aria-label={`Sort by ${label}`}>
-                    {label}{isActive &&
-                    <span className="sort-indicator" aria-hidden="true">{sortDir === 'asc' ? '▲' : '▼'}</span>}
-                </button>
-            </th>
-        );
-    };
+    const thProps = <K extends SortKey>(label: string, keyName: K, opts?: { title?: string; alignNum?: boolean }) => ({
+        label,
+        keyName,
+        activeKey: sortKey,
+        direction: sortDir,
+        onSort: requestSort,
+        title: opts?.title,
+        alignNum: opts?.alignNum,
+    });
 
     return (
         <div className="leaderboard">
@@ -198,16 +190,15 @@ export default function LeaderboardTable(props: {
                     <thead>
                     <tr>
                         <th scope="col" className="num">#</th>
-                        <SortableTH label="Player" keyName={'personaName'}/>
-                        <SortableTH label="Points" keyName={'totalPoints'} alignNum/>
-                        <SortableTH label="Rounds" keyName={'rounds'} alignNum/>
-                        <SortableTH label="Streak" keyName={'streak'} title={'Uninterrupted daily-challenges'}
-                                    alignNum/>
-                        <SortableTH label="Hits" keyName={'hits'} title={'Correct guess'} alignNum/>
-                        <SortableTH label="Flops" keyName={'flops'} title={'Zero-point rounds (3+ buckets off)'} alignNum/>
-                        <SortableTH label="Too High" keyName={'tooHigh'} alignNum/>
-                        <SortableTH label="Too Low" keyName={'tooLow'} alignNum/>
-                        <SortableTH label="Avg" keyName={'avgPoints'} alignNum/>
+                        <SortableTH {...thProps('Player', 'personaName')}/>
+                        <SortableTH {...thProps('Points', 'totalPoints', {alignNum: true})}/>
+                        <SortableTH {...thProps('Rounds', 'rounds', {alignNum: true})}/>
+                        <SortableTH {...thProps('Streak', 'streak', {title: 'Uninterrupted daily-challenges', alignNum: true})}/>
+                        <SortableTH {...thProps('Hits', 'hits', {title: 'Correct guess', alignNum: true})}/>
+                        <SortableTH {...thProps('Flops', 'flops', {title: 'Zero-point rounds (3+ buckets off)', alignNum: true})}/>
+                        <SortableTH {...thProps('Too High', 'tooHigh', {alignNum: true})}/>
+                        <SortableTH {...thProps('Too Low', 'tooLow', {alignNum: true})}/>
+                        <SortableTH {...thProps('Avg', 'avgPoints', {alignNum: true})}/>
                     </tr>
                     </thead>
                     <tbody>

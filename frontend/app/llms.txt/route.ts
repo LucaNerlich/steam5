@@ -16,6 +16,7 @@ The project is open source (AGPL) and built with Next.js 15 (frontend) and Sprin
 - [Today's leaderboard](${base}/review-guesser/leaderboard/today): Daily rankings
 - [Weekly leaderboard](${base}/review-guesser/leaderboard/weekly): Weekly rankings
 - [Season leaderboard](${base}/review-guesser/leaderboard/season): Current season rankings
+- [Hardest games](${base}/review-guesser/leaderboard/hardest): Games players struggle with the most
 - [Archive](${base}/review-guesser/archive): Browse past daily rounds
 
 ## Legal

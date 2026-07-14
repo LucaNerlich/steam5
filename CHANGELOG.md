@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.16.0] - 2026-07-14
+
+### Added
+
+- Folded the "Hardest Games" page into the leaderboard as a new sortable tab, ranking Steam games by lowest average score with deception metrics
+- Added shorter redirect URLs (`/rg`, `/rg/lb`) for the review guesser and leaderboard pages
+
+### Fixed
+
+- Fixed the leaderboard toggle button not spanning both columns correctly on mobile
+
 ## [1.15.2] - 2026-07-14
 
 ### Fixed

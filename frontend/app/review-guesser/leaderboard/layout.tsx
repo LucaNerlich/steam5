@@ -6,7 +6,7 @@ import LeaderboardHeader from "@/components/LeaderboardHeader";
 export default function LeaderboardLayout({children}: { children: ReactNode }) {
     return (
         <section className="container leaderboard-layout">
-            <h1>Leaderboard</h1>
+            <h1>Leaderboards</h1>
             <LeaderboardToggle />
             <LeaderboardHeader />
             {children}

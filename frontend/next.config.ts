@@ -48,8 +48,23 @@ const nextConfig: NextConfig = {
                 permanent: true,
             },
             {
+                source: '/rg',
+                destination: '/review-guesser',
+                permanent: true,
+            },
+            {
+                source: '/rg/lb',
+                destination: '/review-guesser/leaderboard',
+                permanent: true,
+            },
+            {
                 source: '/leaderboard',
                 destination: '/review-guesser/leaderboard',
+                permanent: true,
+            },
+            {
+                source: '/review-guesser/hardest',
+                destination: '/review-guesser/leaderboard/hardest',
                 permanent: true,
             },
 

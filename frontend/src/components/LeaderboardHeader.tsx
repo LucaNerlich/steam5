@@ -25,6 +25,10 @@ const COPY_BY_PATH: Record<string, HeaderCopy> = {
         title: "Season",
         subline: "Current season standings",
     },
+    "/review-guesser/leaderboard/hardest": {
+        title: "Hardest Games",
+        subline: "Steam games players struggle with the most — ranked by lowest average score",
+    },
     "/review-guesser/leaderboard": DEFAULT_COPY,
 };
 

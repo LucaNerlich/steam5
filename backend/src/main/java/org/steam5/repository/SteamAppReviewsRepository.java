@@ -23,7 +23,6 @@ public interface SteamAppReviewsRepository extends JpaRepository<SteamAppReviews
     // CREATE INDEX idx_reviews_eligible ON steam_app_reviews (app_id)
     // WHERE (total_positive + total_negative) > 0;
     // Standard JPA @Index cannot express partial-index WHERE clauses.
-    // If Flyway/Liquibase is introduced, prefer managing this index via a migration.
     /**
      * Randomly selects low-review eligible apps via a two-phase CTE.
      * Uses NOT EXISTS anti-joins and limits ORDER BY random() to the eligible subset.
