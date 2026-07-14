@@ -201,6 +201,10 @@ html:has(.leaderboard-layout) {
         padding: 0.52rem 0.55rem;
     }
 
+    .leaderboard__toggle .leaderboard__toggle-btn:last-child:nth-child(odd) {
+        grid-column: 1 / -1;
+    }
+
     /* Hide Flops, Too High, and Too Low on mobile to save space */
     .leaderboard__table th:nth-child(7),
     .leaderboard__table td:nth-child(7), /* Flops */
