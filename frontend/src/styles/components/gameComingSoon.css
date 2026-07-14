@@ -3,6 +3,7 @@
 }
 
 .game-coming-soon__hero {
+    position: static;
     text-align: center;
     max-width: 40rem;
     margin: 0 auto 2rem;

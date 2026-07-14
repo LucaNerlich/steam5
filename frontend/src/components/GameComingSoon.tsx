@@ -26,13 +26,13 @@ export default function GameComingSoon({
 }: Readonly<GameComingSoonProps>) {
     return (
         <section className="container game-coming-soon">
-            <header className="game-coming-soon__hero">
+            <div className="game-coming-soon__hero">
                 <span className="game-coming-soon__icon" aria-hidden="true">{icon}</span>
                 <p className="game-coming-soon__badge">Coming soon</p>
                 <h1>{title}</h1>
                 <p className="game-coming-soon__tagline">{tagline}</p>
                 <p className="game-coming-soon__description">{description}</p>
-            </header>
+            </div>
 
             <section className="game-coming-soon__panel" aria-labelledby="hint-system-title">
                 <h2 id="hint-system-title">Planned hint system</h2>
