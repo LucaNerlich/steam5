@@ -1,6 +1,6 @@
 import type {Metadata} from "next";
 import Link from "next/link";
-import {Routes} from "./routes";
+import {Routes} from "../routes";
 import HomeReviewHero from "@/components/HomeReviewHero";
 import GameTeaserCard from "@/components/GameTeaserCard";
 import type {ReviewGameState} from "@/types/review-game";
