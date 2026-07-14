@@ -8,7 +8,7 @@ const ROUTES = [
     {href: "/review-guesser/leaderboard/today", label: "Today"},
     {href: "/review-guesser/leaderboard/weekly", label: "Weekly"},
     {href: "/review-guesser/leaderboard/season", label: "Season"},
-    {href: "/review-guesser/leaderboard/hardest", label: "Hardest"},
+    {href: "/review-guesser/leaderboard/hardest", label: "Hardest Games"},
     {href: "/review-guesser/leaderboard", label: "All-time"},
 ];
 
