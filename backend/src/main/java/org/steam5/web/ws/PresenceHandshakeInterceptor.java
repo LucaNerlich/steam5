@@ -15,6 +15,9 @@ import org.steam5.service.PresenceRateLimiter;
 import org.steam5.service.RoundPresenceService;
 
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -60,7 +63,8 @@ public class PresenceHandshakeInterceptor implements HandshakeInterceptor {
 
         final String clientIp = resolveClientIp(request);
         if (!presenceRateLimiter.tryAcquireHandshake(clientIp)) {
-            log.warn("Rejecting presence handshake — rate limit exceeded for ip={}", clientIp);
+            log.warn("Rejecting presence handshake — rate limit exceeded for clientRef={}",
+                    loggableClientRef(clientIp));
             presenceMetrics.recordHandshakeRejected();
             return false;
         }
@@ -103,10 +107,25 @@ public class PresenceHandshakeInterceptor implements HandshakeInterceptor {
     }
 
     private boolean isAllowed(final String origin) {
-        for (final String allowed : allowedOrigins) {
-            if (allowed.equals(origin) || "*".equals(allowed)) return true;
+        return allowedOrigins.contains(origin);
+    }
+
+    static String loggableClientRef(final String clientIp) {
+        if (clientIp == null || clientIp.isBlank()) {
+            return "unknown";
         }
-        return false;
+        try {
+            final byte[] digest = MessageDigest.getInstance("SHA-256")
+                    .digest(clientIp.getBytes(StandardCharsets.UTF_8));
+            final StringBuilder sb = new StringBuilder(16);
+            sb.append("ipHash:");
+            for (int i = 0; i < 4; i++) {
+                sb.append(String.format("%02x", digest[i]));
+            }
+            return sb.toString();
+        } catch (NoSuchAlgorithmException e) {
+            return "unknown";
+        }
     }
 
     private static String resolveClientIp(final ServerHttpRequest request) {

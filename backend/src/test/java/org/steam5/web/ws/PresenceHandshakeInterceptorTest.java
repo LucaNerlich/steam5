@@ -28,4 +28,19 @@ class PresenceHandshakeInterceptorTest {
         assertEquals("abc", PresenceHandshakeInterceptor.extractParam("scopeKey=2026-07-14&ticket=abc", "ticket"));
         assertNull(PresenceHandshakeInterceptor.extractParam(null, "scopeKey"));
     }
+
+    @Test
+    void loggableClientRefHashesIpWithoutEchoingRawValue() {
+        final String hashed = PresenceHandshakeInterceptor.loggableClientRef("203.0.113.10");
+
+        assertTrue(hashed.startsWith("ipHash:"));
+        assertNotEquals("203.0.113.10", hashed);
+        assertEquals(hashed, PresenceHandshakeInterceptor.loggableClientRef("203.0.113.10"));
+    }
+
+    @Test
+    void loggableClientRefReturnsUnknownForBlankInput() {
+        assertEquals("unknown", PresenceHandshakeInterceptor.loggableClientRef(null));
+        assertEquals("unknown", PresenceHandshakeInterceptor.loggableClientRef("  "));
+    }
 }
