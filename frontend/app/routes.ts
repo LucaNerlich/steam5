@@ -1,6 +1,8 @@
 export const Routes = {
     home: '/',
     reviewGuesser: '/review-guesser',
+    yearGuesser: '/year-guesser',
+    priceGuesser: '/price-guesser',
     reviewGuesser1: '/review-guesser/1',
     reviewGuesser2: '/review-guesser/2',
     reviewGuesser3: '/review-guesser/3',

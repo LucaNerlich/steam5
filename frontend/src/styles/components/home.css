@@ -1,0 +1,44 @@
+.home {
+    padding: 1rem 0 3rem;
+}
+
+.home__intro {
+    max-width: 42rem;
+    margin: 0 auto 1.5rem;
+    text-align: center;
+}
+
+.home__intro h1 {
+    margin-bottom: 0.35rem;
+}
+
+.home__intro p {
+    color: var(--color-muted);
+    margin: 0;
+}
+
+.home__secondary {
+    display: grid;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+@media (min-width: 768px) {
+    .home__secondary {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+.home__secondary-title {
+    grid-column: 1 / -1;
+    margin: 0 0 0.25rem;
+    font-size: clamp(1.1rem, 1rem + 0.4vw, 1.35rem);
+}
+
+.home__fallback {
+    border: 1px dashed var(--color-border);
+    border-radius: 0.75rem;
+    padding: 2rem 1.25rem;
+    text-align: center;
+    background: var(--color-surface);
+}
