@@ -31,6 +31,6 @@ COPY --from=build /app/build/libs/steam5-*.jar app.jar
 EXPOSE ${PORT}
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
-  CMD-SHELL curl -fsS "http://localhost:$${MANAGEMENT_SERVER_PORT:-8081}/actuator/health" || exit 1
+  CMD-SHELL curl -fsS "http://localhost:$${SERVER_PORT:-8080}/actuator/health" || exit 1
 
 CMD ["java", "-jar", "app.jar"]
