@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.15.1] - 2026-07-14
+
+### Fixed
+
+- Fixed the season summary's "busiest day" highlight sometimes coming back blank when the busiest day had no average score — it now falls back to the day with the next-highest player count
+
+### Changed
+
+- Strengthened the "other players now" round presence feature against abuse with connection rate limiting and stricter WebSocket authentication
+
 ## [1.15.0] - 2026-07-13
 
 ### Added
