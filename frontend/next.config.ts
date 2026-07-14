@@ -43,11 +43,6 @@ const nextConfig: NextConfig = {
     async redirects(): Promise<{ source: string; destination: string; permanent: boolean }[]> {
         return [
             {
-                source: '/',
-                destination: '/review-guesser',
-                permanent: true,
-            },
-            {
                 source: '/rg',
                 destination: '/review-guesser',
                 permanent: true,
