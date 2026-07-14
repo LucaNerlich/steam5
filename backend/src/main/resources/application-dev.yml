@@ -34,3 +34,7 @@ jobs:
     enabled: true
   player-spotlight:
     enabled: true
+  price-game-state:
+    enabled: true
+  year-game-state:
+    enabled: true
