@@ -85,6 +85,15 @@
     }
 }
 
+.other-players--reconnecting .other-players__dot {
+    background: var(--color-muted);
+    animation: none;
+}
+
+.other-players--reconnecting .other-players__count {
+    color: var(--color-muted);
+}
+
 @media (max-width: 640px) {
     .other-players {
         font-size: 0.8125rem;

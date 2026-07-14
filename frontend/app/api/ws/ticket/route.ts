@@ -1,4 +1,4 @@
-import {NextResponse} from 'next/server';
+import {NextRequest, NextResponse} from 'next/server';
 import {cookies} from 'next/headers';
 
 const BACKEND_ORIGIN = process.env.API_DOMAIN || process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
@@ -16,7 +16,16 @@ function isLoopbackOrigin(origin: string): boolean {
     }
 }
 
-export async function GET() {
+function isValidScopeKey(scopeKey: string): boolean {
+    return /^\d{4}-\d{2}-\d{2}(:\d+:\d+)?$/.test(scopeKey);
+}
+
+export async function GET(request: NextRequest) {
+    const scopeKey = request.nextUrl.searchParams.get('scopeKey') ?? '';
+    if (!isValidScopeKey(scopeKey)) {
+        return NextResponse.json({ticket: null}, {status: 400, headers: NO_STORE});
+    }
+
     const token = (await cookies()).get('s5_token')?.value;
     // Anonymous mode: client connects without a ticket.
     if (!token) return NextResponse.json({ticket: null}, {status: 200, headers: NO_STORE});
@@ -30,7 +39,12 @@ export async function GET() {
     try {
         const res = await fetch(`${BACKEND_ORIGIN}/api/ws/ticket`, {
             method: 'POST',
-            headers: {authorization: `Bearer ${token}`, accept: 'application/json'},
+            headers: {
+                authorization: `Bearer ${token}`,
+                accept: 'application/json',
+                'content-type': 'application/json',
+            },
+            body: JSON.stringify({scopeKey}),
             cache: 'no-store',
             signal: AbortSignal.timeout(5000),
         });

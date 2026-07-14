@@ -15,9 +15,8 @@ import java.util.concurrent.TimeUnit;
  * their bearer token for a ticket via {@code POST /api/ws/ticket} and then
  * include that ticket as a query parameter on the WS URL.
  *
- * <p>Tickets are stored in an in-memory Caffeine cache keyed by the opaque
- * ticket string. Entries expire 30 seconds after issue and each ticket is
- * consumed on first validation to prevent reuse.</p>
+ * <p>Tickets are bound to a {@code scopeKey} at issue time and consumed on
+ * first validation to prevent reuse across scopes.</p>
  */
 @Slf4j
 @Service
@@ -26,25 +25,36 @@ public class WsTicketService {
     private static final long TICKET_TTL_SECONDS = 30L;
     private static final long TICKET_MAX_SIZE = 500L;
 
-    private final Cache<String, String> tickets = Caffeine.newBuilder()
+    record TicketEntry(String steamId, String scopeKey) {
+    }
+
+    private final Cache<String, TicketEntry> tickets = Caffeine.newBuilder()
             .expireAfterWrite(TICKET_TTL_SECONDS, TimeUnit.SECONDS)
             .maximumSize(TICKET_MAX_SIZE)
             .build();
 
-    public String issueTicket(final String steamId) {
+    public String issueTicket(final String steamId, final String scopeKey) {
         final String ticket = UUID.randomUUID().toString();
-        tickets.put(ticket, steamId);
+        tickets.put(ticket, new TicketEntry(steamId, scopeKey));
         return ticket;
     }
 
-    public String validateTicket(final String ticket) {
-        if (ticket == null) return null;
-        final String steamId = tickets.asMap().remove(ticket);
-        if (steamId != null) {
-            log.info("WS ticket validated successfully for steamId={}", steamId);
-        } else {
-            log.warn("WS ticket validation failed — ticket not found or expired");
+    /**
+     * Validates and consumes a ticket. Returns the steamId when the ticket is
+     * valid for the requested scope, otherwise {@code null}.
+     */
+    public String validateTicket(final String ticket, final String scopeKey) {
+        if (ticket == null || scopeKey == null || scopeKey.isBlank()) return null;
+        final TicketEntry entry = tickets.asMap().remove(ticket);
+        if (entry == null) {
+            log.debug("WS ticket validation failed — ticket not found or expired");
+            return null;
         }
-        return steamId;
+        if (!scopeKey.equals(entry.scopeKey())) {
+            log.debug("WS ticket validation failed — scope mismatch");
+            return null;
+        }
+        log.debug("WS ticket validated for steamId={}", entry.steamId());
+        return entry.steamId();
     }
 }

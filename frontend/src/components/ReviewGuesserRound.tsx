@@ -319,7 +319,7 @@ export default function ReviewGuesserRound({
                 <section className="review-round__guess-card" aria-labelledby="guess-submission">
                     <div className="review-round__guess-header">
                         <h2 id="guess-submission">Submit Your Guess</h2>
-                        <OtherPlayersNow scopeKey={gameDate ?? ''}/>
+                        <OtherPlayersNow/>
                     </div>
                     <GuessButtons
                         appId={appId}
@@ -356,7 +356,7 @@ export default function ReviewGuesserRound({
                         actualBucket: computedPrefill?.actualBucket ?? '',
                         correct: computedPrefill?.actualBucket ? (computedPrefill.actualBucket === (computedPrefill?.selectedLabel ?? '')) : false,
                     }) as GuessResponse}
-                    headerRight={<OtherPlayersNow scopeKey={gameDate ?? ''}/>}
+                    headerRight={<OtherPlayersNow/>}
                 >
                     <RoundResultActions
                         appId={appId}
