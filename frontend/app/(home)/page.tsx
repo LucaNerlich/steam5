@@ -45,7 +45,7 @@ export default async function Home() {
                     href={Routes.yearGuesser}
                     badge="Coming soon"
                     icon="📅"
-                    hintPreview="Tiered hints narrow the year range — each hint costs points."
+                    hintPreview="Guess the year freely; far-off misses unlock tiered hints for fewer points."
                 />
                 <GameTeaserCard
                     title="Price Guesser"

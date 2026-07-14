@@ -49,7 +49,7 @@ class YearGameStateControllerTest {
     }
 
     @Test
-    void getToday_returnsBucketsAndPicks() {
+    void getToday_hidesReleaseDateAndIncludesHintTiers() {
         final LocalDate today = LocalDate.of(2026, 3, 1);
         final YearGamePick pick = new YearGamePick(1L, today, 42L, OffsetDateTime.now());
         final SteamAppDetail detail = new SteamAppDetail();
@@ -58,9 +58,16 @@ class YearGameStateControllerTest {
         detail.setReleaseDate("19 Nov, 2020");
 
         when(service.generateDailyPicks()).thenReturn(List.of(pick));
-        when(service.getBucketLabels()).thenReturn(List.of("1-1999", "2000-2009", "2010-2019", "2019+"));
-        when(service.getBucketTitles()).thenReturn(List.of("", "", "", ""));
+        when(service.getHintTiers()).thenReturn(List.of(
+                new YearGameStateService.HintTierMeta(0, "No hints", "Guess freely.", 5)
+        ));
         when(detailRepository.findAllByAppIdIn(anyList())).thenReturn(List.of(detail));
+        when(service.sanitizeForGameplay(org.mockito.ArgumentMatchers.any(SteamAppDetail.class)))
+                .thenAnswer(invocation -> {
+                    final SteamAppDetail d = invocation.getArgument(0);
+                    d.setReleaseDate(null);
+                    return d;
+                });
 
         final ResponseEntity<YearGameStateController.YearGameStateDto> response =
                 controller.getToday(new HttpHeaders());
@@ -68,23 +75,27 @@ class YearGameStateControllerTest {
         assertTrue(response.getStatusCode().is2xxSuccessful());
         assertNotNull(response.getBody());
         assertEquals(today, response.getBody().date());
-        assertEquals(4, response.getBody().buckets().size());
-        assertEquals(1, response.getBody().picks().size());
-        assertEquals("Test Game", response.getBody().picks().getFirst().getName());
+        assertEquals(1, response.getBody().hintTiers().size());
+        assertNull(response.getBody().picks().getFirst().getReleaseDate());
     }
 
     @Test
-    void submitGuess_returnsReleaseYearBucket() {
+    void submitGuess_exactYearDoesNotRevealAnswerWhenWrong() {
         when(service.getReleaseYearForApp(42L)).thenReturn(2020);
-        when(service.inferBucket(2020)).thenReturn("2019+");
+        when(service.getConfig()).thenReturn(new org.steam5.game.year.YearGameConfig());
 
-        final ResponseEntity<YearGameStateController.GuessResponse> response = controller.submitGuess(
-                new YearGameStateController.GuessRequest(42L, "2019+"));
+        final ResponseEntity<YearGameStateController.GuessResponse> wrong = controller.submitGuess(
+                new YearGameStateController.GuessRequest(42L, 2010));
+        assertTrue(wrong.getStatusCode().is2xxSuccessful());
+        assertNotNull(wrong.getBody());
+        assertFalse(wrong.getBody().correct());
+        assertNull(wrong.getBody().releaseYear());
+        assertEquals(10, wrong.getBody().distance());
 
-        assertTrue(response.getStatusCode().is2xxSuccessful());
-        assertNotNull(response.getBody());
-        assertEquals(2020, response.getBody().releaseYear());
-        assertEquals("2019+", response.getBody().actualBucket());
-        assertTrue(response.getBody().correct());
+        final ResponseEntity<YearGameStateController.GuessResponse> correct = controller.submitGuess(
+                new YearGameStateController.GuessRequest(42L, 2020));
+        assertTrue(correct.getBody().correct());
+        assertEquals(2020, correct.getBody().releaseYear());
+        assertEquals(5, correct.getBody().points());
     }
 }

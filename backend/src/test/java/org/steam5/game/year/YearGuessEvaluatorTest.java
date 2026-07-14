@@ -3,8 +3,6 @@ package org.steam5.game.year;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.List;
-
 import static org.junit.jupiter.api.Assertions.*;
 
 class YearGuessEvaluatorTest {
@@ -14,31 +12,38 @@ class YearGuessEvaluatorTest {
     @BeforeEach
     void setUp() {
         config = new YearGameConfig();
-        config.setBucketBoundaries(List.of(1999, 2009, 2019));
+        config.setMaxPoints(5);
+        config.setHintDistanceThresholds(java.util.List.of(12, 6, 2));
     }
 
     @Test
-    void inferBucket_mapsYearsToConfiguredRanges() {
-        assertEquals("1-1999", YearGuessEvaluator.inferBucket(1995, config));
-        assertEquals("2000-2009", YearGuessEvaluator.inferBucket(2005, config));
-        assertEquals("2010-2019", YearGuessEvaluator.inferBucket(2015, config));
-        assertEquals("2019+", YearGuessEvaluator.inferBucket(2024, config));
+    void maxPoints_decreasesWithHintsUsed() {
+        assertEquals(5, YearGuessEvaluator.maxPointsForHintsUsed(0, config));
+        assertEquals(4, YearGuessEvaluator.maxPointsForHintsUsed(1, config));
+        assertEquals(3, YearGuessEvaluator.maxPointsForHintsUsed(2, config));
+        assertEquals(2, YearGuessEvaluator.maxPointsForHintsUsed(3, config));
     }
 
     @Test
-    void scorePoints_usesDistanceBasedScoring() {
-        final List<String> buckets = List.of("1-1999", "2000-2009", "2010-2019", "2019+");
-        assertEquals(5, YearGuessEvaluator.scorePoints(buckets, "2000-2009", "2000-2009"));
-        assertEquals(3, YearGuessEvaluator.scorePoints(buckets, "2000-2009", "2010-2019"));
-        assertEquals(1, YearGuessEvaluator.scorePoints(buckets, "2000-2009", "2019+"));
-        assertEquals(0, YearGuessEvaluator.scorePoints(buckets, "1-1999", "2019+"));
+    void hintUnlock_followsDistanceThresholds() {
+        assertFalse(YearGuessEvaluator.isHintUnlocked(1, 11, config));
+        assertTrue(YearGuessEvaluator.isHintUnlocked(1, 12, config));
+        assertFalse(YearGuessEvaluator.isHintUnlocked(2, 5, config));
+        assertTrue(YearGuessEvaluator.isHintUnlocked(2, 6, config));
+        assertTrue(YearGuessEvaluator.isHintUnlocked(3, 2, config));
     }
 
     @Test
-    void isCorrectForLabel_matchesInclusiveRanges() {
-        assertTrue(YearGuessEvaluator.isCorrectForLabel("2000-2009", 2000));
-        assertTrue(YearGuessEvaluator.isCorrectForLabel("2000-2009", 2009));
-        assertFalse(YearGuessEvaluator.isCorrectForLabel("2000-2009", 2010));
-        assertTrue(YearGuessEvaluator.isCorrectForLabel("2019+", 2026));
+    void unlockableHints_requireSequentialReveal() {
+        assertEquals(java.util.List.of(1), YearGuessEvaluator.unlockableHintLevels(15, 0, config));
+        assertEquals(java.util.List.of(2), YearGuessEvaluator.unlockableHintLevels(8, 1, config));
+        assertEquals(java.util.List.of(), YearGuessEvaluator.unlockableHintLevels(8, 0, config));
+    }
+
+    @Test
+    void exactMatch_requiresSameYear() {
+        assertTrue(YearGuessEvaluator.isExactMatch(2020, 2020));
+        assertFalse(YearGuessEvaluator.isExactMatch(2019, 2020));
+        assertEquals(1, YearGuessEvaluator.distance(2019, 2020));
     }
 }

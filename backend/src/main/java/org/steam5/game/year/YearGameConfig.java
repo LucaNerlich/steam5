@@ -14,7 +14,12 @@ import java.util.List;
 public class YearGameConfig {
 
     private int doNotRepeatDays = 365;
-    private List<Integer> bucketBoundaries = List.of(1999, 2009, 2019);
-    private List<String> bucketTitles = List.of();
     private int roundsPerDay = 3;
+    private int maxPoints = 5;
+    /**
+     * Wrong-guess distance thresholds to unlock hints 1, 2, and 3 respectively.
+     */
+    private List<Integer> hintDistanceThresholds = List.of(12, 6, 2);
+    /** Half-width in years for the narrow-range hint (actual ± window). */
+    private int narrowRangeWindowYears = 2;
 }

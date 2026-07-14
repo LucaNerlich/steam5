@@ -34,15 +34,27 @@ public class YearGuess {
     @Column(name = "app_id", nullable = false)
     private Long appId;
 
-    @Column(name = "selected_bucket", nullable = false)
-    private String selectedBucket;
+    @Column(name = "guessed_year")
+    private Integer guessedYear;
 
-    @Column(name = "actual_bucket", nullable = false)
-    private String actualBucket;
+    @Column(name = "actual_year", nullable = false)
+    private int actualYear;
+
+    @Column(name = "hints_used", nullable = false)
+    private int hintsUsed;
+
+    @Column(name = "best_distance")
+    private Integer bestDistance;
+
+    @Column(name = "completed", nullable = false)
+    private boolean completed;
 
     @Column(name = "points", nullable = false)
     private int points;
 
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt = OffsetDateTime.now();
+
+    @Column(name = "updated_at", nullable = false)
+    private OffsetDateTime updatedAt = OffsetDateTime.now();
 }

@@ -84,9 +84,10 @@ review:
 games:
   year:
     do-not-repeat-days: 365
-    bucket-boundaries: [1999, 2009, 2019]
-    bucket-titles: ['retro', '2000s', '2010s', 'modern']
     rounds-per-day: 3
+    max-points: 5
+    hint-distance-thresholds: [12, 6, 2]
+    narrow-range-window-years: 2
   price:
     do-not-repeat-days: 365
     bucket-boundaries: [499, 1499, 2999]

@@ -3,20 +3,17 @@ package org.steam5.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
+import org.steam5.domain.details.SteamAppDetail;
 import org.steam5.game.DailyGameStateService;
-import org.steam5.game.review.ReviewBucketStrategy;
 import org.steam5.game.year.YearGameConfig;
 import org.steam5.game.year.YearGameModule;
 import org.steam5.game.year.YearGamePick;
-import org.steam5.game.year.YearGuessEvaluator;
-import org.steam5.game.year.YearPickGenerator;
+import org.steam5.game.year.YearHintBuilder;
 import org.steam5.repository.details.SteamAppDetailRepository;
 import org.steam5.util.ReleaseDateParser;
 
-import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
-import java.util.stream.IntStream;
 
 @Service
 @RequiredArgsConstructor
@@ -24,7 +21,6 @@ public class YearGameStateService {
 
     private final DailyGameStateService dailyGameStateService;
     private final YearGameModule yearGameModule;
-    private final YearPickGenerator pickGenerator;
     private final YearGameConfig config;
     private final SteamAppDetailRepository detailRepository;
 
@@ -39,45 +35,47 @@ public class YearGameStateService {
                 .orElse(0);
     }
 
-    public String inferBucket(final int releaseYear) {
-        return YearGuessEvaluator.inferBucket(releaseYear, config);
+    public String getReleaseDateForApp(final Long appId) {
+        return detailRepository.findByAppId(appId)
+                .map(SteamAppDetail::getReleaseDate)
+                .orElse(null);
     }
 
-    public List<String> getBucketLabels() {
-        return pickGenerator.getBucketLabels();
+    public YearGameConfig getConfig() {
+        return config;
     }
 
-    public List<String> getBucketTitles() {
-        final List<String> labels = getBucketLabels();
-        final List<String> titles = config.getBucketTitles();
-        if (labels.isEmpty()) {
-            return List.of();
+    public List<HintTierMeta> getHintTiers() {
+        final ArrayList<HintTierMeta> tiers = new ArrayList<>(4);
+        tiers.add(new HintTierMeta(0, "No hints", "Guess the release year from store details alone.", config.getMaxPoints()));
+        tiers.add(new HintTierMeta(1, "Era", "Broad decade the game likely belongs to.", config.getMaxPoints() - 1));
+        tiers.add(new HintTierMeta(2, "Narrow range", "A tighter year window around the answer.", config.getMaxPoints() - 2));
+        tiers.add(new HintTierMeta(3, "Store date", "The release date as Steam lists it.", config.getMaxPoints() - 3));
+        return tiers;
+    }
+
+    public String buildHintContent(final int hintLevel, final Long appId) {
+        final int actualYear = getReleaseYearForApp(appId);
+        return switch (hintLevel) {
+            case 1 -> YearHintBuilder.buildEraHint(actualYear);
+            case 2 -> YearHintBuilder.buildNarrowRangeHint(actualYear, config.getNarrowRangeWindowYears());
+            case 3 -> YearHintBuilder.buildStoreDateHint(getReleaseDateForApp(appId));
+            default -> throw new IllegalArgumentException("Invalid hint level: " + hintLevel);
+        };
+    }
+
+    public List<SteamAppDetail> sanitizeForGameplay(final List<SteamAppDetail> details) {
+        return details.stream().map(this::sanitizeForGameplay).toList();
+    }
+
+    public SteamAppDetail sanitizeForGameplay(final SteamAppDetail detail) {
+        if (detail == null) {
+            return null;
         }
-        if (titles == null || titles.isEmpty()) {
-            return IntStream.range(0, labels.size()).mapToObj(i -> "").toList();
-        }
-        if (titles.size() == labels.size()) {
-            return titles;
-        }
-        final java.util.ArrayList<String> out = new java.util.ArrayList<>(labels.size());
-        for (int i = 0; i < labels.size(); i++) {
-            out.add(i < titles.size() ? (titles.get(i) == null ? "" : titles.get(i)) : "");
-        }
-        return out;
+        detail.setReleaseDate(null);
+        return detail;
     }
 
-    public ReviewBucketStrategy chooseStrategyForDate(final LocalDate date) {
-        return pickGenerator.chooseStrategyForDate(date);
-    }
-
-    public int sampleIndex(final double[] weights, final Random rng) {
-        return pickGenerator.sampleIndex(weights, rng);
-    }
-
-    public List<Integer> planBucketSelection(final ReviewBucketStrategy strategy,
-                                             final int bucketCount,
-                                             final int rounds,
-                                             final LocalDate date) {
-        return pickGenerator.planBucketSelection(strategy, bucketCount, rounds, date);
+    public record HintTierMeta(int level, String label, String description, int maxPoints) {
     }
 }
