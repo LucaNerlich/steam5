@@ -21,6 +21,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 import org.steam5.security.AdminTokenFilter;
 import org.steam5.security.AuthRateLimitFilter;
+import org.steam5.security.PresenceRateLimitFilter;
 
 import java.util.Arrays;
 
@@ -71,10 +72,16 @@ public class SecurityConfig {
         return http.build();
     }
 
+    /**
+     * Configures security for application endpoints and registers authentication and rate-limiting filters.
+     *
+     * @return the configured application security filter chain
+     */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http,
                                                    AdminTokenFilter adminTokenFilter,
-                                                   AuthRateLimitFilter authRateLimitFilter) throws Exception {
+                                                   AuthRateLimitFilter authRateLimitFilter,
+                                                   PresenceRateLimitFilter presenceRateLimitFilter) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
@@ -97,6 +104,7 @@ public class SecurityConfig {
                 // addFilterBefore inserts each filter directly before the anchor, so the
                 // first registration ends up earliest in the chain.
                 .addFilterBefore(authRateLimitFilter, BasicAuthenticationFilter.class)
+                .addFilterBefore(presenceRateLimitFilter, BasicAuthenticationFilter.class)
                 .addFilterBefore(adminTokenFilter, BasicAuthenticationFilter.class)
                 .httpBasic(basic -> {
                 })

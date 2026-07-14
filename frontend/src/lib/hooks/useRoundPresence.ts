@@ -13,24 +13,45 @@ export interface PlayerInfo {
 export interface PresenceSnapshot {
     totalCount: number;
     anonymousCount: number;
+    uniquePlayerCount: number;
     players: PlayerInfo[];
 }
 
-const EMPTY_SNAPSHOT: PresenceSnapshot = {totalCount: 0, anonymousCount: 0, players: []};
+const EMPTY_SNAPSHOT: PresenceSnapshot = {
+    totalCount: 0,
+    anonymousCount: 0,
+    uniquePlayerCount: 0,
+    players: [],
+};
 
-const MAX_RETRIES = 5;
 const BASE_DELAY_MS = 1000;
 const MAX_DELAY_MS = 30000;
+const CLIENT_PING_INTERVAL_MS = 30000;
 
+/**
+ * Converts an HTTP origin to its corresponding WebSocket origin.
+ *
+ * @param origin - The origin to convert
+ * @returns The WebSocket-form origin, or `origin` when it uses another scheme
+ */
 function toWsOrigin(origin: string): string {
     if (origin.startsWith("https://")) return "wss://" + origin.slice("https://".length);
     if (origin.startsWith("http://")) return "ws://" + origin.slice("http://".length);
     return origin;
 }
 
-async function fetchTicket(): Promise<string | null> {
+/**
+ * Retrieves a WebSocket ticket for the specified scope.
+ *
+ * @param scopeKey - The scope identifier used to request the ticket.
+ * @returns The ticket string, or `null` if the request fails or the response does not contain a valid ticket.
+ */
+async function fetchTicket(scopeKey: string): Promise<string | null> {
     try {
-        const res = await fetch("/api/ws/ticket", {cache: "no-store", credentials: "include"});
+        const res = await fetch(
+            `/api/ws/ticket?scopeKey=${encodeURIComponent(scopeKey)}`,
+            {cache: "no-store", credentials: "include"},
+        );
         if (!res.ok) return null;
         const data = await res.json();
         return typeof data?.ticket === "string" ? data.ticket : null;
@@ -39,22 +60,34 @@ async function fetchTicket(): Promise<string | null> {
     }
 }
 
-export function useRoundPresence(scopeKey: string | null): PresenceSnapshot & {connected: boolean} {
+/**
+ * Tracks the real-time presence of players within a round.
+ *
+ * @param scopeKey - Identifier for the round or presence scope to monitor
+ * @returns The current presence snapshot and connection status
+ */
+export function useRoundPresence(scopeKey: string | null): PresenceSnapshot & {
+    connected: boolean;
+    reconnecting: boolean;
+} {
     const {isSignedIn} = useAuth();
     const [snapshot, setSnapshot] = useState<PresenceSnapshot>(EMPTY_SNAPSHOT);
     const [connected, setConnected] = useState(false);
+    const [reconnecting, setReconnecting] = useState(false);
 
     const socketRef = useRef<WebSocket | null>(null);
     const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const pingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const closedByUserRef = useRef(false);
     const retryCountRef = useRef(0);
+    const connectionIdRef = useRef(0);
 
     useEffect(() => {
-        // Reset per-scope state.
         closedByUserRef.current = false;
         retryCountRef.current = 0;
         setSnapshot(EMPTY_SNAPSHOT);
         setConnected(false);
+        setReconnecting(false);
 
         if (!scopeKey) {
             return () => {
@@ -71,7 +104,15 @@ export function useRoundPresence(scopeKey: string | null): PresenceSnapshot & {c
             }
         };
 
+        const clearPing = () => {
+            if (pingTimerRef.current) {
+                clearInterval(pingTimerRef.current);
+                pingTimerRef.current = null;
+            }
+        };
+
         const closeSocket = () => {
+            clearPing();
             const ws = socketRef.current;
             socketRef.current = null;
             if (ws) {
@@ -83,10 +124,27 @@ export function useRoundPresence(scopeKey: string | null): PresenceSnapshot & {c
             }
         };
 
+        const startPing = () => {
+            clearPing();
+            pingTimerRef.current = setInterval(() => {
+                const ws = socketRef.current;
+                if (!ws || ws.readyState !== WebSocket.OPEN) return;
+                try {
+                    ws.send(JSON.stringify({type: "ping"}));
+                } catch {
+                    // let onclose drive reconnect
+                }
+            }, CLIENT_PING_INTERVAL_MS);
+        };
+
         const connect = async () => {
             if (disposed) return;
-            const ticket = isSignedIn ? await fetchTicket() : null;
-            if (disposed) return;
+            setReconnecting(retryCountRef.current > 0);
+            const connectionId = ++connectionIdRef.current;
+            const ticket = isSignedIn ? await fetchTicket(scopeKey) : null;
+            if (disposed || connectionIdRef.current !== connectionId) return;
+
+            closeSocket();
 
             const wsOrigin = toWsOrigin(BACKEND_ORIGIN);
             const url = `${wsOrigin}/ws/presence?scopeKey=${encodeURIComponent(scopeKey)}&ticket=${encodeURIComponent(ticket ?? "")}`;
@@ -102,18 +160,23 @@ export function useRoundPresence(scopeKey: string | null): PresenceSnapshot & {c
             socketRef.current = ws;
 
             ws.onopen = () => {
-                if (disposed) return;
+                if (disposed || socketRef.current !== ws) return;
                 retryCountRef.current = 0;
                 setConnected(true);
+                setReconnecting(false);
+                startPing();
             };
 
             ws.onmessage = (ev) => {
-                if (disposed) return;
+                if (disposed || socketRef.current !== ws) return;
                 try {
                     const data = JSON.parse(ev.data) as Partial<PresenceSnapshot>;
                     setSnapshot({
                         totalCount: typeof data.totalCount === "number" ? data.totalCount : 0,
                         anonymousCount: typeof data.anonymousCount === "number" ? data.anonymousCount : 0,
+                        uniquePlayerCount: typeof data.uniquePlayerCount === "number"
+                            ? data.uniquePlayerCount
+                            : (typeof data.totalCount === "number" ? data.totalCount : 0),
                         players: Array.isArray(data.players) ? data.players : [],
                     });
                 } catch (e) {
@@ -123,12 +186,12 @@ export function useRoundPresence(scopeKey: string | null): PresenceSnapshot & {c
 
             ws.onerror = (e) => {
                 console.warn("[useRoundPresence] socket error", e);
-                // Let onclose drive reconnect.
             };
 
             ws.onclose = () => {
-                if (disposed) return;
+                if (disposed || socketRef.current !== ws) return;
                 setConnected(false);
+                clearPing();
                 socketRef.current = null;
                 if (!closedByUserRef.current) scheduleReconnect();
             };
@@ -136,7 +199,7 @@ export function useRoundPresence(scopeKey: string | null): PresenceSnapshot & {c
 
         const scheduleReconnect = () => {
             if (disposed || closedByUserRef.current) return;
-            if (retryCountRef.current >= MAX_RETRIES) return;
+            setReconnecting(true);
             const attempt = retryCountRef.current++;
             const delay = Math.min(BASE_DELAY_MS * Math.pow(2, attempt), MAX_DELAY_MS);
             clearReconnect();
@@ -148,10 +211,10 @@ export function useRoundPresence(scopeKey: string | null): PresenceSnapshot & {c
 
         const handleRecovery = () => {
             if (disposed || closedByUserRef.current) return;
-            if (retryCountRef.current >= MAX_RETRIES) {
-                retryCountRef.current = 0;
-                scheduleReconnect();
-            }
+            const readyState = socketRef.current?.readyState;
+            if (readyState === WebSocket.OPEN || readyState === WebSocket.CONNECTING) return;
+            clearReconnect();
+            void connect();
         };
 
         const handleOnline = handleRecovery;
@@ -176,8 +239,9 @@ export function useRoundPresence(scopeKey: string | null): PresenceSnapshot & {c
             clearReconnect();
             closeSocket();
             setConnected(false);
+            setReconnecting(false);
         };
     }, [scopeKey, isSignedIn]);
 
-    return {...snapshot, connected};
+    return {...snapshot, connected, reconnecting};
 }
