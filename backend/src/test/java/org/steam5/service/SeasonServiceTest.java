@@ -467,7 +467,7 @@ class SeasonServiceTest {
     }
 
     @Test
-    void buildSeasonHighlights_ignoresRowsWithNullAvgScore() {
+    void buildSeasonHighlights_busiestSkipsNullAvgScoreRows() {
         LocalDate start = LocalDate.of(2020, 1, 1);
         LocalDate end = LocalDate.of(2020, 1, 5);
         Season completed = seasonWith(12, start, end, SeasonStatus.FINALIZED);
@@ -487,12 +487,13 @@ class SeasonServiceTest {
 
         SeasonService.SeasonDailyHighlights highlights = service.buildSeasonHighlights(completed);
 
-        // the null-avgScore row is excluded from highest/lowest, and it also "wins" busiest by
-        // playerCount — but toDailyHighlight requires a non-null avgScore for every field, so
-        // the busiest highlight comes back null too rather than falling back to the runner-up.
+        // the null-avgScore row is excluded from highest/lowest and busiest; busiest falls back to the
+        // next-highest playerCount row that has a non-null avgScore.
         assertEquals(start.plusDays(1), highlights.highestAvg().date());
         assertEquals(start.plusDays(1), highlights.lowestAvg().date());
-        assertNull(highlights.busiest());
+        assertEquals(start.plusDays(1), highlights.busiest().date());
+        assertEquals(1L, highlights.busiest().playerCount());
+        assertEquals(2.0d, highlights.busiest().avgScore());
     }
 
     // finalizeSeason ----------------------------------------------------------------------------

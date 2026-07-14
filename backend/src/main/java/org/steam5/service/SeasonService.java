@@ -115,7 +115,7 @@ public class SeasonService {
                 .min(Comparator.comparing(GuessRepository.DailyAvgScoreRow::getAvgScore))
                 .orElse(null);
         GuessRepository.DailyAvgScoreRow busiest = rows.stream()
-                .filter(row -> row.getPlayerCount() != null)
+                .filter(row -> row.getPlayerCount() != null && row.getAvgScore() != null)
                 .max(Comparator.comparing(GuessRepository.DailyAvgScoreRow::getPlayerCount))
                 .orElse(null);
 
