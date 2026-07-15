@@ -12,8 +12,10 @@ import {buildSteamLoginUrl} from "@/components/SteamLoginButton";
 import {useAuth} from "@/contexts/AuthContext";
 import useYearServerGuesses from "@/lib/hooks/useYearServerGuesses";
 import useRoundArrowNavigation from "@/lib/hooks/useRoundArrowNavigation";
-import {loadYearDay, saveYearRound, type RevealedHint, type YearRoundProgress} from "@/lib/yearStorage";
+import {loadYearDay, saveYearRound, type YearRoundProgress} from "@/lib/yearStorage";
+import {mergeRevealedHints, mergeYearProgress} from "@/lib/yearProgressMerge";
 import {computeSignedOutDuringPlay, resolveLiveSignedIn, shouldWarnBeforeSubmit} from "@/lib/authGuard";
+import {effectiveYearHintsUsed, yearPointsForHintsUsed} from "@/lib/yearScoring";
 import "@/styles/components/reviewRoundResult.css";
 import "@/styles/components/yearGuesserHero.css";
 
@@ -52,42 +54,18 @@ async function fetchSignedIn(): Promise<boolean> {
     }
 }
 
-function mergeProgress(
-    local?: YearRoundProgress,
-    server?: MyYearGuess,
-): YearRoundProgress | undefined {
-    if (!local && !server) return undefined;
-
-    if (local?.completed) {
-        return {
-            ...local,
-            hintsUsed: Math.max(local.hintsUsed, server?.hintsUsed ?? 0),
-            actualYear: local.actualYear ?? server?.actualYear ?? undefined,
-            points: local.points ?? server?.points,
-            lastGuessYear: local.lastGuessYear ?? server?.guessedYear ?? undefined,
-        };
-    }
-
-    const hintsUsed = Math.max(server?.hintsUsed ?? 0, local?.hintsUsed ?? 0);
-    const completed = Boolean(server?.completed || local?.completed);
-
+function serverGuessToProgress(server: MyYearGuess, maxPointsAtStart: number): YearRoundProgress {
+    const hintsUsed = effectiveYearHintsUsed(server.hintsUsed, 0);
     return {
-        appId: server?.appId ?? local?.appId ?? 0,
-        pickName: local?.pickName,
+        appId: server.appId,
         hintsUsed,
-        revealedHints: local?.revealedHints ?? [],
-        unlockableHintLevels: completed
-            ? []
-            : (server?.unlockableHintLevels ?? local?.unlockableHintLevels ?? []),
-        lastDistance: local?.lastDistance ?? server?.bestDistance ?? undefined,
-        lastGuessYear: server?.guessedYear ?? local?.lastGuessYear,
-        completed,
-        actualYear: completed
-            ? (server?.actualYear ?? local?.actualYear)
-            : local?.actualYear,
-        points: completed
-            ? (server?.points ?? local?.points)
-            : local?.points,
+        revealedHints: [],
+        unlockableHintLevels: server.unlockableHintLevels,
+        lastDistance: server.bestDistance ?? undefined,
+        lastGuessYear: server.guessedYear ?? undefined,
+        completed: server.completed,
+        actualYear: server.actualYear ?? undefined,
+        points: server.completed ? yearPointsForHintsUsed(maxPointsAtStart, hintsUsed) : undefined,
     };
 }
 
@@ -107,17 +85,18 @@ export default function YearGuesserRound({
     const [isGuessPending, startGuessTransition] = useTransition();
     const [isHintPending, startHintTransition] = useTransition();
     const [guessYearInput, setGuessYearInput] = useState("");
+    const maxPointsAtStart = hintTiers[0]?.maxPoints ?? 5;
     const [progress, setProgress] = useState<YearRoundProgress | undefined>(() =>
-        mergeProgress(
-            gameDate ? loadYearDay(gameDate)?.rounds[roundIndex] : undefined,
-            serverGuess,
-        ),
+        serverGuess?.appId === appId
+            ? serverGuessToProgress(serverGuess, maxPointsAtStart)
+            : undefined,
     );
+    const [storageHydrated, setStorageHydrated] = useState(false);
     const [showAuthWarning, setShowAuthWarning] = useState(false);
     const [pendingFormData, setPendingFormData] = useState<FormData | null>(null);
     const hintsRestoredRef = useRef(false);
 
-    const disableClientFetch = Boolean(serverGuess?.completed);
+    const disableClientFetch = false;
     const {guesses: clientGuesses, loading: serverGuessesLoading} = useYearServerGuesses(disableClientFetch);
 
     const nextHref = useMemo(() => {
@@ -142,62 +121,78 @@ export default function YearGuesserRound({
     }, [roundIndex]);
 
     useEffect(() => {
-        const local = gameDate ? loadYearDay(gameDate)?.rounds[roundIndex] : undefined;
-        const serverSource = clientGuesses[roundIndex] ?? serverGuess;
-        const merged = mergeProgress(local, serverSource);
-        if (merged && merged.appId === appId) {
-            setProgress(merged);
-            if (merged.lastGuessYear && !guessYearInput) {
-                setGuessYearInput(String(merged.lastGuessYear));
-            }
+        if (!gameDate) {
+            setStorageHydrated(true);
+            return;
         }
-    }, [gameDate, roundIndex, serverGuess, clientGuesses, appId, guessYearInput]);
+        hintsRestoredRef.current = false;
+        const local = loadYearDay(gameDate)?.rounds[roundIndex];
+        const serverSource = clientGuesses[roundIndex] ?? serverGuess;
+        let hydratedGuessYear: number | undefined;
+        setProgress((prev) => {
+            const merged = mergeYearProgress(local, serverSource, maxPointsAtStart, prev);
+            if (!merged || merged.appId !== appId) return prev;
+            hydratedGuessYear = merged.lastGuessYear;
+            return merged;
+        });
+        if (hydratedGuessYear != null) {
+            setGuessYearInput(String(hydratedGuessYear));
+        }
+        setStorageHydrated(true);
+    }, [gameDate, roundIndex, serverGuess, clientGuesses, appId, maxPointsAtStart]);
 
     useEffect(() => {
         if (!guessState.ok || !guessState.response || !gameDate) return;
         const response = guessState.response;
-        const hintsUsed = Math.max(response.hintsUsed ?? 0, progress?.hintsUsed ?? 0);
-        const nextProgress: YearRoundProgress = {
-            appId,
-            pickName,
-            hintsUsed,
-            revealedHints: progress?.revealedHints ?? [],
-            unlockableHintLevels: response.unlockableHintLevels,
-            lastDistance: response.distance,
-            lastGuessYear: response.guessYear,
-            completed: response.correct,
-            actualYear: response.releaseYear ?? undefined,
-            points: response.points ?? undefined,
-        };
-        setProgress(nextProgress);
-        const saved = saveYearRound(gameDate, roundIndex, totalRounds, nextProgress);
-        if (saved?.rounds[roundIndex]) setProgress(saved.rounds[roundIndex]);
-    }, [guessState, gameDate, roundIndex, totalRounds, appId, pickName, progress?.revealedHints, progress?.hintsUsed]);
+        setProgress((prev) => {
+            const local = loadYearDay(gameDate)?.rounds[roundIndex];
+            const revealed = mergeRevealedHints(prev?.revealedHints, local?.revealedHints);
+            const hintsUsed = effectiveYearHintsUsed(
+                Math.max(response.hintsUsed ?? 0, prev?.hintsUsed ?? 0, local?.hintsUsed ?? 0),
+                revealed.length,
+            );
+            const nextProgress: YearRoundProgress = {
+                appId,
+                pickName,
+                hintsUsed,
+                revealedHints: revealed,
+                unlockableHintLevels: response.unlockableHintLevels,
+                lastDistance: response.distance ?? prev?.lastDistance,
+                lastGuessTooEarly: response.correct ? undefined : response.guessTooEarly ?? undefined,
+                lastGuessYear: response.guessYear,
+                completed: response.correct,
+                actualYear: response.releaseYear ?? undefined,
+                points: response.correct ? yearPointsForHintsUsed(maxPointsAtStart, hintsUsed) : undefined,
+            };
+            saveYearRound(gameDate, roundIndex, totalRounds, nextProgress);
+            return nextProgress;
+        });
+    }, [guessState, gameDate, roundIndex, totalRounds, appId, pickName, maxPointsAtStart]);
 
     useEffect(() => {
         if (!hintState.ok || !hintState.response || !gameDate) return;
         const response = hintState.response;
-        const existing = progress?.revealedHints ?? [];
-        const revealed: RevealedHint[] = [
-            ...existing.filter((hint) => hint.level !== response.hintLevel),
-            {level: response.hintLevel, content: response.content},
-        ];
-        const nextProgress: YearRoundProgress = {
-            appId,
-            pickName,
-            hintsUsed: response.hintsUsed,
-            revealedHints: revealed,
-            unlockableHintLevels: progress?.unlockableHintLevels ?? [],
-            lastDistance: progress?.lastDistance,
-            lastGuessYear: progress?.lastGuessYear,
-            completed: progress?.completed ?? false,
-            actualYear: progress?.actualYear,
-            points: progress?.points,
-        };
-        setProgress(nextProgress);
-        saveYearRound(gameDate, roundIndex, totalRounds, nextProgress);
-        setProgress(nextProgress);
-    }, [hintState, gameDate, roundIndex, totalRounds, appId, pickName, progress]);
+        setProgress((prev) => {
+            const revealed = mergeRevealedHints(prev?.revealedHints, [
+                {level: response.hintLevel, content: response.content},
+            ]);
+            const nextProgress: YearRoundProgress = {
+                appId,
+                pickName,
+                hintsUsed: effectiveYearHintsUsed(response.hintsUsed, revealed.length),
+                revealedHints: revealed,
+                unlockableHintLevels: prev?.unlockableHintLevels ?? [],
+                lastDistance: prev?.lastDistance,
+                lastGuessYear: prev?.lastGuessYear,
+                lastGuessTooEarly: prev?.lastGuessTooEarly,
+                completed: prev?.completed ?? false,
+                actualYear: prev?.actualYear,
+                points: prev?.points,
+            };
+            saveYearRound(gameDate, roundIndex, totalRounds, nextProgress);
+            return nextProgress;
+        });
+    }, [hintState, gameDate, roundIndex, totalRounds, appId, pickName]);
 
     const {isSignedIn, isLoading: authLoading, refreshAuth} = useAuth();
     const signedIn = authLoading ? null : isSignedIn;
@@ -210,10 +205,9 @@ export default function YearGuesserRound({
     const completed = Boolean(progress?.completed);
     const unlockableLevels = progress?.unlockableHintLevels ?? [];
     const revealedHints = progress?.revealedHints ?? [];
-    const hintsUsed = progress?.hintsUsed ?? 0;
-    const maxPointsAtStart = hintTiers[0]?.maxPoints ?? 5;
-    const maxPointsForRound = Math.max(2, maxPointsAtStart - hintsUsed);
-    const resultPoints = progress?.points ?? maxPointsForRound;
+    const hintsUsed = effectiveYearHintsUsed(progress?.hintsUsed ?? 0, revealedHints.length);
+    const maxPointsForRound = yearPointsForHintsUsed(maxPointsAtStart, hintsUsed);
+    const resultPoints = completed ? maxPointsForRound : (progress?.points ?? maxPointsForRound);
 
     const cloneFormData = (formData: FormData) => {
         const copy = new FormData();
@@ -226,6 +220,11 @@ export default function YearGuesserRound({
     };
 
     const handleAuthGuardedSubmit = async (formData: FormData) => {
+        const hintsForSubmit = effectiveYearHintsUsed(
+            progress?.hintsUsed ?? 0,
+            progress?.revealedHints?.length ?? 0,
+        );
+        formData.set('hintsUsed', String(hintsForSubmit));
         const dismissed = hasDismissedAuthWarning();
         const fetched = (dismissed || signedIn === false) ? false : await fetchSignedIn();
         const live = resolveLiveSignedIn(signedIn, fetched);
@@ -283,13 +282,12 @@ export default function YearGuesserRound({
                 if (result.ok && result.response && gameDate) {
                     setProgress((current) => {
                         if (!current) return current;
-                        const revealed = [
-                            ...current.revealedHints.filter((hint) => hint.level !== result.response!.hintLevel),
+                        const revealed = mergeRevealedHints(current.revealedHints, [
                             {level: result.response!.hintLevel, content: result.response!.content},
-                        ];
+                        ]);
                         const next: YearRoundProgress = {
                             ...current,
-                            hintsUsed: result.response!.hintsUsed,
+                            hintsUsed: effectiveYearHintsUsed(result.response!.hintsUsed, revealed.length),
                             revealedHints: revealed,
                         };
                         saveYearRound(gameDate, roundIndex, totalRounds, next);
@@ -308,10 +306,14 @@ export default function YearGuesserRound({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [progress?.hintsUsed, serverGuessesLoading, signedIn]);
 
+    const awaitingLocalRestore = !storageHydrated && !serverGuess?.completed;
+
     return (
         <>
             <div className="review-round__slot">
-            {!completed && (
+            {awaitingLocalRestore ? (
+                <div className="review-round__skeleton" aria-hidden="true"/>
+            ) : !completed && (
                 <section className="year-guesser-round__guess-card" aria-labelledby="year-guess-submission">
                     <div className="year-guesser-round__guess-header">
                         <h2 id="year-guess-submission">Guess the release year</h2>
@@ -344,14 +346,15 @@ export default function YearGuesserRound({
                             />
                         </label>
                         <input type="hidden" name="appId" value={appId}/>
+                        <input type="hidden" name="hintsUsed" value={hintsUsed}/>
                         <button type="submit" className="btn-cta" disabled={isGuessPending || !guessYearInput}>
                             {isGuessPending ? 'Checking…' : 'Submit guess'}
                         </button>
                     </form>
 
-                    {progress?.lastDistance != null && !completed && (
+                    {progress?.lastGuessTooEarly != null && !completed && (
                         <p className="year-guesser-round__feedback">
-                            {progress.lastGuessYear} is <strong>{progress.lastDistance}</strong> year{progress.lastDistance === 1 ? '' : 's'} off.
+                            Your guess is <strong>{progress.lastGuessTooEarly ? 'too early' : 'too late'}</strong>.
                             {unlockableLevels.length > 0 && ' A hint is available below.'}
                         </p>
                     )}
@@ -416,7 +419,7 @@ export default function YearGuesserRound({
                 </section>
             )}
 
-            {completed && progress && progress.lastGuessYear != null && progress.actualYear != null && (
+            {!awaitingLocalRestore && completed && progress && progress.lastGuessYear != null && progress.actualYear != null && (
                 <YearRoundResultDialog
                     guessYear={progress.lastGuessYear}
                     actualYear={progress.actualYear}

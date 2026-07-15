@@ -50,12 +50,13 @@ describe('submitYearGuessAction', () => {
             appId: 42,
             guessYear: 2017,
             correct: false,
-            distance: 3,
+            distance: null,
             releaseYear: null,
             hintsUsed: 0,
             maxPoints: 5,
             unlockableHintLevels: [1],
             points: null,
+            guessTooEarly: true,
         };
         fetchMock.mockResolvedValue(mockResponse(200, body));
 
@@ -64,5 +65,20 @@ describe('submitYearGuessAction', () => {
         const [url] = fetchMock.mock.calls[0];
         expect(url).toBe(`${BACKEND}/api/year-game/guess`);
         expect(result).toEqual({ok: true, response: body, persisted: false});
+    });
+
+    it('requires sign-in when submitting after hints without a token', async () => {
+        cookieGet.mockReturnValue(undefined);
+        const fd = form(42, 2020);
+        fd.append('hintsUsed', '1');
+
+        const result = await submitYearGuessAction(undefined, fd);
+
+        expect(result).toEqual({
+            ok: false,
+            unauthorized: true,
+            error: 'Sign in to submit after using hints',
+        });
+        expect(fetchMock).not.toHaveBeenCalled();
     });
 });

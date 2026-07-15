@@ -11,6 +11,7 @@ export type YearRoundProgress = {
     unlockableHintLevels: number[];
     lastDistance?: number;
     lastGuessYear?: number;
+    lastGuessTooEarly?: boolean;
     completed: boolean;
     actualYear?: number;
     points?: number;

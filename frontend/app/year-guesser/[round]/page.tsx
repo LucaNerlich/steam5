@@ -65,6 +65,7 @@ export default async function YearGuesserRoundPage({params}: {params: Promise<{r
 
             <Suspense fallback={<div style={{height: 220, background: 'var(--color-border)', borderRadius: 8}}/>}>
                 <YearGuesserRound
+                    key={`${today.date}-${roundIndex}`}
                     appId={pick.appId}
                     hintTiers={today.hintTiers}
                     roundIndex={roundIndex}

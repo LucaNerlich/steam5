@@ -119,8 +119,7 @@ public class YearGameStateController {
             return ResponseEntity.badRequest().build();
         }
 
-        final Optional<YearGuess> existingOpt = guessRepository.findBySteamIdAndGameDateAndRoundIndex(
-                steamId, round.date(), round.roundIndex());
+        final Optional<YearGuess> existingOpt = loadProgress(steamId, round);
         if (existingOpt.isPresent() && existingOpt.get().isCompleted()) {
             final YearGuess completed = existingOpt.get();
             return ResponseEntity.ok(buildGuessResponse(
@@ -132,21 +131,8 @@ public class YearGameStateController {
             ));
         }
 
-        final YearGuess progress = existingOpt.orElseGet(() -> new YearGuess(
-                null,
-                steamId,
-                round.date(),
-                round.roundIndex(),
-                req.appId(),
-                null,
-                actualYear,
-                0,
-                null,
-                false,
-                0,
-                OffsetDateTime.now(),
-                OffsetDateTime.now()
-        ));
+        YearGuess progress = existingOpt.orElseGet(() -> newYearGuessProgress(
+                steamId, round, req.appId(), actualYear));
 
         final int distance = YearGuessEvaluator.distance(req.guessYear(), actualYear);
         final boolean correct = YearGuessEvaluator.isExactMatch(req.guessYear(), actualYear);
@@ -154,20 +140,24 @@ public class YearGameStateController {
         progress.setUpdatedAt(OffsetDateTime.now());
 
         if (correct) {
-            final int points = YearGuessEvaluator.scoreExactGuess(progress.getHintsUsed(), service.getConfig());
+            guessRepository.flush();
+            progress = loadProgress(steamId, round).orElse(progress);
+            final int hintsUsed = resolveHintsUsed(progress.getHintsUsed(), req.clientHintsUsed());
+            progress.setHintsUsed(hintsUsed);
+            final int points = YearGuessEvaluator.scoreExactGuess(hintsUsed, service.getConfig());
             progress.setCompleted(true);
             progress.setPoints(points);
             progress.setBestDistance(0);
-            persistProgress(progress, existingOpt.isEmpty());
+            persistProgress(progress, progress.getId() == null);
             incrementGuessCounter(true);
-            return ResponseEntity.ok(buildGuessResponse(req.appId(), req.guessYear(), actualYear, progress.getHintsUsed(), progress));
+            return ResponseEntity.ok(buildGuessResponse(req.appId(), req.guessYear(), actualYear, hintsUsed, progress));
         }
 
         final int bestDistance = progress.getBestDistance() == null
                 ? distance
                 : Math.min(progress.getBestDistance(), distance);
         progress.setBestDistance(bestDistance);
-        persistProgress(progress, existingOpt.isEmpty());
+        persistProgress(progress, progress.getId() == null);
         incrementGuessCounter(false);
         return ResponseEntity.ok(buildGuessResponse(req.appId(), req.guessYear(), actualYear, progress.getHintsUsed(), progress));
     }
@@ -216,6 +206,7 @@ public class YearGameStateController {
         progress.setHintsUsed(req.hintLevel());
         progress.setUpdatedAt(OffsetDateTime.now());
         guessRepository.save(progress);
+        guessRepository.flush();
 
         final String content = service.buildHintContent(req.hintLevel(), req.appId());
         final int maxPoints = YearGuessEvaluator.maxPointsForHintsUsed(progress.getHintsUsed(), service.getConfig());
@@ -477,7 +468,7 @@ public class YearGameStateController {
                                    List<YearGameStateService.HintTierMeta> tiers) {
     }
 
-    public record GuessRequest(Long appId, Integer guessYear) {
+    public record GuessRequest(Long appId, Integer guessYear, Integer clientHintsUsed) {
     }
 
     public record GuessResponse(Long appId,
@@ -488,7 +479,8 @@ public class YearGameStateController {
                                 int hintsUsed,
                                 int maxPoints,
                                 List<Integer> unlockableHintLevels,
-                                Integer points) {
+                                Integer points,
+                                Boolean guessTooEarly) {
     }
 
     public record HintRequest(Long appId, Integer hintLevel) {
@@ -551,6 +543,11 @@ public class YearGameStateController {
                 .body(new YearGameStateDto(date, service.getHintTiers(), details));
     }
 
+    private static int resolveHintsUsed(final int storedHintsUsed, final Integer clientHintsUsed) {
+        final int client = clientHintsUsed == null ? 0 : Math.max(0, Math.min(clientHintsUsed, YearGuessEvaluator.MAX_HINTS));
+        return Math.max(storedHintsUsed, client);
+    }
+
     private GuessResponse buildGuessResponse(final Long appId,
                                              final Integer guessYear,
                                              final int actualYear,
@@ -566,16 +563,19 @@ public class YearGameStateController {
                 : YearGuessEvaluator.unlockableHintLevels(bestDistance, hintsUsed, service.getConfig());
         final Integer releaseYear = correct ? actualYear : null;
         final Integer points = correct ? YearGuessEvaluator.scoreExactGuess(hintsUsed, service.getConfig()) : null;
+        final Boolean guessTooEarly = correct ? null : guessYear < actualYear;
+        final Integer clientDistance = correct ? distance : null;
         return new GuessResponse(
                 appId,
                 guessYear,
                 correct,
-                distance,
+                clientDistance,
                 releaseYear,
                 hintsUsed,
                 YearGuessEvaluator.maxPointsForHintsUsed(hintsUsed, service.getConfig()),
                 unlockable,
-                points
+                points,
+                guessTooEarly
         );
     }
 
@@ -623,6 +623,32 @@ public class YearGameStateController {
         }
     }
 
+    private Optional<YearGuess> loadProgress(final String steamId, final RoundContext round) {
+        return guessRepository.findBySteamIdAndGameDateAndRoundIndex(
+                steamId, round.date(), round.roundIndex());
+    }
+
+    private static YearGuess newYearGuessProgress(final String steamId,
+                                                  final RoundContext round,
+                                                  final Long appId,
+                                                  final int actualYear) {
+        return new YearGuess(
+                null,
+                steamId,
+                round.date(),
+                round.roundIndex(),
+                appId,
+                null,
+                actualYear,
+                0,
+                null,
+                false,
+                0,
+                OffsetDateTime.now(),
+                OffsetDateTime.now()
+        );
+    }
+
     private void persistProgress(final YearGuess progress, final boolean insert) {
         try {
             guessRepository.save(progress);
@@ -630,19 +656,27 @@ public class YearGameStateController {
             if (!insert) {
                 throw ex;
             }
-            final Optional<YearGuess> existing = guessRepository.findBySteamIdAndGameDateAndRoundIndex(
-                    progress.getSteamId(), progress.getGameDate(), progress.getRoundIndex());
+            final Optional<YearGuess> existing = loadProgress(
+                    progress.getSteamId(),
+                    new RoundContext(progress.getGameDate(), progress.getRoundIndex()));
             if (existing.isPresent()) {
-                final YearGuess row = existing.get();
-                row.setGuessedYear(progress.getGuessedYear());
-                row.setBestDistance(progress.getBestDistance());
-                row.setHintsUsed(progress.getHintsUsed());
-                row.setCompleted(progress.isCompleted());
-                row.setPoints(progress.getPoints());
-                row.setUpdatedAt(OffsetDateTime.now());
-                guessRepository.save(row);
+                mergeProgressRow(existing.get(), progress);
             }
         }
+    }
+
+    private void mergeProgressRow(final YearGuess row, final YearGuess progress) {
+        row.setGuessedYear(progress.getGuessedYear());
+        row.setBestDistance(progress.getBestDistance());
+        row.setHintsUsed(Math.max(row.getHintsUsed(), progress.getHintsUsed()));
+        row.setCompleted(progress.isCompleted());
+        if (progress.isCompleted()) {
+            row.setPoints(YearGuessEvaluator.scoreExactGuess(row.getHintsUsed(), service.getConfig()));
+        } else {
+            row.setPoints(progress.getPoints());
+        }
+        row.setUpdatedAt(OffsetDateTime.now());
+        guessRepository.save(row);
     }
 
     private void incrementGuessCounter(final boolean correct) {

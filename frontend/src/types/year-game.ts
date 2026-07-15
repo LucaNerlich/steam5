@@ -16,18 +16,20 @@ export interface YearGameState {
 export interface GuessRequest {
     appId: number;
     guessYear: number;
+    clientHintsUsed?: number;
 }
 
 export interface GuessResponse {
     appId: number;
     guessYear: number;
     correct: boolean;
-    distance: number;
+    distance: number | null;
     releaseYear: number | null;
     hintsUsed: number;
     maxPoints: number;
     unlockableHintLevels: number[];
     points: number | null;
+    guessTooEarly?: boolean | null;
 }
 
 export interface HintRequest {

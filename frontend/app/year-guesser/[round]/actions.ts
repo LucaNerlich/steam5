@@ -27,6 +27,8 @@ export async function submitYearGuessAction(
 
     const appId = typeof appIdRaw === 'string' ? Number.parseInt(appIdRaw, 10) : NaN;
     const guessYear = typeof guessYearRaw === 'string' ? Number.parseInt(guessYearRaw, 10) : NaN;
+    const hintsUsedRaw = formData.get('hintsUsed');
+    const knownHintsUsed = typeof hintsUsedRaw === 'string' ? Number.parseInt(hintsUsedRaw, 10) : 0;
     if (!Number.isFinite(appId) || !Number.isFinite(guessYear) || guessYear < 1970 || guessYear > 2100) {
         return {ok: false, error: 'Enter a valid year'};
     }
@@ -34,13 +36,20 @@ export async function submitYearGuessAction(
     try {
         const backend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
         const token = (await cookies()).get('s5_token')?.value;
+        if (knownHintsUsed > 0 && !token) {
+            return {ok: false, unauthorized: true, error: 'Sign in to submit after using hints'};
+        }
         const url = token ? `${backend}/api/year-game/guess-auth` : `${backend}/api/year-game/guess`;
         const headers: Record<string, string> = {'content-type': 'application/json', 'accept': 'application/json'};
         if (token) headers['authorization'] = `Bearer ${token}`;
         const res = await fetch(url, {
             method: 'POST',
             headers,
-            body: JSON.stringify({appId, guessYear}),
+            body: JSON.stringify({
+                appId,
+                guessYear,
+                clientHintsUsed: knownHintsUsed > 0 ? knownHintsUsed : undefined,
+            }),
             cache: 'no-store',
         });
         if (!res.ok) {
