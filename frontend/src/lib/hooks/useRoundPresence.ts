@@ -27,6 +27,8 @@ const EMPTY_SNAPSHOT: PresenceSnapshot = {
 const BASE_DELAY_MS = 1000;
 const MAX_DELAY_MS = 30000;
 const CLIENT_PING_INTERVAL_MS = 30000;
+/** Random jitter added to reconnect backoff to soften post-restart reconnect herds. */
+const RECONNECT_JITTER_MS = 2000;
 
 /**
  * Converts an HTTP origin to its corresponding WebSocket origin.
@@ -126,9 +128,19 @@ export function useRoundPresence(scopeKey: string | null): PresenceSnapshot & {
 
         const startPing = () => {
             clearPing();
+            // Background / sleeping tabs should not keep the socket alive overnight — without
+            // pings the server idle sweep (presence.idle-timeout-seconds, default 90s) reclaims
+            // the session. Brief tab switches under that window stay connected.
+            if (typeof document !== "undefined" && document.visibilityState === "hidden") {
+                return;
+            }
             pingTimerRef.current = setInterval(() => {
                 const ws = socketRef.current;
                 if (!ws || ws.readyState !== WebSocket.OPEN) return;
+                if (typeof document !== "undefined" && document.visibilityState === "hidden") {
+                    clearPing();
+                    return;
+                }
                 try {
                     ws.send(JSON.stringify({type: "ping"}));
                 } catch {
@@ -199,9 +211,15 @@ export function useRoundPresence(scopeKey: string | null): PresenceSnapshot & {
 
         const scheduleReconnect = () => {
             if (disposed || closedByUserRef.current) return;
+            // Don't burn reconnect attempts while the tab is backgrounded overnight.
+            if (typeof document !== "undefined" && document.visibilityState === "hidden") {
+                setReconnecting(true);
+                return;
+            }
             setReconnecting(true);
             const attempt = retryCountRef.current++;
-            const delay = Math.min(BASE_DELAY_MS * Math.pow(2, attempt), MAX_DELAY_MS);
+            const delay = Math.min(BASE_DELAY_MS * Math.pow(2, attempt), MAX_DELAY_MS)
+                + Math.floor(Math.random() * RECONNECT_JITTER_MS);
             clearReconnect();
             reconnectTimerRef.current = setTimeout(() => {
                 reconnectTimerRef.current = null;
@@ -219,9 +237,18 @@ export function useRoundPresence(scopeKey: string | null): PresenceSnapshot & {
 
         const handleOnline = handleRecovery;
         const handleVisibilityChange = () => {
-            if (document.visibilityState === "visible") {
-                handleRecovery();
+            if (document.visibilityState === "hidden") {
+                clearPing();
+                clearReconnect();
+                return;
             }
+            // Tab visible again: resume keepalive or reconnect if the idle sweep dropped us.
+            const readyState = socketRef.current?.readyState;
+            if (readyState === WebSocket.OPEN) {
+                startPing();
+                return;
+            }
+            handleRecovery();
         };
 
         window.addEventListener("online", handleOnline);
