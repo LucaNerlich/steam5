@@ -373,9 +373,9 @@ public class PlayerSpotlightService {
 
     private List<Candidate> findEligibleCandidates(final LocalDate today, final long minTotalRounds,
                                                      final long minRoundsInRecencyWindow) {
-        final Map<String, GuessRepository.AllTimeStatsRow> eligibleAllTime = guessRepository.aggregateAllTimeStats()
+        final Map<String, GuessRepository.AllTimeStatsRow> eligibleAllTime = guessRepository
+                .aggregateAllTimeStatsHavingMinRounds(minTotalRounds)
                 .stream()
-                .filter(row -> row.getRounds() != null && row.getRounds() >= minTotalRounds)
                 .collect(Collectors.toMap(GuessRepository.AllTimeStatsRow::getSteamId, Function.identity()));
 
         if (eligibleAllTime.isEmpty()) {

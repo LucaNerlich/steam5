@@ -28,6 +28,7 @@ spring:
       mode: always
       platform: postgres
   jpa:
+    open-in-view: false
     hibernate:
       ddl-auto: update
     show-sql: false
@@ -35,14 +36,14 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
+        jdbc.batch_size: 50
+        order_inserts: true
+        order_updates: true
+        default_batch_fetch_size: 16
   quartz:
     properties:
       org.quartz.scheduler.idleWaitTime: 1000 # 1000 is minimum
       org.quartz.threadPool.threadCount: 5
-      jdbc.batch_size: 50
-      order_inserts: true
-      order_updates: true
-      order_deletes: true
   web:
     error:
       include-message: always
@@ -110,14 +111,19 @@ season:
 jobs:
   steam-app-list:
     enabled: ${JOB_INGEST_LIST:false}
+    # Max Steam API list pages per run (each page may contain up to 50k apps as JSON).
+    batch-limit: ${JOB_INGEST_LIST_BATCH_LIMIT:1}
   steam-app-reviews:
     enabled: ${JOB_INGEST_REVIEWS:false}
+    batch-limit: ${JOB_INGEST_REVIEWS_BATCH_LIMIT:1000}
   steam-app-details:
     enabled: ${JOB_INGEST_DETAILS:false}
+    batch-limit: ${JOB_INGEST_DETAILS_BATCH_LIMIT:500}
   review-game-state:
     enabled: ${JOB_GENERATE_REVIEW_STATE:false}
   blurhash:
     enabled: ${JOB_BLURHASH:false}
+    batch-limit: ${JOB_BLURHASH_BATCH_LIMIT:100}
   blurhashAvatar:
     enabled: ${JOB_BLURHASH_AVATAR:false}
   reviews-refresh:

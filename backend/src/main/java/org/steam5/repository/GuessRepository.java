@@ -557,6 +557,35 @@ public interface GuessRepository extends JpaRepository<Guess, Long> {
             ORDER BY SUM(g.points) DESC
             """, nativeQuery = true)
     List<AllTimeStatsRow> aggregateAllTimeStats();
+
+    /**
+     * Same metrics as {@link #aggregateAllTimeStats()} but filters results to players
+     * with at least {@code minRounds} guesses using a HAVING clause. Note that the HAVING
+     * condition limits which aggregated groups are returned to Java, but does not avoid
+     * scanning or aggregating the full table at the database level.
+     */
+    @Query(value = """
+            SELECT
+                g.steam_id                                                          AS steamId,
+                SUM(g.points)                                                       AS totalPoints,
+                COUNT(*)                                                            AS rounds,
+                SUM(CASE WHEN g.selected_bucket = g.actual_bucket THEN 1 ELSE 0 END) AS hits,
+                SUM(CASE WHEN g.points = 0 THEN 1 ELSE 0 END)                      AS flops,
+                SUM(CASE WHEN
+                    CAST(NULLIF(regexp_replace(g.selected_bucket, '^(\\d+).*', '\\1'), '') AS BIGINT) >
+                    CAST(NULLIF(regexp_replace(g.actual_bucket,   '^(\\d+).*', '\\1'), '') AS BIGINT)
+                THEN 1 ELSE 0 END)                                                  AS tooHigh,
+                SUM(CASE WHEN
+                    CAST(NULLIF(regexp_replace(g.selected_bucket, '^(\\d+).*', '\\1'), '') AS BIGINT) <
+                    CAST(NULLIF(regexp_replace(g.actual_bucket,   '^(\\d+).*', '\\1'), '') AS BIGINT)
+                THEN 1 ELSE 0 END)                                                  AS tooLow,
+                AVG(g.points)                                                       AS avgPoints
+            FROM guesses g
+            GROUP BY g.steam_id
+            HAVING COUNT(*) >= :minRounds
+            ORDER BY SUM(g.points) DESC
+            """, nativeQuery = true)
+    List<AllTimeStatsRow> aggregateAllTimeStatsHavingMinRounds(@Param("minRounds") long minRounds);
 }
 
 

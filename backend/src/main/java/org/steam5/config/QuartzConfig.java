@@ -87,9 +87,9 @@ public class QuartzConfig {
     public Trigger triggerSeasonFinalizerJob(@Qualifier("SeasonFinalizerJob") JobDetail job) {
         return TriggerBuilder.newTrigger().forJob(job)
                 .withIdentity("SeasonFinalizerJob_Trigger")
-                // daily at 00:10 to close finished seasons
+                // daily at 00:25 UTC — staggered after backfill so season SQL does not pile up at 00:10
                 .withSchedule(
-                        CronScheduleBuilder.cronSchedule("0 10 0 * * ?")
+                        CronScheduleBuilder.cronSchedule("0 25 0 * * ?")
                                 .inTimeZone(TimeZone.getTimeZone("UTC"))
                 )
                 .build();
@@ -100,9 +100,9 @@ public class QuartzConfig {
     public Trigger triggerSeasonBackfillJob(@Qualifier("SeasonBackfillJob") JobDetail job) {
         return TriggerBuilder.newTrigger().forJob(job)
                 .withIdentity("SeasonBackfillJob_Trigger")
-                // daily at 00:05
+                // daily at 00:20 UTC — after review-game picks (00:01), before finalizer/spotlight
                 .withSchedule(
-                        CronScheduleBuilder.cronSchedule("0 5 0 * * ?")
+                        CronScheduleBuilder.cronSchedule("0 20 0 * * ?")
                                 .inTimeZone(TimeZone.getTimeZone("UTC"))
                 )
                 .build();
@@ -113,9 +113,9 @@ public class QuartzConfig {
     public Trigger triggerPlayerSpotlightJob(@Qualifier("PlayerSpotlightJob") JobDetail job) {
         return TriggerBuilder.newTrigger().forJob(job)
                 .withIdentity("PlayerSpotlightJob_Trigger")
-                // daily at 00:15, after season backfill/finalizer have settled streak data
+                // daily at 00:35 UTC — after season jobs settle streak data; avoids midnight pile-up
                 .withSchedule(
-                        CronScheduleBuilder.cronSchedule("0 15 0 * * ?")
+                        CronScheduleBuilder.cronSchedule("0 35 0 * * ?")
                                 .inTimeZone(TimeZone.getTimeZone("UTC"))
                 )
                 .build();

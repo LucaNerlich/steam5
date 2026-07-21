@@ -3,6 +3,7 @@ package org.steam5.service;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
+import org.steam5.config.JobsConfig;
 import org.steam5.config.SteamAppsConfig;
 import org.steam5.domain.IngestState;
 import org.steam5.domain.SteamAppIndex;
@@ -22,15 +23,18 @@ public class SteamAppListFetcher implements Fetcher {
     private final JsonHttpClient jsonHttpClient;
     private final SteamAppIndexRepository appIndexRepository;
     private final IngestStateRepository ingestStateRepository;
+    private final JobsConfig jobsConfig;
 
     public SteamAppListFetcher(SteamAppsConfig properties,
                                SteamAppIndexRepository appIndexRepository,
                                IngestStateRepository ingestStateRepository,
-                               JsonHttpClient jsonHttpClient) {
+                               JsonHttpClient jsonHttpClient,
+                               JobsConfig jobsConfig) {
         this.properties = properties;
         this.appIndexRepository = appIndexRepository;
         this.ingestStateRepository = ingestStateRepository;
         this.jsonHttpClient = jsonHttpClient;
+        this.jobsConfig = jobsConfig;
     }
 
     @Override
@@ -41,13 +45,14 @@ public class SteamAppListFetcher implements Fetcher {
 
         boolean haveMore = true;
         long lastAppId = ingestStateRepository.findById("steam_app_list").map(IngestState::getLastAppId).orElse(0L);
+        final int pageLimit = Math.max(1, jobsConfig.getSteamAppList().getBatchLimit());
         int page = 0;
         long totalApps = 0;
 
-        while (haveMore) {
+        while (haveMore && page < pageLimit) {
             page++;
             final String url = buildUrl(lastAppId);
-            log.info("Fetching Steam app list page {} with last_appid={} ...", page, lastAppId);
+            log.info("Fetching Steam app list page {} of {} with last_appid={} ...", page, pageLimit, lastAppId);
 
             final JsonNode root = jsonHttpClient.getJson(url);
             final JsonNode response = root.path("response");
@@ -75,9 +80,14 @@ public class SteamAppListFetcher implements Fetcher {
 
             log.info("Persisted page {} (apps processed: {} of {}), have_more_results={}, next last_appid={}",
                     page, batchCount, apps.isArray() ? apps.size() : -1, haveMore, lastAppId);
+
+            if (page >= pageLimit && haveMore) {
+                log.info("Steam app list page limit reached ({}); cursor saved for next run", pageLimit);
+                break;
+            }
         }
 
-        log.info("Steam app list ingestion finished. pages={}, total_apps_seen={}", page, totalApps);
+        log.info("Steam app list ingestion finished. pages={} pageLimit={} total_apps_seen={}", page, pageLimit, totalApps);
     }
 
     private String buildUrl(long lastAppId) {

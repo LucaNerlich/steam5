@@ -7,6 +7,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
+import org.steam5.config.JobsConfig;
 import org.steam5.config.SteamAppsConfig;
 import org.steam5.domain.IngestState;
 import org.steam5.domain.SteamAppIndex;
@@ -30,19 +31,22 @@ public class SteamAppReviewsFetcher implements Fetcher {
     private final SteamAppReviewsRepository reviewsRepository;
     private final IngestStateRepository ingestStateRepository;
     private final CacheManager cacheManager;
+    private final JobsConfig jobsConfig;
 
     public SteamAppReviewsFetcher(SteamAppsConfig properties,
                                   JsonHttpClient jsonHttpClient,
                                   SteamAppIndexRepository appIndexRepository,
                                   SteamAppReviewsRepository reviewsRepository,
                                   IngestStateRepository ingestStateRepository,
-                                  CacheManager cacheManager) {
+                                  CacheManager cacheManager,
+                                  JobsConfig jobsConfig) {
         this.properties = properties;
         this.jsonHttpClient = jsonHttpClient;
         this.appIndexRepository = appIndexRepository;
         this.reviewsRepository = reviewsRepository;
         this.ingestStateRepository = ingestStateRepository;
         this.cacheManager = cacheManager;
+        this.jobsConfig = jobsConfig;
     }
 
     @Override
@@ -52,18 +56,22 @@ public class SteamAppReviewsFetcher implements Fetcher {
         }
 
         final long lastAppId = ingestStateRepository.findById("steam_app_reviews").map(IngestState::getLastAppId).orElse(0L);
-        log.info("Starting reviews ingestion from appId > {}", lastAppId);
+        final int batchLimit = Math.max(1, jobsConfig.getSteamAppReviews().getBatchLimit());
+        log.info("Starting reviews ingestion from appId > {} (batchLimit={})", lastAppId, batchLimit);
 
         long processed = 0L;
         Long cursor = lastAppId;
         final int pageSize = 1000; // large batches; single HTTP call per app
         boolean more = true;
-        while (more) {
+        while (more && processed < batchLimit) {
             final Page<SteamAppIndex> page = appIndexRepository.findByAppIdGreaterThan(cursor, PageRequest.of(0, pageSize, Sort.by("appId").ascending()));
             if (page.isEmpty()) {
                 break;
             }
             for (SteamAppIndex idx : page) {
+                if (processed >= batchLimit) {
+                    break;
+                }
                 final Long appId = idx.getAppId();
                 if (appId == null) continue;
                 fetchForAppId(appId);
@@ -71,10 +79,10 @@ public class SteamAppReviewsFetcher implements Fetcher {
                 processed++;
                 cursor = appId;
             }
-            more = page.hasNext();
+            more = page.hasNext() && processed < batchLimit;
         }
 
-        log.info("Reviews ingestion finished. processed={} starting_after={}", processed, lastAppId);
+        log.info("Reviews ingestion finished. processed={} batchLimit={} starting_after={}", processed, batchLimit, lastAppId);
     }
 
     public boolean fetchForAppId(Long appId) throws IOException {
