@@ -5,7 +5,6 @@ import org.quartz.*;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.context.annotation.Bean;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 import org.steam5.config.JobsConfig;
@@ -96,22 +95,22 @@ public class BlurhashScreenshotsJob implements Job {
         final int batchLimit = Math.max(1, jobsConfig.getBlurhash().getBatchLimit());
         try {
             final int pageSize = 10; // small batch to limit memory
-            int page = 0;
+            long cursorId = 0L; // keyset cursor: query rows with id > cursorId
             boolean more = true;
             while (more && scanned < batchLimit) {
-                final Page<Screenshot> batch = screenshotRepository.findPageWithoutBlurhash(PageRequest.of(page, pageSize));
+                final List<Screenshot> batch = screenshotRepository.findPageWithoutBlurhash(cursorId, PageRequest.of(0, pageSize));
                 if (batch.isEmpty()) break;
-                for (Screenshot screenshot : batch.getContent()) {
+                for (Screenshot screenshot : batch) {
                     if (scanned >= batchLimit) {
                         break;
                     }
                     scanned++;
+                    cursorId = screenshot.getId(); // advance cursor to last scanned screenshot
                     final Counters c = handleScreenshot(screenshot);
                     encoded += c.encoded;
                     failed += c.failed;
                 }
-                page++;
-                more = batch.hasNext() && scanned < batchLimit;
+                more = (batch.size() == pageSize) && scanned < batchLimit;
             }
             if (scanned >= batchLimit && more) {
                 log.info("BlurhashScreenshotsJob batch limit reached ({}); remaining work deferred to next run", batchLimit);

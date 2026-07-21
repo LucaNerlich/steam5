@@ -15,6 +15,9 @@ public interface ScreenshotRepository extends JpaRepository<Screenshot, Long> {
     @Query("select s from Screenshot s where (s.blurhashThumb is null or s.blurhashThumb = '' or s.blurhashFull is null or s.blurhashFull = '') order by s.id asc")
     Page<Screenshot> findPageWithoutBlurhash(Pageable pageable);
 
+    @Query("select s from Screenshot s where s.id > :cursorId and (s.blurhashThumb is null or s.blurhashThumb = '' or s.blurhashFull is null or s.blurhashFull = '') order by s.id asc")
+    List<Screenshot> findPageWithoutBlurhash(@Param("cursorId") long cursorId, Pageable pageable);
+
     @Query("select s from Screenshot s where s.appId.appId = :appId and (s.blurhashThumb is null or s.blurhashThumb = '' or s.blurhashFull is null or s.blurhashFull = '') order by s.id asc")
     List<Screenshot> findMissingForApp(@Param("appId") Long appId);
 }

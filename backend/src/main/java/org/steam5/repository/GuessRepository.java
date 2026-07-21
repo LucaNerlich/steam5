@@ -559,9 +559,10 @@ public interface GuessRepository extends JpaRepository<Guess, Long> {
     List<AllTimeStatsRow> aggregateAllTimeStats();
 
     /**
-     * Same metrics as {@link #aggregateAllTimeStats()} but restricted in SQL to players
-     * with at least {@code minRounds} guesses — avoids scanning/aggregating the full table
-     * when only established players are needed (e.g. PlayerSpotlight eligibility).
+     * Same metrics as {@link #aggregateAllTimeStats()} but filters results to players
+     * with at least {@code minRounds} guesses using a HAVING clause. Note that the HAVING
+     * condition limits which aggregated groups are returned to Java, but does not avoid
+     * scanning or aggregating the full table at the database level.
      */
     @Query(value = """
             SELECT
