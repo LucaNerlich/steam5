@@ -6,6 +6,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
+import org.steam5.config.JobsConfig;
 import org.steam5.config.SteamAppsConfig;
 import org.steam5.domain.IngestState;
 import org.steam5.domain.SteamAppIndex;
@@ -27,13 +28,15 @@ public class SteamAppDetailsFetcher implements Fetcher {
     private final IngestStateRepository ingestStateRepository;
     private final SteamAppIndexRepository appIndexRepository;
     private final SteamAppDetailService service;
+    private final JobsConfig jobsConfig;
 
-    public SteamAppDetailsFetcher(final SteamAppsConfig properties, final JsonHttpClient jsonHttpClient, final IngestStateRepository ingestStateRepository, final SteamAppIndexRepository appIndexRepository, final SteamAppDetailService service) {
+    public SteamAppDetailsFetcher(final SteamAppsConfig properties, final JsonHttpClient jsonHttpClient, final IngestStateRepository ingestStateRepository, final SteamAppIndexRepository appIndexRepository, final SteamAppDetailService service, final JobsConfig jobsConfig) {
         this.properties = properties;
         this.jsonHttpClient = jsonHttpClient;
         this.ingestStateRepository = ingestStateRepository;
         this.appIndexRepository = appIndexRepository;
         this.service = service;
+        this.jobsConfig = jobsConfig;
     }
 
     @Override
@@ -43,18 +46,22 @@ public class SteamAppDetailsFetcher implements Fetcher {
         }
 
         final long lastAppId = ingestStateRepository.findById("steam_app_details").map(IngestState::getLastAppId).orElse(0L);
-        log.info("Starting details ingestion from appId > {}", lastAppId);
+        final int batchLimit = Math.max(1, jobsConfig.getSteamAppDetails().getBatchLimit());
+        log.info("Starting details ingestion from appId > {} (batchLimit={})", lastAppId, batchLimit);
 
         long processed = 0L;
         Long cursor = lastAppId;
         final int pageSize = 500; // single HTTP call per app, moderate batch size
         boolean more = true;
-        while (more) {
+        while (more && processed < batchLimit) {
             final Page<SteamAppIndex> page = appIndexRepository.findByAppIdGreaterThan(cursor, PageRequest.of(0, pageSize, Sort.by("appId").ascending()));
             if (page.isEmpty()) {
                 break;
             }
             for (SteamAppIndex idx : page) {
+                if (processed >= batchLimit) {
+                    break;
+                }
                 final Long appId = idx.getAppId();
                 if (appId == null) continue;
                 try {
@@ -69,10 +76,10 @@ public class SteamAppDetailsFetcher implements Fetcher {
                 processed++;
                 cursor = appId;
             }
-            more = page.hasNext();
+            more = page.hasNext() && processed < batchLimit;
         }
 
-        log.info("Details ingestion finished. processed={} starting_after={}", processed, lastAppId);
+        log.info("Details ingestion finished. processed={} batchLimit={} starting_after={}", processed, batchLimit, lastAppId);
     }
 
     public boolean fetchForAppId(final Long appId) throws IOException {

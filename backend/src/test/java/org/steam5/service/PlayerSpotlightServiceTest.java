@@ -105,7 +105,12 @@ class PlayerSpotlightServiceTest {
     }
 
     private void stubAllTimeStats(GuessRepository.AllTimeStatsRow... rows) {
-        when(guessRepository.aggregateAllTimeStats()).thenReturn(List.of(rows));
+        when(guessRepository.aggregateAllTimeStatsHavingMinRounds(anyLong())).thenAnswer(invocation -> {
+            final long minRounds = invocation.getArgument(0);
+            return java.util.Arrays.stream(rows)
+                    .filter(row -> row.getRounds() != null && row.getRounds() >= minRounds)
+                    .toList();
+        });
     }
 
     /**
@@ -334,7 +339,7 @@ class PlayerSpotlightServiceTest {
 
         service.computeAndPersistForToday();
 
-        verify(guessRepository, never()).aggregateAllTimeStats();
+        verify(guessRepository, never()).aggregateAllTimeStatsHavingMinRounds(anyLong());
         verify(playerSpotlightRepository, never()).save(any());
     }
 

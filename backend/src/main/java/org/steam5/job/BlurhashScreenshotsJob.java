@@ -8,24 +8,35 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
+import org.steam5.config.JobsConfig;
 import org.steam5.domain.details.Screenshot;
 import org.steam5.repository.details.ScreenshotRepository;
 import org.steam5.service.BlurhashService;
+import org.steam5.service.DomainCacheEvictor;
 
 import java.util.List;
 
 @Component
 @Slf4j
+@DisallowConcurrentExecution
 public class BlurhashScreenshotsJob implements Job {
 
     private final BlurhashService service;
     private final CacheManager cacheManager;
     private final ScreenshotRepository screenshotRepository;
+    private final DomainCacheEvictor cacheEvictor;
+    private final JobsConfig jobsConfig;
 
-    public BlurhashScreenshotsJob(final BlurhashService service, final CacheManager cacheManager, final ScreenshotRepository screenshotRepository) {
+    public BlurhashScreenshotsJob(final BlurhashService service,
+                                  final CacheManager cacheManager,
+                                  final ScreenshotRepository screenshotRepository,
+                                  final DomainCacheEvictor cacheEvictor,
+                                  final JobsConfig jobsConfig) {
         this.service = service;
         this.cacheManager = cacheManager;
         this.screenshotRepository = screenshotRepository;
+        this.cacheEvictor = cacheEvictor;
+        this.jobsConfig = jobsConfig;
     }
 
     /**
@@ -69,10 +80,7 @@ public class BlurhashScreenshotsJob implements Job {
                 try {
                     int encoded = encodeForApp(appId);
                     if (encoded > 0) {
-                        final Cache cache = cacheManager.getCache("review-game");
-                        if (cache != null) {
-                            cache.clear();
-                        }
+                        cacheEvictor.evictAppDetail(appId);
                     }
                     log.info("Targeted BlurhashScreenshotsJob finished for appId={} encoded={}", appId, encoded);
                 } catch (Exception e) {
@@ -82,37 +90,41 @@ public class BlurhashScreenshotsJob implements Job {
             }
         }
 
-        // Fallback 'full-run' job, which encodes all screenshots.
+        // Fallback 'full-run' job, which encodes screenshots up to the configured batch limit.
         long start = System.nanoTime();
         int scanned = 0, encoded = 0, failed = 0;
+        final int batchLimit = Math.max(1, jobsConfig.getBlurhash().getBatchLimit());
         try {
             final int pageSize = 10; // small batch to limit memory
             int page = 0;
             boolean more = true;
-            while (more) {
+            while (more && scanned < batchLimit) {
                 final Page<Screenshot> batch = screenshotRepository.findPageWithoutBlurhash(PageRequest.of(page, pageSize));
                 if (batch.isEmpty()) break;
                 for (Screenshot screenshot : batch.getContent()) {
+                    if (scanned >= batchLimit) {
+                        break;
+                    }
                     scanned++;
                     final Counters c = handleScreenshot(screenshot);
                     encoded += c.encoded;
                     failed += c.failed;
                 }
                 page++;
-                more = batch.hasNext();
-                try {
-                    System.gc();
-                } catch (Throwable ignored) {
-                }
+                more = batch.hasNext() && scanned < batchLimit;
+            }
+            if (scanned >= batchLimit && more) {
+                log.info("BlurhashScreenshotsJob batch limit reached ({}); remaining work deferred to next run", batchLimit);
             }
         } catch (Exception e) {
             log.error("BlurhashScreenshotsJob execution error", e);
             throw new JobExecutionException(e, false);
         } finally {
             long ms = (System.nanoTime() - start) / 1_000_000L;
-            log.info("BlurhashScreenshotsJob finished scanned={} encoded={} failed={} durationMs={}", scanned, encoded, failed, ms);
+            log.info("BlurhashScreenshotsJob finished scanned={} encoded={} failed={} batchLimit={} durationMs={}",
+                    scanned, encoded, failed, batchLimit, ms);
 
-            // Clear game cache, to allow the FE to pull new screenshot data.
+            // Clear game cache once so the FE can pull new screenshot blur data.
             if (encoded > 0) {
                 final Cache cache = cacheManager.getCache("review-game");
                 if (cache != null) {
@@ -197,5 +209,3 @@ public class BlurhashScreenshotsJob implements Job {
         int failed;
     }
 }
-
-

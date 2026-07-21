@@ -7,6 +7,8 @@ spring:
     hikari:
       # Surface connection leaks in prod logs (0 disables detection)
       leak-detection-threshold: ${DB_POOL_LEAK_DETECTION_MS:60000}
+      # Kill runaway queries from broken jobs; normal gameplay queries finish in ms.
+      connection-init-sql: SET statement_timeout = '${DB_STATEMENT_TIMEOUT:120s}'
 # Presence WebSocket caps tuned for small Coolify/VPS heaps. Override via PRESENCE_* env vars.
 # Open tabs ping to stay alive; background tabs stop pinging so idle sweep can reclaim them.
 presence:
