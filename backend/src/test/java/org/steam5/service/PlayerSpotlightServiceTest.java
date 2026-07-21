@@ -43,26 +43,30 @@ class PlayerSpotlightServiceTest {
         when(playerSpotlightRepository.existsById(any())).thenReturn(false);
         when(statisticsService.getUserAchievementsWeekly()).thenReturn(List.of());
         when(guessRepository.findBySteamIdBetween(anyString(), any(), any())).thenReturn(List.of());
-        when(guessRepository.findBySteamIdIn(anyList())).thenReturn(List.of());
+        when(guessRepository.findDailyTotalsBySteamIdIn(anyList())).thenReturn(List.of());
         when(guessRepository.findRoundAvgScoresInRange(any(), any())).thenReturn(List.of());
         when(guessRepository.findByGameDateAndRoundIndex(any(), anyInt())).thenReturn(List.of());
         // Default: every requested steamId gets enough (35) low-signal rounds in the recency
-        // window to clear the new activity floor, so most tests don't need to hand-stub this.
-        // Only the count matters here — this is a separate mock from findBySteamIdIn, so it
-        // can never interfere with any tier's own history-based fixture. Tests that need a
-        // candidate to be genuinely inactive override this explicitly (see
-        // excludesPlayersNotActiveInLastTwoWeeks and the dormant-veteran regression test).
-        when(guessRepository.findBySteamIdInAndGameDateBetween(anyList(), any(), any()))
-                .thenAnswer(invocation -> {
-                    final List<String> steamIds = invocation.getArgument(0);
-                    final List<Guess> rows = new ArrayList<>();
-                    for (final String steamId : steamIds) {
-                        for (int i = 0; i < 35; i++) {
-                            rows.add(guess(steamId, today, 2));
-                        }
-                    }
-                    return rows;
-                });
+        // window to clear the activity floor. Wider history-prefetch windows (~60d) default to
+        // empty so tier tests that need specific history stub via stubRecentHistory(...).
+        // Use doAnswer (not when().thenAnswer) so re-stubbing in individual tests does not
+        // re-enter this answer with null matcher args.
+        doAnswer(invocation -> {
+            final List<String> steamIds = invocation.getArgument(0);
+            final LocalDate start = invocation.getArgument(1);
+            final LocalDate end = invocation.getArgument(2);
+            final long spanDays = java.time.temporal.ChronoUnit.DAYS.between(start, end);
+            if (spanDays > 20) {
+                return List.<Guess>of();
+            }
+            final List<Guess> rows = new ArrayList<>();
+            for (final String steamId : steamIds) {
+                for (int i = 0; i < 35; i++) {
+                    rows.add(guess(steamId, today, 2));
+                }
+            }
+            return rows;
+        }).when(guessRepository).findBySteamIdInAndGameDateBetween(anyList(), any(), any());
     }
 
     // NOTE: mocks referenced by an outer when(...).thenReturn(...) must be fully built
@@ -104,6 +108,37 @@ class PlayerSpotlightServiceTest {
         when(guessRepository.aggregateAllTimeStats()).thenReturn(List.of(rows));
     }
 
+    /**
+     * Stubs the wider (~60d) history prefetch used by MOST_IMPROVED / WELCOME_BACK / HOT_STREAK
+     * while keeping the default 14-day recency activity floor intact.
+     */
+    private void stubRecentHistory(List<Guess> history) {
+        doAnswer(invocation -> {
+            final List<String> steamIds = invocation.getArgument(0);
+            final LocalDate start = invocation.getArgument(1);
+            final LocalDate end = invocation.getArgument(2);
+            final long spanDays = java.time.temporal.ChronoUnit.DAYS.between(start, end);
+            if (spanDays > 20) {
+                return history;
+            }
+            final List<Guess> rows = new ArrayList<>();
+            for (final String steamId : steamIds) {
+                for (int i = 0; i < 35; i++) {
+                    rows.add(guess(steamId, today, 2));
+                }
+            }
+            return rows;
+        }).when(guessRepository).findBySteamIdInAndGameDateBetween(anyList(), any(), any());
+    }
+
+    private GuessRepository.DailyTotalRow dailyTotal(String steamId, LocalDate date, long points) {
+        final GuessRepository.DailyTotalRow row = mock(GuessRepository.DailyTotalRow.class);
+        when(row.getSteamId()).thenReturn(steamId);
+        when(row.getGameDate()).thenReturn(date);
+        when(row.getTotalPoints()).thenReturn(points);
+        return row;
+    }
+
     @Test
     void excludesPlayersBelowRoundThreshold() {
         final GuessRepository.AllTimeStatsRow belowThreshold = allTimeRow("belowThreshold", 60, 2.0);
@@ -138,7 +173,7 @@ class PlayerSpotlightServiceTest {
         // recent-rounds count of 0.
         final List<Guess> recentRounds = new ArrayList<>();
         for (int i = 0; i < 35; i++) recentRounds.add(guess("active", today, 2));
-        when(guessRepository.findBySteamIdInAndGameDateBetween(anyList(), any(), any())).thenReturn(recentRounds);
+        doReturn(recentRounds).when(guessRepository).findBySteamIdInAndGameDateBetween(anyList(), any(), any());
 
         service.computeAndPersistForToday();
 
@@ -165,7 +200,7 @@ class PlayerSpotlightServiceTest {
         final List<Guess> recentRounds = new ArrayList<>();
         for (int i = 0; i < 5; i++) recentRounds.add(guess("dormantVeteran", today, 2)); // only 5 in the window
         for (int i = 0; i < 35; i++) recentRounds.add(guess("active", today, 2));
-        when(guessRepository.findBySteamIdInAndGameDateBetween(anyList(), any(), any())).thenReturn(recentRounds);
+        doReturn(recentRounds).when(guessRepository).findBySteamIdInAndGameDateBetween(anyList(), any(), any());
 
         service.computeAndPersistForToday();
 
@@ -335,12 +370,12 @@ class PlayerSpotlightServiceTest {
         final List<GuessRepository.UserDateRow> dates = consecutiveDaysEnding("recordBreaker", yesterday, 1);
         when(guessRepository.findDistinctDatesUpToForUsers(anyList(), eq(today))).thenReturn(dates);
 
-        final List<Guess> history = List.of(
-                guess("recordBreaker", yesterday.minusDays(10), 8),
-                guess("recordBreaker", yesterday.minusDays(5), 12),
-                guess("recordBreaker", yesterday, 24)
+        final List<GuessRepository.DailyTotalRow> dailyTotals = List.of(
+                dailyTotal("recordBreaker", yesterday.minusDays(10), 8),
+                dailyTotal("recordBreaker", yesterday.minusDays(5), 12),
+                dailyTotal("recordBreaker", yesterday, 24)
         );
-        when(guessRepository.findBySteamIdIn(anyList())).thenReturn(history);
+        when(guessRepository.findDailyTotalsBySteamIdIn(anyList())).thenReturn(dailyTotals);
 
         service.computeAndPersistForToday();
 
@@ -391,7 +426,7 @@ class PlayerSpotlightServiceTest {
         dates.add(dateRow("returner", beforeGap));
         when(guessRepository.findDistinctDatesUpToForUsers(anyList(), eq(today))).thenReturn(dates);
 
-        when(guessRepository.findBySteamIdIn(anyList())).thenReturn(List.of(
+        stubRecentHistory(List.of(
                 guess("returner", mostRecent, 4),
                 guess("returner", mostRecent, 3)
         ));
@@ -419,7 +454,7 @@ class PlayerSpotlightServiceTest {
         final List<Guess> history = new ArrayList<>();
         for (int i = 0; i < 15; i++) history.add(guess("improver", last30Start.plusDays(i), 4));
         for (int i = 0; i < 15; i++) history.add(guess("improver", prior30Start.plusDays(i), 2));
-        when(guessRepository.findBySteamIdIn(anyList())).thenReturn(history);
+        stubRecentHistory(history);
 
         service.computeAndPersistForToday();
 
@@ -454,11 +489,11 @@ class PlayerSpotlightServiceTest {
         final List<Guess> history = new ArrayList<>();
         for (int i = 0; i < 15; i++) history.add(guess("improver", last30Start.plusDays(i), 4));
         for (int i = 0; i < 15; i++) history.add(guess("improver", prior30Start.plusDays(i), 2));
-        when(guessRepository.findBySteamIdIn(anyList())).thenReturn(history);
+        stubRecentHistory(history);
 
         // Neither candidate spuriously qualifies for the other's tier or for
         // BEST_DAY_EVER / BEAT_THE_ODDS / WELCOME_BACK / HOT_STREAK:
-        // - "streaker" has no entries in the stubbed findBySteamIdIn(...) result (only
+        // - "streaker" has no entries in the stubbed history prefetch (only
         //   "improver" does), so historyByPlayer.getOrDefault("streaker", ...) is always
         //   empty — it never clears any tier's round-count floor.
         // - "improver" has only a single date in datesDesc, so its current streak is
@@ -505,7 +540,7 @@ class PlayerSpotlightServiceTest {
         final List<Guess> history = new ArrayList<>();
         for (int i = 0; i < 15; i++) history.add(guess("improver", last30Start.plusDays(i), 4));
         for (int i = 0; i < 15; i++) history.add(guess("improver", prior30Start.plusDays(i), 2));
-        when(guessRepository.findBySteamIdIn(anyList())).thenReturn(history);
+        stubRecentHistory(history);
 
         final PlayerSpotlight recentDayStreak = new PlayerSpotlight();
         recentDayStreak.setGameDate(today.minusDays(1));

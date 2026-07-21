@@ -269,14 +269,16 @@ public class PlayerSpotlightService {
                 today.minusDays(COOLDOWN_WINDOW_DAYS), today.minusDays(1));
         final List<Candidate> eligible = excludeRecentlyFeaturedPlayers(rawEligible, recentSpotlights);
 
-        // Batch-prefetch every eligible candidate's guess history in one query, instead of
-        // each tier evaluator querying per-candidate — BEST_DAY_EVER, WELCOME_BACK,
-        // MOST_IMPROVED, and HOT_STREAK all just filter/aggregate this same in-memory map
-        // to their own date window, eliminating what was an N+1 (and 2N for MOST_IMPROVED)
-        // pattern across those four tiers.
+        // Batch-prefetch recent guess rows for windowed tiers (MOST_IMPROVED needs 60d,
+        // HOT_STREAK/WELCOME_BACK need less). Avoid unbounded findBySteamIdIn — loading
+        // every guess for every eligible player is a known JDBC OOM path on small heaps.
+        // BEST_DAY_EVER uses a separate daily-totals aggregation instead of full Guess rows.
         final List<String> eligibleIds = eligible.stream().map(Candidate::steamId).toList();
-        final Map<String, List<Guess>> historyByPlayer = guessRepository.findBySteamIdIn(eligibleIds).stream()
-                .collect(Collectors.groupingBy(Guess::getSteamId));
+        final LocalDate recentHistoryStart = today.minusDays(2L * MOST_IMPROVED_WINDOW_DAYS);
+        final Map<String, List<Guess>> historyByPlayer =
+                guessRepository.findBySteamIdInAndGameDateBetween(eligibleIds, recentHistoryStart, today).stream()
+                        .collect(Collectors.groupingBy(Guess::getSteamId));
+        final Map<String, Map<LocalDate, Integer>> dailyTotalsByPlayer = loadDailyTotalsByPlayer(eligibleIds);
 
         // "Competitive pool": every tier here that has >=1 qualifying candidate goes
         // into a lottery, so no single ambient tier (e.g. DAY_STREAK) can dominate
@@ -284,7 +286,7 @@ public class PlayerSpotlightService {
         final LocalDate yesterday = today.minusDays(1);
         final List<QualifyingTier> qualifying = new ArrayList<>();
         addIfQualifying(qualifying, PlayerSpotlightInsightType.DAY_STREAK, evaluateDayStreakTier(eligible, today));
-        addIfQualifying(qualifying, PlayerSpotlightInsightType.BEST_DAY_EVER, evaluateBestDayEverTier(eligible, yesterday, historyByPlayer, today));
+        addIfQualifying(qualifying, PlayerSpotlightInsightType.BEST_DAY_EVER, evaluateBestDayEverTier(eligible, yesterday, dailyTotalsByPlayer, today));
         addIfQualifying(qualifying, PlayerSpotlightInsightType.BEAT_THE_ODDS, evaluateBeatTheOddsTier(eligible, yesterday, today));
         addIfQualifying(qualifying, PlayerSpotlightInsightType.WELCOME_BACK, evaluateWelcomeBackTier(eligible, historyByPlayer, today));
         addIfQualifying(qualifying, PlayerSpotlightInsightType.MOST_IMPROVED, evaluateMostImprovedTier(eligible, today, historyByPlayer));
@@ -310,6 +312,19 @@ public class PlayerSpotlightService {
         // Guaranteed fallback: always show someone among the eligible pool.
         final List<Tiered> milestoneTier = evaluateMilestoneTier(eligible, today);
         return Optional.of(toEntity(today, pickOne(milestoneTier, new Random(mixSeed(today.toEpochDay())))));
+    }
+
+    private Map<String, Map<LocalDate, Integer>> loadDailyTotalsByPlayer(final List<String> eligibleIds) {
+        if (eligibleIds.isEmpty()) {
+            return Map.of();
+        }
+        final Map<String, Map<LocalDate, Integer>> byPlayer = new LinkedHashMap<>();
+        for (final GuessRepository.DailyTotalRow row : guessRepository.findDailyTotalsBySteamIdIn(eligibleIds)) {
+            final int points = row.getTotalPoints() != null ? row.getTotalPoints().intValue() : 0;
+            byPlayer.computeIfAbsent(row.getSteamId(), ignored -> new LinkedHashMap<>())
+                    .put(row.getGameDate(), points);
+        }
+        return byPlayer;
     }
 
     private void addIfQualifying(final List<QualifyingTier> qualifying, final PlayerSpotlightInsightType type,
@@ -423,16 +438,15 @@ public class PlayerSpotlightService {
     }
 
     private List<Tiered> evaluateBestDayEverTier(final List<Candidate> eligible, final LocalDate yesterday,
-                                                  final Map<String, List<Guess>> historyByPlayer, final LocalDate today) {
+                                                  final Map<String, Map<LocalDate, Integer>> dailyTotalsByPlayer,
+                                                  final LocalDate today) {
         final Random copyRandom = copyRandom(today, PlayerSpotlightInsightType.BEST_DAY_EVER);
         final String headline = pickPhrase(BEST_DAY_EVER_HEADLINES, copyRandom);
         final String detailTemplate = pickPhrase(BEST_DAY_EVER_DETAILS, copyRandom);
 
         final List<Tiered> tier = new ArrayList<>();
         for (final Candidate c : eligible) {
-            final List<Guess> history = historyByPlayer.getOrDefault(c.steamId(), List.of());
-            final Map<LocalDate, Integer> dailyTotals = history.stream()
-                    .collect(Collectors.groupingBy(Guess::getGameDate, Collectors.summingInt(Guess::getPoints)));
+            final Map<LocalDate, Integer> dailyTotals = dailyTotalsByPlayer.getOrDefault(c.steamId(), Map.of());
 
             final Integer yesterdayTotal = dailyTotals.get(yesterday);
             if (yesterdayTotal == null) continue;

@@ -3,6 +3,16 @@ spring:
   cache:
     caffeine:
       spec: maximumSize=500,expireAfterWrite=12h,refreshAfterWrite=1h #https://github.com/ben-manes/caffeine/wiki/Refresh
+  datasource:
+    hikari:
+      # Surface connection leaks in prod logs (0 disables detection)
+      leak-detection-threshold: ${DB_POOL_LEAK_DETECTION_MS:60000}
+# Presence WebSocket caps tuned for small Coolify/VPS heaps. Override via PRESENCE_* env vars.
+# Open tabs ping to stay alive; background tabs stop pinging so idle sweep can reclaim them.
+presence:
+  max-global-connections: ${PRESENCE_MAX_GLOBAL_CONNECTIONS:500}
+  max-scope-connections: ${PRESENCE_MAX_SCOPE_CONNECTIONS:200}
+  max-ip-connections: ${PRESENCE_MAX_IP_CONNECTIONS:10}
 management:
   server:
     port: ${MANAGEMENT_SERVER_PORT:8081}
