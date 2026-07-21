@@ -78,6 +78,16 @@ public class SteamAppReviewsFetcher implements Fetcher {
     }
 
     public void fetchForAppId(Long appId) throws IOException {
+        fetchForAppId(appId, true);
+    }
+
+    /**
+     * @param clearReviewGameAggregates when true, clears the whole {@code review-game} cache after
+     *                                  saving (safe for single-app updates). Nightly bulk refresh
+     *                                  should pass false and clear once at the end of the job to
+     *                                  avoid thrashing caches under memory pressure.
+     */
+    public void fetchForAppId(Long appId, boolean clearReviewGameAggregates) throws IOException {
         final String url = UriComponentsBuilder.fromUriString("https://store.steampowered.com/appreviews/" + appId)
                 .queryParam("json", 1)
                 .queryParam("num_per_page", 0) //  don't fetch actual review details
@@ -100,12 +110,13 @@ public class SteamAppReviewsFetcher implements Fetcher {
         SteamAppReviews entity = new SteamAppReviews(appId, totalPositive, totalNegative, OffsetDateTime.now());
         reviewsRepository.save(entity);
 
-        // Evict dependent caches: per-app review count and review-game aggregates
         final var reviewGame = cacheManager.getCache("review-game");
         if (reviewGame != null) {
             reviewGame.evict(appId + "review-count");
-            // today/picks can change derived buckets if numbers shift; conservative clear
-            reviewGame.clear();
+            if (clearReviewGameAggregates) {
+                // today/picks can change derived buckets if numbers shift
+                reviewGame.clear();
+            }
         }
     }
 }

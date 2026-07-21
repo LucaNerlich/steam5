@@ -22,6 +22,8 @@ public interface GuessRepository extends JpaRepository<Guess, Long> {
      * Batched form of {@link #findBySteamIdOrderByGameDateDescRoundIndexAsc(String)} for a
      * whole candidate pool at once (e.g. PlayerSpotlightService), avoiding an N+1 pattern
      * across per-tier per-candidate lookups. Callers group the result by steamId in memory.
+     * Prefer {@link #findBySteamIdInAndGameDateBetween} when a date bound is available —
+     * unbounded loads of every guess for many players can OOM the JDBC driver on small heaps.
      */
     List<Guess> findBySteamIdIn(List<String> steamIds);
 
@@ -31,6 +33,26 @@ public interface GuessRepository extends JpaRepository<Guess, Long> {
      * hardest round") without querying per candidate.
      */
     List<Guess> findByGameDateAndRoundIndex(LocalDate gameDate, int roundIndex);
+
+    /**
+     * Per-user daily point totals for BEST_DAY_EVER-style comparisons without materializing
+     * every Guess row. Far cheaper than {@link #findBySteamIdIn(List)} for large histories.
+     */
+    @Query("""
+            select g.steamId as steamId,
+                   g.gameDate as gameDate,
+                   sum(g.points) as totalPoints
+            from Guess g
+            where g.steamId in :steamIds
+            group by g.steamId, g.gameDate
+            """)
+    List<DailyTotalRow> findDailyTotalsBySteamIdIn(@Param("steamIds") List<String> steamIds);
+
+    interface DailyTotalRow {
+        String getSteamId();
+        LocalDate getGameDate();
+        Long getTotalPoints();
+    }
 
     /**
      * Per-user round counts within a bounded date range, for a specific list of steamIds —

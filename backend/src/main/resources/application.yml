@@ -122,7 +122,9 @@ jobs:
     enabled: ${JOB_BLURHASH_AVATAR:false}
   reviews-refresh:
     enabled: ${JOB_REVIEWS_REFRESH:false}
-    nightly-limit: ${JOB_REVIEWS_REFRESH_LIMIT:15000}
+    # Cap nightly refresh volume. At ~1 Steam req/sec, 2500 apps ≈ 40+ minutes.
+    # Higher values (e.g. 15000) can run for hours and pressure JVM heap on small VPS boxes.
+    nightly-limit: ${JOB_REVIEWS_REFRESH_LIMIT:2500}
   seasons-finalizer:
     enabled: ${JOB_SEASONS_FINALIZER:true}
   seasons-backfill:

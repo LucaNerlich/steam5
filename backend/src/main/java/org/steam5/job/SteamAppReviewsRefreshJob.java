@@ -2,9 +2,11 @@ package org.steam5.job;
 
 import lombok.extern.slf4j.Slf4j;
 import org.quartz.*;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
-import org.steam5.config.SteamAppsConfig;
 import org.steam5.http.SteamApiException;
 import org.steam5.repository.SteamAppReviewsRepository;
 import org.steam5.service.SteamAppReviewsFetcher;
@@ -17,16 +19,21 @@ import java.util.concurrent.TimeUnit;
 @DisallowConcurrentExecution
 public class SteamAppReviewsRefreshJob implements Job {
 
-    // Tuneables: number refreshed per run (respecting 1 req/sec via SteamHttpClient)
-    private static final int DEFAULT_NIGHTLY_REFRESH = 2500; // fallback
+    private static final int DEFAULT_NIGHTLY_REFRESH = 2500;
+
     private final SteamAppReviewsFetcher fetcher;
     private final SteamAppReviewsRepository reviewsRepository;
-    private final SteamAppsConfig steamAppsConfig;
+    private final CacheManager cacheManager;
+    private final int configuredNightlyLimit;
 
-    public SteamAppReviewsRefreshJob(SteamAppReviewsFetcher fetcher, SteamAppReviewsRepository reviewsRepository, SteamAppsConfig steamAppsConfig) {
+    public SteamAppReviewsRefreshJob(SteamAppReviewsFetcher fetcher,
+                                     SteamAppReviewsRepository reviewsRepository,
+                                     CacheManager cacheManager,
+                                     @Value("${jobs.reviews-refresh.nightly-limit:2500}") int configuredNightlyLimit) {
         this.fetcher = fetcher;
         this.reviewsRepository = reviewsRepository;
-        this.steamAppsConfig = steamAppsConfig;
+        this.cacheManager = cacheManager;
+        this.configuredNightlyLimit = configuredNightlyLimit;
     }
 
     @Override
@@ -34,7 +41,7 @@ public class SteamAppReviewsRefreshJob implements Job {
         final long start = System.nanoTime();
         int refreshed = 0;
         try {
-            int limit = steamAppsConfig.getReviewsNightlyLimit() > 0 ? steamAppsConfig.getReviewsNightlyLimit() : DEFAULT_NIGHTLY_REFRESH;
+            int limit = configuredNightlyLimit > 0 ? configuredNightlyLimit : DEFAULT_NIGHTLY_REFRESH;
             final JobDataMap map = context.getMergedJobDataMap();
             if (map != null && map.containsKey("limit")) {
                 try {
@@ -42,10 +49,13 @@ public class SteamAppReviewsRefreshJob implements Job {
                 } catch (Exception ignored) {
                 }
             }
+            log.info("SteamAppReviewsRefreshJob starting with limit={}", limit);
             final List<Long> ids = reviewsRepository.findIdsOrderByUpdatedAtAsc(org.springframework.data.domain.PageRequest.of(0, limit));
             for (Long appId : ids) {
                 try {
-                    fetcher.fetchForAppId(appId);
+                    // Per-app cache eviction only; avoid clearing review-game aggregates on every
+                    // app (that thrash forces DB reloads while this job is already heavy).
+                    fetcher.fetchForAppId(appId, false);
                     refreshed++;
                 } catch (SteamApiException sae) {
                     // Respect rate limiting: abort job on 429
@@ -58,6 +68,13 @@ public class SteamAppReviewsRefreshJob implements Job {
                 } catch (Exception e) {
                     // Log with full exception for better debugging
                     log.warn("Failed refreshing reviews for appId {}", appId, e);
+                }
+            }
+            if (refreshed > 0) {
+                final Cache reviewGame = cacheManager.getCache("review-game");
+                if (reviewGame != null) {
+                    reviewGame.clear();
+                    log.info("Cleared review-game cache after refreshing {} apps", refreshed);
                 }
             }
         } catch (Exception e) {
@@ -77,5 +94,3 @@ public class SteamAppReviewsRefreshJob implements Job {
                 .build();
     }
 }
-
-
