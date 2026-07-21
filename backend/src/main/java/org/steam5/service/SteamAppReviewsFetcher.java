@@ -77,8 +77,8 @@ public class SteamAppReviewsFetcher implements Fetcher {
         log.info("Reviews ingestion finished. processed={} starting_after={}", processed, lastAppId);
     }
 
-    public void fetchForAppId(Long appId) throws IOException {
-        fetchForAppId(appId, true);
+    public boolean fetchForAppId(Long appId) throws IOException {
+        return fetchForAppId(appId, true);
     }
 
     /**
@@ -86,8 +86,9 @@ public class SteamAppReviewsFetcher implements Fetcher {
      *                                  saving (safe for single-app updates). Nightly bulk refresh
      *                                  should pass false and clear once at the end of the job to
      *                                  avoid thrashing caches under memory pressure.
+     * @return true if the API response was successful and data was persisted, false otherwise
      */
-    public void fetchForAppId(Long appId, boolean clearReviewGameAggregates) throws IOException {
+    public boolean fetchForAppId(Long appId, boolean clearReviewGameAggregates) throws IOException {
         final String url = UriComponentsBuilder.fromUriString("https://store.steampowered.com/appreviews/" + appId)
                 .queryParam("json", 1)
                 .queryParam("num_per_page", 0) //  don't fetch actual review details
@@ -100,7 +101,7 @@ public class SteamAppReviewsFetcher implements Fetcher {
         final JsonNode root = jsonHttpClient.getJson(url);
         if (root.path("success").asInt(0) != 1) {
             log.error("Reviews API returned non-success for appId {}", appId);
-            return;
+            return false;
         }
 
         final JsonNode summary = root.path("query_summary");
@@ -118,6 +119,7 @@ public class SteamAppReviewsFetcher implements Fetcher {
                 reviewGame.clear();
             }
         }
+        return true;
     }
 }
 

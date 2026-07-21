@@ -20,6 +20,7 @@ import java.util.concurrent.TimeUnit;
 public class SteamAppReviewsRefreshJob implements Job {
 
     private static final int DEFAULT_NIGHTLY_REFRESH = 2500;
+    private static final int MAX_REFRESH_LIMIT = 10_000;
 
     private final SteamAppReviewsFetcher fetcher;
     private final SteamAppReviewsRepository reviewsRepository;
@@ -40,23 +41,28 @@ public class SteamAppReviewsRefreshJob implements Job {
     public void execute(JobExecutionContext context) throws JobExecutionException {
         final long start = System.nanoTime();
         int refreshed = 0;
+        Exception caughtException = null;
         try {
             int limit = configuredNightlyLimit > 0 ? configuredNightlyLimit : DEFAULT_NIGHTLY_REFRESH;
             final JobDataMap map = context.getMergedJobDataMap();
             if (map != null && map.containsKey("limit")) {
                 try {
-                    limit = Math.max(1, Integer.parseInt(String.valueOf(map.get("limit"))));
+                    limit = Integer.parseInt(String.valueOf(map.get("limit")));
                 } catch (Exception ignored) {
                 }
             }
+            // Clamp limit to [1, MAX_REFRESH_LIMIT] to prevent unbounded queries
+            limit = Math.max(1, Math.min(limit, MAX_REFRESH_LIMIT));
             log.info("SteamAppReviewsRefreshJob starting with limit={}", limit);
             final List<Long> ids = reviewsRepository.findIdsOrderByUpdatedAtAsc(org.springframework.data.domain.PageRequest.of(0, limit));
             for (Long appId : ids) {
                 try {
                     // Per-app cache eviction only; avoid clearing review-game aggregates on every
                     // app (that thrash forces DB reloads while this job is already heavy).
-                    fetcher.fetchForAppId(appId, false);
-                    refreshed++;
+                    final boolean success = fetcher.fetchForAppId(appId, false);
+                    if (success) {
+                        refreshed++;
+                    }
                 } catch (SteamApiException sae) {
                     // Respect rate limiting: abort job on 429
                     if (sae.getStatusCode() == 429) {
@@ -70,6 +76,11 @@ public class SteamAppReviewsRefreshJob implements Job {
                     log.warn("Failed refreshing reviews for appId {}", appId, e);
                 }
             }
+        } catch (Exception e) {
+            log.error("SteamAppReviewsRefreshJob error", e);
+            caughtException = e;
+        } finally {
+            // Clear review-game cache after any successful refreshes, even if job aborted early
             if (refreshed > 0) {
                 final Cache reviewGame = cacheManager.getCache("review-game");
                 if (reviewGame != null) {
@@ -77,12 +88,11 @@ public class SteamAppReviewsRefreshJob implements Job {
                     log.info("Cleared review-game cache after refreshing {} apps", refreshed);
                 }
             }
-        } catch (Exception e) {
-            log.error("SteamAppReviewsRefreshJob error", e);
-            throw new JobExecutionException(e, false);
-        } finally {
             long ms = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
             log.info("SteamAppReviewsRefreshJob refreshed={} durationMs={}", refreshed, ms);
+            if (caughtException != null) {
+                throw new JobExecutionException(caughtException, false);
+            }
         }
     }
 

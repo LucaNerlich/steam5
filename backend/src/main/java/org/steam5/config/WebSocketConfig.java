@@ -17,6 +17,7 @@ public class WebSocketConfig implements WebSocketConfigurer {
 
     private final PresenceWebSocketHandler presenceHandler;
     private final PresenceHandshakeInterceptor handshakeInterceptor;
+    private final PresenceProperties presenceProperties;
 
     /**
      * Registers the presence WebSocket endpoint and its handshake interceptor.
@@ -39,8 +40,11 @@ public class WebSocketConfig implements WebSocketConfigurer {
         final ServletServerContainerFactoryBean container = new ServletServerContainerFactoryBean();
         container.setMaxTextMessageBufferSize(8 * 1024);
         container.setMaxBinaryMessageBufferSize(8 * 1024);
-        // Align with presence.idle-timeout-seconds (default 90); container-level idle is a backstop.
-        container.setMaxSessionIdleTimeout(120_000L);
+        // Container-level idle timeout backstop: clamp to max(configured + 30s margin, 120s)
+        // so sweepIdleAndClosed() can close sessions before the container does.
+        final long configuredIdleMs = presenceProperties.getIdleTimeoutSeconds() * 1000L;
+        final long containerTimeout = Math.max(configuredIdleMs + 30_000L, 120_000L);
+        container.setMaxSessionIdleTimeout(containerTimeout);
         return container;
     }
 }
