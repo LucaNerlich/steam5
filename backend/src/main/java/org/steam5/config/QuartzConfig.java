@@ -228,4 +228,17 @@ public class QuartzConfig {
                 )
                 .build();
     }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "jobs.leaderboard-refresh-perfect-days", name = "enabled", havingValue = "true", matchIfMissing = false)
+    public Trigger triggerLeaderboardRefreshPerfectDays(@Qualifier("LeaderboardRefreshJob_PerfectDays") JobDetail job) {
+        return TriggerBuilder.newTrigger().forJob(job)
+                .withIdentity("LeaderboardRefreshJob_PerfectDays_Trigger")
+                // daily at 00:50 UTC only — rankings change slowly; no intraday trigger needed
+                .withSchedule(
+                        CronScheduleBuilder.cronSchedule("0 50 0 * * ?")
+                                .inTimeZone(TimeZone.getTimeZone("UTC"))
+                )
+                .build();
+    }
 }

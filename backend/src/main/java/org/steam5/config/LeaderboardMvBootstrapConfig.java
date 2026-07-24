@@ -52,7 +52,8 @@ public class LeaderboardMvBootstrapConfig {
             new MvDefinition(LeaderboardType.MONTHLY, "mv_leaderboard_monthly", "ux_mv_leaderboard_monthly_steam_id", "db/mv-leaderboard-monthly.sql"),
             new MvDefinition(LeaderboardType.WEEKLY, "mv_leaderboard_weekly", "ux_mv_leaderboard_weekly_steam_id", "db/mv-leaderboard-weekly.sql"),
             new MvDefinition(LeaderboardType.SEASON, "mv_leaderboard_season", "ux_mv_leaderboard_season_steam_id", "db/mv-leaderboard-season.sql"),
-            new MvDefinition(LeaderboardType.HARDEST_GAMES, "mv_hardest_games", "ux_mv_hardest_games_app_id", "db/mv-hardest-games.sql")
+            new MvDefinition(LeaderboardType.HARDEST_GAMES, "mv_hardest_games", "ux_mv_hardest_games_app_id", "db/mv-hardest-games.sql"),
+            new MvDefinition(LeaderboardType.PERFECT_DAYS, "mv_perfect_days", "ux_mv_perfect_days_entry", "db/mv-perfect-days.sql")
     );
 
     @Bean

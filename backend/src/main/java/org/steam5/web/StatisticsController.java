@@ -38,6 +38,7 @@ public class StatisticsController {
         links.put("userAchievements", "/api/stats/users/achievements");
         links.put("gameStatistics", "/api/stats/game");
         links.put("hardestGames", "/api/stats/game/hardest");
+        links.put("perfectDays", "/api/stats/game/perfect-days");
         links.put("spotlight", "/api/stats/spotlight/today");
         return ResponseEntity.ok()
                 .header("Cache-Control", "public, s-maxage=3600, max-age=3600")
@@ -119,6 +120,16 @@ public class StatisticsController {
         return ResponseEntity.ok()
                 .header("Cache-Control", "public, s-maxage=3600, max-age=600")
                 .body(stats);
+    }
+
+    @GetMapping(value = "/game/perfect-days", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<StatisticsService.PerfectDayEntry>> perfectDays() {
+        final List<StatisticsService.PerfectDayEntry> result = statisticsService.getPerfectDays();
+        final ResponseEntity.BodyBuilder builder = ResponseEntity.ok()
+                .header("Cache-Control", "public, s-maxage=3600, max-age=600");
+        refreshStateRepository.findById(LeaderboardType.PERFECT_DAYS)
+                .ifPresent(state -> builder.header("X-Leaderboard-Refreshed-At", state.getRefreshedAt().toString()));
+        return builder.body(result);
     }
 
     @GetMapping(value = "/game/hardest", produces = MediaType.APPLICATION_JSON_VALUE)

@@ -141,4 +141,27 @@ public interface LeaderboardMvRepository extends Repository<Guess, Long> {
     @Modifying(clearAutomatically = false, flushAutomatically = false)
     @Query(value = "REFRESH MATERIALIZED VIEW CONCURRENTLY mv_hardest_games", nativeQuery = true)
     void refreshHardestGamesConcurrently();
+
+    interface PerfectDayMvRow {
+        String getSteamId();
+        String getPersonaName();
+        java.time.LocalDate getGameDate();
+        Long getTotalPoints();
+        String getAppNames();
+    }
+
+    @Query(value = "SELECT steam_id AS steamId, persona_name AS personaName, game_date AS gameDate, " +
+            "total_points AS totalPoints, app_names AS appNames " +
+            "FROM mv_perfect_days ORDER BY game_date DESC", nativeQuery = true)
+    List<PerfectDayMvRow> findPerfectDays();
+
+    @Transactional
+    @Modifying(clearAutomatically = false, flushAutomatically = false)
+    @Query(value = "REFRESH MATERIALIZED VIEW mv_perfect_days", nativeQuery = true)
+    void refreshPerfectDaysFull();
+
+    @Transactional
+    @Modifying(clearAutomatically = false, flushAutomatically = false)
+    @Query(value = "REFRESH MATERIALIZED VIEW CONCURRENTLY mv_perfect_days", nativeQuery = true)
+    void refreshPerfectDaysConcurrently();
 }
