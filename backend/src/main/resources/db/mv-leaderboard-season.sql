@@ -3,9 +3,10 @@
 --
 -- Same aggregation as mv-leaderboard-all-time.sql (see that file's header for the
 -- too-high/too-low regex explanation), scoped to whichever `seasons` row's
--- [start_date, end_date] currently contains the database's CURRENT_DATE (mirrors
--- SeasonService#findSeasonContaining). If no season row covers CURRENT_DATE (e.g. before
--- the first season is created), the view is empty rather than erroring.
+-- [start_date, end_date] currently contains (now() AT TIME ZONE 'UTC')::date — computed
+-- explicitly in UTC rather than using bare CURRENT_DATE, matching the app's GameDate.todayUtc()
+-- anchor exactly (mirrors SeasonService#findSeasonContaining). If no season row covers that
+-- date (e.g. before the first season is created), the view is empty rather than erroring.
 --
 -- The refresh job must run AFTER same-day season rollover/finalization (SeasonFinalizerJob,
 -- 00:25 UTC) so the season boundary is settled before this view re-derives its window —
@@ -19,7 +20,7 @@ CREATE MATERIALIZED VIEW mv_leaderboard_season AS
 WITH current_season AS (
     SELECT start_date, end_date
     FROM seasons
-    WHERE start_date <= CURRENT_DATE AND end_date >= CURRENT_DATE
+    WHERE start_date <= (now() AT TIME ZONE 'UTC')::date AND end_date >= (now() AT TIME ZONE 'UTC')::date
     ORDER BY season_number DESC
     LIMIT 1
 )

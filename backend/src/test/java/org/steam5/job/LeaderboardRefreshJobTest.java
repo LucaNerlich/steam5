@@ -14,6 +14,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class LeaderboardRefreshJobTest {
@@ -34,6 +35,12 @@ class LeaderboardRefreshJobTest {
         JobDataMap map = new JobDataMap();
         map.put("type", type);
         when(context.getMergedJobDataMap()).thenReturn(map);
+        return context;
+    }
+
+    private JobExecutionContext contextWithoutType() {
+        JobExecutionContext context = mock(JobExecutionContext.class);
+        when(context.getMergedJobDataMap()).thenReturn(new JobDataMap());
         return context;
     }
 
@@ -75,5 +82,28 @@ class LeaderboardRefreshJobTest {
         assertThrows(JobExecutionException.class, () -> job.execute(context));
 
         verify(cacheEvictor).evictLeaderboardStatic();
+    }
+
+    @Test
+    void execute_unrecognizedType_throwsWithoutRefreshingOrEvicting() {
+        JobExecutionContext context = contextFor("NOT_A_REAL_TYPE");
+
+        // LeaderboardType.valueOf(...) runs before the try/finally, so an unrecognized type
+        // fails fast with an unwrapped IllegalArgumentException — the finally block (and thus
+        // the cache eviction) never runs. This documents current behavior; every wired
+        // JobDetail bean always supplies a valid literal type, so this path isn't reachable
+        // in production, only via a hypothetical misconfigured JobDataMap.
+        assertThrows(IllegalArgumentException.class, () -> job.execute(context));
+
+        verifyNoInteractions(refreshService, cacheEvictor);
+    }
+
+    @Test
+    void execute_missingType_throwsWithoutRefreshingOrEvicting() {
+        JobExecutionContext context = contextWithoutType();
+
+        assertThrows(IllegalArgumentException.class, () -> job.execute(context));
+
+        verifyNoInteractions(refreshService, cacheEvictor);
     }
 }

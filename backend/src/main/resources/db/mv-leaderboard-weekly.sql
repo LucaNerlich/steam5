@@ -2,12 +2,13 @@
 -- (LeaderboardService#buildWeeklyLeaderboard / GET /api/leaderboard/weekly?floating=true).
 --
 -- Same aggregation as mv-leaderboard-all-time.sql (see that file's header for the
--- too-high/too-low regex explanation), scoped to the 7 days ending on the database's
--- CURRENT_DATE. See mv-leaderboard-monthly.sql's header for the CURRENT_DATE/timezone caveat.
+-- too-high/too-low regex explanation), scoped to the 7 days ending on
+-- (now() AT TIME ZONE 'UTC')::date. See mv-leaderboard-monthly.sql's header for why this is
+-- computed explicitly in UTC rather than using bare CURRENT_DATE.
 --
 -- Does NOT back the non-floating `/weekly` variant (the previous full Monday-Sunday week) —
--- that window doesn't roll with CURRENT_DATE the same way, and LeaderboardController#weekly
--- keeps computing it live via GuessRepository#findAllBetween.
+-- that window doesn't roll the same way, and LeaderboardController#weekly keeps computing it
+-- live via GuessRepository#findAllBetween.
 --
 -- NOT managed by Hibernate ddl-auto — apply manually (see README "Query Performance Notes").
 -- Refreshed by LeaderboardRefreshJob via REFRESH MATERIALIZED VIEW CONCURRENTLY (requires the
@@ -34,7 +35,7 @@ SELECT
     u.profile_url                                                       AS profile_url
 FROM guesses g
 LEFT JOIN users u ON u.steam_id = g.steam_id
-WHERE g.game_date BETWEEN CURRENT_DATE - 6 AND CURRENT_DATE
+WHERE g.game_date BETWEEN (now() AT TIME ZONE 'UTC')::date - 6 AND (now() AT TIME ZONE 'UTC')::date
 GROUP BY g.steam_id, u.steam_id
 ORDER BY SUM(g.points) DESC
 WITH NO DATA;

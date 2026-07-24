@@ -172,9 +172,9 @@ public class LeaderboardService {
      */
     private LeaderEntry getLeaderEntry(final String steamId, final long totalPoints, final long rounds, final long hits, final long flops, final long tooHigh, final long tooLow, final double avgPoints, final int streak, final User user) {
         final String personaName = user != null && user.getPersonaName() != null && !user.getPersonaName().isBlank() ? user.getPersonaName() : steamId;
-        final String avatar = user != null && user.getAvatarFull() != null && !user.getAvatarFull().isBlank() ? user.getAvatarFull() : null;
-        final String avatarBlurdata = user != null && user.getBlurdataAvatarFull() != null && !user.getBlurdataAvatarFull().isBlank() ? user.getBlurdataAvatarFull() : null;
-        final String profileUrl = user != null && user.getProfileUrl() != null && !user.getProfileUrl().isBlank() ? user.getProfileUrl() : null;
+        final String avatar = user != null ? blankToNull(user.getAvatarFull()) : null;
+        final String avatarBlurdata = user != null ? blankToNull(user.getBlurdataAvatarFull()) : null;
+        final String profileUrl = user != null ? blankToNull(user.getProfileUrl()) : null;
         return new LeaderEntry(steamId, personaName, totalPoints, rounds, hits, flops, tooHigh, tooLow, avgPoints, streak, avatar, avatarBlurdata, profileUrl);
     }
 

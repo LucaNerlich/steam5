@@ -115,12 +115,11 @@ CREATE UNIQUE INDEX CONCURRENTLY ux_mv_leaderboard_all_time_steam_id
 -- (LeaderboardService#buildMonthlyLeaderboard / GET /api/leaderboard/monthly).
 --
 -- Same aggregation as mv-leaderboard-all-time.sql (see that file's header for the
--- too-high/too-low regex explanation), scoped to the 30 days ending on the database's
--- CURRENT_DATE. The window is re-derived from CURRENT_DATE on every refresh, so it rolls
--- forward automatically — no stored start/end dates to maintain. CURRENT_DATE reflects the
--- database session's timezone; since the app computes "today" as GameDate.todayUtc(), the
--- database (or at least this session) must also be UTC, or the MV's day boundary will drift
--- from the app's.
+-- too-high/too-low regex explanation), scoped to the 30 days ending on
+-- (now() AT TIME ZONE 'UTC')::date — computed explicitly in UTC regardless of the database
+-- session's timezone, matching the app's GameDate.todayUtc() anchor exactly. The window is
+-- re-derived on every refresh, so it rolls forward automatically — no stored start/end dates
+-- to maintain.
 --
 -- NOT managed by Hibernate ddl-auto — apply manually (see README "Query Performance Notes").
 -- Refreshed by LeaderboardRefreshJob via REFRESH MATERIALIZED VIEW CONCURRENTLY (requires the
@@ -150,7 +149,7 @@ SELECT
     u.profile_url                                                       AS profile_url
 FROM guesses g
 LEFT JOIN users u ON u.steam_id = g.steam_id
-WHERE g.game_date BETWEEN CURRENT_DATE - 29 AND CURRENT_DATE
+WHERE g.game_date BETWEEN (now() AT TIME ZONE 'UTC')::date - 29 AND (now() AT TIME ZONE 'UTC')::date
 GROUP BY g.steam_id, u.steam_id
 ORDER BY SUM(g.points) DESC
 WITH NO DATA;
@@ -296,13 +295,13 @@ Expected: the two result sets match row-for-row (same top 5 `steam_id`s, same `t
 
 Find this line in the "Query Performance Notes" section:
 
-```
+```text
 - `guesses` date-range queries (for example `findAllBetween`, `findSeasonStats`, `findSeasonDates`) rely on `idx_guesses_game_date`.
 ```
 
 Add this new bullet immediately after it:
 
-```
+```text
 - Leaderboard reads (`/api/leaderboard/all`, `/monthly`, `/weekly?floating=true`, `/season`) are backed by
   materialized views (`mv_leaderboard_all_time`, `mv_leaderboard_monthly`, `mv_leaderboard_weekly`,
   `mv_leaderboard_season` — see `backend/src/main/resources/db/mv-leaderboard-*.sql`). Like
@@ -1938,7 +1937,7 @@ git commit -m "feat(config): schedule staggered leaderboard MV refresh jobs (nig
 
 Find the bullet added back in Task 1:
 
-```
+```text
 - Leaderboard reads (`/api/leaderboard/all`, `/monthly`, `/weekly?floating=true`, `/season`) are backed by
   materialized views (`mv_leaderboard_all_time`, `mv_leaderboard_monthly`, `mv_leaderboard_weekly`,
   `mv_leaderboard_season` — see `backend/src/main/resources/db/mv-leaderboard-*.sql`). Like
@@ -1949,7 +1948,7 @@ Find the bullet added back in Task 1:
 
 Replace it with:
 
-```
+```text
 - Leaderboard reads (`/api/leaderboard/all`, `/monthly`, `/weekly?floating=true`, `/season`) are served
   from materialized views (`mv_leaderboard_all_time`, `mv_leaderboard_monthly`, `mv_leaderboard_weekly`,
   `mv_leaderboard_season` — see `backend/src/main/resources/db/mv-leaderboard-*.sql`) instead of

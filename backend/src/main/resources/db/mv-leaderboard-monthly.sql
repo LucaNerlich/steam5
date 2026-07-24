@@ -2,12 +2,11 @@
 -- (LeaderboardService#buildMonthlyLeaderboard / GET /api/leaderboard/monthly).
 --
 -- Same aggregation as mv-leaderboard-all-time.sql (see that file's header for the
--- too-high/too-low regex explanation), scoped to the 30 days ending on the database's
--- CURRENT_DATE. The window is re-derived from CURRENT_DATE on every refresh, so it rolls
--- forward automatically — no stored start/end dates to maintain. CURRENT_DATE reflects the
--- database session's timezone; since the app computes "today" as GameDate.todayUtc(), the
--- database (or at least this session) must also be UTC, or the MV's day boundary will drift
--- from the app's.
+-- too-high/too-low regex explanation), scoped to the 30 days ending on
+-- (now() AT TIME ZONE 'UTC')::date — computed explicitly in UTC regardless of the database
+-- session's timezone, matching the app's GameDate.todayUtc() anchor exactly. The window is
+-- re-derived on every refresh, so it rolls forward automatically — no stored start/end dates
+-- to maintain.
 --
 -- NOT managed by Hibernate ddl-auto — apply manually (see README "Query Performance Notes").
 -- Refreshed by LeaderboardRefreshJob via REFRESH MATERIALIZED VIEW CONCURRENTLY (requires the
@@ -37,7 +36,7 @@ SELECT
     u.profile_url                                                       AS profile_url
 FROM guesses g
 LEFT JOIN users u ON u.steam_id = g.steam_id
-WHERE g.game_date BETWEEN CURRENT_DATE - 29 AND CURRENT_DATE
+WHERE g.game_date BETWEEN (now() AT TIME ZONE 'UTC')::date - 29 AND (now() AT TIME ZONE 'UTC')::date
 GROUP BY g.steam_id, u.steam_id
 ORDER BY SUM(g.points) DESC
 WITH NO DATA;
