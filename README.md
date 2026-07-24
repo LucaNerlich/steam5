@@ -239,19 +239,21 @@ npm run dev
     boundaries are settled) plus, for all-time/monthly/weekly only, an additional 10-minute interval
     trigger matching the `leaderboard-static` cache TTL. The season MV intentionally has no intraday
     trigger — its window depends on season rollover timing, not intraday freshness.
-  - **Manual application required, in this order** (these MVs and their unique indexes are not managed
-    by Hibernate `ddl-auto`, same as `idx_guesses_game_date`):
-    1. Apply each `db/mv-leaderboard-*.sql` script against the target database (creates the view
-       `WITH NO DATA` plus a `CREATE UNIQUE INDEX CONCURRENTLY` on `steam_id`, required for
-       `REFRESH MATERIALIZED VIEW CONCURRENTLY`).
-    2. Either run one manual `REFRESH MATERIALIZED VIEW mv_leaderboard_<type>;` per view before serving
-       traffic, or enable the corresponding `jobs.leaderboard-refresh-<type>.enabled` flag and let
-       `LeaderboardRefreshService` self-heal: it checks `pg_matviews.ispopulated` and automatically falls
-       back to a plain (non-concurrent) `REFRESH` the first time, then uses `CONCURRENTLY` afterward.
-       Until a view is populated, querying it raises a Postgres error — don't deploy the MV-backed read
-       path ahead of this step.
-    3. Only deploy/enable the MV-backed read path (`LeaderboardService`/`LeaderboardController`) after
-       steps 1-2 have completed on the target database.
+  - **Zero-touch by default**, no manual `psql` step required: `LeaderboardMvBootstrapConfig` (an
+    `ApplicationRunner`, gated by `app.leaderboard-mv.bootstrap.enabled`, default `true`) creates any
+    missing MV or unique index at application startup, reading the same `db/mv-leaderboard-*.sql` files
+    an operator would otherwise apply by hand — via a raw autocommit JDBC connection, not Hibernate's
+    `ddl-auto` (`CREATE INDEX CONCURRENTLY` still can't run inside `ddl-auto`'s transaction, which is why
+    this is a dedicated bootstrap step rather than a JPA-managed table). `jobs.leaderboard-refresh-*.enabled`
+    also default to `true` now, so `LeaderboardRefreshService` populates each view on its first scheduled
+    run — self-healing via `pg_matviews.ispopulated` (falls back to a plain, non-concurrent `REFRESH` the
+    first time, then uses `CONCURRENTLY`). Set `app.leaderboard-mv.bootstrap.enabled=false` if a DBA wants
+    to control `CREATE INDEX CONCURRENTLY` timing manually on a very large production table instead.
+  - Each successful refresh also writes a row to `leaderboard_refresh_state` (an ordinary Hibernate-managed
+    table, unlike the MVs themselves), which `LeaderboardController` exposes via an
+    `X-Leaderboard-Refreshed-At` response header (ISO-8601) on `/monthly`, `/weekly?floating=true`,
+    `/season`, and `/all` — omitted until the first refresh completes. The frontend renders this as a
+    localized "Last updated" line below the all-time/season/weekly-floating leaderboards.
   - A hook to trigger a season-MV refresh directly from `SeasonService#finalizeSeason`/`#ensureSeasonForDate`
     was considered but intentionally not added: the season job's 00:46 UTC cron already runs after
     `seasons-finalizer` (00:25), so the extra coupling wasn't justified. Revisit if season rollover timing
