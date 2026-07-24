@@ -57,6 +57,27 @@ public interface LeaderboardMvRepository extends Repository<Guess, Long> {
             "FROM mv_leaderboard_season ORDER BY total_points DESC", nativeQuery = true)
     List<LeaderboardMvRow> findSeason();
 
+    interface HardestGameMvRow {
+        Long getAppId();
+        String getAppName();
+        Double getAvgScore();
+        Long getPlayerCount();
+        Long getTooHighCount();
+        Long getTooLowCount();
+        Long getTotalGuesses();
+        String getMostCommonWrongBucket();
+        Long getMostCommonWrongBucketCount();
+        String getActualBucket();
+        java.time.LocalDate getLatestPickDate();
+    }
+
+    @Query(value = "SELECT app_id AS appId, app_name AS appName, avg_score AS avgScore, player_count AS playerCount, " +
+            "too_high_count AS tooHighCount, too_low_count AS tooLowCount, total_guesses AS totalGuesses, " +
+            "most_common_wrong_bucket AS mostCommonWrongBucket, most_common_wrong_bucket_count AS mostCommonWrongBucketCount, " +
+            "actual_bucket AS actualBucket, latest_pick_date AS latestPickDate " +
+            "FROM mv_hardest_games ORDER BY avg_score ASC, player_count DESC", nativeQuery = true)
+    List<HardestGameMvRow> findHardestGames();
+
     @Query(value = "SELECT ispopulated FROM pg_matviews WHERE matviewname = :viewName", nativeQuery = true)
     Boolean isPopulated(@Param("viewName") String viewName);
 
@@ -110,4 +131,14 @@ public interface LeaderboardMvRepository extends Repository<Guess, Long> {
     @Modifying(clearAutomatically = false, flushAutomatically = false)
     @Query(value = "REFRESH MATERIALIZED VIEW CONCURRENTLY mv_leaderboard_season", nativeQuery = true)
     void refreshSeasonConcurrently();
+
+    @Transactional
+    @Modifying(clearAutomatically = false, flushAutomatically = false)
+    @Query(value = "REFRESH MATERIALIZED VIEW mv_hardest_games", nativeQuery = true)
+    void refreshHardestGamesFull();
+
+    @Transactional
+    @Modifying(clearAutomatically = false, flushAutomatically = false)
+    @Query(value = "REFRESH MATERIALIZED VIEW CONCURRENTLY mv_hardest_games", nativeQuery = true)
+    void refreshHardestGamesConcurrently();
 }
