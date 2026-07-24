@@ -88,4 +88,83 @@ class StatisticsServiceTest {
         when(leaderboardMvRepository.findHardestGames()).thenReturn(List.of());
         assertEquals(List.of(), service.getHardestGames(10));
     }
+
+    private LeaderboardMvRepository.PerfectDayMvRow perfectDayRow(String steamId, String personaName,
+                                                                    String avatarFull, String blurdataAvatarFull,
+                                                                    String profileUrl, LocalDate gameDate,
+                                                                    String appNames) {
+        final LeaderboardMvRepository.PerfectDayMvRow r = mock(LeaderboardMvRepository.PerfectDayMvRow.class);
+        when(r.getSteamId()).thenReturn(steamId);
+        when(r.getPersonaName()).thenReturn(personaName);
+        when(r.getAvatarFull()).thenReturn(avatarFull);
+        when(r.getBlurdataAvatarFull()).thenReturn(blurdataAvatarFull);
+        when(r.getProfileUrl()).thenReturn(profileUrl);
+        when(r.getGameDate()).thenReturn(gameDate);
+        when(r.getAppNames()).thenReturn(appNames);
+        return r;
+    }
+
+    @Test
+    void getPerfectDays_mapsRowsAndSplitsAppNamesOnCommaSpace() {
+        final LeaderboardMvRepository.PerfectDayMvRow row = perfectDayRow(
+                "76561198000000001", "Alice", "https://avatar/full.jpg", "data:blur", "https://steamcommunity.com/id/alice",
+                LocalDate.of(2026, 1, 15), "Half-Life, Portal 2, Left 4 Dead");
+        when(leaderboardMvRepository.findPerfectDays()).thenReturn(List.of(row));
+
+        final List<StatisticsService.PerfectDayEntry> result = service.getPerfectDays();
+
+        assertEquals(1, result.size());
+        final StatisticsService.PerfectDayEntry entry = result.get(0);
+        assertEquals("76561198000000001", entry.steamId());
+        assertEquals("Alice", entry.personaName());
+        assertEquals("https://avatar/full.jpg", entry.avatar());
+        assertEquals("data:blur", entry.avatarBlurdata());
+        assertEquals("https://steamcommunity.com/id/alice", entry.profileUrl());
+        assertEquals(LocalDate.of(2026, 1, 15), entry.gameDate());
+        assertEquals(List.of("Half-Life", "Portal 2", "Left 4 Dead"), entry.appNames());
+    }
+
+    @Test
+    void getPerfectDays_nullAppNames_mapsToEmptyList() {
+        final LeaderboardMvRepository.PerfectDayMvRow row = perfectDayRow(
+                "76561198000000002", "Bob", null, null, null, LocalDate.of(2026, 2, 1), null);
+        when(leaderboardMvRepository.findPerfectDays()).thenReturn(List.of(row));
+
+        final List<StatisticsService.PerfectDayEntry> result = service.getPerfectDays();
+
+        assertEquals(1, result.size());
+        assertEquals(List.of(), result.get(0).appNames());
+    }
+
+    @Test
+    void getPerfectDays_singleAppName_returnsSingletonList() {
+        final LeaderboardMvRepository.PerfectDayMvRow row = perfectDayRow(
+                "76561198000000003", "Carol", null, null, null, LocalDate.of(2026, 3, 1), "Portal");
+        when(leaderboardMvRepository.findPerfectDays()).thenReturn(List.of(row));
+
+        final List<StatisticsService.PerfectDayEntry> result = service.getPerfectDays();
+
+        assertEquals(List.of("Portal"), result.get(0).appNames());
+    }
+
+    @Test
+    void getPerfectDays_noRows_returnsEmptyList() {
+        when(leaderboardMvRepository.findPerfectDays()).thenReturn(List.of());
+        assertEquals(List.of(), service.getPerfectDays());
+    }
+
+    @Test
+    void getPerfectDays_preservesRepositoryOrdering() {
+        final LeaderboardMvRepository.PerfectDayMvRow newer = perfectDayRow(
+                "steam-newer", "Newer", null, null, null, LocalDate.of(2026, 5, 1), "Game A");
+        final LeaderboardMvRepository.PerfectDayMvRow older = perfectDayRow(
+                "steam-older", "Older", null, null, null, LocalDate.of(2026, 4, 1), "Game B");
+        // Repository query orders by game_date DESC — the service must not re-sort.
+        when(leaderboardMvRepository.findPerfectDays()).thenReturn(List.of(newer, older));
+
+        final List<StatisticsService.PerfectDayEntry> result = service.getPerfectDays();
+
+        assertEquals("steam-newer", result.get(0).steamId());
+        assertEquals("steam-older", result.get(1).steamId());
+    }
 }

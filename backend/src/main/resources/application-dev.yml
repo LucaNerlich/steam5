@@ -44,6 +44,8 @@ jobs:
     enabled: true
   leaderboard-refresh-hardest-games:
     enabled: true
+  leaderboard-refresh-perfect-days:
+    enabled: true
 
 app:
   leaderboard-mv:

@@ -133,6 +133,47 @@ class LeaderboardRefreshServiceTest {
     }
 
     @Test
+    void refreshPerfectDays_whenPopulated_usesConcurrentRefreshAndRecordsState() {
+        when(leaderboardMvRepository.isPopulated("mv_perfect_days")).thenReturn(true);
+
+        service.refreshPerfectDays();
+
+        verify(leaderboardMvRepository).refreshPerfectDaysConcurrently();
+        verify(leaderboardMvRepository, never()).refreshPerfectDaysFull();
+
+        ArgumentCaptor<LeaderboardRefreshState> captor = ArgumentCaptor.forClass(LeaderboardRefreshState.class);
+        verify(refreshStateRepository).save(captor.capture());
+        assertEquals(LeaderboardType.PERFECT_DAYS, captor.getValue().getLeaderboardType());
+        assertNotNull(captor.getValue().getRefreshedAt());
+    }
+
+    @Test
+    void refreshPerfectDays_whenNotPopulated_fallsBackToFullRefreshAndRecordsState() {
+        when(leaderboardMvRepository.isPopulated("mv_perfect_days")).thenReturn(false);
+
+        service.refreshPerfectDays();
+
+        verify(leaderboardMvRepository).refreshPerfectDaysFull();
+        verify(leaderboardMvRepository, never()).refreshPerfectDaysConcurrently();
+
+        ArgumentCaptor<LeaderboardRefreshState> captor = ArgumentCaptor.forClass(LeaderboardRefreshState.class);
+        verify(refreshStateRepository).save(captor.capture());
+        assertEquals(LeaderboardType.PERFECT_DAYS, captor.getValue().getLeaderboardType());
+    }
+
+    @Test
+    void refreshPerfectDays_whenAdvisoryLockNotAcquired_skipsEntirely() {
+        when(leaderboardMvRepository.tryAdvisoryXactLock(anyLong())).thenReturn(false);
+
+        service.refreshPerfectDays();
+
+        verify(leaderboardMvRepository, never()).isPopulated(anyString());
+        verify(leaderboardMvRepository, never()).refreshPerfectDaysConcurrently();
+        verify(leaderboardMvRepository, never()).refreshPerfectDaysFull();
+        verifyNoInteractions(refreshStateRepository);
+    }
+
+    @Test
     void refreshMonthly_whenAdvisoryLockNotAcquired_skipsEntirely() {
         // Guards against a real production deadlock: two processes (e.g. an old instance mid-
         // REFRESH during a restart, and a newly-started instance's immediately-firing intraday

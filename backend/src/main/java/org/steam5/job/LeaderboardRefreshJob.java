@@ -48,15 +48,16 @@ public class LeaderboardRefreshJob implements Job {
                 case WEEKLY -> refreshService.refreshWeekly();
                 case SEASON -> refreshService.refreshSeason();
                 case HARDEST_GAMES -> refreshService.refreshHardestGames();
+                case PERFECT_DAYS -> refreshService.refreshPerfectDays();
             }
         } catch (Exception e) {
             log.error("LeaderboardRefreshJob[{}] failed", type, e);
             caughtException = e;
         } finally {
             cacheEvictor.evictLeaderboardStatic();
-            if (type == LeaderboardType.HARDEST_GAMES) {
-                // hardest-games reads through "stats-hourly" (StatisticsService#getHardestGames),
-                // not "leaderboard-static" — without this, its 1h TTL could let the freshness
+            if (type == LeaderboardType.HARDEST_GAMES || type == LeaderboardType.PERFECT_DAYS) {
+                // hardest-games and perfect-days read through "stats-hourly" (StatisticsService),
+                // not "leaderboard-static" — without this, their 1h TTL could let the freshness
                 // header outrun the cached body it labels by up to that long after each refresh.
                 cacheEvictor.evictStatsHourly();
             }
@@ -110,6 +111,15 @@ public class LeaderboardRefreshJob implements Job {
                 .storeDurably()
                 .withIdentity("LeaderboardRefreshJob_HardestGames")
                 .usingJobData("type", LeaderboardType.HARDEST_GAMES.name())
+                .build();
+    }
+
+    @Bean("LeaderboardRefreshJob_PerfectDays")
+    public JobDetail perfectDaysJobDetail() {
+        return JobBuilder.newJob().ofType(LeaderboardRefreshJob.class)
+                .storeDurably()
+                .withIdentity("LeaderboardRefreshJob_PerfectDays")
+                .usingJobData("type", LeaderboardType.PERFECT_DAYS.name())
                 .build();
     }
 }

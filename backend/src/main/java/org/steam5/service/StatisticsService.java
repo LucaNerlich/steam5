@@ -296,6 +296,21 @@ public class StatisticsService {
                 .toList();
     }
 
+    @Cacheable(value = "stats-hourly", key = "'perfect-days'", unless = "#result == null")
+    public List<PerfectDayEntry> getPerfectDays() {
+        return leaderboardMvRepository.findPerfectDays().stream()
+                .map(row -> new PerfectDayEntry(
+                        row.getSteamId(),
+                        row.getPersonaName(),
+                        row.getAvatarFull(),
+                        row.getBlurdataAvatarFull(),
+                        row.getProfileUrl(),
+                        row.getGameDate(),
+                        row.getAppNames() != null ? List.of(row.getAppNames().split(", ")) : List.of()
+                ))
+                .toList();
+    }
+
     @Cacheable(value = "stats-hourly", key = "'hardest-games-' + #limit", unless = "#result == null")
     public List<HardestGame> getHardestGames(int limit) {
         final List<LeaderboardMvRepository.HardestGameMvRow> rows = leaderboardMvRepository.findHardestGames();
@@ -408,6 +423,17 @@ public class StatisticsService {
             Long mostCommonWrongBucketCount,
             String actualBucket,
             LocalDate latestPickDate
+    ) {
+    }
+
+    public record PerfectDayEntry(
+            String steamId,
+            String personaName,
+            String avatar,
+            String avatarBlurdata,
+            String profileUrl,
+            LocalDate gameDate,
+            List<String> appNames
     ) {
     }
 }
