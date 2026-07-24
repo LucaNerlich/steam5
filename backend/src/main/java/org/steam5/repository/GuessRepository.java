@@ -476,67 +476,6 @@ public interface GuessRepository extends JpaRepository<Guess, Long> {
         Double getAvgPoints();
     }
 
-    interface HardestGameRow {
-        Long getAppId();
-        String getAppName();
-        Double getAvgScore();
-        Long getPlayerCount();
-        Long getTooHighCount();
-        Long getTooLowCount();
-        Long getTotalGuesses();
-        String getMostCommonWrongBucket();
-        Long getMostCommonWrongBucketCount();
-        String getActualBucket();
-        java.time.LocalDate getLatestPickDate();
-    }
-
-    /**
-     * Ranks games by difficulty (lowest average points first) with deception metrics.
-     * tooHigh/tooLow use the same leading-numeric regex approach used in the leaderboard
-     * materialized views (see backend/src/main/resources/db/mv-leaderboard-*.sql).
-     * The most-common-wrong bucket is derived via DISTINCT ON per app_id from a CTE of
-     * wrong-guess counts per (app_id, selected_bucket).
-     */
-    @Query(value = """
-            WITH wrong_counts AS (
-                SELECT app_id, selected_bucket, COUNT(*) AS cnt
-                FROM guesses
-                WHERE selected_bucket <> actual_bucket
-                GROUP BY app_id, selected_bucket
-            ),
-            top_wrong AS (
-                SELECT DISTINCT ON (app_id) app_id, selected_bucket, cnt
-                FROM wrong_counts
-                ORDER BY app_id, cnt DESC
-            )
-            SELECT
-                g.app_id                                                            AS appId,
-                COALESCE(MAX(sai.name), CAST(g.app_id AS TEXT))                     AS appName,
-                AVG(g.points)                                                       AS avgScore,
-                COUNT(DISTINCT g.steam_id)                                          AS playerCount,
-                SUM(CASE WHEN
-                    CAST(NULLIF(regexp_replace(g.selected_bucket, '^(\\d+).*', '\\1'), '') AS BIGINT) >
-                    CAST(NULLIF(regexp_replace(g.actual_bucket,   '^(\\d+).*', '\\1'), '') AS BIGINT)
-                THEN 1 ELSE 0 END)                                                  AS tooHighCount,
-                SUM(CASE WHEN
-                    CAST(NULLIF(regexp_replace(g.selected_bucket, '^(\\d+).*', '\\1'), '') AS BIGINT) <
-                    CAST(NULLIF(regexp_replace(g.actual_bucket,   '^(\\d+).*', '\\1'), '') AS BIGINT)
-                THEN 1 ELSE 0 END)                                                  AS tooLowCount,
-                COUNT(*)                                                            AS totalGuesses,
-                MAX(tw.selected_bucket)                                             AS mostCommonWrongBucket,
-                MAX(tw.cnt)                                                         AS mostCommonWrongBucketCount,
-                MAX(g.actual_bucket)                                                AS actualBucket,
-                MAX(g.game_date)                                                    AS latestPickDate
-            FROM guesses g
-            LEFT JOIN steam_app_index sai ON sai.app_id = g.app_id
-            LEFT JOIN top_wrong tw ON tw.app_id = g.app_id
-            GROUP BY g.app_id
-            HAVING COUNT(DISTINCT g.steam_id) >= :minPlayers
-            ORDER BY AVG(g.points) ASC, COUNT(DISTINCT g.steam_id) DESC
-            LIMIT :limit
-            """, nativeQuery = true)
-    List<HardestGameRow> findHardestGames(@Param("limit") int limit, @Param("minPlayers") int minPlayers);
-
     /**
      * Same metrics as the all-time leaderboard materialized view (see
      * backend/src/main/resources/db/mv-leaderboard-all-time.sql) but filters results to
