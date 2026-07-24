@@ -221,6 +221,73 @@ npm run dev
 ## Query Performance Notes
 
 - `guesses` date-range queries (for example `findAllBetween`, `findSeasonStats`, `findSeasonDates`) rely on `idx_guesses_game_date`.
+- Leaderboard reads (`/api/leaderboard/all`, `/monthly`, `/weekly?floating=true`, `/season`) are served
+  from materialized views (`mv_leaderboard_all_time`, `mv_leaderboard_monthly`, `mv_leaderboard_weekly`,
+  `mv_leaderboard_season` — see `backend/src/main/resources/db/mv-leaderboard-*.sql`) instead of
+  aggregating `guesses` on every request. This moves the expensive `GROUP BY steam_id` aggregation off
+  the request path and gives every app instance a single shared, consistent read model — unlike
+  per-instance Caffeine caching (`leaderboard-static`), which each instance populates independently and
+  can disagree for up to its TTL after a restart or scale-out event. Caffeine still sits in front of the
+  MV reads as a last-mile cache (10-minute TTL), so repeated identical requests avoid even the (now much
+  cheaper) MV `SELECT`. The non-floating `/weekly` variant (previous Monday-Sunday week) is not MV-backed
+  — its window doesn't match the MVs' rolling/current-window definitions — and remains a live
+  `findAllBetween` query, as before.
+  - Staleness is bounded by refresh cadence, not by the Caffeine TTL: each MV is refreshed by its own
+    Quartz job (`LeaderboardRefreshJob`, one per type via `JobDataMap`, gated by
+    `jobs.leaderboard-refresh-<type>.enabled`) on a nightly cron (00:40/00:42/00:44/00:46 UTC for
+    all-time/monthly/weekly/season respectively, staggered after `seasons-finalizer` at 00:25 so season
+    boundaries are settled) plus, for all-time/monthly/weekly only, an additional 10-minute interval
+    trigger matching the `leaderboard-static` cache TTL. The season MV intentionally has no intraday
+    trigger — its window depends on season rollover timing, not intraday freshness.
+  - **Zero-touch by default**, no manual `psql` step required: `LeaderboardMvBootstrapConfig` (an
+    `ApplicationRunner`, gated by `app.leaderboard-mv.bootstrap.enabled`, default `true`) creates any
+    missing MV or unique index at application startup, reading the same `db/mv-leaderboard-*.sql` files
+    an operator would otherwise apply by hand — via a raw autocommit JDBC connection, not Hibernate's
+    `ddl-auto` (`CREATE INDEX CONCURRENTLY` still can't run inside `ddl-auto`'s transaction, which is why
+    this is a dedicated bootstrap step rather than a JPA-managed table). It also runs a one-time initial
+    `REFRESH` (and records it in `leaderboard_refresh_state`, mirroring `LeaderboardRefreshService`'s own
+    bookkeeping) for any view it finds unpopulated — whether just created or already present but never
+    refreshed — so a fresh view is queryable and shows a "Last updated" timestamp immediately, instead of
+    waiting for whichever scheduled refresh job fires next. That wait matters most for the season MV,
+    which has no intraday trigger (only a once-daily 00:46 UTC cron): without this, every request in that
+    window — including a Next.js build-time prefetch of `/review-guesser/leaderboard/season` — would hit
+    `materialized view "mv_leaderboard_season" has not been populated`. `jobs.leaderboard-refresh-*.enabled`
+    also default to `true`, so `LeaderboardRefreshService` keeps each view fresh afterward — self-healing
+    via `pg_matviews.ispopulated` if it's ever found unpopulated again (falls back to a plain, non-concurrent
+    `REFRESH`, then uses `CONCURRENTLY`). Set `app.leaderboard-mv.bootstrap.enabled=false` if a DBA wants to
+    control `CREATE INDEX CONCURRENTLY` timing manually on a very large production table instead — in that
+    case the views stay unpopulated (and the "not populated" error above is expected) until a manual
+    `REFRESH` or the corresponding scheduled job runs.
+  - Each successful refresh also writes a row to `leaderboard_refresh_state` (an ordinary Hibernate-managed
+    table, unlike the MVs themselves), which `LeaderboardController` exposes via an
+    `X-Leaderboard-Refreshed-At` response header (ISO-8601) on `/monthly`, `/weekly?floating=true`,
+    `/season`, and `/all` — omitted until the first refresh completes. The frontend renders this as a
+    localized "Last updated" line below the all-time/season/weekly-floating leaderboards.
+  - Every `u.*` column in each MV's `SELECT` is listed explicitly in its `GROUP BY` (not just
+    `u.steam_id`), so Postgres never invokes its functional-dependency-on-primary-key optimization for
+    them. That optimization, if relied on, records a catalog dependency from the view onto the
+    `users_pkey` constraint itself — which then blocks `ALTER TABLE users DROP CONSTRAINT users_pkey`
+    (including the one `pg_restore --clean` issues when reloading a backup) unless `CASCADE` is added.
+    **If your database still has MVs created before this fix**, they carry that old dependency and won't
+    self-correct — drop and let the app's bootstrap recreate them:
+    ```sql
+    DROP MATERIALIZED VIEW IF EXISTS mv_leaderboard_all_time, mv_leaderboard_monthly, mv_leaderboard_weekly, mv_leaderboard_season CASCADE;
+    ```
+    Run this once (before a `pg_restore --clean`, or any other operation touching `users_pkey`), then
+    restart the app — `LeaderboardMvBootstrapConfig` recreates and immediately populates all four.
+  - A hook to trigger a season-MV refresh directly from `SeasonService#finalizeSeason`/`#ensureSeasonForDate`
+    was considered but intentionally not added: the season job's 00:46 UTC cron already runs after
+    `seasons-finalizer` (00:25), so the extra coupling wasn't justified. Revisit if season rollover timing
+    ever needs tighter (sub-cron-interval) correctness.
+  - Validate the improvement empirically against the existing Grafana `steam5-postgres` dashboard (query
+    latency/throughput on the `guesses` table) and `steam5-caches` dashboard (Caffeine hit rate for
+    `leaderboard-static`) before/after rollout.
+- `mv_hardest_games` backs `GET /api/stats/game/hardest` the same way — see
+  `backend/src/main/resources/db/mv-hardest-games.sql`. Refreshed once daily only (00:48 UTC,
+  `jobs.leaderboard-refresh-hardest-games.enabled`, default `true`) — no intraday trigger, since
+  game-difficulty rankings change slowly. Also auto-bootstrapped, drop-listed for `pg_restore
+  --clean` (see `leaderboard-mv-maintenance.sql`), and exposes the same `X-Leaderboard-Refreshed-At`
+  header/"Last updated" UI as the other four.
 - Profile history lookup uses `(steam_id, game_date, round_index)` via `findBySteamIdOrderByGameDateDescRoundIndexAsc`.
 - `SteamAppReviewsRepository` random-pick methods use a two-phase CTE + `NOT EXISTS` pattern to avoid random sorting on the full table.
 - Optional DBA-only index for large review datasets:
@@ -230,7 +297,7 @@ npm run dev
   ```
   Add this as a migration when schema management is centralized.
 - `GuessRepository` multi-scan CTE methods (`findUsersByPerfectDays*`, `findUsersByDailyTimeDiff*`) are currently service-cached; if data volume grows, prioritize window-function rewrites.
-- `leaderboardAllTime` is an inherent full-table aggregation and should be monitored as table size grows; caching reduces runtime pressure.
+- `GuessRepository#leaderboardAllTime` (a JPQL query, distinct from the materialized-view path above) currently has no callers — the all-time leaderboard read path now goes entirely through `mv_leaderboard_all_time`. Kept as-is rather than deleted in this pass; a future cleanup could remove it if it stays unused.
 
 ---
 

@@ -11,6 +11,7 @@ import {
 } from "@/lib/achievements";
 import AchievementsTable from "@/components/AchievementsTable";
 import SortableTH from "@/components/SortableTH";
+import {formatRefreshedAt} from "@/lib/leaderboard";
 
 type LeaderEntry = {
     steamId: string;
@@ -28,13 +29,17 @@ type LeaderEntry = {
     profileUrl?: string | null;
 };
 
-const fetcher = (url: string) => fetch(url, {
-    headers: {accept: 'application/json'},
-    cache: 'no-cache' // Revalidate with server but allow caching for performance
-}).then(r => {
+type LeaderboardFetchResult = { data: LeaderEntry[]; refreshedAt: string | null };
+
+const fetcher = async (url: string): Promise<LeaderboardFetchResult> => {
+    const r = await fetch(url, {
+        headers: {accept: 'application/json'},
+        cache: 'no-cache' // Revalidate with server but allow caching for performance
+    });
     if (!r.ok) throw new Error(`Failed to load ${url}: ${r.status}`);
-    return r.json();
-});
+    const data = await r.json();
+    return {data, refreshedAt: r.headers.get('X-Leaderboard-Refreshed-At')};
+};
 
 export default function LeaderboardTable(props: {
     mode: 'today' | 'weekly' | 'weekly-floating' | 'season' | 'all';
@@ -72,12 +77,15 @@ export default function LeaderboardTable(props: {
 
     const refreshInterval = props.refreshMs ?? (props.mode === 'today' ? 60000 : 120000);
 
-    const {data, error, isLoading} = useSWR<LeaderEntry[]>(endpoint, fetcher, {
+    const {data: leaderboardResult, error, isLoading} = useSWR<LeaderboardFetchResult>(endpoint, fetcher, {
         refreshInterval,
         revalidateOnFocus: true,
         focusThrottleInterval: refreshInterval,
-        fallbackData: props.initialData || undefined,
+        fallbackData: props.initialData ? {data: props.initialData, refreshedAt: null} : undefined,
     });
+
+    const data = leaderboardResult?.data;
+    const refreshedAt = leaderboardResult?.refreshedAt ?? null;
 
     // Determine timeframe for achievements based on leaderboard mode
     const achievementTimeframe = props.mode === 'today' ? 'daily' :
@@ -168,6 +176,11 @@ export default function LeaderboardTable(props: {
         const sum = arr.reduce((acc, e) => acc + (typeof e.totalPoints === 'number' ? e.totalPoints : 0), 0);
         return sum / arr.length;
     }, [data]);
+
+    // Only the MV-backed leaderboards have a meaningful refresh cadence to report;
+    // 'today' and non-floating 'weekly' are always computed live.
+    const showLastUpdated = props.mode === 'season' || props.mode === 'all' || props.mode === 'weekly-floating';
+    const lastUpdatedText = showLastUpdated ? formatRefreshedAt(refreshedAt) : null;
 
     if (error) return <p className="text-muted">Failed to load leaderboard. Please try again.</p>;
     if (isLoading && !props.initialData) return <p className="text-muted">Loading leaderboard…</p>;
@@ -262,7 +275,12 @@ export default function LeaderboardTable(props: {
             <div className="leaderboard__subline" aria-live="polite">
                 Average points:&nbsp;<strong>{avgTotalPoints.toFixed(2)}</strong>
             </div>
-            
+            {lastUpdatedText && (
+                <p className="text-muted leaderboard__last-updated">
+                    Last updated: {lastUpdatedText}
+                </p>
+            )}
+
             <AchievementsTable
                 achievements={achievementsList}
                 serverOffsetMinutes={serverOffsetMinutes}

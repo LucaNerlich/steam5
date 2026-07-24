@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.steam5.domain.ReviewGamePick;
 import org.steam5.domain.Season;
 import org.steam5.repository.GuessRepository;
+import org.steam5.repository.LeaderboardMvRepository;
 import org.steam5.repository.ReviewGamePickRepository;
 import org.steam5.repository.ReviewsBucketRepository;
 import org.steam5.repository.details.SteamAppDetailRepository;
@@ -30,6 +31,7 @@ public class StatisticsService {
     private final GuessRepository guessRepository;
     private final SeasonService seasonService;
     private final CacheManager cacheManager;
+    private final LeaderboardMvRepository leaderboardMvRepository;
 
     /**
      * Returns the all-time query result when {@code startDate} is null, the ranged result otherwise.
@@ -296,8 +298,9 @@ public class StatisticsService {
 
     @Cacheable(value = "stats-hourly", key = "'hardest-games-' + #limit", unless = "#result == null")
     public List<HardestGame> getHardestGames(int limit) {
-        final List<GuessRepository.HardestGameRow> rows = guessRepository.findHardestGames(limit, 5);
+        final List<LeaderboardMvRepository.HardestGameMvRow> rows = leaderboardMvRepository.findHardestGames();
         return rows.stream()
+                .limit(limit)
                 .map(row -> {
                     final long tooHigh = row.getTooHighCount() != null ? row.getTooHighCount() : 0L;
                     final long tooLow = row.getTooLowCount() != null ? row.getTooLowCount() : 0L;

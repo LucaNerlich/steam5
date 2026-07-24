@@ -9,6 +9,8 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.time.Instant;
+import java.util.Date;
 import java.util.TimeZone;
 
 import static org.quartz.SimpleScheduleBuilder.simpleSchedule;
@@ -116,6 +118,112 @@ public class QuartzConfig {
                 // daily at 00:35 UTC — after season jobs settle streak data; avoids midnight pile-up
                 .withSchedule(
                         CronScheduleBuilder.cronSchedule("0 35 0 * * ?")
+                                .inTimeZone(TimeZone.getTimeZone("UTC"))
+                )
+                .build();
+    }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "jobs.leaderboard-refresh-all-time", name = "enabled", havingValue = "true", matchIfMissing = false)
+    public Trigger triggerLeaderboardRefreshAllTimeNightly(@Qualifier("LeaderboardRefreshJob_AllTime") JobDetail job) {
+        return TriggerBuilder.newTrigger().forJob(job)
+                .withIdentity("LeaderboardRefreshJob_AllTime_Nightly_Trigger")
+                // daily at 00:40 UTC — after seasons-finalizer (00:25) settles season boundaries
+                .withSchedule(
+                        CronScheduleBuilder.cronSchedule("0 40 0 * * ?")
+                                .inTimeZone(TimeZone.getTimeZone("UTC"))
+                )
+                .build();
+    }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "jobs.leaderboard-refresh-all-time", name = "enabled", havingValue = "true", matchIfMissing = false)
+    public Trigger triggerLeaderboardRefreshAllTimeIntraday(@Qualifier("LeaderboardRefreshJob_AllTime") JobDetail job) {
+        return TriggerBuilder.newTrigger().forJob(job)
+                .withIdentity("LeaderboardRefreshJob_AllTime_Intraday_Trigger")
+                // Delayed start (not startNow()): without this, the trigger fires immediately at
+                // scheduler startup, before LeaderboardMvBootstrapConfig's ApplicationRunner has
+                // necessarily finished creating the MVs, and — during a redeploy/dev hot-restart —
+                // can collide with an old process's still-finishing REFRESH of the same view.
+                // The advisory lock in LeaderboardRefreshService is the real guard against that
+                // collision; this delay just avoids the routine, self-healing skip it would
+                // otherwise log on nearly every restart.
+                .startAt(Date.from(Instant.now().plusSeconds(60)))
+                // every 10 minutes, matching the leaderboard-static Caffeine TTL
+                .withSchedule(simpleSchedule().repeatForever().withIntervalInMinutes(10))
+                .build();
+    }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "jobs.leaderboard-refresh-monthly", name = "enabled", havingValue = "true", matchIfMissing = false)
+    public Trigger triggerLeaderboardRefreshMonthlyNightly(@Qualifier("LeaderboardRefreshJob_Monthly") JobDetail job) {
+        return TriggerBuilder.newTrigger().forJob(job)
+                .withIdentity("LeaderboardRefreshJob_Monthly_Nightly_Trigger")
+                // daily at 00:42 UTC
+                .withSchedule(
+                        CronScheduleBuilder.cronSchedule("0 42 0 * * ?")
+                                .inTimeZone(TimeZone.getTimeZone("UTC"))
+                )
+                .build();
+    }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "jobs.leaderboard-refresh-monthly", name = "enabled", havingValue = "true", matchIfMissing = false)
+    public Trigger triggerLeaderboardRefreshMonthlyIntraday(@Qualifier("LeaderboardRefreshJob_Monthly") JobDetail job) {
+        return TriggerBuilder.newTrigger().forJob(job)
+                .withIdentity("LeaderboardRefreshJob_Monthly_Intraday_Trigger")
+                // See triggerLeaderboardRefreshAllTimeIntraday's comment for why this is delayed.
+                .startAt(Date.from(Instant.now().plusSeconds(60)))
+                .withSchedule(simpleSchedule().repeatForever().withIntervalInMinutes(10))
+                .build();
+    }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "jobs.leaderboard-refresh-weekly", name = "enabled", havingValue = "true", matchIfMissing = false)
+    public Trigger triggerLeaderboardRefreshWeeklyNightly(@Qualifier("LeaderboardRefreshJob_Weekly") JobDetail job) {
+        return TriggerBuilder.newTrigger().forJob(job)
+                .withIdentity("LeaderboardRefreshJob_Weekly_Nightly_Trigger")
+                // daily at 00:44 UTC
+                .withSchedule(
+                        CronScheduleBuilder.cronSchedule("0 44 0 * * ?")
+                                .inTimeZone(TimeZone.getTimeZone("UTC"))
+                )
+                .build();
+    }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "jobs.leaderboard-refresh-weekly", name = "enabled", havingValue = "true", matchIfMissing = false)
+    public Trigger triggerLeaderboardRefreshWeeklyIntraday(@Qualifier("LeaderboardRefreshJob_Weekly") JobDetail job) {
+        return TriggerBuilder.newTrigger().forJob(job)
+                .withIdentity("LeaderboardRefreshJob_Weekly_Intraday_Trigger")
+                // See triggerLeaderboardRefreshAllTimeIntraday's comment for why this is delayed.
+                .startAt(Date.from(Instant.now().plusSeconds(60)))
+                .withSchedule(simpleSchedule().repeatForever().withIntervalInMinutes(10))
+                .build();
+    }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "jobs.leaderboard-refresh-season", name = "enabled", havingValue = "true", matchIfMissing = false)
+    public Trigger triggerLeaderboardRefreshSeason(@Qualifier("LeaderboardRefreshJob_Season") JobDetail job) {
+        return TriggerBuilder.newTrigger().forJob(job)
+                .withIdentity("LeaderboardRefreshJob_Season_Trigger")
+                // daily at 00:46 UTC only — season boundary correctness matters more than
+                // intraday freshness, so no additional intraday trigger for this type
+                .withSchedule(
+                        CronScheduleBuilder.cronSchedule("0 46 0 * * ?")
+                                .inTimeZone(TimeZone.getTimeZone("UTC"))
+                )
+                .build();
+    }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "jobs.leaderboard-refresh-hardest-games", name = "enabled", havingValue = "true", matchIfMissing = false)
+    public Trigger triggerLeaderboardRefreshHardestGames(@Qualifier("LeaderboardRefreshJob_HardestGames") JobDetail job) {
+        return TriggerBuilder.newTrigger().forJob(job)
+                .withIdentity("LeaderboardRefreshJob_HardestGames_Trigger")
+                // daily at 00:48 UTC only — rankings change slowly; no intraday trigger needed
+                .withSchedule(
+                        CronScheduleBuilder.cronSchedule("0 48 0 * * ?")
                                 .inTimeZone(TimeZone.getTimeZone("UTC"))
                 )
                 .build();

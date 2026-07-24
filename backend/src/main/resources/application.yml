@@ -137,4 +137,19 @@ jobs:
     enabled: ${JOB_SEASONS_BACKFILL:false}
   player-spotlight:
     enabled: ${JOB_PLAYER_SPOTLIGHT:false}
+  leaderboard-refresh-all-time:
+    enabled: ${JOB_LEADERBOARD_REFRESH_ALL_TIME:true}
+  leaderboard-refresh-monthly:
+    enabled: ${JOB_LEADERBOARD_REFRESH_MONTHLY:true}
+  leaderboard-refresh-weekly:
+    enabled: ${JOB_LEADERBOARD_REFRESH_WEEKLY:true}
+  leaderboard-refresh-season:
+    enabled: ${JOB_LEADERBOARD_REFRESH_SEASON:true}
+  leaderboard-refresh-hardest-games:
+    enabled: ${JOB_LEADERBOARD_REFRESH_HARDEST_GAMES:true}
+
+app:
+  leaderboard-mv:
+    bootstrap:
+      enabled: ${LEADERBOARD_MV_BOOTSTRAP:true}
 

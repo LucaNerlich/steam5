@@ -14,7 +14,18 @@ export async function GET(req: NextRequest) {
             next: { revalidate: 600 },
         });
         const data = await res.json();
-        return NextResponse.json(data, { status: res.status });
+
+        // Pass through the leaderboard freshness header (mirrors the achievements route's
+        // X-Server-Timezone-Offset handling) — otherwise NextResponse.json below would silently
+        // drop it. Only present for floating=true (the MV-backed variant); absent for the live,
+        // non-floating path, which is correct and expected.
+        const refreshedAtHeader = res.headers.get('X-Leaderboard-Refreshed-At');
+        const headers: HeadersInit = {};
+        if (refreshedAtHeader) {
+            headers['X-Leaderboard-Refreshed-At'] = refreshedAtHeader;
+        }
+
+        return NextResponse.json(data, { status: res.status, headers });
     } catch {
         return NextResponse.json({ error: "Failed to load leaderboard" }, { status: 502 });
     }

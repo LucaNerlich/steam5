@@ -4,16 +4,21 @@ import "@/styles/components/leaderboard.css";
 import Link from "next/link";
 import useSWR from "swr";
 import {formatDeception, formatMostMissed, HardestGame} from "@/lib/hardestGames";
+import {formatRefreshedAt} from "@/lib/leaderboard";
 
 const ENDPOINT = "/api/stats/game/hardest";
 
-const fetcher = (url: string) => fetch(url, {
-    headers: {accept: "application/json"},
-    cache: "no-cache",
-}).then(r => {
+type HardestGamesFetchResult = { data: HardestGame[]; refreshedAt: string | null };
+
+const fetcher = async (url: string): Promise<HardestGamesFetchResult> => {
+    const r = await fetch(url, {
+        headers: {accept: "application/json"},
+        cache: "no-cache",
+    });
     if (!r.ok) throw new Error(`Failed to load ${url}: ${r.status}`);
-    return r.json();
-});
+    const data = await r.json();
+    return {data, refreshedAt: r.headers.get('X-Leaderboard-Refreshed-At')};
+};
 
 export default function HardestGamesTable(props: {
     initialData?: HardestGame[] | null;
@@ -21,12 +26,16 @@ export default function HardestGamesTable(props: {
 }) {
     const refreshInterval = props.refreshMs ?? 3600000;
 
-    const {data, error, isLoading} = useSWR<HardestGame[]>(ENDPOINT, fetcher, {
+    const {data: hardestGamesResult, error, isLoading} = useSWR<HardestGamesFetchResult>(ENDPOINT, fetcher, {
         refreshInterval,
         revalidateOnFocus: true,
         focusThrottleInterval: refreshInterval,
-        fallbackData: props.initialData || undefined,
+        fallbackData: props.initialData ? {data: props.initialData, refreshedAt: null} : undefined,
     });
+
+    const data = hardestGamesResult?.data;
+    const refreshedAt = hardestGamesResult?.refreshedAt ?? null;
+    const lastUpdatedText = formatRefreshedAt(refreshedAt);
 
     if (error && !data) {
         return <p className="text-muted">Failed to load hardest games. Please try again soon.</p>;
@@ -96,6 +105,11 @@ export default function HardestGamesTable(props: {
                     </tbody>
                 </table>
             </div>
+            {lastUpdatedText && (
+                <p className="text-muted leaderboard__last-updated">
+                    Last updated: {lastUpdatedText}
+                </p>
+            )}
         </div>
     );
 }

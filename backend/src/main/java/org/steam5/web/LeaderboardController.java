@@ -12,9 +12,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.steam5.domain.GameDate;
 import org.steam5.domain.Guess;
+import org.steam5.domain.LeaderboardType;
 import org.steam5.domain.ReviewGamePick;
 import org.steam5.domain.Season;
 import org.steam5.repository.GuessRepository;
+import org.steam5.repository.LeaderboardRefreshStateRepository;
 import org.steam5.service.LeaderboardService;
 import org.steam5.service.ReviewGameStateService;
 import org.steam5.service.SeasonService;
@@ -33,6 +35,7 @@ public class LeaderboardController {
     private final SeasonService seasonService;
     private final CacheManager cacheManager;
     private final LeaderboardService leaderboardService;
+    private final LeaderboardRefreshStateRepository refreshStateRepository;
 
     /**
      * Builds the leaderboard for the current review game date.
@@ -51,36 +54,34 @@ public class LeaderboardController {
     /**
      * Builds the weekly leaderboard for either the current rolling period or the previous full week.
      *
-     * @param floating whether to include the seven days ending on the current date; otherwise, uses the
-     *                 Monday-through-Sunday week immediately before the current week
+     * @param floating whether to include the seven days ending on the current date (served from
+     *                 {@code mv_leaderboard_weekly}); otherwise, uses the Monday-through-Sunday week
+     *                 immediately before the current week, computed live (not MV-backed — its window
+     *                 doesn't match the MV's rolling definition)
      * @return leaderboard entries for the selected period
      */
     @GetMapping("/weekly")
     @Cacheable(value = "leaderboard-static", key = "'weekly:' + #floating + ':' + T(org.steam5.domain.GameDate).todayUtc()", unless = "#result == null || #result.body == null")
     public ResponseEntity<List<LeaderboardService.LeaderEntry>> weekly(@RequestParam(name = "floating", required = false, defaultValue = "false") boolean floating) {
         final List<ReviewGamePick> picks = reviewGameStateService.generateDailyPicks();
-
         final LocalDate today = picks.isEmpty() ? GameDate.todayUtc() : picks.getFirst().getPickDate();
-        final LocalDate start;
-        final LocalDate end;
 
         if (floating) {
-            // last seven days including today
-            end = today;
-            start = today.minusDays(6);
-        } else {
-            // last full week: Monday..Sunday immediately before the current week
-            final LocalDate startOfCurrentWeek = today.minusDays((today.getDayOfWeek().getValue() + 6) % 7L);
-            start = startOfCurrentWeek.minusDays(7);
-            end = startOfCurrentWeek.minusDays(1);
+            return withRefreshedAtHeader(LeaderboardType.WEEKLY, leaderboardService.buildWeeklyLeaderboard(today));
         }
+
+        // last full week: Monday..Sunday immediately before the current week
+        final LocalDate startOfCurrentWeek = today.minusDays((today.getDayOfWeek().getValue() + 6) % 7L);
+        final LocalDate start = startOfCurrentWeek.minusDays(7);
+        final LocalDate end = startOfCurrentWeek.minusDays(1);
 
         final List<Guess> guesses = guessRepository.findAllBetween(start, end);
         return ResponseEntity.ok(leaderboardService.buildLeaderboard(guesses, today));
     }
 
     /**
-     * Builds the leaderboard for the 30-day period ending on the current game date.
+     * Builds the leaderboard for the 30-day period ending on the current game date, served from
+     * {@code mv_leaderboard_monthly}.
      *
      * @return the leaderboard entries for the last 30 days, including the current game date
      */
@@ -89,17 +90,12 @@ public class LeaderboardController {
     public ResponseEntity<List<LeaderboardService.LeaderEntry>> monthly() {
         final List<ReviewGamePick> picks = reviewGameStateService.generateDailyPicks();
         final LocalDate today = picks.isEmpty() ? GameDate.todayUtc() : picks.getFirst().getPickDate();
-
-        // Last 30 days including today
-        final LocalDate start = today.minusDays(29);
-        final LocalDate end = today;
-
-        final List<Guess> guesses = guessRepository.findAllBetween(start, end);
-        return ResponseEntity.ok(leaderboardService.buildLeaderboard(guesses, today));
+        return withRefreshedAtHeader(LeaderboardType.MONTHLY, leaderboardService.buildMonthlyLeaderboard(today));
     }
 
     /**
-     * Builds the leaderboard for the current season through the current date or the season end date.
+     * Builds the leaderboard for the current season through the current date or the season end date,
+     * served from {@code mv_leaderboard_season}.
      *
      * @return the season leaderboard entries
      */
@@ -116,16 +112,15 @@ public class LeaderboardController {
             if (wrapper != null && wrapper.get() instanceof List<?> cached) {
                 @SuppressWarnings("unchecked")
                 final List<LeaderboardService.LeaderEntry> cachedEntries = (List<LeaderboardService.LeaderEntry>) cached;
-                return ResponseEntity.ok(cachedEntries);
+                return withRefreshedAtHeader(LeaderboardType.SEASON, cachedEntries);
             }
         }
 
-        final List<Guess> guesses = guessRepository.findAllBetween(season.getStartDate(), asOfDate);
-        final ResponseEntity<List<LeaderboardService.LeaderEntry>> response = ResponseEntity.ok(leaderboardService.buildLeaderboard(guesses, asOfDate));
-        if (cache != null && response.getBody() != null) {
-            cache.put(cacheKey, response.getBody());
+        final List<LeaderboardService.LeaderEntry> entries = leaderboardService.buildSeasonLeaderboard(asOfDate);
+        if (cache != null) {
+            cache.put(cacheKey, entries);
         }
-        return response;
+        return withRefreshedAtHeader(LeaderboardType.SEASON, entries);
     }
 
     /**
@@ -137,7 +132,21 @@ public class LeaderboardController {
     @Cacheable(value = "leaderboard-static", key = "'all-time:' + T(org.steam5.domain.GameDate).todayUtc()", unless = "#result == null || #result.body == null")
     public ResponseEntity<List<LeaderboardService.LeaderEntry>> allTime() {
         final LocalDate today = GameDate.todayUtc();
-        return ResponseEntity.ok(leaderboardService.buildAllTimeLeaderboard(today));
+        return withRefreshedAtHeader(LeaderboardType.ALL_TIME, leaderboardService.buildAllTimeLeaderboard(today));
+    }
+
+    /**
+     * Wraps an MV-backed leaderboard response with the X-Leaderboard-Refreshed-At header,
+     * sourced from leaderboard_refresh_state. Omitted (not just empty) when no refresh has
+     * happened yet for this type, so callers don't have to distinguish "just refreshed" from
+     * "never refreshed" via an empty string.
+     */
+    private ResponseEntity<List<LeaderboardService.LeaderEntry>> withRefreshedAtHeader(
+            final LeaderboardType type, final List<LeaderboardService.LeaderEntry> entries) {
+        final ResponseEntity.BodyBuilder builder = ResponseEntity.ok();
+        refreshStateRepository.findById(type)
+                .ifPresent(state -> builder.header("X-Leaderboard-Refreshed-At", state.getRefreshedAt().toString()));
+        return builder.body(entries);
     }
 }
 
