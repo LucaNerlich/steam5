@@ -60,6 +60,17 @@ public interface LeaderboardMvRepository extends Repository<Guess, Long> {
     @Query(value = "SELECT ispopulated FROM pg_matviews WHERE matviewname = :viewName", nativeQuery = true)
     Boolean isPopulated(@Param("viewName") String viewName);
 
+    /**
+     * Transaction-scoped advisory lock (auto-released at commit/rollback, no manual unlock
+     * needed — safe with pooled connections). Guards each MV's REFRESH against colliding with
+     * another session already refreshing the same view: Quartz's {@code @DisallowConcurrentExecution}
+     * only prevents concurrent firings within one JVM's scheduler, not across process restarts
+     * (an old process's REFRESH transaction can still be finishing when a newly-started
+     * process's trigger fires immediately) — the two can otherwise deadlock in Postgres.
+     */
+    @Query(value = "SELECT pg_try_advisory_xact_lock(:key)", nativeQuery = true)
+    Boolean tryAdvisoryXactLock(@Param("key") long key);
+
     @Transactional
     @Modifying(clearAutomatically = false, flushAutomatically = false)
     @Query(value = "REFRESH MATERIALIZED VIEW mv_leaderboard_all_time", nativeQuery = true)

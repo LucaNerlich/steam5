@@ -10,9 +10,12 @@ import org.steam5.repository.LeaderboardRefreshStateRepository;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class LeaderboardRefreshServiceTest {
@@ -26,6 +29,9 @@ class LeaderboardRefreshServiceTest {
         leaderboardMvRepository = mock(LeaderboardMvRepository.class);
         refreshStateRepository = mock(LeaderboardRefreshStateRepository.class);
         service = new LeaderboardRefreshService(leaderboardMvRepository, refreshStateRepository);
+        // Default: lock acquired, so existing tests exercise the populated-check/refresh path
+        // unchanged; tests for the "lock not acquired" branch override this per-case.
+        when(leaderboardMvRepository.tryAdvisoryXactLock(anyLong())).thenReturn(true);
     }
 
     @Test
@@ -100,5 +106,35 @@ class LeaderboardRefreshServiceTest {
         ArgumentCaptor<LeaderboardRefreshState> captor = ArgumentCaptor.forClass(LeaderboardRefreshState.class);
         verify(refreshStateRepository).save(captor.capture());
         assertEquals(LeaderboardType.WEEKLY, captor.getValue().getLeaderboardType());
+    }
+
+    @Test
+    void refreshMonthly_whenAdvisoryLockNotAcquired_skipsEntirely() {
+        // Guards against a real production deadlock: two processes (e.g. an old instance mid-
+        // REFRESH during a restart, and a newly-started instance's immediately-firing intraday
+        // trigger) both trying to REFRESH the same MV. If another session already holds the
+        // advisory lock for this type, this run must skip cleanly rather than proceed and risk
+        // colliding with it.
+        when(leaderboardMvRepository.tryAdvisoryXactLock(anyLong())).thenReturn(false);
+
+        service.refreshMonthly();
+
+        verify(leaderboardMvRepository, never()).isPopulated(anyString());
+        verify(leaderboardMvRepository, never()).refreshMonthlyConcurrently();
+        verify(leaderboardMvRepository, never()).refreshMonthlyFull();
+        verifyNoInteractions(refreshStateRepository);
+    }
+
+    @Test
+    void refreshAllTime_whenAdvisoryLockReturnsNull_treatedAsNotAcquiredAndSkips() {
+        // Boolean unboxing safety: a null result (unexpected, but must not NPE) is treated the
+        // same as "not acquired" — fail closed (skip) rather than assume the lock was granted.
+        when(leaderboardMvRepository.tryAdvisoryXactLock(anyLong())).thenReturn(null);
+
+        service.refreshAllTime();
+
+        verify(leaderboardMvRepository, never()).refreshAllTimeConcurrently();
+        verify(leaderboardMvRepository, never()).refreshAllTimeFull();
+        verifyNoInteractions(refreshStateRepository);
     }
 }

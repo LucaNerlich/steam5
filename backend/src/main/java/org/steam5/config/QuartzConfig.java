@@ -9,6 +9,8 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.time.Instant;
+import java.util.Date;
 import java.util.TimeZone;
 
 import static org.quartz.SimpleScheduleBuilder.simpleSchedule;
@@ -139,6 +141,14 @@ public class QuartzConfig {
     public Trigger triggerLeaderboardRefreshAllTimeIntraday(@Qualifier("LeaderboardRefreshJob_AllTime") JobDetail job) {
         return TriggerBuilder.newTrigger().forJob(job)
                 .withIdentity("LeaderboardRefreshJob_AllTime_Intraday_Trigger")
+                // Delayed start (not startNow()): without this, the trigger fires immediately at
+                // scheduler startup, before LeaderboardMvBootstrapConfig's ApplicationRunner has
+                // necessarily finished creating the MVs, and — during a redeploy/dev hot-restart —
+                // can collide with an old process's still-finishing REFRESH of the same view.
+                // The advisory lock in LeaderboardRefreshService is the real guard against that
+                // collision; this delay just avoids the routine, self-healing skip it would
+                // otherwise log on nearly every restart.
+                .startAt(Date.from(Instant.now().plusSeconds(60)))
                 // every 10 minutes, matching the leaderboard-static Caffeine TTL
                 .withSchedule(simpleSchedule().repeatForever().withIntervalInMinutes(10))
                 .build();
@@ -162,6 +172,8 @@ public class QuartzConfig {
     public Trigger triggerLeaderboardRefreshMonthlyIntraday(@Qualifier("LeaderboardRefreshJob_Monthly") JobDetail job) {
         return TriggerBuilder.newTrigger().forJob(job)
                 .withIdentity("LeaderboardRefreshJob_Monthly_Intraday_Trigger")
+                // See triggerLeaderboardRefreshAllTimeIntraday's comment for why this is delayed.
+                .startAt(Date.from(Instant.now().plusSeconds(60)))
                 .withSchedule(simpleSchedule().repeatForever().withIntervalInMinutes(10))
                 .build();
     }
@@ -184,6 +196,8 @@ public class QuartzConfig {
     public Trigger triggerLeaderboardRefreshWeeklyIntraday(@Qualifier("LeaderboardRefreshJob_Weekly") JobDetail job) {
         return TriggerBuilder.newTrigger().forJob(job)
                 .withIdentity("LeaderboardRefreshJob_Weekly_Intraday_Trigger")
+                // See triggerLeaderboardRefreshAllTimeIntraday's comment for why this is delayed.
+                .startAt(Date.from(Instant.now().plusSeconds(60)))
                 .withSchedule(simpleSchedule().repeatForever().withIntervalInMinutes(10))
                 .build();
     }
