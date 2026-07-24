@@ -109,6 +109,30 @@ class LeaderboardRefreshServiceTest {
     }
 
     @Test
+    void refreshHardestGames_whenPopulated_usesConcurrentRefreshAndRecordsState() {
+        when(leaderboardMvRepository.isPopulated("mv_hardest_games")).thenReturn(true);
+
+        service.refreshHardestGames();
+
+        verify(leaderboardMvRepository).refreshHardestGamesConcurrently();
+        verify(leaderboardMvRepository, never()).refreshHardestGamesFull();
+
+        ArgumentCaptor<LeaderboardRefreshState> captor = ArgumentCaptor.forClass(LeaderboardRefreshState.class);
+        verify(refreshStateRepository).save(captor.capture());
+        assertEquals(LeaderboardType.HARDEST_GAMES, captor.getValue().getLeaderboardType());
+    }
+
+    @Test
+    void refreshHardestGames_whenNotPopulated_fallsBackToFullRefresh() {
+        when(leaderboardMvRepository.isPopulated("mv_hardest_games")).thenReturn(false);
+
+        service.refreshHardestGames();
+
+        verify(leaderboardMvRepository).refreshHardestGamesFull();
+        verify(leaderboardMvRepository, never()).refreshHardestGamesConcurrently();
+    }
+
+    @Test
     void refreshMonthly_whenAdvisoryLockNotAcquired_skipsEntirely() {
         // Guards against a real production deadlock: two processes (e.g. an old instance mid-
         // REFRESH during a restart, and a newly-started instance's immediately-firing intraday

@@ -43,6 +43,11 @@ public class LeaderboardRefreshService {
         refresh(LeaderboardType.SEASON, "mv_leaderboard_season", leaderboardMvRepository::refreshSeasonConcurrently, leaderboardMvRepository::refreshSeasonFull);
     }
 
+    @Transactional
+    public void refreshHardestGames() {
+        refresh(LeaderboardType.HARDEST_GAMES, "mv_hardest_games", leaderboardMvRepository::refreshHardestGamesConcurrently, leaderboardMvRepository::refreshHardestGamesFull);
+    }
+
     /**
      * Guards against concurrent REFRESH attempts on the same view from any source — not just
      * within this JVM (Quartz's {@code @DisallowConcurrentExecution} only covers that), but
