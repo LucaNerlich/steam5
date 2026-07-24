@@ -2,6 +2,18 @@
 
 Full project history (chronological, grouped by date).
 
+## 2026-07-24 (v1.17.0)
+
+### Added
+- Leaderboards backed by Postgres materialized views with per-type refresh job
+
+### Fixed
+- Overnight defensive hardening (ingest caps, staggered jobs, JDBC connection management)
+- JDBC/JVM OOM that broke login while rounds still loaded
+- Avatar spacing in OtherPlayersNow component
+- Leaderboard page and toggle labels for consistency
+- Screenshots responsive grid layout (4-per-row desktop, 2x2 on <=959px)
+
 ## 2025-08-10 (v0.0.0+2025-08-10)
 - 2025-08-10 a93b2f3 Initial commit - Areas: docs; misc; repo config. Key files: LICENSE, README.md. Stats: 3 files, +699/-0.
 - 2025-08-10 4416a2a initial backend commit - Areas: backend build/deps; misc; backend config. Key files: backend/gradlew, backend/.gitignore. Stats: 11 files, +479/-0.

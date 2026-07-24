@@ -31,19 +31,18 @@
     }
 
     .screenshots {
-        display: flex;
-        flex-wrap: wrap;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
         gap: 0.5rem;
         margin: 0.75rem 0;
 
-        @media (max-width: 640px) {
+        @media (max-width: 959px) {
+            grid-template-columns: repeat(2, 1fr);
             margin: 0.25rem 0;
         }
     }
 
     .screenshots .shot {
-        flex: 1 1 220px; /* min width 220px, grow to fill row on desktop */
-        max-width: 400px;
         background: transparent;
         border: 0;
         padding: 0;
@@ -60,6 +59,12 @@
         width: 100%;
         height: auto;
         display: block;
+
+        @media (max-width: 959px) {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
     }
 
     .genre-pills {
@@ -83,24 +88,9 @@
     }
 }
 
-@media (max-width: 640px) {
-    /* Mobile: show screenshots as a compact 2-column grid */
-    .review-guesser-hero .screenshots {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 0.5rem;
-    }
-
+@media (max-width: 959px) {
     .review-guesser-hero .screenshots .shot {
-        flex: none;
-        max-width: none;
         aspect-ratio: 16 / 9;
         overflow: hidden;
-    }
-
-    .review-guesser-hero .screenshots .shot img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
     }
 }
