@@ -25,3 +25,6 @@ replay_pid*
 *.log*.gz
 .idea/dataSources.xml
 /.playwright-mcp
+
+# superpowers scratch state (subagent-driven-development progress ledger)
+.superpowers/
