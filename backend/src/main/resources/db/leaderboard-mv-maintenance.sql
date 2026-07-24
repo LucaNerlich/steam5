@@ -1,7 +1,7 @@
--- Manual utility queries for the five leaderboard/hardest-games materialized views
+-- Manual utility queries for the six leaderboard/hardest-games/perfect-days materialized views
 -- (mv_leaderboard_all_time, mv_leaderboard_monthly, mv_leaderboard_weekly,
--- mv_leaderboard_season, mv_hardest_games — see mv-leaderboard-*.sql and
--- mv-hardest-games.sql for their definitions).
+-- mv_leaderboard_season, mv_hardest_games, mv_perfect_days — see mv-leaderboard-*.sql,
+-- mv-hardest-games.sql and mv-perfect-days.sql for their definitions).
 -- Not run automatically by anything; copy/paste the statement you need into a SQL console.
 
 -- =============================================================================
@@ -17,10 +17,10 @@
 --   DETAIL: materialized view public.mv_leaderboard_all_time depends on table public.users
 -- pg_restore has no flag to make its own generated DROP statements use CASCADE, so the MVs
 -- must be dropped manually first. Run this once, immediately before the pg_restore command:
-DROP MATERIALIZED VIEW IF EXISTS mv_leaderboard_all_time, mv_leaderboard_monthly, mv_leaderboard_weekly, mv_leaderboard_season, mv_hardest_games CASCADE;
+DROP MATERIALIZED VIEW IF EXISTS mv_leaderboard_all_time, mv_leaderboard_monthly, mv_leaderboard_weekly, mv_leaderboard_season, mv_hardest_games, mv_perfect_days CASCADE;
 
 -- After the restore completes, just restart the backend — LeaderboardMvBootstrapConfig
--- recreates all five MVs and their unique indexes, and immediately populates each with a
+-- recreates all six MVs and their unique indexes, and immediately populates each with a
 -- one-time REFRESH (recording it in leaderboard_refresh_state), with no further manual step.
 
 -- =============================================================================
@@ -37,13 +37,15 @@ SELECT * FROM mv_leaderboard_season ORDER BY total_points DESC;
 
 SELECT * FROM mv_hardest_games ORDER BY avg_score ASC, player_count DESC;
 
+SELECT * FROM mv_perfect_days ORDER BY game_date DESC;
+
 -- =============================================================================
 -- C) Check whether each view has ever been populated / when it was last refreshed
 -- =============================================================================
 -- (Bonus, closely related to (B) — a materialized view created WITH NO DATA raises
 -- "has not been populated" on any SELECT until its first REFRESH.)
 
-SELECT matviewname, ispopulated FROM pg_matviews WHERE matviewname LIKE 'mv_leaderboard_%' OR matviewname = 'mv_hardest_games';
+SELECT matviewname, ispopulated FROM pg_matviews WHERE matviewname LIKE 'mv_leaderboard_%' OR matviewname IN ('mv_hardest_games', 'mv_perfect_days');
 
 SELECT * FROM leaderboard_refresh_state;
 

@@ -28,3 +28,4 @@ replay_pid*
 
 # superpowers scratch state (subagent-driven-development progress ledger)
 .superpowers/
+.idea/
