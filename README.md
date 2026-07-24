@@ -282,6 +282,12 @@ npm run dev
   - Validate the improvement empirically against the existing Grafana `steam5-postgres` dashboard (query
     latency/throughput on the `guesses` table) and `steam5-caches` dashboard (Caffeine hit rate for
     `leaderboard-static`) before/after rollout.
+- `mv_hardest_games` backs `GET /api/stats/game/hardest` the same way — see
+  `backend/src/main/resources/db/mv-hardest-games.sql`. Refreshed once daily only (00:48 UTC,
+  `jobs.leaderboard-refresh-hardest-games.enabled`, default `true`) — no intraday trigger, since
+  game-difficulty rankings change slowly. Also auto-bootstrapped, drop-listed for `pg_restore
+  --clean` (see `leaderboard-mv-maintenance.sql`), and exposes the same `X-Leaderboard-Refreshed-At`
+  header/"Last updated" UI as the other four.
 - Profile history lookup uses `(steam_id, game_date, round_index)` via `findBySteamIdOrderByGameDateDescRoundIndexAsc`.
 - `SteamAppReviewsRepository` random-pick methods use a two-phase CTE + `NOT EXISTS` pattern to avoid random sorting on the full table.
 - Optional DBA-only index for large review datasets:
