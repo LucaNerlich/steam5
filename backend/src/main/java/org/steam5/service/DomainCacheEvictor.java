@@ -20,6 +20,7 @@ public class DomainCacheEvictor {
 
     static final String REVIEW_GAME = "review-game";
     static final String ONE_DAY = "one-day";
+    static final String LEADERBOARD_STATIC = "leaderboard-static";
 
     private final CacheManager cacheManager;
 
@@ -42,6 +43,15 @@ public class DomainCacheEvictor {
             oneDay.evict(appId);
         }
         clear(REVIEW_GAME);
+    }
+
+    /**
+     * Drop cached leaderboard responses (all-time, monthly, weekly-floating, season). Call
+     * after a leaderboard materialized view refresh, since the cached entries would otherwise
+     * keep serving pre-refresh data for up to the cache's 10-minute TTL.
+     */
+    public void evictLeaderboardStatic() {
+        clear(LEADERBOARD_STATIC);
     }
 
     private void clear(final String cacheName) {
