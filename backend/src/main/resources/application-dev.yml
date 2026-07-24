@@ -42,3 +42,8 @@ jobs:
     enabled: true
   leaderboard-refresh-season:
     enabled: true
+
+app:
+  leaderboard-mv:
+    bootstrap:
+      enabled: true

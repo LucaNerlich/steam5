@@ -138,11 +138,16 @@ jobs:
   player-spotlight:
     enabled: ${JOB_PLAYER_SPOTLIGHT:false}
   leaderboard-refresh-all-time:
-    enabled: ${JOB_LEADERBOARD_REFRESH_ALL_TIME:false}
+    enabled: ${JOB_LEADERBOARD_REFRESH_ALL_TIME:true}
   leaderboard-refresh-monthly:
-    enabled: ${JOB_LEADERBOARD_REFRESH_MONTHLY:false}
+    enabled: ${JOB_LEADERBOARD_REFRESH_MONTHLY:true}
   leaderboard-refresh-weekly:
-    enabled: ${JOB_LEADERBOARD_REFRESH_WEEKLY:false}
+    enabled: ${JOB_LEADERBOARD_REFRESH_WEEKLY:true}
   leaderboard-refresh-season:
-    enabled: ${JOB_LEADERBOARD_REFRESH_SEASON:false}
+    enabled: ${JOB_LEADERBOARD_REFRESH_SEASON:true}
+
+app:
+  leaderboard-mv:
+    bootstrap:
+      enabled: ${LEADERBOARD_MV_BOOTSTRAP:true}
 
