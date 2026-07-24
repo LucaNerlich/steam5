@@ -85,8 +85,9 @@ public class LeaderboardService {
 
     /**
      * Builds the current-season leaderboard from {@code mv_leaderboard_season}, which scopes
-     * itself to whichever season row currently contains the database's CURRENT_DATE.
-     * See backend/src/main/resources/db/mv-leaderboard-season.sql.
+     * itself — as of its last refresh, not at read time — to whichever season row contains
+     * (now() AT TIME ZONE 'UTC')::date, i.e. the current UTC date at refresh time (not the
+     * database session's CURRENT_DATE). See backend/src/main/resources/db/mv-leaderboard-season.sql.
      *
      * @param asOfDate the date used to calculate current streaks (the earlier of "today" and
      *                 the season's end date, matching the season endpoint's existing behavior)

@@ -5,6 +5,7 @@ import org.quartz.*;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
 import org.steam5.domain.Season;
+import org.steam5.service.LeaderboardRefreshService;
 import org.steam5.service.SeasonService;
 
 import java.time.LocalDate;
@@ -19,9 +20,11 @@ import java.util.concurrent.TimeUnit;
 public class SeasonFinalizerJob implements Job {
 
     private final SeasonService seasonService;
+    private final LeaderboardRefreshService leaderboardRefreshService;
 
-    public SeasonFinalizerJob(SeasonService seasonService) {
+    public SeasonFinalizerJob(SeasonService seasonService, LeaderboardRefreshService leaderboardRefreshService) {
         this.seasonService = seasonService;
+        this.leaderboardRefreshService = leaderboardRefreshService;
     }
 
     @Override
@@ -42,6 +45,13 @@ public class SeasonFinalizerJob implements Job {
             }
             // ensureSeasonForDate above guarantees current.endDate >= todayUtc,
             // so no further season creation is needed here.
+
+            // Without this, mv_leaderboard_season would still reflect the previous season's
+            // window until the next scheduled 00:46 UTC refresh — up to ~21 minutes during
+            // which /season could serve the previous season's standings under the new
+            // season's cache key (LeaderboardController#season keys its manual cache by
+            // season number, which already flipped above).
+            leaderboardRefreshService.refreshSeason();
         } catch (Exception ex) {
             log.error("Season finalization failed", ex);
         } finally {
