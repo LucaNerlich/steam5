@@ -21,7 +21,6 @@ SELECT
     g.steam_id                                                           AS steam_id,
     COALESCE(u.persona_name, g.steam_id)                                 AS persona_name,
     g.game_date                                                          AS game_date,
-    SUM(g.points)                                                        AS total_points,
     (SELECT string_agg(COALESCE(sai2.name, CAST(rgp.app_id AS TEXT)), ', ' ORDER BY rgp.created_at)
      FROM review_game_pick rgp
      LEFT JOIN steam_app_index sai2 ON sai2.app_id = rgp.app_id

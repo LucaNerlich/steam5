@@ -3,6 +3,7 @@
 import "@/styles/components/leaderboard.css";
 import Link from "next/link";
 import useSWR from "swr";
+import {useMemo} from "react";
 import {PerfectDay} from "@/lib/perfectDays";
 import {formatRefreshedAt} from "@/lib/leaderboard";
 
@@ -37,6 +38,20 @@ export default function PerfectDaysTable(props: {
     const refreshedAt = perfectDaysResult?.refreshedAt ?? null;
     const lastUpdatedText = formatRefreshedAt(refreshedAt);
 
+    const playerCounts = useMemo(() => {
+        const counts = new Map<string, { name: string; count: number }>();
+        for (const entry of data ?? []) {
+            const key = entry.steamId;
+            const existing = counts.get(key);
+            if (existing) {
+                existing.count++;
+            } else {
+                counts.set(key, {name: entry.personaName, count: 1});
+            }
+        }
+        return [...counts.values()].sort((a, b) => b.count - a.count);
+    }, [data]);
+
     if (error && !data) {
         return <p className="text-muted">Failed to load perfect days. Please try again soon.</p>;
     }
@@ -59,7 +74,6 @@ export default function PerfectDaysTable(props: {
                         <th scope="col" className="num" title="Rank">#</th>
                         <th scope="col" title="Player">Player</th>
                         <th scope="col" title="Date of the perfect day">Date</th>
-                        <th scope="col" className="num" title="Total points (25 = perfect)">Points</th>
                         <th scope="col" title="Games played that day">Games</th>
                         <th scope="col" title="Link to the archive page for this date">Archive</th>
                     </tr>
@@ -77,7 +91,6 @@ export default function PerfectDaysTable(props: {
                                 </span>
                             </td>
                             <td>{entry.gameDate}</td>
-                            <td className="num">{entry.totalPoints} / 25</td>
                             <td style={{maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}} title={entry.appNames.join(', ')}>
                                 {entry.appNames.join(', ')}
                             </td>
@@ -96,6 +109,32 @@ export default function PerfectDaysTable(props: {
                     Last updated: {lastUpdatedText}
                 </p>
             )}
+
+            <h2 className="leaderboard__subtitle">Player Rankings</h2>
+            <div className="leaderboard__scroll">
+                <table className="leaderboard__table" aria-label="Players ranked by number of perfect days">
+                    <thead>
+                    <tr>
+                        <th scope="col" className="num" title="Rank">#</th>
+                        <th scope="col" title="Player">Player</th>
+                        <th scope="col" className="num" title="Number of perfect days">Perfect Days</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {playerCounts.map((player, i) => (
+                        <tr key={player.name}>
+                            <td className="num">{i + 1}</td>
+                            <td>
+                                <span className="leaderboard__profile-link" title={player.name}>
+                                    {player.name}
+                                </span>
+                            </td>
+                            <td className="num">{player.count}</td>
+                        </tr>
+                    ))}
+                    </tbody>
+                </table>
+            </div>
         </div>
     );
 }

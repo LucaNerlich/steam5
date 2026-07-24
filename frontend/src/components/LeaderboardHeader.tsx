@@ -29,6 +29,10 @@ const COPY_BY_PATH: Record<string, HeaderCopy> = {
         title: "Hardest Games",
         subline: "Steam games players struggle with the most — ranked by lowest average score",
     },
+    "/review-guesser/leaderboard/perfect-days": {
+        title: "Perfect Days",
+        subline: "Players who scored 25 out of 25 points in a single day",
+    },
     "/review-guesser/leaderboard": DEFAULT_COPY,
 };
 

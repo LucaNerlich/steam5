@@ -146,12 +146,11 @@ public interface LeaderboardMvRepository extends Repository<Guess, Long> {
         String getSteamId();
         String getPersonaName();
         java.time.LocalDate getGameDate();
-        Long getTotalPoints();
         String getAppNames();
     }
 
     @Query(value = "SELECT steam_id AS steamId, persona_name AS personaName, game_date AS gameDate, " +
-            "total_points AS totalPoints, app_names AS appNames " +
+            "app_names AS appNames " +
             "FROM mv_perfect_days ORDER BY game_date DESC", nativeQuery = true)
     List<PerfectDayMvRow> findPerfectDays();
 

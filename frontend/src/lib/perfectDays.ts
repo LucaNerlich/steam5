@@ -4,7 +4,6 @@ export type PerfectDay = {
     steamId: string;
     personaName: string;
     gameDate: string;
-    totalPoints: number;
     appNames: string[];
 };
 

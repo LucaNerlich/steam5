@@ -303,7 +303,6 @@ public class StatisticsService {
                         row.getSteamId(),
                         row.getPersonaName(),
                         row.getGameDate(),
-                        row.getTotalPoints(),
                         row.getAppNames() != null ? List.of(row.getAppNames().split(", ")) : List.of()
                 ))
                 .toList();
@@ -428,7 +427,6 @@ public class StatisticsService {
             String steamId,
             String personaName,
             LocalDate gameDate,
-            Long totalPoints,
             List<String> appNames
     ) {
     }
