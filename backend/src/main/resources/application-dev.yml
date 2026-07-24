@@ -34,3 +34,11 @@ jobs:
     enabled: true
   player-spotlight:
     enabled: true
+  leaderboard-refresh-all-time:
+    enabled: true
+  leaderboard-refresh-monthly:
+    enabled: true
+  leaderboard-refresh-weekly:
+    enabled: true
+  leaderboard-refresh-season:
+    enabled: true

@@ -120,4 +120,85 @@ public class QuartzConfig {
                 )
                 .build();
     }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "jobs.leaderboard-refresh-all-time", name = "enabled", havingValue = "true", matchIfMissing = false)
+    public Trigger triggerLeaderboardRefreshAllTimeNightly(@Qualifier("LeaderboardRefreshJob_AllTime") JobDetail job) {
+        return TriggerBuilder.newTrigger().forJob(job)
+                .withIdentity("LeaderboardRefreshJob_AllTime_Nightly_Trigger")
+                // daily at 00:40 UTC — after seasons-finalizer (00:25) settles season boundaries
+                .withSchedule(
+                        CronScheduleBuilder.cronSchedule("0 40 0 * * ?")
+                                .inTimeZone(TimeZone.getTimeZone("UTC"))
+                )
+                .build();
+    }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "jobs.leaderboard-refresh-all-time", name = "enabled", havingValue = "true", matchIfMissing = false)
+    public Trigger triggerLeaderboardRefreshAllTimeIntraday(@Qualifier("LeaderboardRefreshJob_AllTime") JobDetail job) {
+        return TriggerBuilder.newTrigger().forJob(job)
+                .withIdentity("LeaderboardRefreshJob_AllTime_Intraday_Trigger")
+                // every 10 minutes, matching the leaderboard-static Caffeine TTL
+                .withSchedule(simpleSchedule().repeatForever().withIntervalInMinutes(10))
+                .build();
+    }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "jobs.leaderboard-refresh-monthly", name = "enabled", havingValue = "true", matchIfMissing = false)
+    public Trigger triggerLeaderboardRefreshMonthlyNightly(@Qualifier("LeaderboardRefreshJob_Monthly") JobDetail job) {
+        return TriggerBuilder.newTrigger().forJob(job)
+                .withIdentity("LeaderboardRefreshJob_Monthly_Nightly_Trigger")
+                // daily at 00:42 UTC
+                .withSchedule(
+                        CronScheduleBuilder.cronSchedule("0 42 0 * * ?")
+                                .inTimeZone(TimeZone.getTimeZone("UTC"))
+                )
+                .build();
+    }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "jobs.leaderboard-refresh-monthly", name = "enabled", havingValue = "true", matchIfMissing = false)
+    public Trigger triggerLeaderboardRefreshMonthlyIntraday(@Qualifier("LeaderboardRefreshJob_Monthly") JobDetail job) {
+        return TriggerBuilder.newTrigger().forJob(job)
+                .withIdentity("LeaderboardRefreshJob_Monthly_Intraday_Trigger")
+                .withSchedule(simpleSchedule().repeatForever().withIntervalInMinutes(10))
+                .build();
+    }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "jobs.leaderboard-refresh-weekly", name = "enabled", havingValue = "true", matchIfMissing = false)
+    public Trigger triggerLeaderboardRefreshWeeklyNightly(@Qualifier("LeaderboardRefreshJob_Weekly") JobDetail job) {
+        return TriggerBuilder.newTrigger().forJob(job)
+                .withIdentity("LeaderboardRefreshJob_Weekly_Nightly_Trigger")
+                // daily at 00:44 UTC
+                .withSchedule(
+                        CronScheduleBuilder.cronSchedule("0 44 0 * * ?")
+                                .inTimeZone(TimeZone.getTimeZone("UTC"))
+                )
+                .build();
+    }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "jobs.leaderboard-refresh-weekly", name = "enabled", havingValue = "true", matchIfMissing = false)
+    public Trigger triggerLeaderboardRefreshWeeklyIntraday(@Qualifier("LeaderboardRefreshJob_Weekly") JobDetail job) {
+        return TriggerBuilder.newTrigger().forJob(job)
+                .withIdentity("LeaderboardRefreshJob_Weekly_Intraday_Trigger")
+                .withSchedule(simpleSchedule().repeatForever().withIntervalInMinutes(10))
+                .build();
+    }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "jobs.leaderboard-refresh-season", name = "enabled", havingValue = "true", matchIfMissing = false)
+    public Trigger triggerLeaderboardRefreshSeason(@Qualifier("LeaderboardRefreshJob_Season") JobDetail job) {
+        return TriggerBuilder.newTrigger().forJob(job)
+                .withIdentity("LeaderboardRefreshJob_Season_Trigger")
+                // daily at 00:46 UTC only — season boundary correctness matters more than
+                // intraday freshness, so no additional intraday trigger for this type
+                .withSchedule(
+                        CronScheduleBuilder.cronSchedule("0 46 0 * * ?")
+                                .inTimeZone(TimeZone.getTimeZone("UTC"))
+                )
+                .build();
+    }
 }
