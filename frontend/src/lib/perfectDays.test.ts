@@ -1,6 +1,8 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 import {fetchPerfectDays, PerfectDay} from './perfectDays';
 
+vi.mock('@/lib/backend', () => ({BACKEND_ORIGIN: 'http://localhost:8080'}));
+
 function mockResponse(ok: boolean, body: unknown, headers: Record<string, string> = {}) {
     return {
         ok,
