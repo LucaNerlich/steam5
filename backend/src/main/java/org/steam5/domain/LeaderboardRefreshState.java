@@ -26,9 +26,18 @@ import java.time.OffsetDateTime;
 @AllArgsConstructor
 public class LeaderboardRefreshState {
 
+    /**
+     * {@code columnDefinition} is required here: without it, Hibernate 6+ generates its own
+     * CHECK constraint enumerating the enum's constants at the time the table is first
+     * created — and since {@code ddl-auto: update} never alters existing constraints, adding
+     * a new {@link LeaderboardType} constant later (e.g. HARDEST_GAMES) makes every insert of
+     * that new value violate the stale, baked-in constraint. Explicitly declaring the column
+     * type opts out of that auto-generated constraint entirely, so growing the enum never
+     * requires a matching schema migration.
+     */
     @Id
     @Enumerated(EnumType.STRING)
-    @Column(name = "leaderboard_type", length = 32)
+    @Column(name = "leaderboard_type", length = 32, columnDefinition = "varchar(32)")
     private LeaderboardType leaderboardType;
 
     @Column(name = "refreshed_at", nullable = false)

@@ -46,3 +46,19 @@ SELECT * FROM mv_hardest_games ORDER BY avg_score ASC, player_count DESC;
 SELECT matviewname, ispopulated FROM pg_matviews WHERE matviewname LIKE 'mv_leaderboard_%' OR matviewname = 'mv_hardest_games';
 
 SELECT * FROM leaderboard_refresh_state;
+
+-- =============================================================================
+-- D) One-time fix: stale CHECK constraint on leaderboard_refresh_state.leaderboard_type
+-- =============================================================================
+-- Needed because: Hibernate (ddl-auto: update) auto-generates a CHECK constraint listing
+-- every LeaderboardType constant AT THE TIME the table is first created, and never widens it
+-- afterward. Any database whose `leaderboard_refresh_state` table predates the HARDEST_GAMES
+-- constant still has the old 4-value constraint, so every insert/update for HARDEST_GAMES
+-- (from LeaderboardMvBootstrapConfig's initial population, or the nightly refresh job) fails:
+--   ERROR: new row for relation "leaderboard_refresh_state" violates check constraint
+--          "leaderboard_refresh_state_leaderboard_type_check"
+-- Fixed in code going forward (LeaderboardRefreshState now declares an explicit
+-- columnDefinition, which stops Hibernate from generating this constraint at all on any
+-- fresh database), but existing databases carry the stale constraint and won't self-correct.
+-- Run this once per affected database (safe to run even if the constraint is already gone):
+ALTER TABLE leaderboard_refresh_state DROP CONSTRAINT IF EXISTS leaderboard_refresh_state_leaderboard_type_check;
