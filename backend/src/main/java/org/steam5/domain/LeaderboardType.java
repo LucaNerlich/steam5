@@ -6,5 +6,5 @@ package org.steam5.domain;
  * LeaderboardRefreshService, and LeaderboardRefreshState.
  */
 public enum LeaderboardType {
-    ALL_TIME, MONTHLY, WEEKLY, SEASON
+    ALL_TIME, MONTHLY, WEEKLY, SEASON, HARDEST_GAMES
 }
