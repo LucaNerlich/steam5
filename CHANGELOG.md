@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.18.0] - 2026-07-24
+
+### Added
+
+- Added the "Perfect Days" leaderboard showing players who scored 25/25 in a single day, with date, games list, and avatar support
+
 ## [1.16.0] - 2026-07-14
 
 ### Added
