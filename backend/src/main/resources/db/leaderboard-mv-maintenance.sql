@@ -1,6 +1,7 @@
--- Manual utility queries for the four leaderboard materialized views
+-- Manual utility queries for the five leaderboard/hardest-games materialized views
 -- (mv_leaderboard_all_time, mv_leaderboard_monthly, mv_leaderboard_weekly,
--- mv_leaderboard_season — see mv-leaderboard-*.sql for their definitions).
+-- mv_leaderboard_season, mv_hardest_games — see mv-leaderboard-*.sql and
+-- mv-hardest-games.sql for their definitions).
 -- Not run automatically by anything; copy/paste the statement you need into a SQL console.
 
 -- =============================================================================
@@ -19,7 +20,7 @@
 DROP MATERIALIZED VIEW IF EXISTS mv_leaderboard_all_time, mv_leaderboard_monthly, mv_leaderboard_weekly, mv_leaderboard_season, mv_hardest_games CASCADE;
 
 -- After the restore completes, just restart the backend — LeaderboardMvBootstrapConfig
--- recreates all four MVs and their unique indexes, and immediately populates each with a
+-- recreates all five MVs and their unique indexes, and immediately populates each with a
 -- one-time REFRESH (recording it in leaderboard_refresh_state), with no further manual step.
 
 -- =============================================================================

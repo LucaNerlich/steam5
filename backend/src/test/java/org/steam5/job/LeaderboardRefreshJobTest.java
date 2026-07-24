@@ -13,6 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -51,6 +52,7 @@ class LeaderboardRefreshJobTest {
         InOrder order = inOrder(refreshService, cacheEvictor);
         order.verify(refreshService).refreshAllTime();
         order.verify(cacheEvictor).evictLeaderboardStatic();
+        verify(cacheEvictor, never()).evictStatsHourly();
     }
 
     @Test
@@ -75,10 +77,11 @@ class LeaderboardRefreshJobTest {
     }
 
     @Test
-    void execute_hardestGames_refreshesThenEvicts() throws JobExecutionException {
+    void execute_hardestGames_refreshesThenEvictsBothCaches() throws JobExecutionException {
         job.execute(contextFor("HARDEST_GAMES"));
         verify(refreshService).refreshHardestGames();
         verify(cacheEvictor).evictLeaderboardStatic();
+        verify(cacheEvictor).evictStatsHourly();
     }
 
     @Test

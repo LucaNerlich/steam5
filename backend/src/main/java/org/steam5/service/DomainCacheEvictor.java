@@ -21,6 +21,7 @@ public class DomainCacheEvictor {
     static final String REVIEW_GAME = "review-game";
     static final String ONE_DAY = "one-day";
     static final String LEADERBOARD_STATIC = "leaderboard-static";
+    static final String STATS_HOURLY = "stats-hourly";
 
     private final CacheManager cacheManager;
 
@@ -52,6 +53,18 @@ public class DomainCacheEvictor {
      */
     public void evictLeaderboardStatic() {
         clear(LEADERBOARD_STATIC);
+    }
+
+    /**
+     * Drop cached {@code stats-hourly} entries (hardest-games ranking, top-games-by-reviews,
+     * daily-avg-scores, etc). Call after the hardest-games materialized view refresh, since
+     * this cache's 1-hour TTL would otherwise let the "Last updated" header outrun the cached
+     * body it labels by up to that long. Coarse (whole-cache) on purpose, matching {@link
+     * #evictLeaderboardStatic()} — cheap and infrequent (once daily), so clearing unrelated
+     * entries in the same cache is an acceptable trade for not tracking per-key dependencies.
+     */
+    public void evictStatsHourly() {
+        clear(STATS_HOURLY);
     }
 
     private void clear(final String cacheName) {

@@ -54,6 +54,12 @@ public class LeaderboardRefreshJob implements Job {
             caughtException = e;
         } finally {
             cacheEvictor.evictLeaderboardStatic();
+            if (type == LeaderboardType.HARDEST_GAMES) {
+                // hardest-games reads through "stats-hourly" (StatisticsService#getHardestGames),
+                // not "leaderboard-static" — without this, its 1h TTL could let the freshness
+                // header outrun the cached body it labels by up to that long after each refresh.
+                cacheEvictor.evictStatsHourly();
+            }
             long ms = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
             log.info("LeaderboardRefreshJob[{}] completed in {}ms", type, ms);
             if (caughtException != null) {
