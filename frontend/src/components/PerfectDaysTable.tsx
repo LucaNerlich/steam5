@@ -1,6 +1,7 @@
 "use client";
 
 import "@/styles/components/leaderboard.css";
+import Image from "next/image";
 import Link from "next/link";
 import useSWR from "swr";
 import {useMemo} from "react";
@@ -39,14 +40,14 @@ export default function PerfectDaysTable(props: {
     const lastUpdatedText = formatRefreshedAt(refreshedAt);
 
     const playerCounts = useMemo(() => {
-        const counts = new Map<string, { name: string; count: number }>();
+        const counts = new Map<string, { steamId: string; name: string; avatar?: string | null; avatarBlurdata?: string | null; count: number }>();
         for (const entry of data ?? []) {
             const key = entry.steamId;
             const existing = counts.get(key);
             if (existing) {
                 existing.count++;
             } else {
-                counts.set(key, {name: entry.personaName, count: 1});
+                counts.set(key, {steamId: entry.steamId, name: entry.personaName, avatar: entry.avatar, avatarBlurdata: entry.avatarBlurdata, count: 1});
             }
         }
         return [...counts.values()].sort((a, b) => b.count - a.count);
@@ -83,10 +84,20 @@ export default function PerfectDaysTable(props: {
                         <tr key={`${entry.steamId}-${entry.gameDate}`}>
                             <td className="num">{i + 1}</td>
                             <td>
-                                <span
-                                    className="leaderboard__profile-link"
-                                    title={entry.personaName}
-                                >
+                                <span className="leaderboard__profile-link">
+                                    {entry.avatar && (
+                                        <div className="leaderboard__avatar-wrap">
+                                            <Image
+                                                className="leaderboard__avatar"
+                                                src={entry.avatar}
+                                                alt={`${entry.personaName}'s avatar`}
+                                                width={24}
+                                                height={24}
+                                                placeholder={entry.avatarBlurdata ? 'blur' : 'empty'}
+                                                blurDataURL={entry.avatarBlurdata || undefined}
+                                            />
+                                        </div>
+                                    )}
                                     {entry.personaName}
                                 </span>
                             </td>
@@ -122,10 +133,23 @@ export default function PerfectDaysTable(props: {
                     </thead>
                     <tbody>
                     {playerCounts.map((player, i) => (
-                        <tr key={player.name}>
+                        <tr key={player.steamId}>
                             <td className="num">{i + 1}</td>
                             <td>
-                                <span className="leaderboard__profile-link" title={player.name}>
+                                <span className="leaderboard__profile-link">
+                                    {player.avatar && (
+                                        <div className="leaderboard__avatar-wrap">
+                                            <Image
+                                                className="leaderboard__avatar"
+                                                src={player.avatar}
+                                                alt={`${player.name}'s avatar`}
+                                                width={24}
+                                                height={24}
+                                                placeholder={player.avatarBlurdata ? 'blur' : 'empty'}
+                                                blurDataURL={player.avatarBlurdata || undefined}
+                                            />
+                                        </div>
+                                    )}
                                     {player.name}
                                 </span>
                             </td>

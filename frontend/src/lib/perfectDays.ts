@@ -3,6 +3,9 @@ import {BACKEND_ORIGIN} from "@/lib/backend";
 export type PerfectDay = {
     steamId: string;
     personaName: string;
+    avatar?: string | null;
+    avatarBlurdata?: string | null;
+    profileUrl?: string | null;
     gameDate: string;
     appNames: string[];
 };

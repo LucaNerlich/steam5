@@ -20,6 +20,9 @@ CREATE MATERIALIZED VIEW mv_perfect_days AS
 SELECT
     g.steam_id                                                           AS steam_id,
     COALESCE(u.persona_name, g.steam_id)                                 AS persona_name,
+    u.avatar_full                                                        AS avatar_full,
+    u.blurdata_avatar_full                                               AS blurdata_avatar_full,
+    u.profile_url                                                        AS profile_url,
     g.game_date                                                          AS game_date,
     (SELECT string_agg(COALESCE(sai2.name, CAST(rgp.app_id AS TEXT)), ', ' ORDER BY rgp.created_at)
      FROM review_game_pick rgp
