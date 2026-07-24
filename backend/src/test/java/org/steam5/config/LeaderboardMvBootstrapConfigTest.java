@@ -24,6 +24,7 @@ class LeaderboardMvBootstrapConfigTest {
     private DataSource dataSource;
     private Connection connection;
     private Statement statement;
+    private PreparedStatement refreshStateUpsert;
     private LeaderboardMvBootstrapConfig config;
 
     @BeforeEach
@@ -31,16 +32,20 @@ class LeaderboardMvBootstrapConfigTest {
         dataSource = mock(DataSource.class);
         connection = mock(Connection.class);
         statement = mock(Statement.class);
+        refreshStateUpsert = mock(PreparedStatement.class);
         when(dataSource.getConnection()).thenReturn(connection);
         when(connection.createStatement()).thenReturn(statement);
+        when(connection.prepareStatement(argThat(sql -> sql != null && sql.contains("leaderboard_refresh_state"))))
+                .thenReturn(refreshStateUpsert);
         config = new LeaderboardMvBootstrapConfig();
     }
 
-    /** Stubs the pg_matviews / pg_indexes existence checks for every one of the 4 MVs. */
-    private void stubExistence(boolean viewExists, boolean indexExists) throws Exception {
+    /** Stubs the pg_matviews (existence + populated) / pg_indexes existence checks for every one of the 4 MVs. */
+    private void stubExistence(boolean viewExists, boolean viewPopulated, boolean indexExists) throws Exception {
         PreparedStatement viewCheck = mock(PreparedStatement.class);
         ResultSet viewRs = mock(ResultSet.class);
         when(viewRs.next()).thenReturn(viewExists);
+        when(viewRs.getBoolean(1)).thenReturn(viewPopulated);
         when(viewCheck.executeQuery()).thenReturn(viewRs);
 
         PreparedStatement indexCheck = mock(PreparedStatement.class);
@@ -53,33 +58,55 @@ class LeaderboardMvBootstrapConfigTest {
     }
 
     @Test
-    void bootstrap_neitherExists_createsViewAndIndexForEachOfTheFourMvs() throws Exception {
-        stubExistence(false, false);
+    void bootstrap_neitherExistsNorPopulated_createsViewIndexAndPopulatesForEachOfTheFourMvs() throws Exception {
+        stubExistence(false, false, false);
 
         config.bootstrapLeaderboardMvs(dataSource).run(mock(ApplicationArguments.class));
 
-        // 4 MVs x 2 statements (CREATE MATERIALIZED VIEW + CREATE UNIQUE INDEX CONCURRENTLY) each
-        verify(statement, times(8)).execute(any(String.class));
+        // 4 MVs x 3 statements (CREATE MATERIALIZED VIEW + CREATE UNIQUE INDEX CONCURRENTLY +
+        // the initial REFRESH) each
+        verify(statement, times(12)).execute(any(String.class));
         verify(connection, times(4)).setAutoCommit(true);
+        // The initial population is recorded immediately so the freshness header/UI reflects
+        // it without waiting for the first scheduled refresh job.
+        verify(refreshStateUpsert, times(4)).executeUpdate();
     }
 
     @Test
-    void bootstrap_bothAlreadyExist_createsNothing() throws Exception {
-        stubExistence(true, true);
+    void bootstrap_bothExistAndPopulated_createsOrRefreshesNothing() throws Exception {
+        stubExistence(true, true, true);
 
         config.bootstrapLeaderboardMvs(dataSource).run(mock(ApplicationArguments.class));
 
         verify(statement, never()).execute(any(String.class));
+        verify(refreshStateUpsert, never()).executeUpdate();
     }
 
     @Test
-    void bootstrap_viewExistsButIndexMissing_createsOnlyTheIndex() throws Exception {
-        stubExistence(true, false);
+    void bootstrap_viewExistsAndPopulatedButIndexMissing_createsOnlyTheIndex() throws Exception {
+        stubExistence(true, true, false);
 
         config.bootstrapLeaderboardMvs(dataSource).run(mock(ApplicationArguments.class));
 
-        // 4 MVs x 1 statement (CREATE UNIQUE INDEX CONCURRENTLY only)
+        // 4 MVs x 1 statement (CREATE UNIQUE INDEX CONCURRENTLY only) — already populated, so
+        // no initial REFRESH is needed.
         verify(statement, times(4)).execute(any(String.class));
+        verify(refreshStateUpsert, never()).executeUpdate();
+    }
+
+    @Test
+    void bootstrap_viewExistsButNotPopulated_populatesAndRecordsStateWithoutRecreatingTheView() throws Exception {
+        // Covers the exact production/dev symptom this fix addresses: a view (and its index)
+        // already exist — created by an earlier bootstrap run, or manually — but nothing has
+        // ever refreshed it, so every read fails with "has not been populated" until whichever
+        // scheduled job fires next (up to 24h away for the season MV specifically).
+        stubExistence(true, false, true);
+
+        config.bootstrapLeaderboardMvs(dataSource).run(mock(ApplicationArguments.class));
+
+        // 4 MVs x 1 statement (REFRESH only) — view+index already exist, just needs populating
+        verify(statement, times(4)).execute(any(String.class));
+        verify(refreshStateUpsert, times(4)).executeUpdate();
     }
 
     @Test
