@@ -249,6 +249,10 @@ npm run dev
     run — self-healing via `pg_matviews.ispopulated` (falls back to a plain, non-concurrent `REFRESH` the
     first time, then uses `CONCURRENTLY`). Set `app.leaderboard-mv.bootstrap.enabled=false` if a DBA wants
     to control `CREATE INDEX CONCURRENTLY` timing manually on a very large production table instead.
+  - On a genuinely fresh database, the Quartz scheduler generally starts before
+    `LeaderboardMvBootstrapConfig`'s `ApplicationRunner` runs, so the first 10-minute intraday refresh
+    trigger can fire against a not-yet-created MV and log one ERROR on that run — harmless and
+    self-healing (the next tick succeeds once bootstrap has completed), not a sign of misconfiguration.
   - Each successful refresh also writes a row to `leaderboard_refresh_state` (an ordinary Hibernate-managed
     table, unlike the MVs themselves), which `LeaderboardController` exposes via an
     `X-Leaderboard-Refreshed-At` response header (ISO-8601) on `/monthly`, `/weekly?floating=true`,

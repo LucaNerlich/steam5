@@ -5,6 +5,7 @@ import org.quartz.*;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
 import org.steam5.domain.Season;
+import org.steam5.service.DomainCacheEvictor;
 import org.steam5.service.LeaderboardRefreshService;
 import org.steam5.service.SeasonService;
 
@@ -21,10 +22,12 @@ public class SeasonFinalizerJob implements Job {
 
     private final SeasonService seasonService;
     private final LeaderboardRefreshService leaderboardRefreshService;
+    private final DomainCacheEvictor cacheEvictor;
 
-    public SeasonFinalizerJob(SeasonService seasonService, LeaderboardRefreshService leaderboardRefreshService) {
+    public SeasonFinalizerJob(SeasonService seasonService, LeaderboardRefreshService leaderboardRefreshService, DomainCacheEvictor cacheEvictor) {
         this.seasonService = seasonService;
         this.leaderboardRefreshService = leaderboardRefreshService;
+        this.cacheEvictor = cacheEvictor;
     }
 
     @Override
@@ -55,6 +58,12 @@ public class SeasonFinalizerJob implements Job {
         } catch (Exception ex) {
             log.error("Season finalization failed", ex);
         } finally {
+            // Unconditional, matching LeaderboardRefreshJob's pattern: cheap and harmless even
+            // if refreshSeason() above failed or wasn't reached, and prevents a request that
+            // populated the leaderboard-static cache from an overnight-stale MV (e.g. just
+            // before this job fired) from pairing stale entries with a fresher
+            // X-Leaderboard-Refreshed-At header until the cache's own TTL clears it.
+            cacheEvictor.evictLeaderboardStatic();
             long durationMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started);
             log.info("SeasonFinalizerJob completed in {}ms; next fire {}", durationMs,
                     context.getTrigger() != null ? context.getTrigger().getNextFireTime() : null);
