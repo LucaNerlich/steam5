@@ -72,4 +72,46 @@ class StatisticsControllerTest {
 
         org.mockito.Mockito.verify(statisticsService).getHardestGames(eq(100));
     }
+
+    @Test
+    void perfectDays_setsRefreshedAtHeaderWhenStateExists() {
+        List<StatisticsService.PerfectDayEntry> canned = List.of(
+                new StatisticsService.PerfectDayEntry("76561198000000001", "Alice", "avatar.jpg", "blur",
+                        "https://steamcommunity.com/id/alice", java.time.LocalDate.of(2026, 1, 15), List.of("Portal"))
+        );
+        when(statisticsService.getPerfectDays()).thenReturn(canned);
+
+        OffsetDateTime refreshedAt = OffsetDateTime.of(2026, 7, 24, 0, 50, 0, 0, ZoneOffset.UTC);
+        when(refreshStateRepository.findById(LeaderboardType.PERFECT_DAYS))
+                .thenReturn(Optional.of(new LeaderboardRefreshState(LeaderboardType.PERFECT_DAYS, refreshedAt)));
+
+        ResponseEntity<List<StatisticsService.PerfectDayEntry>> res = controller.perfectDays();
+
+        assertEquals(200, res.getStatusCode().value());
+        assertSame(canned, res.getBody());
+        assertEquals(refreshedAt.toString(), res.getHeaders().getFirst("X-Leaderboard-Refreshed-At"));
+        assertEquals("public, s-maxage=3600, max-age=600", res.getHeaders().getFirst("Cache-Control"));
+    }
+
+    @Test
+    void perfectDays_noRefreshStateYet_omitsHeader() {
+        when(statisticsService.getPerfectDays()).thenReturn(List.of());
+        when(refreshStateRepository.findById(LeaderboardType.PERFECT_DAYS)).thenReturn(Optional.empty());
+
+        ResponseEntity<List<StatisticsService.PerfectDayEntry>> res = controller.perfectDays();
+
+        assertNull(res.getHeaders().getFirst("X-Leaderboard-Refreshed-At"));
+        assertEquals(List.of(), res.getBody());
+    }
+
+    @Test
+    void perfectDays_doesNotAcceptOrUseALimitParameter() {
+        // Unlike hardestGames(limit), perfectDays() takes no request parameters — it always
+        // returns the full materialized view contents as-is.
+        when(statisticsService.getPerfectDays()).thenReturn(List.of());
+
+        controller.perfectDays();
+
+        org.mockito.Mockito.verify(statisticsService).getPerfectDays();
+    }
 }

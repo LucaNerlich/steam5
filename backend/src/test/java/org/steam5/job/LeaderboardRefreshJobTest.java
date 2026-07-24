@@ -4,12 +4,16 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
 import org.quartz.JobDataMap;
+import org.quartz.JobDetail;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
+import org.steam5.domain.LeaderboardType;
 import org.steam5.service.DomainCacheEvictor;
 import org.steam5.service.LeaderboardRefreshService;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
@@ -85,6 +89,27 @@ class LeaderboardRefreshJobTest {
     }
 
     @Test
+    void execute_perfectDays_refreshesThenEvictsBothCaches() throws JobExecutionException {
+        job.execute(contextFor("PERFECT_DAYS"));
+        verify(refreshService).refreshPerfectDays();
+        verify(cacheEvictor).evictLeaderboardStatic();
+        // perfect-days reads through "stats-hourly" (StatisticsService#getPerfectDays), just
+        // like hardest-games, so it must also evict that cache — not only leaderboard-static.
+        verify(cacheEvictor).evictStatsHourly();
+    }
+
+    @Test
+    void execute_perfectDaysFails_stillEvictsBothCachesThenWrapsException() {
+        doThrow(new RuntimeException("boom")).when(refreshService).refreshPerfectDays();
+        JobExecutionContext context = contextFor("PERFECT_DAYS");
+
+        assertThrows(JobExecutionException.class, () -> job.execute(context));
+
+        verify(cacheEvictor).evictLeaderboardStatic();
+        verify(cacheEvictor).evictStatsHourly();
+    }
+
+    @Test
     void execute_refreshFails_stillEvictsThenWrapsException() {
         doThrow(new RuntimeException("boom")).when(refreshService).refreshSeason();
         JobExecutionContext context = contextFor("SEASON");
@@ -115,5 +140,15 @@ class LeaderboardRefreshJobTest {
         assertThrows(IllegalArgumentException.class, () -> job.execute(context));
 
         verifyNoInteractions(refreshService, cacheEvictor);
+    }
+
+    @Test
+    void perfectDaysJobDetail_isStoredDurablyWithPerfectDaysTypeJobData() {
+        JobDetail jobDetail = job.perfectDaysJobDetail();
+
+        assertEquals("LeaderboardRefreshJob_PerfectDays", jobDetail.getKey().getName());
+        assertEquals(LeaderboardRefreshJob.class, jobDetail.getJobClass());
+        assertTrue(jobDetail.isDurable());
+        assertEquals(LeaderboardType.PERFECT_DAYS.name(), jobDetail.getJobDataMap().getString("type"));
     }
 }
