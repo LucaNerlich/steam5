@@ -10,6 +10,7 @@ import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
+import org.steam5.domain.LeaderboardType;
 import org.steam5.service.DomainCacheEvictor;
 import org.steam5.service.LeaderboardRefreshService;
 
@@ -24,8 +25,6 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 @DisallowConcurrentExecution
 public class LeaderboardRefreshJob implements Job {
-
-    public enum LeaderboardType { ALL_TIME, MONTHLY, WEEKLY, SEASON }
 
     private final LeaderboardRefreshService refreshService;
     private final DomainCacheEvictor cacheEvictor;
