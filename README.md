@@ -221,6 +221,12 @@ npm run dev
 ## Query Performance Notes
 
 - `guesses` date-range queries (for example `findAllBetween`, `findSeasonStats`, `findSeasonDates`) rely on `idx_guesses_game_date`.
+- Leaderboard reads (`/api/leaderboard/all`, `/monthly`, `/weekly?floating=true`, `/season`) are backed by
+  materialized views (`mv_leaderboard_all_time`, `mv_leaderboard_monthly`, `mv_leaderboard_weekly`,
+  `mv_leaderboard_season` — see `backend/src/main/resources/db/mv-leaderboard-*.sql`). Like
+  `idx_guesses_game_date`, these are **not** managed by Hibernate `ddl-auto` and must be applied manually
+  against every environment (including each new dev DB). See the expanded write-up further down this
+  section for the full rollout order and refresh-job configuration.
 - Profile history lookup uses `(steam_id, game_date, round_index)` via `findBySteamIdOrderByGameDateDescRoundIndexAsc`.
 - `SteamAppReviewsRepository` random-pick methods use a two-phase CTE + `NOT EXISTS` pattern to avoid random sorting on the full table.
 - Optional DBA-only index for large review datasets:
