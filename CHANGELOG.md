@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.18.1] - 2026-07-24
+
+### Fixed
+
+- Fixed the perfect-days test to mock BACKEND_ORIGIN so it doesn't depend on a live backend API
+- Swapped the order of "Hardest Games" and "Perfect Days" tabs in the leaderboard navigation for consistency
+
 ## [1.18.0] - 2026-07-24
 
 ### Added
