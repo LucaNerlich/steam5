@@ -7,6 +7,7 @@ import org.steam5.domain.GuessStats;
 import org.steam5.domain.StreakCalculator;
 import org.steam5.domain.User;
 import org.steam5.repository.GuessRepository;
+import org.steam5.repository.LeaderboardMvRepository;
 import org.steam5.repository.UserRepository;
 
 import java.time.LocalDate;
@@ -21,6 +22,7 @@ public class LeaderboardService {
 
     private final GuessRepository guessRepository;
     private final UserRepository userRepository;
+    private final LeaderboardMvRepository leaderboardMvRepository;
 
     /**
      * Aggregates a set of guesses (already fetched for a specific day/range) into a
@@ -48,33 +50,77 @@ public class LeaderboardService {
     }
 
     /**
-     * Builds an all-time leaderboard from precomputed statistics while calculating each user's current streak.
+     * Builds the all-time leaderboard from the {@code mv_leaderboard_all_time} materialized
+     * view (see backend/src/main/resources/db/mv-leaderboard-all-time.sql), overlaying each
+     * player's current streak from the live guesses table.
      *
      * @param today the date used to calculate current streaks
-     * @return leaderboard entries in the order provided by the aggregated statistics
+     * @return leaderboard entries in the order provided by the materialized view (total points descending)
      */
     public List<LeaderEntry> buildAllTimeLeaderboard(final LocalDate today) {
-        final List<GuessRepository.AllTimeStatsRow> rows = guessRepository.aggregateAllTimeStats();
+        return buildFromMv(leaderboardMvRepository.findAllTime(), today);
+    }
+
+    /**
+     * Builds the rolling 30-day leaderboard from {@code mv_leaderboard_monthly}.
+     * See backend/src/main/resources/db/mv-leaderboard-monthly.sql for the window definition.
+     *
+     * @param today the date used to calculate current streaks
+     */
+    public List<LeaderEntry> buildMonthlyLeaderboard(final LocalDate today) {
+        return buildFromMv(leaderboardMvRepository.findMonthly(), today);
+    }
+
+    /**
+     * Builds the rolling 7-day ("floating") leaderboard from {@code mv_leaderboard_weekly}.
+     * The non-floating (previous full Monday-Sunday week) variant is not backed by this view
+     * and continues to be computed live in {@code LeaderboardController#weekly}.
+     * See backend/src/main/resources/db/mv-leaderboard-weekly.sql for the window definition.
+     *
+     * @param today the date used to calculate current streaks
+     */
+    public List<LeaderEntry> buildWeeklyLeaderboard(final LocalDate today) {
+        return buildFromMv(leaderboardMvRepository.findWeekly(), today);
+    }
+
+    /**
+     * Builds the current-season leaderboard from {@code mv_leaderboard_season}, which scopes
+     * itself to whichever season row currently contains the database's CURRENT_DATE.
+     * See backend/src/main/resources/db/mv-leaderboard-season.sql.
+     *
+     * @param asOfDate the date used to calculate current streaks (the earlier of "today" and
+     *                 the season's end date, matching the season endpoint's existing behavior)
+     */
+    public List<LeaderEntry> buildSeasonLeaderboard(final LocalDate asOfDate) {
+        return buildFromMv(leaderboardMvRepository.findSeason(), asOfDate);
+    }
+
+    /**
+     * Shared assembly step for the four materialized-view-backed leaderboards: overlays each
+     * row's current streak (computed live from {@code findDistinctDatesUpToForUsers}) onto the
+     * pre-aggregated MV columns. Row order (total points descending) comes from the MV query.
+     */
+    private List<LeaderEntry> buildFromMv(final List<LeaderboardMvRepository.LeaderboardMvRow> rows, final LocalDate asOfDate) {
         if (rows.isEmpty()) {
             return List.of();
         }
 
-        final List<String> steamIds = rows.stream().map(GuessRepository.AllTimeStatsRow::getSteamId).toList();
-        final Map<String, User> usersById = userRepository.findAllById(steamIds).stream()
-                .collect(Collectors.toMap(User::getSteamId, user -> user));
+        final List<String> steamIds = rows.stream().map(LeaderboardMvRepository.LeaderboardMvRow::getSteamId).toList();
         final Map<String, List<LocalDate>> streakDatesById = guessRepository
-                .findDistinctDatesUpToForUsers(steamIds, today)
+                .findDistinctDatesUpToForUsers(steamIds, asOfDate)
                 .stream()
                 .collect(Collectors.groupingBy(GuessRepository.UserDateRow::getSteamId,
                         Collectors.mapping(GuessRepository.UserDateRow::getGameDate, Collectors.toList())));
 
         return rows.stream()
                 .map(row -> {
-                    final User user = usersById.get(row.getSteamId());
                     final List<LocalDate> dates = streakDatesById.getOrDefault(row.getSteamId(), List.of());
-                    final int streak = StreakCalculator.currentStreak(dates, today);
-                    return getLeaderEntry(
+                    final int streak = StreakCalculator.currentStreak(dates, asOfDate);
+                    final String personaName = row.getPersonaName() != null && !row.getPersonaName().isBlank()
+                            ? row.getPersonaName() : row.getSteamId();
+                    return new LeaderEntry(
                             row.getSteamId(),
+                            personaName,
                             row.getTotalPoints() != null ? row.getTotalPoints() : 0L,
                             row.getRounds() != null ? row.getRounds() : 0L,
                             row.getHits() != null ? row.getHits() : 0L,
@@ -83,10 +129,16 @@ public class LeaderboardService {
                             row.getTooLow() != null ? row.getTooLow() : 0L,
                             row.getAvgPoints() != null ? row.getAvgPoints() : 0.0,
                             streak,
-                            user
+                            blankToNull(row.getAvatarFull()),
+                            blankToNull(row.getBlurdataAvatarFull()),
+                            blankToNull(row.getProfileUrl())
                     );
                 })
                 .toList();
+    }
+
+    private static String blankToNull(final String value) {
+        return value != null && !value.isBlank() ? value : null;
     }
 
     /**
