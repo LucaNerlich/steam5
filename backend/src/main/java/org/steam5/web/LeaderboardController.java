@@ -12,9 +12,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.steam5.domain.GameDate;
 import org.steam5.domain.Guess;
+import org.steam5.domain.LeaderboardType;
 import org.steam5.domain.ReviewGamePick;
 import org.steam5.domain.Season;
 import org.steam5.repository.GuessRepository;
+import org.steam5.repository.LeaderboardRefreshStateRepository;
 import org.steam5.service.LeaderboardService;
 import org.steam5.service.ReviewGameStateService;
 import org.steam5.service.SeasonService;
@@ -33,6 +35,7 @@ public class LeaderboardController {
     private final SeasonService seasonService;
     private final CacheManager cacheManager;
     private final LeaderboardService leaderboardService;
+    private final LeaderboardRefreshStateRepository refreshStateRepository;
 
     /**
      * Builds the leaderboard for the current review game date.
@@ -64,7 +67,7 @@ public class LeaderboardController {
         final LocalDate today = picks.isEmpty() ? GameDate.todayUtc() : picks.getFirst().getPickDate();
 
         if (floating) {
-            return ResponseEntity.ok(leaderboardService.buildWeeklyLeaderboard(today));
+            return withRefreshedAtHeader(LeaderboardType.WEEKLY, leaderboardService.buildWeeklyLeaderboard(today));
         }
 
         // last full week: Monday..Sunday immediately before the current week
@@ -87,7 +90,7 @@ public class LeaderboardController {
     public ResponseEntity<List<LeaderboardService.LeaderEntry>> monthly() {
         final List<ReviewGamePick> picks = reviewGameStateService.generateDailyPicks();
         final LocalDate today = picks.isEmpty() ? GameDate.todayUtc() : picks.getFirst().getPickDate();
-        return ResponseEntity.ok(leaderboardService.buildMonthlyLeaderboard(today));
+        return withRefreshedAtHeader(LeaderboardType.MONTHLY, leaderboardService.buildMonthlyLeaderboard(today));
     }
 
     /**
@@ -109,16 +112,15 @@ public class LeaderboardController {
             if (wrapper != null && wrapper.get() instanceof List<?> cached) {
                 @SuppressWarnings("unchecked")
                 final List<LeaderboardService.LeaderEntry> cachedEntries = (List<LeaderboardService.LeaderEntry>) cached;
-                return ResponseEntity.ok(cachedEntries);
+                return withRefreshedAtHeader(LeaderboardType.SEASON, cachedEntries);
             }
         }
 
         final List<LeaderboardService.LeaderEntry> entries = leaderboardService.buildSeasonLeaderboard(asOfDate);
-        final ResponseEntity<List<LeaderboardService.LeaderEntry>> response = ResponseEntity.ok(entries);
         if (cache != null) {
             cache.put(cacheKey, entries);
         }
-        return response;
+        return withRefreshedAtHeader(LeaderboardType.SEASON, entries);
     }
 
     /**
@@ -130,7 +132,21 @@ public class LeaderboardController {
     @Cacheable(value = "leaderboard-static", key = "'all-time:' + T(org.steam5.domain.GameDate).todayUtc()", unless = "#result == null || #result.body == null")
     public ResponseEntity<List<LeaderboardService.LeaderEntry>> allTime() {
         final LocalDate today = GameDate.todayUtc();
-        return ResponseEntity.ok(leaderboardService.buildAllTimeLeaderboard(today));
+        return withRefreshedAtHeader(LeaderboardType.ALL_TIME, leaderboardService.buildAllTimeLeaderboard(today));
+    }
+
+    /**
+     * Wraps an MV-backed leaderboard response with the X-Leaderboard-Refreshed-At header,
+     * sourced from leaderboard_refresh_state. Omitted (not just empty) when no refresh has
+     * happened yet for this type, so callers don't have to distinguish "just refreshed" from
+     * "never refreshed" via an empty string.
+     */
+    private ResponseEntity<List<LeaderboardService.LeaderEntry>> withRefreshedAtHeader(
+            final LeaderboardType type, final List<LeaderboardService.LeaderEntry> entries) {
+        final ResponseEntity.BodyBuilder builder = ResponseEntity.ok();
+        refreshStateRepository.findById(type)
+                .ifPresent(state -> builder.header("X-Leaderboard-Refreshed-At", state.getRefreshedAt().toString()));
+        return builder.body(entries);
     }
 }
 
