@@ -95,8 +95,6 @@ export default function PerfectDaysTable(props: {
                                                 alt={`${entry.personaName}'s avatar`}
                                                 width={24}
                                                 height={24}
-                                                placeholder={entry.avatarBlurdata ? 'blur' : 'empty'}
-                                                blurDataURL={entry.avatarBlurdata || undefined}
                                             />
                                         </div>
                                     )}
@@ -147,8 +145,6 @@ export default function PerfectDaysTable(props: {
                                                 alt={`${player.name}'s avatar`}
                                                 width={24}
                                                 height={24}
-                                                placeholder={player.avatarBlurdata ? 'blur' : 'empty'}
-                                                blurDataURL={player.avatarBlurdata || undefined}
                                             />
                                         </div>
                                     )}

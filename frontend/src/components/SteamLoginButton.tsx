@@ -51,8 +51,6 @@ export default function SteamLoginButton(): React.ReactElement {
                             <Image className="header__avatar"
                                    src={avatar}
                                    alt=""
-                                   placeholder={avatarBlurdata ? 'blur' : 'empty'}
-                                   blurDataURL={avatarBlurdata || undefined}
                                    width={28}
                                    height={28}/>
                         </span>
