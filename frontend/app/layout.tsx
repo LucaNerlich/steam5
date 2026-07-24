@@ -7,6 +7,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { AuthProvider } from "@/contexts/AuthContext";
 import localFont from "next/font/local";
+import Head from "next/head";
 
 const krypton = localFont({
     src: [
@@ -227,12 +228,13 @@ export default async function RootLayout({
     const serverTheme = themeCookie === 'dark' ? 'dark' : themeCookie === 'light' ? 'light' : null;
     return (
         <html
+            data-scroll-behavior="smooth"
             lang="en"
             className={`${krypton.variable} ${neon.variable} ${argon.variable} ${radon.variable} ${xenon.variable} ${space.variable} ${pixelSquare.variable}`}
             suppressHydrationWarning
             {...(serverTheme === 'dark' ? { 'data-theme': 'dark' } : {})}
         >
-        <head>
+        <Head>
             <Script src="/theme-init.js" strategy="beforeInteractive"/>
             <link rel="preconnect" href={origin}/>
             <link rel="dns-prefetch" href={origin}/>
@@ -244,7 +246,7 @@ export default async function RootLayout({
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{__html: JSON.stringify(organizationSchema)}}
             />
-        </head>
+        </Head>
         <body>
         <AuthProvider initialAuth={authState}>
             <Header/>
