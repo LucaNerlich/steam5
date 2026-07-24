@@ -4,7 +4,7 @@
 -- Reproduces the query that used to live in GuessRepository#findHardestGames(limit, minPlayers)
 -- (deleted once this MV replaced it as StatisticsService#getHardestGames's data source), with
 -- minPlayers fixed at 5 (the only value that repository method was ever called with) and no
--- LIMIT (the view materializes every qualifying game; the app applies LIMIT in Java, same as it
+-- LIMIT (the view materializes every qualifying game, the app applies LIMIT in Java, same as it
 -- always has). Ranks games by difficulty (lowest average points first) with
 -- deception metrics (too-high/too-low guess counts using the same leading-numeric-bucket
 -- regex comparison as the leaderboard MVs) and the single most common wrong bucket per game
