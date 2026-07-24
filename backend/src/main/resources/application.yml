@@ -145,6 +145,8 @@ jobs:
     enabled: ${JOB_LEADERBOARD_REFRESH_WEEKLY:true}
   leaderboard-refresh-season:
     enabled: ${JOB_LEADERBOARD_REFRESH_SEASON:true}
+  leaderboard-refresh-hardest-games:
+    enabled: ${JOB_LEADERBOARD_REFRESH_HARDEST_GAMES:true}
 
 app:
   leaderboard-mv:

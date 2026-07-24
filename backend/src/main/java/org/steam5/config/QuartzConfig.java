@@ -215,4 +215,17 @@ public class QuartzConfig {
                 )
                 .build();
     }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "jobs.leaderboard-refresh-hardest-games", name = "enabled", havingValue = "true", matchIfMissing = false)
+    public Trigger triggerLeaderboardRefreshHardestGames(@Qualifier("LeaderboardRefreshJob_HardestGames") JobDetail job) {
+        return TriggerBuilder.newTrigger().forJob(job)
+                .withIdentity("LeaderboardRefreshJob_HardestGames_Trigger")
+                // daily at 00:48 UTC only — rankings change slowly; no intraday trigger needed
+                .withSchedule(
+                        CronScheduleBuilder.cronSchedule("0 48 0 * * ?")
+                                .inTimeZone(TimeZone.getTimeZone("UTC"))
+                )
+                .build();
+    }
 }
