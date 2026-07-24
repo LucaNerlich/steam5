@@ -50,6 +50,7 @@ class LeaderboardRefreshServiceTest {
         service.refreshSeason();
 
         verify(leaderboardMvRepository).refreshSeasonFull();
+        verify(leaderboardMvRepository, never()).refreshSeasonConcurrently();
     }
 
     @Test
