@@ -1,7 +1,10 @@
 package org.steam5.repository;
 
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.Repository;
+import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 import org.steam5.domain.Guess;
 
 import java.util.List;
@@ -53,4 +56,47 @@ public interface LeaderboardMvRepository extends Repository<Guess, Long> {
             "avatar_full AS avatarFull, blurdata_avatar_full AS blurdataAvatarFull, profile_url AS profileUrl " +
             "FROM mv_leaderboard_season ORDER BY total_points DESC", nativeQuery = true)
     List<LeaderboardMvRow> findSeason();
+
+    @Query(value = "SELECT ispopulated FROM pg_matviews WHERE matviewname = :viewName", nativeQuery = true)
+    Boolean isPopulated(@Param("viewName") String viewName);
+
+    @Transactional
+    @Modifying(clearAutomatically = false, flushAutomatically = false)
+    @Query(value = "REFRESH MATERIALIZED VIEW mv_leaderboard_all_time", nativeQuery = true)
+    void refreshAllTimeFull();
+
+    @Transactional
+    @Modifying(clearAutomatically = false, flushAutomatically = false)
+    @Query(value = "REFRESH MATERIALIZED VIEW CONCURRENTLY mv_leaderboard_all_time", nativeQuery = true)
+    void refreshAllTimeConcurrently();
+
+    @Transactional
+    @Modifying(clearAutomatically = false, flushAutomatically = false)
+    @Query(value = "REFRESH MATERIALIZED VIEW mv_leaderboard_monthly", nativeQuery = true)
+    void refreshMonthlyFull();
+
+    @Transactional
+    @Modifying(clearAutomatically = false, flushAutomatically = false)
+    @Query(value = "REFRESH MATERIALIZED VIEW CONCURRENTLY mv_leaderboard_monthly", nativeQuery = true)
+    void refreshMonthlyConcurrently();
+
+    @Transactional
+    @Modifying(clearAutomatically = false, flushAutomatically = false)
+    @Query(value = "REFRESH MATERIALIZED VIEW mv_leaderboard_weekly", nativeQuery = true)
+    void refreshWeeklyFull();
+
+    @Transactional
+    @Modifying(clearAutomatically = false, flushAutomatically = false)
+    @Query(value = "REFRESH MATERIALIZED VIEW CONCURRENTLY mv_leaderboard_weekly", nativeQuery = true)
+    void refreshWeeklyConcurrently();
+
+    @Transactional
+    @Modifying(clearAutomatically = false, flushAutomatically = false)
+    @Query(value = "REFRESH MATERIALIZED VIEW mv_leaderboard_season", nativeQuery = true)
+    void refreshSeasonFull();
+
+    @Transactional
+    @Modifying(clearAutomatically = false, flushAutomatically = false)
+    @Query(value = "REFRESH MATERIALIZED VIEW CONCURRENTLY mv_leaderboard_season", nativeQuery = true)
+    void refreshSeasonConcurrently();
 }
