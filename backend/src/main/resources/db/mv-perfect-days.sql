@@ -31,7 +31,7 @@ SELECT
 FROM guesses g
 LEFT JOIN users u ON u.steam_id = g.steam_id
 GROUP BY g.steam_id, u.persona_name, g.game_date
-HAVING SUM(g.points) = 5 * COUNT(*)
+HAVING SUM(g.points) = 5 * COUNT(*) AND COUNT(*) = 5
 WITH NO DATA;
 
 -- Required for REFRESH MATERIALIZED VIEW CONCURRENTLY. CREATE INDEX CONCURRENTLY cannot run

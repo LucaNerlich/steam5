@@ -7,6 +7,7 @@ import useSWR from "swr";
 import {useMemo} from "react";
 import {PerfectDay} from "@/lib/perfectDays";
 import {formatRefreshedAt} from "@/lib/leaderboard";
+import {formatDate} from "@/lib/format";
 
 const ENDPOINT = "/api/stats/game/perfect-days";
 
@@ -24,6 +25,7 @@ const fetcher = async (url: string): Promise<PerfectDaysFetchResult> => {
 
 export default function PerfectDaysTable(props: {
     initialData?: PerfectDay[] | null;
+    initialRefreshedAt?: string | null;
     refreshMs?: number;
 }) {
     const refreshInterval = props.refreshMs ?? 3600000;
@@ -32,7 +34,7 @@ export default function PerfectDaysTable(props: {
         refreshInterval,
         revalidateOnFocus: true,
         focusThrottleInterval: refreshInterval,
-        fallbackData: props.initialData ? {data: props.initialData, refreshedAt: null} : undefined,
+        fallbackData: props.initialData ? {data: props.initialData, refreshedAt: props.initialRefreshedAt ?? null} : undefined,
     });
 
     const data = perfectDaysResult?.data;
@@ -101,7 +103,7 @@ export default function PerfectDaysTable(props: {
                                     <span className="leaderboard__profile-link">{entry.personaName}</span>
                                 </div>
                             </td>
-                            <td>{entry.gameDate}</td>
+                            <td>{formatDate(entry.gameDate)}</td>
                             <td style={{maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}} title={entry.appNames.join(', ')}>
                                 {entry.appNames.join(', ')}
                             </td>

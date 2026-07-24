@@ -10,14 +10,17 @@ export type PerfectDay = {
     appNames: string[];
 };
 
-export async function fetchPerfectDays(): Promise<PerfectDay[] | null> {
+export type PerfectDaysFetchResult = { data: PerfectDay[]; refreshedAt: string | null };
+
+export async function fetchPerfectDays(): Promise<PerfectDaysFetchResult | null> {
     try {
         const res = await fetch(`${BACKEND_ORIGIN}/api/stats/game/perfect-days`, {
             headers: {"accept": "application/json"},
             next: {revalidate: 3600, tags: ["stats-perfect-days"]},
         });
         if (!res.ok) return null;
-        return await res.json() as PerfectDay[];
+        const data = await res.json() as PerfectDay[];
+        return {data, refreshedAt: res.headers.get('X-Leaderboard-Refreshed-At')};
     } catch {
         return null;
     }

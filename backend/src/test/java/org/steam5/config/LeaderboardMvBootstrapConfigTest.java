@@ -58,18 +58,18 @@ class LeaderboardMvBootstrapConfigTest {
     }
 
     @Test
-    void bootstrap_neitherExistsNorPopulated_createsViewIndexAndPopulatesForEachOfTheFiveMvs() throws Exception {
+    void bootstrap_neitherExistsNorPopulated_createsViewIndexAndPopulatesForEachMv() throws Exception {
         stubExistence(false, false, false);
 
         config.bootstrapLeaderboardMvs(dataSource).run(mock(ApplicationArguments.class));
 
-        // 5 MVs x 3 statements (CREATE MATERIALIZED VIEW + CREATE UNIQUE INDEX CONCURRENTLY +
+        // 6 MVs x 3 statements (CREATE MATERIALIZED VIEW + CREATE UNIQUE INDEX CONCURRENTLY +
         // the initial REFRESH) each
-        verify(statement, times(15)).execute(any(String.class));
-        verify(connection, times(5)).setAutoCommit(true);
+        verify(statement, times(18)).execute(any(String.class));
+        verify(connection, times(6)).setAutoCommit(true);
         // The initial population is recorded immediately so the freshness header/UI reflects
         // it without waiting for the first scheduled refresh job.
-        verify(refreshStateUpsert, times(5)).executeUpdate();
+        verify(refreshStateUpsert, times(6)).executeUpdate();
     }
 
     @Test
@@ -88,9 +88,9 @@ class LeaderboardMvBootstrapConfigTest {
 
         config.bootstrapLeaderboardMvs(dataSource).run(mock(ApplicationArguments.class));
 
-        // 5 MVs x 1 statement (CREATE UNIQUE INDEX CONCURRENTLY only) — already populated, so
+        // 6 MVs x 1 statement (CREATE UNIQUE INDEX CONCURRENTLY only) — already populated, so
         // no initial REFRESH is needed.
-        verify(statement, times(5)).execute(any(String.class));
+        verify(statement, times(6)).execute(any(String.class));
         verify(refreshStateUpsert, never()).executeUpdate();
     }
 
@@ -104,9 +104,9 @@ class LeaderboardMvBootstrapConfigTest {
 
         config.bootstrapLeaderboardMvs(dataSource).run(mock(ApplicationArguments.class));
 
-        // 5 MVs x 1 statement (REFRESH only) — view+index already exist, just needs populating
-        verify(statement, times(5)).execute(any(String.class));
-        verify(refreshStateUpsert, times(5)).executeUpdate();
+        // 6 MVs x 1 statement (REFRESH only) — view+index already exist, just needs populating
+        verify(statement, times(6)).execute(any(String.class));
+        verify(refreshStateUpsert, times(6)).executeUpdate();
     }
 
     @Test

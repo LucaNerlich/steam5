@@ -7,7 +7,7 @@ import {Routes} from "../../../routes";
 export const revalidate = 3600;
 
 export default async function PerfectDaysPage() {
-    const days = await fetchPerfectDays();
+    const result = await fetchPerfectDays();
     const breadcrumbJsonLd = buildBreadcrumbJsonLd([
         {name: "Home", url: Routes.home},
         {name: "Leaderboard", url: Routes.leaderboard},
@@ -19,7 +19,7 @@ export default async function PerfectDaysPage() {
             <script type="application/ld+json" dangerouslySetInnerHTML={{
                 __html: JSON.stringify(breadcrumbJsonLd)
             }}/>
-            <PerfectDaysTable initialData={days}/>
+            <PerfectDaysTable initialData={result?.data ?? null} initialRefreshedAt={result?.refreshedAt ?? null}/>
         </>
     );
 }
