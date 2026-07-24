@@ -492,7 +492,8 @@ public interface GuessRepository extends JpaRepository<Guess, Long> {
 
     /**
      * Ranks games by difficulty (lowest average points first) with deception metrics.
-     * tooHigh/tooLow use the same leading-numeric regex approach as aggregateAllTimeStats.
+     * tooHigh/tooLow use the same leading-numeric regex approach used in the leaderboard
+     * materialized views (see backend/src/main/resources/db/mv-leaderboard-*.sql).
      * The most-common-wrong bucket is derived via DISTINCT ON per app_id from a CTE of
      * wrong-guess counts per (app_id, selected_bucket).
      */

@@ -1,11 +1,12 @@
 -- Materialized view backing the all-time leaderboard read path
 -- (LeaderboardService#buildAllTimeLeaderboard / GET /api/leaderboard/all).
 --
--- Reproduces GuessRepository#aggregateAllTimeStats() exactly: same GROUP BY steam_id,
--- same too-high/too-low leading-numeric-bucket regex comparison. LEFT JOINs `users` so a
--- guess from a steam_id with no `users` row still appears (profile columns come back NULL,
--- matching LeaderboardService's existing null-safe fallback) instead of being silently
--- dropped by an INNER JOIN.
+-- Reproduces the aggregation logic that once lived in GuessRepository#aggregateAllTimeStats()
+-- (now removed — replaced by this MV): same GROUP BY steam_id, same too-high/too-low
+-- leading-numeric-bucket regex comparison. LEFT JOINs `users` so a guess from a steam_id
+-- with no `users` row still appears (profile columns come back NULL, matching
+-- LeaderboardService's existing null-safe fallback) instead of being silently dropped by
+-- an INNER JOIN.
 --
 -- NOT managed by Hibernate ddl-auto — apply manually, same convention as
 -- idx_guesses_game_date (see README "Query Performance Notes"). Refreshed by
