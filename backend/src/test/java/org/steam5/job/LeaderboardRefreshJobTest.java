@@ -75,6 +75,13 @@ class LeaderboardRefreshJobTest {
     }
 
     @Test
+    void execute_hardestGames_refreshesThenEvicts() throws JobExecutionException {
+        job.execute(contextFor("HARDEST_GAMES"));
+        verify(refreshService).refreshHardestGames();
+        verify(cacheEvictor).evictLeaderboardStatic();
+    }
+
+    @Test
     void execute_refreshFails_stillEvictsThenWrapsException() {
         doThrow(new RuntimeException("boom")).when(refreshService).refreshSeason();
         JobExecutionContext context = contextFor("SEASON");

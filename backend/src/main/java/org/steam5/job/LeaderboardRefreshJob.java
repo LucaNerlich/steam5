@@ -18,8 +18,8 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Refreshes one leaderboard materialized view per firing, driven by the "type" JobDataMap
- * entry set on each of the four JobDetail beans below. A single parameterized job class
- * (rather than four near-identical ones) keeps the refresh-then-evict flow in one place.
+ * entry set on each of the five JobDetail beans below. A single parameterized job class
+ * (rather than five near-identical ones) keeps the refresh-then-evict flow in one place.
  */
 @Component
 @Slf4j
@@ -47,6 +47,7 @@ public class LeaderboardRefreshJob implements Job {
                 case MONTHLY -> refreshService.refreshMonthly();
                 case WEEKLY -> refreshService.refreshWeekly();
                 case SEASON -> refreshService.refreshSeason();
+                case HARDEST_GAMES -> refreshService.refreshHardestGames();
             }
         } catch (Exception e) {
             log.error("LeaderboardRefreshJob[{}] failed", type, e);
@@ -94,6 +95,15 @@ public class LeaderboardRefreshJob implements Job {
                 .storeDurably()
                 .withIdentity("LeaderboardRefreshJob_Season")
                 .usingJobData("type", LeaderboardType.SEASON.name())
+                .build();
+    }
+
+    @Bean("LeaderboardRefreshJob_HardestGames")
+    public JobDetail hardestGamesJobDetail() {
+        return JobBuilder.newJob().ofType(LeaderboardRefreshJob.class)
+                .storeDurably()
+                .withIdentity("LeaderboardRefreshJob_HardestGames")
+                .usingJobData("type", LeaderboardType.HARDEST_GAMES.name())
                 .build();
     }
 }
