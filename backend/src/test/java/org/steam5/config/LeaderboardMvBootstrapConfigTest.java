@@ -58,18 +58,18 @@ class LeaderboardMvBootstrapConfigTest {
     }
 
     @Test
-    void bootstrap_neitherExistsNorPopulated_createsViewIndexAndPopulatesForEachOfTheFourMvs() throws Exception {
+    void bootstrap_neitherExistsNorPopulated_createsViewIndexAndPopulatesForEachOfTheFiveMvs() throws Exception {
         stubExistence(false, false, false);
 
         config.bootstrapLeaderboardMvs(dataSource).run(mock(ApplicationArguments.class));
 
-        // 4 MVs x 3 statements (CREATE MATERIALIZED VIEW + CREATE UNIQUE INDEX CONCURRENTLY +
+        // 5 MVs x 3 statements (CREATE MATERIALIZED VIEW + CREATE UNIQUE INDEX CONCURRENTLY +
         // the initial REFRESH) each
-        verify(statement, times(12)).execute(any(String.class));
-        verify(connection, times(4)).setAutoCommit(true);
+        verify(statement, times(15)).execute(any(String.class));
+        verify(connection, times(5)).setAutoCommit(true);
         // The initial population is recorded immediately so the freshness header/UI reflects
         // it without waiting for the first scheduled refresh job.
-        verify(refreshStateUpsert, times(4)).executeUpdate();
+        verify(refreshStateUpsert, times(5)).executeUpdate();
     }
 
     @Test
@@ -88,9 +88,9 @@ class LeaderboardMvBootstrapConfigTest {
 
         config.bootstrapLeaderboardMvs(dataSource).run(mock(ApplicationArguments.class));
 
-        // 4 MVs x 1 statement (CREATE UNIQUE INDEX CONCURRENTLY only) — already populated, so
+        // 5 MVs x 1 statement (CREATE UNIQUE INDEX CONCURRENTLY only) — already populated, so
         // no initial REFRESH is needed.
-        verify(statement, times(4)).execute(any(String.class));
+        verify(statement, times(5)).execute(any(String.class));
         verify(refreshStateUpsert, never()).executeUpdate();
     }
 
@@ -99,14 +99,14 @@ class LeaderboardMvBootstrapConfigTest {
         // Covers the exact production/dev symptom this fix addresses: a view (and its index)
         // already exist — created by an earlier bootstrap run, or manually — but nothing has
         // ever refreshed it, so every read fails with "has not been populated" until whichever
-        // scheduled job fires next (up to 24h away for the season MV specifically).
+        // scheduled job fires next (up to 24h away for the season/hardest-games MVs specifically).
         stubExistence(true, false, true);
 
         config.bootstrapLeaderboardMvs(dataSource).run(mock(ApplicationArguments.class));
 
-        // 4 MVs x 1 statement (REFRESH only) — view+index already exist, just needs populating
-        verify(statement, times(4)).execute(any(String.class));
-        verify(refreshStateUpsert, times(4)).executeUpdate();
+        // 5 MVs x 1 statement (REFRESH only) — view+index already exist, just needs populating
+        verify(statement, times(5)).execute(any(String.class));
+        verify(refreshStateUpsert, times(5)).executeUpdate();
     }
 
     @Test

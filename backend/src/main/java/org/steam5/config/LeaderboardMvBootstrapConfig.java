@@ -22,11 +22,11 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Creates the four leaderboard materialized views and their unique indexes at startup if
- * they don't already exist, reading the canonical DDL from db/mv-leaderboard-*.sql — the
- * same files an operator would otherwise apply manually via psql. Uses a raw JDBC
- * connection with autocommit, not Hibernate's ddl-auto, because CREATE INDEX CONCURRENTLY
- * cannot run inside a transaction block.
+ * Creates the leaderboard and hardest-games materialized views and their unique indexes at
+ * startup if they don't already exist, reading the canonical DDL from db/mv-leaderboard-*.sql
+ * and db/mv-hardest-games.sql — the same files an operator would otherwise apply manually via
+ * psql. Uses a raw JDBC connection with autocommit, not Hibernate's ddl-auto, because
+ * CREATE INDEX CONCURRENTLY cannot run inside a transaction block.
  *
  * <p>Also runs a one-time initial REFRESH (and records it in {@code leaderboard_refresh_state},
  * matching {@code LeaderboardRefreshService}'s bookkeeping) for any view found unpopulated —
@@ -51,7 +51,8 @@ public class LeaderboardMvBootstrapConfig {
             new MvDefinition(LeaderboardType.ALL_TIME, "mv_leaderboard_all_time", "ux_mv_leaderboard_all_time_steam_id", "db/mv-leaderboard-all-time.sql"),
             new MvDefinition(LeaderboardType.MONTHLY, "mv_leaderboard_monthly", "ux_mv_leaderboard_monthly_steam_id", "db/mv-leaderboard-monthly.sql"),
             new MvDefinition(LeaderboardType.WEEKLY, "mv_leaderboard_weekly", "ux_mv_leaderboard_weekly_steam_id", "db/mv-leaderboard-weekly.sql"),
-            new MvDefinition(LeaderboardType.SEASON, "mv_leaderboard_season", "ux_mv_leaderboard_season_steam_id", "db/mv-leaderboard-season.sql")
+            new MvDefinition(LeaderboardType.SEASON, "mv_leaderboard_season", "ux_mv_leaderboard_season_steam_id", "db/mv-leaderboard-season.sql"),
+            new MvDefinition(LeaderboardType.HARDEST_GAMES, "mv_hardest_games", "ux_mv_hardest_games_app_id", "db/mv-hardest-games.sql")
     );
 
     @Bean
