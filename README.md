@@ -268,7 +268,7 @@ npm run dev
   ```
   Add this as a migration when schema management is centralized.
 - `GuessRepository` multi-scan CTE methods (`findUsersByPerfectDays*`, `findUsersByDailyTimeDiff*`) are currently service-cached; if data volume grows, prioritize window-function rewrites.
-- `leaderboardAllTime` is an inherent full-table aggregation and should be monitored as table size grows; caching reduces runtime pressure.
+- `GuessRepository#leaderboardAllTime` (a JPQL query, distinct from the materialized-view path above) currently has no callers — the all-time leaderboard read path now goes entirely through `mv_leaderboard_all_time`. Kept as-is rather than deleted in this pass; a future cleanup could remove it if it stays unused.
 
 ---
 
