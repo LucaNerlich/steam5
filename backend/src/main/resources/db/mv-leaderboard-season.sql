@@ -46,7 +46,10 @@ SELECT
 FROM guesses g
 JOIN current_season cs ON g.game_date BETWEEN cs.start_date AND cs.end_date
 LEFT JOIN users u ON u.steam_id = g.steam_id
-GROUP BY g.steam_id, u.steam_id
+-- Every u.* column is listed explicitly (see mv-leaderboard-all-time.sql's header for why:
+-- avoids a catalog dependency on users_pkey that would otherwise block DROP CONSTRAINT
+-- operations, e.g. from pg_restore --clean).
+GROUP BY g.steam_id, u.steam_id, u.persona_name, u.avatar_full, u.blurdata_avatar_full, u.profile_url
 ORDER BY SUM(g.points) DESC
 WITH NO DATA;
 

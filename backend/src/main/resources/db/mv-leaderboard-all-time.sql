@@ -39,7 +39,13 @@ SELECT
     u.profile_url                                                       AS profile_url
 FROM guesses g
 LEFT JOIN users u ON u.steam_id = g.steam_id
-GROUP BY g.steam_id, u.steam_id
+-- Every u.* column is listed explicitly (not just u.steam_id) so Postgres doesn't need its
+-- functional-dependency-on-primary-key optimization to allow them ungrouped. That
+-- optimization would otherwise record a catalog dependency from this view onto the
+-- users_pkey constraint itself, which then blocks any later `ALTER TABLE users DROP
+-- CONSTRAINT users_pkey` — including the one pg_restore --clean issues when reloading a
+-- backup — unless the caller adds CASCADE.
+GROUP BY g.steam_id, u.steam_id, u.persona_name, u.avatar_full, u.blurdata_avatar_full, u.profile_url
 ORDER BY SUM(g.points) DESC
 WITH NO DATA;
 

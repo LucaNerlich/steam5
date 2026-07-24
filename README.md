@@ -263,6 +263,18 @@ npm run dev
     `X-Leaderboard-Refreshed-At` response header (ISO-8601) on `/monthly`, `/weekly?floating=true`,
     `/season`, and `/all` — omitted until the first refresh completes. The frontend renders this as a
     localized "Last updated" line below the all-time/season/weekly-floating leaderboards.
+  - Every `u.*` column in each MV's `SELECT` is listed explicitly in its `GROUP BY` (not just
+    `u.steam_id`), so Postgres never invokes its functional-dependency-on-primary-key optimization for
+    them. That optimization, if relied on, records a catalog dependency from the view onto the
+    `users_pkey` constraint itself — which then blocks `ALTER TABLE users DROP CONSTRAINT users_pkey`
+    (including the one `pg_restore --clean` issues when reloading a backup) unless `CASCADE` is added.
+    **If your database still has MVs created before this fix**, they carry that old dependency and won't
+    self-correct — drop and let the app's bootstrap recreate them:
+    ```sql
+    DROP MATERIALIZED VIEW IF EXISTS mv_leaderboard_all_time, mv_leaderboard_monthly, mv_leaderboard_weekly, mv_leaderboard_season CASCADE;
+    ```
+    Run this once (before a `pg_restore --clean`, or any other operation touching `users_pkey`), then
+    restart the app — `LeaderboardMvBootstrapConfig` recreates and immediately populates all four.
   - A hook to trigger a season-MV refresh directly from `SeasonService#finalizeSeason`/`#ensureSeasonForDate`
     was considered but intentionally not added: the season job's 00:46 UTC cron already runs after
     `seasons-finalizer` (00:25), so the extra coupling wasn't justified. Revisit if season rollover timing
