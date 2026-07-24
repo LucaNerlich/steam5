@@ -9,6 +9,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.steam5.domain.LeaderboardType;
+import org.steam5.repository.LeaderboardRefreshStateRepository;
 import org.steam5.service.PlayerSpotlightService;
 import org.steam5.service.StatisticsService;
 
@@ -24,6 +26,7 @@ public class StatisticsController {
 
     private final StatisticsService statisticsService;
     private final PlayerSpotlightService playerSpotlightService;
+    private final LeaderboardRefreshStateRepository refreshStateRepository;
 
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Map<String, String>> indexJson() {
@@ -123,9 +126,11 @@ public class StatisticsController {
             @RequestParam(name = "limit", defaultValue = "25") int limit) {
         final int normalizedLimit = Math.max(1, Math.min(limit, 100));
         final List<StatisticsService.HardestGame> result = statisticsService.getHardestGames(normalizedLimit);
-        return ResponseEntity.ok()
-                .header("Cache-Control", "public, s-maxage=3600, max-age=600")
-                .body(result);
+        final ResponseEntity.BodyBuilder builder = ResponseEntity.ok()
+                .header("Cache-Control", "public, s-maxage=3600, max-age=600");
+        refreshStateRepository.findById(LeaderboardType.HARDEST_GAMES)
+                .ifPresent(state -> builder.header("X-Leaderboard-Refreshed-At", state.getRefreshedAt().toString()));
+        return builder.body(result);
     }
 }
 
