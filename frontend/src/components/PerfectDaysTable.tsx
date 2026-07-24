@@ -84,7 +84,7 @@ export default function PerfectDaysTable(props: {
                         <tr key={`${entry.steamId}-${entry.gameDate}`}>
                             <td className="num">{i + 1}</td>
                             <td>
-                                <span className="leaderboard__profile-link">
+                                <div className="leaderboard__player">
                                     {entry.avatar && (
                                         <div className="leaderboard__avatar-wrap">
                                             <Image
@@ -98,8 +98,8 @@ export default function PerfectDaysTable(props: {
                                             />
                                         </div>
                                     )}
-                                    {entry.personaName}
-                                </span>
+                                    <span className="leaderboard__profile-link">{entry.personaName}</span>
+                                </div>
                             </td>
                             <td>{entry.gameDate}</td>
                             <td style={{maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}} title={entry.appNames.join(', ')}>
@@ -136,7 +136,7 @@ export default function PerfectDaysTable(props: {
                         <tr key={player.steamId}>
                             <td className="num">{i + 1}</td>
                             <td>
-                                <span className="leaderboard__profile-link">
+                                <div className="leaderboard__player">
                                     {player.avatar && (
                                         <div className="leaderboard__avatar-wrap">
                                             <Image
@@ -150,8 +150,8 @@ export default function PerfectDaysTable(props: {
                                             />
                                         </div>
                                     )}
-                                    {player.name}
-                                </span>
+                                    <span className="leaderboard__profile-link">{player.name}</span>
+                                </div>
                             </td>
                             <td className="num">{player.count}</td>
                         </tr>
