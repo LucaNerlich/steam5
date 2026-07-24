@@ -221,12 +221,44 @@ npm run dev
 ## Query Performance Notes
 
 - `guesses` date-range queries (for example `findAllBetween`, `findSeasonStats`, `findSeasonDates`) rely on `idx_guesses_game_date`.
-- Leaderboard reads (`/api/leaderboard/all`, `/monthly`, `/weekly?floating=true`, `/season`) are backed by
-  materialized views (`mv_leaderboard_all_time`, `mv_leaderboard_monthly`, `mv_leaderboard_weekly`,
-  `mv_leaderboard_season` — see `backend/src/main/resources/db/mv-leaderboard-*.sql`). Like
-  `idx_guesses_game_date`, these are **not** managed by Hibernate `ddl-auto` and must be applied manually
-  against every environment (including each new dev DB). See the expanded write-up further down this
-  section for the full rollout order and refresh-job configuration.
+- Leaderboard reads (`/api/leaderboard/all`, `/monthly`, `/weekly?floating=true`, `/season`) are served
+  from materialized views (`mv_leaderboard_all_time`, `mv_leaderboard_monthly`, `mv_leaderboard_weekly`,
+  `mv_leaderboard_season` — see `backend/src/main/resources/db/mv-leaderboard-*.sql`) instead of
+  aggregating `guesses` on every request. This moves the expensive `GROUP BY steam_id` aggregation off
+  the request path and gives every app instance a single shared, consistent read model — unlike
+  per-instance Caffeine caching (`leaderboard-static`), which each instance populates independently and
+  can disagree for up to its TTL after a restart or scale-out event. Caffeine still sits in front of the
+  MV reads as a last-mile cache (10-minute TTL), so repeated identical requests avoid even the (now much
+  cheaper) MV `SELECT`. The non-floating `/weekly` variant (previous Monday-Sunday week) is not MV-backed
+  — its window doesn't match the MVs' rolling/current-window definitions — and remains a live
+  `findAllBetween` query, as before.
+  - Staleness is bounded by refresh cadence, not by the Caffeine TTL: each MV is refreshed by its own
+    Quartz job (`LeaderboardRefreshJob`, one per type via `JobDataMap`, gated by
+    `jobs.leaderboard-refresh-<type>.enabled`) on a nightly cron (00:40/00:42/00:44/00:46 UTC for
+    all-time/monthly/weekly/season respectively, staggered after `seasons-finalizer` at 00:25 so season
+    boundaries are settled) plus, for all-time/monthly/weekly only, an additional 10-minute interval
+    trigger matching the `leaderboard-static` cache TTL. The season MV intentionally has no intraday
+    trigger — its window depends on season rollover timing, not intraday freshness.
+  - **Manual application required, in this order** (these MVs and their unique indexes are not managed
+    by Hibernate `ddl-auto`, same as `idx_guesses_game_date`):
+    1. Apply each `db/mv-leaderboard-*.sql` script against the target database (creates the view
+       `WITH NO DATA` plus a `CREATE UNIQUE INDEX CONCURRENTLY` on `steam_id`, required for
+       `REFRESH MATERIALIZED VIEW CONCURRENTLY`).
+    2. Either run one manual `REFRESH MATERIALIZED VIEW mv_leaderboard_<type>;` per view before serving
+       traffic, or enable the corresponding `jobs.leaderboard-refresh-<type>.enabled` flag and let
+       `LeaderboardRefreshService` self-heal: it checks `pg_matviews.ispopulated` and automatically falls
+       back to a plain (non-concurrent) `REFRESH` the first time, then uses `CONCURRENTLY` afterward.
+       Until a view is populated, querying it raises a Postgres error — don't deploy the MV-backed read
+       path ahead of this step.
+    3. Only deploy/enable the MV-backed read path (`LeaderboardService`/`LeaderboardController`) after
+       steps 1-2 have completed on the target database.
+  - A hook to trigger a season-MV refresh directly from `SeasonService#finalizeSeason`/`#ensureSeasonForDate`
+    was considered but intentionally not added: the season job's 00:46 UTC cron already runs after
+    `seasons-finalizer` (00:25), so the extra coupling wasn't justified. Revisit if season rollover timing
+    ever needs tighter (sub-cron-interval) correctness.
+  - Validate the improvement empirically against the existing Grafana `steam5-postgres` dashboard (query
+    latency/throughput on the `guesses` table) and `steam5-caches` dashboard (Caffeine hit rate for
+    `leaderboard-static`) before/after rollout.
 - Profile history lookup uses `(steam_id, game_date, round_index)` via `findBySteamIdOrderByGameDateDescRoundIndexAsc`.
 - `SteamAppReviewsRepository` random-pick methods use a two-phase CTE + `NOT EXISTS` pattern to avoid random sorting on the full table.
 - Optional DBA-only index for large review datasets:
