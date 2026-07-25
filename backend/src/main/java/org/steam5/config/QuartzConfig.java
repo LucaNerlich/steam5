@@ -204,15 +204,25 @@ public class QuartzConfig {
 
     @Bean
     @ConditionalOnProperty(prefix = "jobs.leaderboard-refresh-season", name = "enabled", havingValue = "true", matchIfMissing = false)
-    public Trigger triggerLeaderboardRefreshSeason(@Qualifier("LeaderboardRefreshJob_Season") JobDetail job) {
+    public Trigger triggerLeaderboardRefreshSeasonNightly(@Qualifier("LeaderboardRefreshJob_Season") JobDetail job) {
         return TriggerBuilder.newTrigger().forJob(job)
-                .withIdentity("LeaderboardRefreshJob_Season_Trigger")
-                // daily at 00:46 UTC only — season boundary correctness matters more than
-                // intraday freshness, so no additional intraday trigger for this type
+                .withIdentity("LeaderboardRefreshJob_Season_Nightly_Trigger")
+                // daily at 00:46 UTC
                 .withSchedule(
                         CronScheduleBuilder.cronSchedule("0 46 0 * * ?")
                                 .inTimeZone(TimeZone.getTimeZone("UTC"))
                 )
+                .build();
+    }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "jobs.leaderboard-refresh-season", name = "enabled", havingValue = "true", matchIfMissing = false)
+    public Trigger triggerLeaderboardRefreshSeasonIntraday(@Qualifier("LeaderboardRefreshJob_Season") JobDetail job) {
+        return TriggerBuilder.newTrigger().forJob(job)
+                .withIdentity("LeaderboardRefreshJob_Season_Intraday_Trigger")
+                // See triggerLeaderboardRefreshAllTimeIntraday's comment for why this is delayed.
+                .startAt(Date.from(Instant.now().plusSeconds(60)))
+                .withSchedule(simpleSchedule().repeatForever().withIntervalInMinutes(10))
                 .build();
     }
 
