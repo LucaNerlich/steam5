@@ -228,10 +228,10 @@ public class QuartzConfig {
 
     @Bean
     @ConditionalOnProperty(prefix = "jobs.leaderboard-refresh-hardest-games", name = "enabled", havingValue = "true", matchIfMissing = false)
-    public Trigger triggerLeaderboardRefreshHardestGames(@Qualifier("LeaderboardRefreshJob_HardestGames") JobDetail job) {
+    public Trigger triggerLeaderboardRefreshHardestGamesNightly(@Qualifier("LeaderboardRefreshJob_HardestGames") JobDetail job) {
         return TriggerBuilder.newTrigger().forJob(job)
-                .withIdentity("LeaderboardRefreshJob_HardestGames_Trigger")
-                // daily at 00:48 UTC only — rankings change slowly; no intraday trigger needed
+                .withIdentity("LeaderboardRefreshJob_HardestGames_Nightly_Trigger")
+                // daily at 00:48 UTC
                 .withSchedule(
                         CronScheduleBuilder.cronSchedule("0 48 0 * * ?")
                                 .inTimeZone(TimeZone.getTimeZone("UTC"))
@@ -240,15 +240,35 @@ public class QuartzConfig {
     }
 
     @Bean
-    @ConditionalOnProperty(prefix = "jobs.leaderboard-refresh-perfect-days", name = "enabled", havingValue = "true", matchIfMissing = false)
-    public Trigger triggerLeaderboardRefreshPerfectDays(@Qualifier("LeaderboardRefreshJob_PerfectDays") JobDetail job) {
+    @ConditionalOnProperty(prefix = "jobs.leaderboard-refresh-hardest-games", name = "enabled", havingValue = "true", matchIfMissing = false)
+    public Trigger triggerLeaderboardRefreshHardestGamesIntraday(@Qualifier("LeaderboardRefreshJob_HardestGames") JobDetail job) {
         return TriggerBuilder.newTrigger().forJob(job)
-                .withIdentity("LeaderboardRefreshJob_PerfectDays_Trigger")
-                // daily at 00:50 UTC only — rankings change slowly; no intraday trigger needed
+                .withIdentity("LeaderboardRefreshJob_HardestGames_Intraday_Trigger")
+                .startAt(Date.from(Instant.now().plusSeconds(60)))
+                .withSchedule(simpleSchedule().repeatForever().withIntervalInMinutes(10))
+                .build();
+    }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "jobs.leaderboard-refresh-perfect-days", name = "enabled", havingValue = "true", matchIfMissing = false)
+    public Trigger triggerLeaderboardRefreshPerfectDaysNightly(@Qualifier("LeaderboardRefreshJob_PerfectDays") JobDetail job) {
+        return TriggerBuilder.newTrigger().forJob(job)
+                .withIdentity("LeaderboardRefreshJob_PerfectDays_Nightly_Trigger")
+                // daily at 00:50 UTC
                 .withSchedule(
                         CronScheduleBuilder.cronSchedule("0 50 0 * * ?")
                                 .inTimeZone(TimeZone.getTimeZone("UTC"))
                 )
+                .build();
+    }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "jobs.leaderboard-refresh-perfect-days", name = "enabled", havingValue = "true", matchIfMissing = false)
+    public Trigger triggerLeaderboardRefreshPerfectDaysIntraday(@Qualifier("LeaderboardRefreshJob_PerfectDays") JobDetail job) {
+        return TriggerBuilder.newTrigger().forJob(job)
+                .withIdentity("LeaderboardRefreshJob_PerfectDays_Intraday_Trigger")
+                .startAt(Date.from(Instant.now().plusSeconds(60)))
+                .withSchedule(simpleSchedule().repeatForever().withIntervalInMinutes(10))
                 .build();
     }
 }
