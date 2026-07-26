@@ -62,14 +62,11 @@ export function formatDuration(seconds: number): string {
 
 export function formatTimeOfDay(minutesSinceMidnightServer: number, serverOffsetMinutes = 0): string {
     const utcMinutesSinceMidnight = minutesSinceMidnightServer - serverOffsetMinutes;
-    const now = new Date();
-    const utcDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0));
-    const utcTime = new Date(utcDate.getTime() + utcMinutesSinceMidnight * 60000);
-    const localHours = utcTime.getHours();
-    const localMins = utcTime.getMinutes();
-    const period = localHours >= 12 ? 'PM' : 'AM';
-    const displayHours = localHours === 0 ? 12 : localHours > 12 ? localHours - 12 : localHours;
-    return `${displayHours}:${localMins.toString().padStart(2, '0')} ${period}`;
+    const hours = (Math.floor(utcMinutesSinceMidnight / 60) % 24 + 24) % 24;
+    const minutes = Math.round(utcMinutesSinceMidnight % 60);
+    const period = hours >= 12 ? 'PM' : 'AM';
+    const displayHours = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+    return `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}`;
 }
 
 export function getAchievementTitle(
