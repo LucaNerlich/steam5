@@ -106,7 +106,7 @@ export default function PerfectDaysTable(props: {
                                 {entry.appNames.join(', ')}
                             </td>
                             <td>
-                                <Link href={`/review-guesser/archive/${entry.gameDate}`}>
+                                <Link href={`/review-guesser/archive/${entry.gameDate}`} prefetch={false}>
                                     View
                                 </Link>
                             </td>
