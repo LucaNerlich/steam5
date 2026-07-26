@@ -2,13 +2,20 @@ import {BACKEND_ORIGIN} from "@/lib/backend";
 import {NextResponse} from "next/server";
 
 export const revalidate = 3600;
+const FETCH_TIMEOUT_MS = 30_000;
 
 export async function GET() {
     try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+
         const res = await fetch(`${BACKEND_ORIGIN}/api/stats/game/perfect-days`, {
             headers: {"accept": "application/json"},
             next: {revalidate, tags: ["stats-perfect-days"]},
+            signal: controller.signal,
         });
+        clearTimeout(timeout);
+
         const data = await res.json();
 
         const refreshedAtHeader = res.headers.get('X-Leaderboard-Refreshed-At');
@@ -18,7 +25,8 @@ export async function GET() {
         }
 
         return NextResponse.json(data, {status: res.status, headers});
-    } catch {
+    } catch (error) {
+        console.error('[Perfect Days API] Error:', error);
         return NextResponse.json({error: "Failed to load perfect days"}, {status: 502});
     }
 }
