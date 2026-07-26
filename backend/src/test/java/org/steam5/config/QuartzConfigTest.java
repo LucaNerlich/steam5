@@ -66,7 +66,6 @@ class QuartzConfigTest {
 
         Instant before = Instant.now();
         Trigger trigger = config.triggerLeaderboardRefreshHardestGamesIntraday(job);
-        Instant after = Instant.now();
 
         SimpleTrigger simpleTrigger = assertInstanceOf(SimpleTrigger.class, trigger);
         assertEquals(SimpleTrigger.REPEAT_INDEFINITELY, simpleTrigger.getRepeatCount());
@@ -116,7 +115,6 @@ class QuartzConfigTest {
 
         Instant before = Instant.now();
         Trigger trigger = config.triggerLeaderboardRefreshPerfectDaysIntraday(job);
-        Instant after = Instant.now();
 
         SimpleTrigger simpleTrigger = assertInstanceOf(SimpleTrigger.class, trigger);
         assertEquals(SimpleTrigger.REPEAT_INDEFINITELY, simpleTrigger.getRepeatCount());

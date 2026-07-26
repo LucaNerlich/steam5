@@ -9,22 +9,25 @@ export async function GET() {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
-        const res = await fetch(`${BACKEND_ORIGIN}/api/stats/game/perfect-days`, {
-            headers: {"accept": "application/json"},
-            next: {revalidate, tags: ["stats-perfect-days"]},
-            signal: controller.signal,
-        });
-        clearTimeout(timeout);
+        try {
+            const res = await fetch(`${BACKEND_ORIGIN}/api/stats/game/perfect-days`, {
+                headers: {"accept": "application/json"},
+                next: {revalidate, tags: ["stats-perfect-days"]},
+                signal: controller.signal,
+            });
 
-        const data = await res.json();
+            const data = await res.json();
 
-        const refreshedAtHeader = res.headers.get('X-Leaderboard-Refreshed-At');
-        const headers: HeadersInit = {};
-        if (refreshedAtHeader) {
-            headers['X-Leaderboard-Refreshed-At'] = refreshedAtHeader;
+            const refreshedAtHeader = res.headers.get('X-Leaderboard-Refreshed-At');
+            const headers: HeadersInit = {};
+            if (refreshedAtHeader) {
+                headers['X-Leaderboard-Refreshed-At'] = refreshedAtHeader;
+            }
+
+            return NextResponse.json(data, {status: res.status, headers});
+        } finally {
+            clearTimeout(timeout);
         }
-
-        return NextResponse.json(data, {status: res.status, headers});
     } catch (error) {
         console.error('[Perfect Days API] Error:', error);
         return NextResponse.json({error: "Failed to load perfect days"}, {status: 502});
