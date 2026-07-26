@@ -25,25 +25,34 @@ class QuartzConfigTest {
     }
 
     @Test
-    void triggerLeaderboardRefreshPerfectDays_targetsThePerfectDaysJob() {
+    void triggerLeaderboardRefreshPerfectDaysNightly_targetsThePerfectDaysJob() {
         JobDetail job = jobWithKey("LeaderboardRefreshJob_PerfectDays");
 
-        Trigger trigger = config.triggerLeaderboardRefreshPerfectDays(job);
+        Trigger trigger = config.triggerLeaderboardRefreshPerfectDaysNightly(job);
 
-        assertEquals("LeaderboardRefreshJob_PerfectDays_Trigger", trigger.getKey().getName());
+        assertEquals("LeaderboardRefreshJob_PerfectDays_Nightly_Trigger", trigger.getKey().getName());
         assertEquals(job.getKey(), trigger.getJobKey());
     }
 
     @Test
-    void triggerLeaderboardRefreshPerfectDays_isADailyCronScheduleAtZeroFiftyUtc() {
+    void triggerLeaderboardRefreshPerfectDaysNightly_isADailyCronScheduleAtZeroFiftyUtc() {
         JobDetail job = jobWithKey("LeaderboardRefreshJob_PerfectDays");
 
-        Trigger trigger = config.triggerLeaderboardRefreshPerfectDays(job);
+        Trigger trigger = config.triggerLeaderboardRefreshPerfectDaysNightly(job);
 
-        // daily at 00:50 UTC only — no intraday trigger, matching the hardest-games /
-        // season-style once-daily cadence documented in the code comment.
+        // daily at 00:50 UTC
         CronTrigger cronTrigger = assertInstanceOf(CronTrigger.class, trigger);
         assertEquals("0 50 0 * * ?", cronTrigger.getCronExpression());
         assertEquals(TimeZone.getTimeZone("UTC"), cronTrigger.getTimeZone());
+    }
+
+    @Test
+    void triggerLeaderboardRefreshPerfectDaysIntraday_targetsThePerfectDaysJob() {
+        JobDetail job = jobWithKey("LeaderboardRefreshJob_PerfectDays");
+
+        Trigger trigger = config.triggerLeaderboardRefreshPerfectDaysIntraday(job);
+
+        assertEquals("LeaderboardRefreshJob_PerfectDays_Intraday_Trigger", trigger.getKey().getName());
+        assertEquals(job.getKey(), trigger.getJobKey());
     }
 }
