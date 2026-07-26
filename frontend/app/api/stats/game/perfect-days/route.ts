@@ -1,7 +1,7 @@
 import {BACKEND_ORIGIN} from "@/lib/backend";
 import {NextResponse} from "next/server";
 
-export const revalidate = 3600;
+export const revalidate = 600;
 const FETCH_TIMEOUT_MS = 30_000;
 
 export async function GET() {
@@ -30,6 +30,17 @@ export async function GET() {
         }
     } catch (error) {
         console.error('[Perfect Days API] Error:', error);
-        return NextResponse.json({error: "Failed to load perfect days"}, {status: 502});
+        return NextResponse.json(
+            {
+                type: 'about:blank',
+                title: 'Bad Gateway',
+                status: 502,
+                detail: 'Failed to load perfect days',
+            },
+            {
+                status: 502,
+                headers: {'content-type': 'application/problem+json'},
+            },
+        );
     }
 }
