@@ -91,7 +91,7 @@ export default function HardestGamesTable(props: {
                                         Steam ↗
                                     </a>
                                     {" · "}
-                                    <Link href={`/review-guesser/archive/${game.latestPickDate}`}>
+                                    <Link href={`/review-guesser/archive/${game.latestPickDate}`} prefetch={false}>
                                         Archive
                                     </Link>
                                 </span>
