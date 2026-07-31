@@ -1,6 +1,7 @@
 "use client";
 
 import React, {useState} from "react";
+import {buildSteamLoginUrl} from "@/components/SteamLoginButton";
 import {
     REACTION_EMOJI,
     REACTION_TYPES,
@@ -25,7 +26,11 @@ export default function ReactionBar(props: {
     }
 
     const handleToggle = async (reactionType: ReactionType) => {
-        if (!canReact || pending) return;
+        if (pending) return;
+        if (!canReact) {
+            window.location.href = buildSteamLoginUrl();
+            return;
+        }
         setPending(reactionType);
         try {
             await toggleReaction(commentId, reactionType);
@@ -48,9 +53,10 @@ export default function ReactionBar(props: {
                         key={type}
                         type="button"
                         className={`reaction-bar__button${active ? " reaction-bar__button--active" : ""}`}
-                        disabled={!canReact || pending !== null}
+                        disabled={pending !== null}
                         aria-pressed={active}
-                        aria-label={`${REACTION_EMOJI[type]} reaction${count ? `, ${count}` : ""}`}
+                        title={canReact ? undefined : "Sign in to react"}
+                        aria-label={`${REACTION_EMOJI[type]} reaction${count ? `, ${count}` : ""}${canReact ? "" : " (sign in to react)"}`}
                         onClick={() => handleToggle(type)}
                     >
                         <span className="reaction-bar__emoji" aria-hidden="true">

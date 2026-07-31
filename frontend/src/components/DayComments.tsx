@@ -1,7 +1,9 @@
 "use client";
 
-import React, {useState} from "react";
+import React, {useActionState, useCallback, useEffect, useRef, useState} from "react";
 import Link from "next/link";
+import Form from "next/form";
+import {useFormStatus} from "react-dom";
 import useSWR from "swr";
 import {useAuth} from "@/contexts/AuthContext";
 import {buildSteamLoginUrl} from "@/components/SteamLoginButton";
@@ -9,32 +11,23 @@ import ReactionBar from "@/components/ReactionBar";
 import {
     commentsUrl,
     fetchComments,
-    postComment,
     type DayComment,
 } from "@/lib/comments";
-import {resolveLiveSignedIn} from "@/lib/authGuard";
-import {loadDay, type RoundResult} from "@/lib/storage";
+import {
+    postCommentAction,
+    type CommentActionState,
+} from "../../app/review-guesser/comments/actions";
 import "@/styles/components/dayComments.css";
 
 const MAX_BODY_LENGTH = 1000;
+
+const initialActionState: CommentActionState = {ok: false};
 
 function initialsFor(name: string | null | undefined): string {
     if (!name) return "?";
     const trimmed = name.trim();
     if (!trimmed) return "?";
     return trimmed.charAt(0).toUpperCase();
-}
-
-async function fetchSignedIn(): Promise<boolean> {
-    try {
-        const r = await fetch("/api/auth/me", {cache: "no-store"});
-        if (r.status === 401) return false;
-        if (!r.ok) return true;
-        const data = await r.json();
-        return Boolean(data?.signedIn);
-    } catch {
-        return true;
-    }
 }
 
 function CommentAvatar(props: {
@@ -68,94 +61,92 @@ function CommentAvatar(props: {
     );
 }
 
-function isDayComplete(props: {
-    gameDate?: string;
-    totalRounds: number;
-    latestRound: number;
-    latest: RoundResult;
-    results?: Record<number, RoundResult>;
-}): boolean {
-    const {gameDate, totalRounds, latestRound, latest, results} = props;
-    if (!gameDate) return false;
-    const stored = loadDay(gameDate);
-    const merged: Record<number, RoundResult> = {
-        ...(stored?.results || {}),
-        ...(results || {}),
-        [latestRound]: latest,
-    };
-    return Object.keys(merged).length >= totalRounds;
+function CommentSubmitButton(): React.ReactElement {
+    const {pending} = useFormStatus();
+    return (
+        <button
+            type="submit"
+            className="btn btn-cta comment-composer__submit"
+            disabled={pending}
+        >
+            {pending ? "Posting…" : "Post"}
+        </button>
+    );
+}
+
+function CommentComposer(props: {
+    gameDate: string;
+    onPosted: () => void | Promise<unknown>;
+    onUnauthorized: () => void;
+}): React.ReactElement {
+    const {gameDate, onPosted, onUnauthorized} = props;
+    const formRef = useRef<HTMLFormElement>(null);
+    const [posted, setPosted] = useState(false);
+    const [state, formAction] = useActionState(postCommentAction, initialActionState);
+    const lastHandled = useRef<CommentActionState | null>(null);
+
+    useEffect(() => {
+        if (!state || state === lastHandled.current) return;
+        lastHandled.current = state;
+
+        if (state.ok) {
+            formRef.current?.reset();
+            setPosted(true);
+            const timer = window.setTimeout(() => setPosted(false), 1500);
+            void onPosted();
+            return () => window.clearTimeout(timer);
+        }
+        if (state.unauthorized) {
+            onUnauthorized();
+        }
+    }, [state, onPosted, onUnauthorized]);
+
+    return (
+        <Form ref={formRef} className="comment-composer" action={formAction}>
+            <input type="hidden" name="gameDate" value={gameDate}/>
+            <textarea
+                className="comment-composer__input"
+                name="body"
+                maxLength={MAX_BODY_LENGTH}
+                placeholder="Share your take on today's games…"
+                aria-label="Comment"
+                required
+            />
+            <div className="comment-composer__actions">
+                <span className={`comment-composer__posted ${posted ? "is-visible" : ""}`}>
+                    Posted
+                </span>
+                <CommentSubmitButton/>
+            </div>
+            {state && !state.ok && state.error && (
+                <p className="comment-composer__error" role="alert">{state.error}</p>
+            )}
+        </Form>
+    );
 }
 
 export default function DayComments(props: {
     gameDate?: string;
-    totalRounds: number;
-    latestRound: number;
-    latest: {
-        appId: number;
-        pickName?: string;
-        selectedLabel: string;
-        actualBucket: string;
-        totalReviews: number;
-        correct: boolean;
-    };
-    results?: Record<number, {
-        pickName?: string;
-        appId: number;
-        selectedLabel: string;
-        actualBucket: string;
-        totalReviews: number;
-        correct: boolean;
-    }>;
-}) {
-    const {gameDate, totalRounds, latestRound, latest, results} = props;
+}): React.ReactElement | null {
+    const {gameDate} = props;
     const {isSignedIn, refreshAuth} = useAuth();
-    const [body, setBody] = useState("");
-    const [submitting, setSubmitting] = useState(false);
-    const [posted, setPosted] = useState(false);
-    const [error, setError] = useState<string | null>(null);
 
-    const complete = isDayComplete({gameDate, totalRounds, latestRound, latest, results});
-    const swrKey = complete && gameDate ? commentsUrl(gameDate) : null;
+    const swrKey = gameDate ? commentsUrl(gameDate) : null;
     const {data, error: loadError, isLoading, mutate} = useSWR<DayComment[]>(
         swrKey,
         () => fetchComments(gameDate as string),
         {revalidateOnFocus: false},
     );
 
-    if (!gameDate || !complete) return null;
+    const handlePosted = useCallback(() => {
+        void mutate();
+    }, [mutate]);
 
-    const handleSubmit = async (event: React.FormEvent) => {
-        event.preventDefault();
-        const trimmed = body.trim();
-        if (!trimmed || submitting) return;
-        if (trimmed.length > MAX_BODY_LENGTH) {
-            setError(`Comments must be ${MAX_BODY_LENGTH} characters or fewer.`);
-            return;
-        }
+    const handleUnauthorized = useCallback(() => {
+        refreshAuth();
+    }, [refreshAuth]);
 
-        const fetched = isSignedIn === false ? false : await fetchSignedIn();
-        const live = resolveLiveSignedIn(isSignedIn, fetched);
-        if (!live) {
-            refreshAuth();
-            setError("Sign in with Steam to post a comment.");
-            return;
-        }
-
-        setSubmitting(true);
-        setError(null);
-        try {
-            await postComment(gameDate, trimmed);
-            setBody("");
-            setPosted(true);
-            window.setTimeout(() => setPosted(false), 1500);
-            await mutate();
-        } catch (e) {
-            setError(e instanceof Error ? e.message : "Failed to post comment");
-            refreshAuth();
-        } finally {
-            setSubmitting(false);
-        }
-    };
+    if (!gameDate) return null;
 
     return (
         <section className="day-comments" aria-label="Day comments">
@@ -191,7 +182,7 @@ export default function DayComments(props: {
                                         commentId={comment.id}
                                         reactions={comment.reactions}
                                         canReact={isSignedIn === true}
-                                        onToggled={() => mutate()}
+                                        onToggled={handlePosted}
                                     />
                                 </div>
                             </li>
@@ -201,30 +192,11 @@ export default function DayComments(props: {
             )}
 
             {isSignedIn === true ? (
-                <form className="comment-composer" onSubmit={handleSubmit}>
-                    <textarea
-                        className="comment-composer__input"
-                        value={body}
-                        onChange={(e) => setBody(e.target.value)}
-                        maxLength={MAX_BODY_LENGTH}
-                        placeholder="Share your take on today's games…"
-                        aria-label="Comment"
-                        disabled={submitting}
-                    />
-                    <div className="comment-composer__actions">
-                        <span className={`comment-composer__posted ${posted ? "is-visible" : ""}`}>
-                            Posted
-                        </span>
-                        <button
-                            type="submit"
-                            className="btn btn-cta comment-composer__submit"
-                            disabled={submitting || body.trim().length === 0}
-                        >
-                            {submitting ? "Posting…" : "Post"}
-                        </button>
-                    </div>
-                    {error && <p className="comment-composer__error">{error}</p>}
-                </form>
+                <CommentComposer
+                    gameDate={gameDate}
+                    onPosted={handlePosted}
+                    onUnauthorized={handleUnauthorized}
+                />
             ) : (
                 <p className="day-comments__signin">
                     <button
@@ -236,7 +208,7 @@ export default function DayComments(props: {
                     >
                         Sign in with Steam
                     </button>
-                    {" "}to leave a comment.
+                    {" "}to leave a comment or react.
                 </p>
             )}
         </section>

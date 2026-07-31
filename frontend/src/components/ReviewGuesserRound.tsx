@@ -419,23 +419,6 @@ export default function ReviewGuesserRound({
                                     }
                                     results={!serverGuessesLoading && hasServerResults ? serverResults : undefined}
                                 />
-                                <DayComments
-                                    gameDate={gameDate}
-                                    totalRounds={totalRounds}
-                                    latestRound={latestStoredRoundIndex}
-                                    latest={(Object.keys(mergedServerResults).length > 0 ? mergedServerResults[latestStoredRoundIndex] : null) ||
-                                        latestStored ||
-                                        {
-                                            appId,
-                                            pickName,
-                                            selectedLabel: (storedThisRound?.selectedLabel ?? renderSelectedLabel ?? '') as string,
-                                            actualBucket: effectiveResponse ? effectiveResponse.actualBucket : (storedThisRound?.actualBucket ?? ''),
-                                            totalReviews: effectiveResponse ? effectiveResponse.totalReviews : (storedThisRound?.totalReviews ?? 0),
-                                            correct: effectiveResponse ? effectiveResponse.correct : (storedThisRound?.correct ?? false),
-                                        }
-                                    }
-                                    results={!serverGuessesLoading && hasServerResults ? serverResults : undefined}
-                                />
                                 {signedOutDuringPlay ? (
                                     <p className="text-muted review-round__signin-nudge">
                                         You&apos;ve been signed out, so this result wasn&apos;t saved.{" "}
@@ -457,6 +440,9 @@ export default function ReviewGuesserRound({
                     </RoundResultActions>
                 </RoundResultDialog>
             )}
+
+            {/* Comments are public for every visitor; posting/reacting still requires sign-in. */}
+            <DayComments gameDate={gameDate} />
 
             <AuthWarningModal
                 isOpen={showAuthWarning}
