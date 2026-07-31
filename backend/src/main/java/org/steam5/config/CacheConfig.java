@@ -159,6 +159,15 @@ public class CacheConfig {
                         .build()
         );
 
+        final CaffeineCache commentsForDay = new CaffeineCache(
+                "comments-for-day",
+                Caffeine.newBuilder()
+                        .expireAfterWrite(60, TimeUnit.SECONDS)
+                        .maximumSize(500)
+                        .recordStats()
+                        .build()
+        );
+
         final SimpleCacheManager cacheManager = new SimpleCacheManager();
         cacheManager.setCaches(List.of(
                 cacheOneHour,
@@ -176,7 +185,8 @@ public class CacheConfig {
                 seasonDetailResponse,
                 seasonAwards,
                 playerAwards,
-                playerSpotlights
+                playerSpotlights,
+                commentsForDay
         ));
         return cacheManager;
     }

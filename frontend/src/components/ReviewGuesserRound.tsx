@@ -11,6 +11,7 @@ import RoundResultActions from "@/components/RoundResultActions";
 import OtherPlayersNow from "@/components/OtherPlayersNow";
 import ShareControls from "@/components/ShareControls";
 import RoundSummary from "@/components/RoundSummary";
+import DayComments from "@/components/DayComments";
 import {buildSteamLoginUrl} from "@/components/SteamLoginButton";
 import {useAuth} from "@/contexts/AuthContext";
 import useServerGuesses from "@/lib/hooks/useServerGuesses";
@@ -402,6 +403,23 @@ export default function ReviewGuesserRound({
                                 />
                                 <RoundSummary
                                     buckets={buckets}
+                                    gameDate={gameDate}
+                                    totalRounds={totalRounds}
+                                    latestRound={latestStoredRoundIndex}
+                                    latest={(Object.keys(mergedServerResults).length > 0 ? mergedServerResults[latestStoredRoundIndex] : null) ||
+                                        latestStored ||
+                                        {
+                                            appId,
+                                            pickName,
+                                            selectedLabel: (storedThisRound?.selectedLabel ?? renderSelectedLabel ?? '') as string,
+                                            actualBucket: effectiveResponse ? effectiveResponse.actualBucket : (storedThisRound?.actualBucket ?? ''),
+                                            totalReviews: effectiveResponse ? effectiveResponse.totalReviews : (storedThisRound?.totalReviews ?? 0),
+                                            correct: effectiveResponse ? effectiveResponse.correct : (storedThisRound?.correct ?? false),
+                                        }
+                                    }
+                                    results={!serverGuessesLoading && hasServerResults ? serverResults : undefined}
+                                />
+                                <DayComments
                                     gameDate={gameDate}
                                     totalRounds={totalRounds}
                                     latestRound={latestStoredRoundIndex}

@@ -1,0 +1,208 @@
+.day-comments {
+    width: 100%;
+    margin-top: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.day-comments__title {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.day-comments__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+}
+
+.day-comments__item {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.55rem 0.65rem;
+    align-items: start;
+}
+
+.day-comments__avatar-link {
+    display: inline-flex;
+    text-decoration: none;
+}
+
+.day-comments__avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 2px solid var(--color-surface);
+    background: var(--color-surface-variant);
+    object-fit: cover;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-text);
+    text-transform: uppercase;
+    overflow: hidden;
+}
+
+.day-comments__body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    min-width: 0;
+}
+
+.day-comments__author {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--color-text);
+    text-decoration: none;
+}
+
+.day-comments__author:hover {
+    text-decoration: underline;
+}
+
+.day-comments__text {
+    margin: 0;
+    font-size: 0.9rem;
+    line-height: 1.4;
+    color: var(--color-text);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.day-comments__empty,
+.day-comments__status {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--color-muted);
+}
+
+.day-comments__signin {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--color-muted);
+}
+
+.comment-composer {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    position: relative;
+}
+
+.comment-composer__input {
+    width: 100%;
+    min-height: 4.5rem;
+    resize: vertical;
+    padding: 0.55rem 0.65rem;
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    background: var(--color-surface);
+    color: var(--color-text);
+    font: inherit;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.comment-composer__input:focus {
+    outline: 2px solid color-mix(in srgb, var(--color-primary) 55%, transparent);
+    outline-offset: 1px;
+}
+
+.comment-composer__actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
+.comment-composer__submit {
+    min-width: 5.5rem;
+}
+
+.comment-composer__posted {
+    font-size: 0.76rem;
+    font-weight: 600;
+    color: var(--color-text);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 150ms ease;
+}
+
+.comment-composer__posted.is-visible {
+    opacity: 1;
+}
+
+.comment-composer__error {
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--color-error);
+}
+
+.reaction-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.reaction-bar__button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.15rem 0.4rem;
+    border: 1px solid var(--color-border);
+    border-radius: 9999px;
+    background: var(--color-surface);
+    color: var(--color-text);
+    font-size: 0.78rem;
+    line-height: 1.2;
+    cursor: pointer;
+}
+
+.reaction-bar__button:hover {
+    border-color: color-mix(in srgb, var(--color-primary) 45%, var(--color-border));
+}
+
+.reaction-bar__button--active {
+    border-color: var(--color-primary);
+    background: color-mix(in srgb, var(--color-primary) 14%, var(--color-surface));
+}
+
+.reaction-bar__button:disabled {
+    opacity: 0.55;
+    cursor: default;
+}
+
+.reaction-bar__emoji {
+    font-family: 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', 'Twemoji Mozilla', 'EmojiOne Color', 'Android Emoji', 'Segoe UI Symbol', sans-serif;
+    font-size: 0.95rem;
+    letter-spacing: 0.02em;
+}
+
+.reaction-bar__count {
+    color: var(--color-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 640px) {
+    .day-comments {
+        margin-top: 0.55rem;
+    }
+
+    .comment-composer__actions {
+        justify-content: stretch;
+    }
+
+    .comment-composer__submit {
+        flex: 1;
+    }
+}

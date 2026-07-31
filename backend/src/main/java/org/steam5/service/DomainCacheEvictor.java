@@ -5,6 +5,8 @@ import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
+
 /**
  * Single owner of the domain cache topology: which Caffeine caches exist and which
  * entries must be evicted when underlying data changes. Services call the named
@@ -22,6 +24,7 @@ public class DomainCacheEvictor {
     static final String ONE_DAY = "one-day";
     static final String LEADERBOARD_STATIC = "leaderboard-static";
     static final String STATS_HOURLY = "stats-hourly";
+    static final String COMMENTS_FOR_DAY = "comments-for-day";
 
     private final CacheManager cacheManager;
 
@@ -65,6 +68,18 @@ public class DomainCacheEvictor {
      */
     public void evictStatsHourly() {
         clear(STATS_HOURLY);
+    }
+
+    /**
+     * Drop cached day-comment list responses after a comment or reaction write.
+     * Coarse (whole-cache) clear: the cache is small and short-lived (60s), so
+     * clearing unrelated day/viewer keys is an acceptable trade for not tracking
+     * per-key dependencies across anonymous and authenticated viewers.
+     *
+     * @param day unused today; retained so callers express the day they mutated
+     */
+    public void evictCommentsForDay(final LocalDate day) {
+        clear(COMMENTS_FOR_DAY);
     }
 
     private void clear(final String cacheName) {
