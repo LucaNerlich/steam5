@@ -1,9 +1,19 @@
 .day-comments {
     width: 100%;
-    margin-top: 0.75rem;
+    margin-top: 1rem;
+    padding: 0.85rem 0.9rem 0.95rem;
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--color-surface-variant) 55%, var(--color-surface));
+}
+
+.day-comments__header {
+    display: flex;
+    align-items: baseline;
+    gap: 0.45rem;
 }
 
 .day-comments__title {
@@ -13,13 +23,20 @@
     color: var(--color-text);
 }
 
+.day-comments__count {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--color-muted);
+    font-variant-numeric: tabular-nums;
+}
+
 .day-comments__list {
     list-style: none;
     margin: 0;
     padding: 0;
     display: flex;
     flex-direction: column;
-    gap: 0.65rem;
+    gap: 0;
 }
 
 .day-comments__item {
@@ -27,6 +44,17 @@
     grid-template-columns: auto 1fr;
     gap: 0.55rem 0.65rem;
     align-items: start;
+    padding: 0.7rem 0;
+    border-top: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
+}
+
+.day-comments__item:first-child {
+    border-top: none;
+    padding-top: 0.15rem;
+}
+
+.day-comments__item:last-child {
+    padding-bottom: 0.15rem;
 }
 
 .day-comments__avatar-link {
@@ -54,8 +82,15 @@
 .day-comments__body {
     display: flex;
     flex-direction: column;
-    gap: 0.3rem;
+    gap: 0.28rem;
     min-width: 0;
+}
+
+.day-comments__meta {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0.35rem 0.55rem;
 }
 
 .day-comments__author {
@@ -69,10 +104,16 @@
     text-decoration: underline;
 }
 
+.day-comments__time {
+    font-size: 0.74rem;
+    color: var(--color-muted);
+    font-variant-numeric: tabular-nums;
+}
+
 .day-comments__text {
     margin: 0;
     font-size: 0.9rem;
-    line-height: 1.4;
+    line-height: 1.45;
     color: var(--color-text);
     white-space: pre-wrap;
     overflow-wrap: anywhere;
@@ -86,7 +127,7 @@
 }
 
 .day-comments__signin {
-    margin: 0;
+    margin: 0.15rem 0 0;
     font-size: 0.85rem;
     color: var(--color-muted);
 }
@@ -94,8 +135,23 @@
 .comment-composer {
     display: flex;
     flex-direction: column;
-    gap: 0.45rem;
+    gap: 0.4rem;
     position: relative;
+    margin-top: 0.15rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
+}
+
+.comment-composer__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
 }
 
 .comment-composer__input {
@@ -121,7 +177,18 @@
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    gap: 0.5rem;
+    gap: 0.55rem;
+}
+
+.comment-composer__count {
+    margin-right: auto;
+    font-size: 0.74rem;
+    color: var(--color-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.comment-composer__count--warn {
+    color: var(--color-error);
 }
 
 .comment-composer__submit {
@@ -152,13 +219,14 @@
     flex-wrap: wrap;
     align-items: center;
     gap: 0.3rem;
+    margin-top: 0.15rem;
 }
 
 .reaction-bar__button {
     display: inline-flex;
     align-items: center;
     gap: 0.25rem;
-    padding: 0.15rem 0.4rem;
+    padding: 0.18rem 0.42rem;
     border: 1px solid var(--color-border);
     border-radius: 9999px;
     background: var(--color-surface);
@@ -166,9 +234,10 @@
     font-size: 0.78rem;
     line-height: 1.2;
     cursor: pointer;
+    transition: border-color 120ms ease, background-color 120ms ease, opacity 120ms ease;
 }
 
-.reaction-bar__button:hover {
+.reaction-bar__button:hover:not(:disabled) {
     border-color: color-mix(in srgb, var(--color-primary) 45%, var(--color-border));
 }
 
@@ -177,7 +246,11 @@
     background: color-mix(in srgb, var(--color-primary) 14%, var(--color-surface));
 }
 
-.reaction-bar__button:disabled {
+.reaction-bar__button--pending {
+    opacity: 0.7;
+}
+
+.reaction-bar__button:disabled:not(.reaction-bar__button--pending) {
     opacity: 0.55;
     cursor: default;
 }
@@ -195,14 +268,16 @@
 
 @media (max-width: 640px) {
     .day-comments {
-        margin-top: 0.55rem;
+        margin-top: 0.75rem;
+        padding: 0.75rem 0.7rem 0.85rem;
     }
 
     .comment-composer__actions {
-        justify-content: stretch;
+        flex-wrap: wrap;
     }
 
     .comment-composer__submit {
         flex: 1;
+        min-width: 0;
     }
 }

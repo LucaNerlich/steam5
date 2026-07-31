@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import {formatDate, formatPrice, ordinal, placementTier} from './format';
+import {formatDate, formatPrice, formatRelativeTime, ordinal, placementTier} from './format';
 
 describe('ordinal', () => {
     it('uses st/nd/rd/th for the common cases', () => {
@@ -39,6 +39,28 @@ describe('formatDate', () => {
 
     it('accepts a Date instance', () => {
         expect(formatDate(new Date('2024-12-31T00:00:00Z'), 'en-US')).toBe('Dec 31, 2024');
+    });
+});
+
+describe('formatRelativeTime', () => {
+    const now = new Date('2026-07-31T12:00:00Z');
+
+    it('returns just now for recent timestamps', () => {
+        expect(formatRelativeTime('2026-07-31T11:59:30Z', now)).toBe('just now');
+    });
+
+    it('returns minutes and hours for same-day ages', () => {
+        expect(formatRelativeTime('2026-07-31T11:50:00Z', now)).toBe('10m');
+        expect(formatRelativeTime('2026-07-31T09:00:00Z', now)).toBe('3h');
+    });
+
+    it('returns days under a week and a short date beyond that', () => {
+        expect(formatRelativeTime('2026-07-29T12:00:00Z', now)).toBe('2d');
+        expect(formatRelativeTime('2026-07-20T12:00:00Z', now, 'en-US')).toBe('Jul 20, 2026');
+    });
+
+    it('returns an empty string for invalid dates', () => {
+        expect(formatRelativeTime('not-a-date', now)).toBe('');
     });
 });
 

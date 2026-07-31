@@ -57,13 +57,19 @@ export default function ReactionBar(props: {
                 const entry = byType.get(type);
                 const count = entry?.count ?? 0;
                 const active = Boolean(entry?.reactedByViewer);
+                const isPending = pending === type;
                 return (
                     <button
                         key={type}
                         type="button"
-                        className={`reaction-bar__button${active ? " reaction-bar__button--active" : ""}`}
+                        className={[
+                            "reaction-bar__button",
+                            active ? "reaction-bar__button--active" : "",
+                            isPending ? "reaction-bar__button--pending" : "",
+                        ].filter(Boolean).join(" ")}
                         disabled={pending !== null}
                         aria-pressed={active}
+                        aria-busy={isPending}
                         title={canReact ? undefined : "Sign in to react"}
                         aria-label={`${REACTION_EMOJI[type]} reaction${count ? `, ${count}` : ""}${canReact ? "" : " (sign in to react)"}`}
                         onClick={() => handleToggle(type)}
