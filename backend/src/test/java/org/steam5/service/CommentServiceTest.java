@@ -2,6 +2,7 @@ package org.steam5.service;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Pageable;
 import org.steam5.domain.Comment;
 import org.steam5.domain.CommentReaction;
@@ -133,12 +134,8 @@ class CommentServiceTest {
         viewerReaction.setComment(comment);
         viewerReaction.setSteamId("viewer");
         viewerReaction.setReactionType(ReactionType.THUMBS_UP);
-        CommentReaction otherReaction = new CommentReaction();
-        otherReaction.setComment(comment);
-        otherReaction.setSteamId("other");
-        otherReaction.setReactionType(ReactionType.HUG);
-        when(commentReactionRepository.findByComment_IdIn(List.of(7L)))
-                .thenReturn(List.of(viewerReaction, otherReaction));
+        when(commentReactionRepository.findByComment_IdInAndSteamId(List.of(7L), "viewer"))
+                .thenReturn(List.of(viewerReaction));
 
         when(userRepository.findAllById(any())).thenReturn(List.of(user("u1", "Alice", "https://a")));
 
@@ -148,6 +145,8 @@ class CommentServiceTest {
         CommentService.CommentDto dto = result.getFirst();
         assertEquals("hello", dto.body());
         assertEquals("Alice", dto.author().personaName());
+        verify(commentReactionRepository).findByComment_IdInAndSteamId(List.of(7L), "viewer");
+        verify(commentReactionRepository, never()).findByComment_IdIn(any());
 
         CommentService.ReactionDto thumbs = dto.reactions().stream()
                 .filter(r -> r.reactionType().equals("THUMBS_UP"))
@@ -166,7 +165,7 @@ class CommentServiceTest {
 
     @Test
     void toggleReaction_throwsWhenCommentMissing() {
-        when(commentRepository.findById(42L)).thenReturn(Optional.empty());
+        when(commentRepository.findByIdForUpdate(42L)).thenReturn(Optional.empty());
 
         ReviewGameException ex = assertThrows(ReviewGameException.class,
                 () -> service.toggleReaction(42L, "u1", ReactionType.HUG));
@@ -179,17 +178,17 @@ class CommentServiceTest {
     void toggleReaction_deletesExistingReaction() {
         Comment comment = comment(7L, "u1", "hello");
         CommentReaction existing = new CommentReaction(3L, comment, "viewer", ReactionType.LAUGH_CRYING, OffsetDateTime.now());
-        when(commentRepository.findById(7L)).thenReturn(Optional.of(comment));
+        when(commentRepository.findByIdForUpdate(7L)).thenReturn(Optional.of(comment));
         when(commentReactionRepository.findByComment_IdAndSteamIdAndReactionType(
                 7L, "viewer", ReactionType.LAUGH_CRYING)).thenReturn(Optional.of(existing));
         when(commentReactionRepository.countByCommentIds(List.of(7L))).thenReturn(List.of());
-        when(commentReactionRepository.findByComment_IdIn(List.of(7L))).thenReturn(List.of());
+        when(commentReactionRepository.findByComment_IdInAndSteamId(List.of(7L), "viewer")).thenReturn(List.of());
 
         List<CommentService.ReactionDto> reactions =
                 service.toggleReaction(7L, "viewer", ReactionType.LAUGH_CRYING);
 
         verify(commentReactionRepository).delete(existing);
-        verify(commentReactionRepository, never()).save(any());
+        verify(commentReactionRepository, never()).saveAndFlush(any());
         verify(cacheEvictor).evictCommentsForDay(day);
         assertEquals(ReactionType.values().length, reactions.size());
     }
@@ -197,20 +196,43 @@ class CommentServiceTest {
     @Test
     void toggleReaction_createsMissingReaction() {
         Comment comment = comment(7L, "u1", "hello");
-        when(commentRepository.findById(7L)).thenReturn(Optional.of(comment));
+        when(commentRepository.findByIdForUpdate(7L)).thenReturn(Optional.of(comment));
         when(commentReactionRepository.findByComment_IdAndSteamIdAndReactionType(
                 7L, "viewer", ReactionType.HUG)).thenReturn(Optional.empty());
         when(commentReactionRepository.countByCommentIds(List.of(7L))).thenReturn(List.of());
-        when(commentReactionRepository.findByComment_IdIn(List.of(7L))).thenReturn(List.of());
+        when(commentReactionRepository.findByComment_IdInAndSteamId(List.of(7L), "viewer")).thenReturn(List.of());
 
         service.toggleReaction(7L, "viewer", ReactionType.HUG);
 
-        verify(commentReactionRepository).save(argThat(r ->
+        verify(commentReactionRepository).saveAndFlush(argThat(r ->
                 r.getComment() == comment
                         && "viewer".equals(r.getSteamId())
                         && r.getReactionType() == ReactionType.HUG
         ));
         verify(cacheEvictor).evictCommentsForDay(day);
+    }
+
+    @Test
+    void toggleReaction_treatsUniqueConstraintConflictAsAlreadyReacted() {
+        Comment comment = comment(7L, "u1", "hello");
+        when(commentRepository.findByIdForUpdate(7L)).thenReturn(Optional.of(comment));
+        when(commentReactionRepository.findByComment_IdAndSteamIdAndReactionType(
+                7L, "viewer", ReactionType.HUG)).thenReturn(Optional.empty());
+        when(commentReactionRepository.saveAndFlush(any(CommentReaction.class)))
+                .thenThrow(new DataIntegrityViolationException("uq_comment_reaction"));
+        when(commentReactionRepository.countByCommentIds(List.of(7L))).thenReturn(List.of());
+        when(commentReactionRepository.findByComment_IdInAndSteamId(List.of(7L), "viewer"))
+                .thenReturn(List.of(new CommentReaction(9L, comment, "viewer", ReactionType.HUG, OffsetDateTime.now())));
+
+        List<CommentService.ReactionDto> reactions =
+                assertDoesNotThrow(() -> service.toggleReaction(7L, "viewer", ReactionType.HUG));
+
+        verify(cacheEvictor).evictCommentsForDay(day);
+        CommentService.ReactionDto hug = reactions.stream()
+                .filter(r -> r.reactionType().equals("HUG"))
+                .findFirst()
+                .orElseThrow();
+        assertTrue(hug.reactedByViewer());
     }
 
     private static ReviewGamePick pick(Long id, Long appId) {

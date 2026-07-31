@@ -14,6 +14,8 @@ public interface CommentReactionRepository extends JpaRepository<CommentReaction
 
     List<CommentReaction> findByComment_IdIn(Collection<Long> commentIds);
 
+    List<CommentReaction> findByComment_IdInAndSteamId(Collection<Long> commentIds, String steamId);
+
     Optional<CommentReaction> findByComment_IdAndSteamIdAndReactionType(
             Long commentId, String steamId, ReactionType reactionType);
 

@@ -15,6 +15,7 @@ import org.steam5.service.CommentRateLimiter;
 import org.steam5.service.CommentService;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Map;
 
@@ -24,19 +25,23 @@ import java.util.Map;
 public class CommentController {
 
     private static final int MAX_BODY_LENGTH = 1000;
-    // Short TTL for today's comments; reactions can change frequently.
-    private static final String CACHE_LIVE = "public, s-maxage=60, max-age=30, must-revalidate";
-    // Moderate TTL for historical days — not immutable because reactions can still change.
-    private static final String CACHE_HISTORICAL = "public, max-age=300";
+    // Viewer-specific reactedByViewer flags — keep out of shared/CDN caches.
+    private static final String CACHE_LIVE = "private, max-age=30, must-revalidate";
+    private static final String CACHE_HISTORICAL = "private, max-age=300";
 
     private final CommentService commentService;
     private final CommentRateLimiter commentRateLimiter;
 
     @GetMapping("/{date}")
-    public ResponseEntity<List<CommentService.CommentDto>> listComments(
+    public ResponseEntity<?> listComments(
             @PathVariable("date") final String date,
             @CurrentUser final String steamId) {
-        final LocalDate day = LocalDate.parse(date);
+        final LocalDate day;
+        try {
+            day = LocalDate.parse(date);
+        } catch (DateTimeParseException ex) {
+            return ResponseEntity.badRequest().body(Map.of("error", "invalid_date"));
+        }
         final boolean isToday = day.equals(GameDate.todayUtc());
         final String cc = isToday ? CACHE_LIVE : CACHE_HISTORICAL;
         return ResponseEntity.ok()
@@ -62,7 +67,12 @@ public class CommentController {
         if (!commentRateLimiter.tryAcquireComment(steamId)) {
             return ResponseEntity.status(429).body(Map.of("error", "rate_limit_exceeded"));
         }
-        final LocalDate day = LocalDate.parse(date);
+        final LocalDate day;
+        try {
+            day = LocalDate.parse(date);
+        } catch (DateTimeParseException ex) {
+            return ResponseEntity.badRequest().body(Map.of("error", "invalid_date"));
+        }
         final CommentService.CommentDto created = commentService.createComment(steamId, day, body);
         return ResponseEntity.ok()
                 .header("Cache-Control", "no-store")

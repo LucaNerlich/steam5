@@ -243,6 +243,18 @@ export default function ReviewGuesserRound({
         return Math.max(...keys);
     })();
     const latestStored = storedResults[latestStoredRoundIndex] || mergedServerResults[latestStoredRoundIndex];
+    const latestResult = (Object.keys(mergedServerResults).length > 0
+        ? mergedServerResults[latestStoredRoundIndex]
+        : null) ||
+        latestStored ||
+        {
+            appId,
+            pickName,
+            selectedLabel: (storedThisRound?.selectedLabel ?? renderSelectedLabel ?? '') as string,
+            actualBucket: effectiveResponse ? effectiveResponse.actualBucket : (storedThisRound?.actualBucket ?? ''),
+            totalReviews: effectiveResponse ? effectiveResponse.totalReviews : (storedThisRound?.totalReviews ?? 0),
+            correct: effectiveResponse ? effectiveResponse.correct : (storedThisRound?.correct ?? false),
+        };
 
     // Submitted flag: either current state submitted, or restored from storage, or authenticated prefilled for this round
     const submittedFlag = Boolean(state && (state.ok || state.error)) || Boolean(storedThisRound) || Boolean(prefilled);
@@ -387,17 +399,7 @@ export default function ReviewGuesserRound({
                                     gameDate={gameDate}
                                     totalRounds={totalRounds}
                                     latestRound={latestStoredRoundIndex}
-                                    latest={(Object.keys(mergedServerResults).length > 0 ? mergedServerResults[latestStoredRoundIndex] : null) ||
-                                        latestStored ||
-                                        {
-                                            appId,
-                                            pickName,
-                                            selectedLabel: (storedThisRound?.selectedLabel ?? renderSelectedLabel ?? '') as string,
-                                            actualBucket: effectiveResponse ? effectiveResponse.actualBucket : (storedThisRound?.actualBucket ?? ''),
-                                            totalReviews: effectiveResponse ? effectiveResponse.totalReviews : (storedThisRound?.totalReviews ?? 0),
-                                            correct: effectiveResponse ? effectiveResponse.correct : (storedThisRound?.correct ?? false),
-                                        }
-                                    }
+                                    latest={latestResult}
                                     results={!serverGuessesLoading && hasServerResults ? serverResults : undefined}
                                     signedIn={signedIn}
                                 />
@@ -406,17 +408,7 @@ export default function ReviewGuesserRound({
                                     gameDate={gameDate}
                                     totalRounds={totalRounds}
                                     latestRound={latestStoredRoundIndex}
-                                    latest={(Object.keys(mergedServerResults).length > 0 ? mergedServerResults[latestStoredRoundIndex] : null) ||
-                                        latestStored ||
-                                        {
-                                            appId,
-                                            pickName,
-                                            selectedLabel: (storedThisRound?.selectedLabel ?? renderSelectedLabel ?? '') as string,
-                                            actualBucket: effectiveResponse ? effectiveResponse.actualBucket : (storedThisRound?.actualBucket ?? ''),
-                                            totalReviews: effectiveResponse ? effectiveResponse.totalReviews : (storedThisRound?.totalReviews ?? 0),
-                                            correct: effectiveResponse ? effectiveResponse.correct : (storedThisRound?.correct ?? false),
-                                        }
-                                    }
+                                    latest={latestResult}
                                     results={!serverGuessesLoading && hasServerResults ? serverResults : undefined}
                                 />
                                 {signedOutDuringPlay ? (

@@ -2,6 +2,7 @@ package org.steam5.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -78,10 +79,8 @@ public class CommentService {
 
         final Map<Long, Set<ReactionType>> viewerReactionsByComment = new HashMap<>();
         if (viewerSteamId != null && !viewerSteamId.isBlank()) {
-            for (final CommentReaction reaction : commentReactionRepository.findByComment_IdIn(commentIds)) {
-                if (!viewerSteamId.equals(reaction.getSteamId())) {
-                    continue;
-                }
+            for (final CommentReaction reaction
+                    : commentReactionRepository.findByComment_IdInAndSteamId(commentIds, viewerSteamId)) {
                 viewerReactionsByComment
                         .computeIfAbsent(reaction.getComment().getId(), id -> new HashSet<>())
                         .add(reaction.getReactionType());
@@ -106,7 +105,10 @@ public class CommentService {
 
     @Transactional
     public List<ReactionDto> toggleReaction(final Long commentId, final String steamId, final ReactionType reactionType) {
-        final Comment comment = commentRepository.findById(commentId)
+        // Row-lock the comment so concurrent toggles for the same target serialize
+        // their existence check + insert/delete. The unique constraint remains a
+        // backstop; DataIntegrityViolationException is treated as a no-op insert.
+        final Comment comment = commentRepository.findByIdForUpdate(commentId)
                 .orElseThrow(() -> new ReviewGameException(404, "comment_not_found"));
 
         final var existing = commentReactionRepository.findByComment_IdAndSteamIdAndReactionType(
@@ -118,7 +120,12 @@ public class CommentService {
             reaction.setComment(comment);
             reaction.setSteamId(steamId);
             reaction.setReactionType(reactionType);
-            commentReactionRepository.save(reaction);
+            try {
+                commentReactionRepository.saveAndFlush(reaction);
+            } catch (DataIntegrityViolationException ignored) {
+                // Another request inserted the same (comment, steamId, type) under
+                // the unique constraint; treat as already reacted.
+            }
         }
 
         evictCommentsForDayAfterCommit(comment.getGameDate());
@@ -132,10 +139,9 @@ public class CommentService {
             counts.put(row.getReactionType(), row.getReactionCount());
         }
         final Set<ReactionType> viewerHeld = new HashSet<>();
-        for (final CommentReaction reaction : commentReactionRepository.findByComment_IdIn(List.of(commentId))) {
-            if (viewerSteamId.equals(reaction.getSteamId())) {
-                viewerHeld.add(reaction.getReactionType());
-            }
+        for (final CommentReaction reaction
+                : commentReactionRepository.findByComment_IdInAndSteamId(List.of(commentId), viewerSteamId)) {
+            viewerHeld.add(reaction.getReactionType());
         }
         return reactionDtos(counts, viewerHeld);
     }

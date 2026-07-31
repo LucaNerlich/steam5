@@ -11,6 +11,7 @@ import org.steam5.service.CommentService;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+// List retained for toggle/create response fixtures.
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -37,11 +38,10 @@ class CommentControllerTest {
         LocalDate today = GameDate.todayUtc();
         when(commentService.listComments(today, null)).thenReturn(List.of());
 
-        ResponseEntity<List<CommentService.CommentDto>> response =
-                controller.listComments(today.toString(), null);
+        ResponseEntity<?> response = controller.listComments(today.toString(), null);
 
         assertEquals(200, response.getStatusCode().value());
-        assertEquals("public, s-maxage=60, max-age=30, must-revalidate",
+        assertEquals("private, max-age=30, must-revalidate",
                 response.getHeaders().getFirst("Cache-Control"));
         verify(commentService).listComments(today, null);
     }
@@ -51,12 +51,30 @@ class CommentControllerTest {
         LocalDate past = GameDate.todayUtc().minusDays(3);
         when(commentService.listComments(past, "viewer")).thenReturn(List.of());
 
-        ResponseEntity<List<CommentService.CommentDto>> response =
-                controller.listComments(past.toString(), "viewer");
+        ResponseEntity<?> response = controller.listComments(past.toString(), "viewer");
 
         assertEquals(200, response.getStatusCode().value());
-        assertEquals("public, max-age=300", response.getHeaders().getFirst("Cache-Control"));
+        assertEquals("private, max-age=300", response.getHeaders().getFirst("Cache-Control"));
         verify(commentService).listComments(past, "viewer");
+    }
+
+    @Test
+    void listComments_rejectsMalformedDate() {
+        ResponseEntity<?> response = controller.listComments("not-a-date", null);
+
+        assertEquals(400, response.getStatusCode().value());
+        assertEquals("invalid_date", ((Map<?, ?>) response.getBody()).get("error"));
+        verify(commentService, never()).listComments(any(), any());
+    }
+
+    @Test
+    void createComment_rejectsMalformedDate() {
+        ResponseEntity<?> response = controller.createComment(
+                "not-a-date", "u1", new CommentController.CreateCommentRequest("hi"));
+
+        assertEquals(400, response.getStatusCode().value());
+        assertEquals("invalid_date", ((Map<?, ?>) response.getBody()).get("error"));
+        verify(commentService, never()).createComment(any(), any(), any());
     }
 
     @Test
