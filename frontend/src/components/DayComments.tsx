@@ -73,16 +73,13 @@ function CommentAvatar(props: {
     );
 }
 
-<<<<<<< HEAD
 /**
  * Renders a comment submission button that indicates when submission is in progress.
  *
+ * @param disabled - When true, the button cannot be clicked (e.g. empty body).
  * @returns The comment submission button.
  */
-function CommentSubmitButton(): React.ReactElement {
-=======
 function CommentSubmitButton({disabled}: {disabled: boolean}): React.ReactElement {
->>>>>>> e011771 (Polish day comments section UX and styling)
     const {pending} = useFormStatus();
     return (
         <button
