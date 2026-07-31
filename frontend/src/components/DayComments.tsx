@@ -224,30 +224,32 @@ export default function DayComments(props: {
                                     avatar={author.avatar}
                                 />
                                 <div className="day-comments__body">
-                                    <div className="day-comments__meta">
-                                        <Link
-                                            href={`/profile/${author.steamId}`}
-                                            className="day-comments__author"
-                                        >
-                                            {displayName}
-                                        </Link>
-                                        {relative && (
-                                            <time
-                                                className="day-comments__time"
-                                                dateTime={comment.createdAt ?? undefined}
-                                                title={comment.createdAt ?? undefined}
+                                    <div className="day-comments__top">
+                                        <div className="day-comments__meta">
+                                            <Link
+                                                href={`/profile/${author.steamId}`}
+                                                className="day-comments__author"
                                             >
-                                                {relative}
-                                            </time>
-                                        )}
+                                                {displayName}
+                                            </Link>
+                                            {relative && (
+                                                <time
+                                                    className="day-comments__time"
+                                                    dateTime={comment.createdAt ?? undefined}
+                                                    title={comment.createdAt ?? undefined}
+                                                >
+                                                    {relative}
+                                                </time>
+                                            )}
+                                        </div>
+                                        <ReactionBar
+                                            commentId={comment.id}
+                                            reactions={comment.reactions}
+                                            canReact={isSignedIn === true}
+                                            onToggled={handlePosted}
+                                        />
                                     </div>
                                     <p className="day-comments__text">{comment.body}</p>
-                                    <ReactionBar
-                                        commentId={comment.id}
-                                        reactions={comment.reactions}
-                                        canReact={isSignedIn === true}
-                                        onToggled={handlePosted}
-                                    />
                                 </div>
                             </li>
                         );

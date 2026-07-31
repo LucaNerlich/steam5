@@ -82,8 +82,15 @@
 .day-comments__body {
     display: flex;
     flex-direction: column;
-    gap: 0.28rem;
+    gap: 0.35rem;
     min-width: 0;
+}
+
+.day-comments__top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.55rem 0.75rem;
 }
 
 .day-comments__meta {
@@ -91,6 +98,7 @@
     align-items: baseline;
     flex-wrap: wrap;
     gap: 0.35rem 0.55rem;
+    min-width: 0;
 }
 
 .day-comments__author {
@@ -215,50 +223,126 @@
 }
 
 .reaction-bar {
-    display: flex;
+    display: inline-flex;
     flex-wrap: wrap;
     align-items: center;
+    justify-content: flex-end;
     gap: 0.3rem;
-    margin-top: 0.15rem;
+    flex-shrink: 0;
+    position: relative;
 }
 
-.reaction-bar__button {
+.reaction-bar__summary {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.2rem;
+}
+
+.reaction-bar__chip {
     display: inline-flex;
     align-items: center;
-    gap: 0.25rem;
-    padding: 0.18rem 0.42rem;
+    gap: 0.18rem;
+    padding: 0.1rem 0.32rem;
+    border: 1px solid transparent;
+    border-radius: 0.4rem;
+    background: transparent;
+    color: var(--color-text);
+    font-size: 0.76rem;
+    line-height: 1.2;
+    cursor: pointer;
+}
+
+.reaction-bar__chip:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--color-surface) 70%, transparent);
+    border-color: color-mix(in srgb, var(--color-border) 70%, transparent);
+}
+
+.reaction-bar__chip--active {
+    background: color-mix(in srgb, var(--color-primary) 12%, var(--color-surface));
+    border-color: color-mix(in srgb, var(--color-primary) 40%, var(--color-border));
+}
+
+.reaction-bar__picker-wrap {
+    position: relative;
+}
+
+.reaction-bar__trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.05rem;
+    width: 1.85rem;
+    height: 1.85rem;
+    padding: 0;
     border: 1px solid var(--color-border);
     border-radius: 9999px;
     background: var(--color-surface);
-    color: var(--color-text);
-    font-size: 0.78rem;
-    line-height: 1.2;
+    color: var(--color-muted);
     cursor: pointer;
-    transition: border-color 120ms ease, background-color 120ms ease, opacity 120ms ease;
+    transition: border-color 120ms ease, color 120ms ease, background-color 120ms ease;
 }
 
-.reaction-bar__button:hover:not(:disabled) {
+.reaction-bar__trigger:hover:not(:disabled),
+.reaction-bar__trigger--open {
+    color: var(--color-text);
     border-color: color-mix(in srgb, var(--color-primary) 45%, var(--color-border));
 }
 
-.reaction-bar__button--active {
+.reaction-bar__trigger-plus {
+    font-size: 0.7rem;
+    font-weight: 700;
+    line-height: 1;
+    margin-left: -0.1rem;
+}
+
+.reaction-bar__picker {
+    position: absolute;
+    top: calc(100% + 0.3rem);
+    right: 0;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    gap: 0.2rem;
+    padding: 0.28rem;
+    border: 1px solid var(--color-border);
+    border-radius: 9999px;
+    background: var(--color-surface);
+    box-shadow: 0 4px 14px color-mix(in srgb, var(--color-text) 10%, transparent);
+}
+
+.reaction-bar__option {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.85rem;
+    height: 1.85rem;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 9999px;
+    background: transparent;
+    cursor: pointer;
+    transition: background-color 120ms ease, border-color 120ms ease, opacity 120ms ease;
+}
+
+.reaction-bar__option:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--color-surface-variant) 80%, var(--color-surface));
+}
+
+.reaction-bar__option--active {
     border-color: var(--color-primary);
     background: color-mix(in srgb, var(--color-primary) 14%, var(--color-surface));
 }
 
-.reaction-bar__button--pending {
+.reaction-bar__option--pending {
     opacity: 0.7;
-}
-
-.reaction-bar__button:disabled:not(.reaction-bar__button--pending) {
-    opacity: 0.55;
-    cursor: default;
 }
 
 .reaction-bar__emoji {
     font-family: 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', 'Twemoji Mozilla', 'EmojiOne Color', 'Android Emoji', 'Segoe UI Symbol', sans-serif;
     font-size: 0.95rem;
     letter-spacing: 0.02em;
+    line-height: 1;
 }
 
 .reaction-bar__count {
@@ -270,6 +354,14 @@
     .day-comments {
         margin-top: 0.75rem;
         padding: 0.75rem 0.7rem 0.85rem;
+    }
+
+    .day-comments__top {
+        flex-wrap: wrap;
+    }
+
+    .reaction-bar {
+        margin-left: auto;
     }
 
     .comment-composer__actions {
