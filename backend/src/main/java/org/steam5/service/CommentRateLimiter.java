@@ -26,16 +26,35 @@ public class CommentRateLimiter {
             .maximumSize(10_000)
             .build();
 
+    /**
+     * Determines whether a user may submit another comment within the current minute.
+     *
+     * @param steamId the user's Steam ID; null or blank IDs bypass the rate limit
+     * @return {@code true} if the user is within the five-comment limit, {@code false} otherwise
+     */
     public boolean tryAcquireComment(final String steamId) {
         if (steamId == null || steamId.isBlank()) return true;
         return increment(commentsByUser, steamId) <= COMMENT_LIMIT_PER_MINUTE;
     }
 
+    /**
+     * Determines whether a user may submit another reaction within the current minute.
+     *
+     * @param steamId the user's Steam ID; null or blank IDs bypass rate limiting
+     * @return {@code true} if the user is within the per-minute reaction limit, {@code false} otherwise
+     */
     public boolean tryAcquireReaction(final String steamId) {
         if (steamId == null || steamId.isBlank()) return true;
         return increment(reactionsByUser, steamId) <= REACTION_LIMIT_PER_MINUTE;
     }
 
+    /**
+     * Increments the counter associated with a key in the cache.
+     *
+     * @param cache the cache containing the counters
+     * @param key   the counter key
+     * @return the counter value after incrementing
+     */
     private static int increment(final Cache<String, AtomicInteger> cache, final String key) {
         return cache.get(key, k -> new AtomicInteger(0)).incrementAndGet();
     }

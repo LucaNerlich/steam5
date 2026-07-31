@@ -4,6 +4,12 @@ import {BACKEND_ORIGIN} from "@/lib/backend";
 
 const NO_STORE = {"Cache-Control": "private, no-store"} as const;
 
+/**
+ * Toggles the authenticated user's reaction to a review-game comment.
+ *
+ * @param commentId - The identifier of the comment whose reaction is toggled
+ * @returns The backend reaction response, or an unauthorized or forwarding-error response
+ */
 export async function POST(
     req: NextRequest,
     {params}: { params: Promise<{ commentId: string }> },

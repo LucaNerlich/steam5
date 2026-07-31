@@ -42,6 +42,15 @@ public class CommentService {
     private final UserRepository userRepository;
     private final DomainCacheEvictor cacheEvictor;
 
+    /**
+     * Creates a comment for a completed game day.
+     *
+     * @param steamId  the Steam ID of the comment author
+     * @param gameDate the game date associated with the comment
+     * @param body     the comment text
+     * @return         the created comment
+     * @throws ReviewGameException if the user has not completed the game for the specified day
+     */
     @Transactional
     public CommentDto createComment(final String steamId, final LocalDate gameDate, final String body) {
         final int guessedRounds = guessRepository.findAllForDay(steamId, gameDate).size();
@@ -59,6 +68,13 @@ public class CommentService {
         return toDto(saved, Map.of(), Set.of());
     }
 
+    /**
+     * Lists the newest comments for a game date, including reaction counts and author details.
+     *
+     * @param gameDate       the game date whose comments are requested
+     * @param viewerSteamId  the optional Steam ID used to identify the viewer's reactions
+     * @return the comments for the specified game date, with at most 100 entries
+     */
     @Transactional(readOnly = true)
     @Cacheable(value = "comments-for-day", key = "#gameDate.toString() + ':' + (#viewerSteamId != null ? #viewerSteamId : 'anon')")
     public List<CommentDto> listComments(final LocalDate gameDate, final String viewerSteamId) {
@@ -103,6 +119,15 @@ public class CommentService {
         return result;
     }
 
+    /**
+     * Toggles the specified reaction for a comment and returns the comment's updated reaction counts.
+     *
+     * @param commentId    the ID of the comment to update
+     * @param steamId      the Steam ID of the reacting user
+     * @param reactionType the reaction type to add or remove
+     * @return the updated reaction details for the comment
+     * @throws ReviewGameException if the comment does not exist
+     */
     @Transactional
     public List<ReactionDto> toggleReaction(final Long commentId, final String steamId, final ReactionType reactionType) {
         // Row-lock the comment so concurrent toggles for the same target serialize
@@ -132,6 +157,13 @@ public class CommentService {
         return buildReactionDtos(commentId, steamId);
     }
 
+    /**
+     * Builds reaction details for a comment, including aggregate counts and the viewer's reaction status.
+     *
+     * @param commentId      the comment whose reactions are mapped
+     * @param viewerSteamId  the Steam ID of the viewer
+     * @return              reaction details for each reaction type
+     */
     private List<ReactionDto> buildReactionDtos(final Long commentId, final String viewerSteamId) {
         final Map<ReactionType, Long> counts = new EnumMap<>(ReactionType.class);
         for (final CommentReactionRepository.ReactionCountRow row
@@ -146,6 +178,14 @@ public class CommentService {
         return reactionDtos(counts, viewerHeld);
     }
 
+    /**
+     * Converts a comment and its reaction data into a comment DTO.
+     *
+     * @param comment     the comment to convert
+     * @param counts      reaction counts grouped by type
+     * @param viewerHeld  reaction types held by the viewer
+     * @return            the converted comment DTO
+     */
     private CommentDto toDto(final Comment comment,
                              final Map<ReactionType, Long> counts,
                              final Set<ReactionType> viewerHeld) {
@@ -166,6 +206,13 @@ public class CommentService {
         );
     }
 
+    /**
+     * Creates an author DTO from a Steam ID and optional user profile data.
+     *
+     * @param steamId the Steam ID used when profile data is unavailable
+     * @param user the user's profile data, or {@code null}
+     * @return the mapped author details, using fallback profile fields when necessary
+     */
     private static AuthorDto toAuthor(final String steamId, final User user) {
         if (user == null) {
             return new AuthorDto(steamId, steamId, null, null);
@@ -182,6 +229,13 @@ public class CommentService {
         return new AuthorDto(user.getSteamId(), personaName, avatar, avatarBlurdata);
     }
 
+    /**
+     * Creates reaction DTOs for every supported reaction type.
+     *
+     * @param counts     reaction counts by type
+     * @param viewerHeld reaction types held by the viewer
+     * @return reaction DTOs with counts and viewer-reaction status
+     */
     private static List<ReactionDto> reactionDtos(final Map<ReactionType, Long> counts,
                                                   final Set<ReactionType> viewerHeld) {
         final List<ReactionDto> reactions = new ArrayList<>(ReactionType.values().length);
@@ -195,6 +249,12 @@ public class CommentService {
         return reactions;
     }
 
+    /**
+     * Evicts cached comments for a game day after the current transaction commits,
+     * or immediately when transaction synchronization is unavailable.
+     *
+     * @param day the game day whose cached comments should be evicted
+     */
     private void evictCommentsForDayAfterCommit(final LocalDate day) {
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {

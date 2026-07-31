@@ -13,6 +13,11 @@ import java.util.concurrent.TimeUnit;
 @Configuration
 public class CacheConfig {
 
+    /**
+     * Configures the application's named Caffeine caches.
+     *
+     * @return a cache manager containing the configured caches
+     */
     @Bean
     public CacheManager cacheManager() {
         final CaffeineCache cacheOneHour = new CaffeineCache(

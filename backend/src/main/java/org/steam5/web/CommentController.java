@@ -32,6 +32,13 @@ public class CommentController {
     private final CommentService commentService;
     private final CommentRateLimiter commentRateLimiter;
 
+    /**
+     * Lists comments for the specified date.
+     *
+     * @param date   the date in ISO-8601 format
+     * @param steamId the authenticated viewer's Steam ID, if available
+     * @return       the comments for the date, or a bad-request response when the date is invalid
+     */
     @GetMapping("/{date}")
     public ResponseEntity<?> listComments(
             @PathVariable("date") final String date,
@@ -49,6 +56,15 @@ public class CommentController {
                 .body(commentService.listComments(day, steamId));
     }
 
+    /**
+     * Creates a comment for the specified date.
+     *
+     * @param date the comment date in ISO-8601 format
+     * @param steamId the authenticated Steam user identifier
+     * @param req the request containing the comment body
+     * @return the created comment, or an error response for unauthenticated, invalid,
+     *         rate-limited, or invalid-date requests
+     */
     @PostMapping("/{date}")
     public ResponseEntity<?> createComment(
             @PathVariable("date") final String date,
@@ -79,6 +95,14 @@ public class CommentController {
                 .body(created);
     }
 
+    /**
+     * Toggles a reaction on a comment for an authenticated user.
+     *
+     * @param commentId the identifier of the comment
+     * @param req       the requested reaction type
+     * @return the updated reactions, or an error response for invalid authentication,
+     *         reaction types, or rate limits
+     */
     @PostMapping("/{commentId}/reactions")
     public ResponseEntity<?> toggleReaction(
             @PathVariable("commentId") final Long commentId,

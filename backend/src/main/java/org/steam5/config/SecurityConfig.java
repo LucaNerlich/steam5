@@ -73,7 +73,8 @@ public class SecurityConfig {
     }
 
     /**
-     * Configures security for application endpoints and registers authentication and rate-limiting filters.
+     * Configures security for application endpoints, including public routes, authentication requirements,
+     * HTTP Basic authentication, and custom security filters.
      *
      * @return the configured application security filter chain
      */

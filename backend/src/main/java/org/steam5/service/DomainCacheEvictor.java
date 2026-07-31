@@ -59,29 +59,26 @@ public class DomainCacheEvictor {
     }
 
     /**
-     * Drop cached {@code stats-hourly} entries (hardest-games ranking, top-games-by-reviews,
-     * daily-avg-scores, etc). Call after the hardest-games materialized view refresh, since
-     * this cache's 1-hour TTL would otherwise let the "Last updated" header outrun the cached
-     * body it labels by up to that long. Coarse (whole-cache) on purpose, matching {@link
-     * #evictLeaderboardStatic()} — cheap and infrequent (once daily), so clearing unrelated
-     * entries in the same cache is an acceptable trade for not tracking per-key dependencies.
+     * Clears cached hourly statistics, including hardest-games rankings and related aggregates.
      */
     public void evictStatsHourly() {
         clear(STATS_HOURLY);
     }
 
     /**
-     * Drop cached day-comment list responses after a comment or reaction write.
-     * Coarse (whole-cache) clear: the cache is small and short-lived (60s), so
-     * clearing unrelated day/viewer keys is an acceptable trade for not tracking
-     * per-key dependencies across anonymous and authenticated viewers.
+     * Clears cached comment data for all days.
      *
-     * @param day unused today; retained so callers express the day they mutated
+     * @param day the day associated with the modified comments
      */
     public void evictCommentsForDay(final LocalDate day) {
         clear(COMMENTS_FOR_DAY);
     }
 
+    /**
+     * Clears the named cache when it is available.
+     *
+     * @param cacheName the name of the cache to clear
+     */
     private void clear(final String cacheName) {
         final Cache cache = cacheManager.getCache(cacheName);
         if (cache != null) {

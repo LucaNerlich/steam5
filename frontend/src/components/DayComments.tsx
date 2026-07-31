@@ -23,6 +23,12 @@ const MAX_BODY_LENGTH = 1000;
 
 const initialActionState: CommentActionState = {ok: false};
 
+/**
+ * Gets the uppercase initial for a name.
+ *
+ * @param name - The name to extract an initial from
+ * @returns The uppercase first character of the trimmed name, or `"?"` when the name is missing or blank
+ */
 function initialsFor(name: string | null | undefined): string {
     if (!name) return "?";
     const trimmed = name.trim();
@@ -30,6 +36,11 @@ function initialsFor(name: string | null | undefined): string {
     return trimmed.charAt(0).toUpperCase();
 }
 
+/**
+ * Renders a profile link with a user's avatar or name initials fallback.
+ *
+ * @param props - The user's Steam ID, display name, and optional avatar URL.
+ */
 function CommentAvatar(props: {
     steamId: string;
     personaName: string;
@@ -61,6 +72,11 @@ function CommentAvatar(props: {
     );
 }
 
+/**
+ * Renders a comment submission button that indicates when submission is in progress.
+ *
+ * @returns The comment submission button.
+ */
 function CommentSubmitButton(): React.ReactElement {
     const {pending} = useFormStatus();
     return (
@@ -74,6 +90,11 @@ function CommentSubmitButton(): React.ReactElement {
     );
 }
 
+/**
+ * Renders a form for submitting a comment associated with a game date.
+ *
+ * @param props - The game date and callbacks for successful or unauthorized submissions.
+ */
 function CommentComposer(props: {
     gameDate: string;
     onPosted: () => void | Promise<unknown>;
@@ -125,6 +146,13 @@ function CommentComposer(props: {
     );
 }
 
+/**
+ * Displays comments and comment interactions for a game date.
+ *
+ * @param props - Component properties.
+ * @param props.gameDate - The game date whose comments are displayed.
+ * @returns The comments section, or `null` when no game date is provided.
+ */
 export default function DayComments(props: {
     gameDate?: string;
 }): React.ReactElement | null {

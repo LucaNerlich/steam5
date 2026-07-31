@@ -14,11 +14,20 @@ import java.util.Optional;
 
 public interface CommentRepository extends JpaRepository<Comment, Long> {
 
-    List<Comment> findByGameDateOrderByCreatedAtDesc(LocalDate gameDate, Pageable pageable);
+    /**
+ * Retrieves comments for a game date, ordered from newest to oldest.
+ *
+ * @param gameDate the game date used to filter comments
+ * @param pageable pagination and result-size settings
+ * @return comments matching the game date in descending creation order
+ */
+List<Comment> findByGameDateOrderByCreatedAtDesc(LocalDate gameDate, Pageable pageable);
 
     /**
-     * Loads a comment under a row lock so concurrent reaction toggles for the same
-     * comment serialize their insert/delete decisions.
+     * Retrieves a comment while acquiring a pessimistic write lock.
+     *
+     * @param id the comment identifier
+     * @return the locked comment, if found
      */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select c from Comment c where c.id = :id")

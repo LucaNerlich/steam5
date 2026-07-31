@@ -11,6 +11,15 @@ import {
 } from "@/lib/comments";
 import "@/styles/components/dayComments.css";
 
+/**
+ * Displays reaction buttons for a comment and handles reaction toggles.
+ *
+ * @param props.commentId - The ID of the comment whose reactions are being changed.
+ * @param props.reactions - The comment's current reaction data.
+ * @param props.canReact - Whether the viewer is allowed to react.
+ * @param props.onToggled - Callback invoked after a reaction is successfully changed.
+ * @returns A grouped set of reaction buttons.
+ */
 export default function ReactionBar(props: {
     commentId: number;
     reactions: CommentReactionDto[];

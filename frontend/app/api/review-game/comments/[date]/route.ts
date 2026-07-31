@@ -4,6 +4,12 @@ import {BACKEND_ORIGIN} from "@/lib/backend";
 
 const NO_STORE = {"Cache-Control": "private, no-store"} as const;
 
+/**
+ * Retrieves review-game comments for a specified date.
+ *
+ * @param params - Route parameters containing the requested date.
+ * @returns A response containing the comments, or an error response when retrieval fails.
+ */
 export async function GET(
     _req: NextRequest,
     {params}: { params: Promise<{ date: string }> },
@@ -36,6 +42,12 @@ export async function GET(
     }
 }
 
+/**
+ * Posts a review-game comment for the specified date.
+ *
+ * @param params - Route parameters containing the review date.
+ * @returns A response containing the backend result, or an unauthorized or gateway-error response.
+ */
 export async function POST(
     req: NextRequest,
     {params}: { params: Promise<{ date: string }> },

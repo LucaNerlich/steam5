@@ -12,8 +12,10 @@ export type CommentActionState = {
 };
 
 /**
- * Posts a day comment via the backend using the HttpOnly session cookie.
- * Mirrors submitGuessAction: auth is read server-side, never from the client.
+ * Submits a day comment using the server-side session.
+ *
+ * @param formData - Form data containing the game date and comment body
+ * @returns The submission status, optional error message, and created comment ID on success
  */
 export async function postCommentAction(
     _prev: CommentActionState | undefined,

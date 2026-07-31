@@ -33,6 +33,9 @@ public class Comment {
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 
+    /**
+     * Sets the creation timestamp before persistence when it has not been provided.
+     */
     @PrePersist
     public void prePersist() {
         if (createdAt == null) {

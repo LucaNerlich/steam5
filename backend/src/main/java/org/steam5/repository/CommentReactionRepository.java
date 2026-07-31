@@ -12,13 +12,40 @@ import java.util.Optional;
 
 public interface CommentReactionRepository extends JpaRepository<CommentReaction, Long> {
 
-    List<CommentReaction> findByComment_IdIn(Collection<Long> commentIds);
+    /**
+ * Finds reactions associated with comments whose IDs are included in the supplied collection.
+ *
+ * @param commentIds the comment IDs to search for
+ * @return the matching comment reactions
+ */
+List<CommentReaction> findByComment_IdIn(Collection<Long> commentIds);
 
-    List<CommentReaction> findByComment_IdInAndSteamId(Collection<Long> commentIds, String steamId);
+    /**
+ * Finds reactions for the specified comments submitted by a Steam user.
+ *
+ * @param commentIds the comment IDs to search
+ * @param steamId    the Steam user ID
+ * @return the matching comment reactions
+ */
+List<CommentReaction> findByComment_IdInAndSteamId(Collection<Long> commentIds, String steamId);
 
-    Optional<CommentReaction> findByComment_IdAndSteamIdAndReactionType(
+    /**
+             * Finds a reaction for a comment submitted by a specific Steam user.
+             *
+             * @param commentId    the comment identifier
+             * @param steamId      the Steam user identifier
+             * @param reactionType the reaction type
+             * @return the matching reaction, if present
+             */
+            Optional<CommentReaction> findByComment_IdAndSteamIdAndReactionType(
             Long commentId, String steamId, ReactionType reactionType);
 
+    /**
+     * Counts reactions for each comment and reaction type among the specified comments.
+     *
+     * @param commentIds the IDs of the comments to include
+     * @return aggregated reaction counts grouped by comment and reaction type
+     */
     @Query("""
             select r.comment.id as commentId,
                    r.reactionType as reactionType,
@@ -30,10 +57,25 @@ public interface CommentReactionRepository extends JpaRepository<CommentReaction
     List<ReactionCountRow> countByCommentIds(@Param("commentIds") Collection<Long> commentIds);
 
     interface ReactionCountRow {
-        Long getCommentId();
+        /**
+ * Provides the identifier of the associated comment.
+ *
+ * @return the associated comment's identifier
+ */
+Long getCommentId();
 
-        ReactionType getReactionType();
+        /**
+ * Gets the reaction type represented by this row.
+ *
+ * @return the reaction type
+ */
+ReactionType getReactionType();
 
-        Long getReactionCount();
+        /**
+ * Provides the number of reactions for the comment and reaction type represented by this row.
+ *
+ * @return the reaction count
+ */
+Long getReactionCount();
     }
 }

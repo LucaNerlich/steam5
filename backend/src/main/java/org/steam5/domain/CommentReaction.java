@@ -34,6 +34,9 @@ public class CommentReaction {
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 
+    /**
+     * Initializes the creation timestamp before the entity is persisted when it has not been set.
+     */
     @PrePersist
     public void prePersist() {
         if (createdAt == null) {
