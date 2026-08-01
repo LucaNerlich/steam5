@@ -6,6 +6,7 @@ import {
     archiveComment,
     commentsUrl,
     fetchComments,
+    steamStoreUrl,
     toggleReaction,
     type DayComment,
 } from './comments';
@@ -153,5 +154,11 @@ describe('archiveComment', () => {
 describe('COMMENT_MODERATOR_STEAM_ID', () => {
     it('matches the hardcoded moderator account', () => {
         expect(COMMENT_MODERATOR_STEAM_ID).toBe('76561198028075069');
+    });
+});
+
+describe('steamStoreUrl', () => {
+    it('builds the Steam store app URL', () => {
+        expect(steamStoreUrl(620)).toBe('https://store.steampowered.com/app/620');
     });
 });

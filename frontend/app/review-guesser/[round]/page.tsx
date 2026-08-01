@@ -104,6 +104,7 @@ export default async function ReviewGuesserRoundPage({params}: { params: Promise
                     totalRounds={totalRounds}
                     pickName={pick.name}
                     gameDate={today.date}
+                    dayGames={today.picks.map((p) => ({appId: p.appId, name: p.name}))}
                     prefilled={currentPrefill}
                     allResults={allResults}
                 />

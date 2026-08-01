@@ -14,6 +14,8 @@ import {
     archiveComment,
     commentsUrl,
     fetchComments,
+    steamStoreUrl,
+    type CommentGameRef,
     type DayComment,
 } from "@/lib/comments";
 import {formatRelativeTime} from "@/lib/format";
@@ -26,6 +28,35 @@ import "@/styles/components/dayComments.css";
 const MAX_BODY_LENGTH = 1000;
 
 const initialActionState: CommentActionState = {ok: false};
+
+const STEAM_STORE_URL_RE = /https:\/\/store\.steampowered\.com\/app\/\d+/g;
+
+/**
+ * Renders comment body text with Steam store URLs as links.
+ */
+function CommentBodyText({body}: {body: string}): React.ReactElement {
+    const nodes: React.ReactNode[] = [];
+    let last = 0;
+    for (const match of body.matchAll(STEAM_STORE_URL_RE)) {
+        const index = match.index ?? 0;
+        if (index > last) nodes.push(body.slice(last, index));
+        const url = match[0];
+        nodes.push(
+            <a
+                key={`${url}-${index}`}
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="day-comments__game-link"
+            >
+                {url}
+            </a>,
+        );
+        last = index + url.length;
+    }
+    if (last < body.length) nodes.push(body.slice(last));
+    return <>{nodes}</>;
+}
 
 /**
  * Gets the uppercase initial for a name.
@@ -96,17 +127,45 @@ function CommentSubmitButton({disabled}: {disabled: boolean}): React.ReactElemen
 }
 
 /**
+ * Inserts a Steam store reference for a day's game at the textarea caret.
+ */
+function insertGameReference(
+    textarea: HTMLTextAreaElement,
+    game: CommentGameRef,
+    maxLength: number,
+): number | null {
+    const link = steamStoreUrl(game.appId);
+    const snippet = `${game.name} ${link}`;
+    const start = textarea.selectionStart ?? textarea.value.length;
+    const end = textarea.selectionEnd ?? start;
+    const before = textarea.value.slice(0, start);
+    const after = textarea.value.slice(end);
+    const padBefore = before.length > 0 && !/\s$/.test(before) ? " " : "";
+    const padAfter = after.length > 0 && !/^\s/.test(after) ? " " : "";
+    const insertion = `${padBefore}${snippet}${padAfter}`;
+    const next = before + insertion + after;
+    if (next.length > maxLength) return null;
+    textarea.value = next;
+    const caret = (before + insertion).length;
+    textarea.focus();
+    textarea.setSelectionRange(caret, caret);
+    return next.length;
+}
+
+/**
  * Renders a form for submitting a comment associated with a game date.
  *
  * @param props - The game date and callbacks for successful or unauthorized submissions.
  */
 function CommentComposer(props: {
     gameDate: string;
+    games?: CommentGameRef[];
     onPosted: () => void | Promise<unknown>;
     onUnauthorized: () => void;
 }): React.ReactElement {
-    const {gameDate, onPosted, onUnauthorized} = props;
+    const {gameDate, games = [], onPosted, onUnauthorized} = props;
     const formRef = useRef<HTMLFormElement>(null);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
     const [posted, setPosted] = useState(false);
     const [bodyLength, setBodyLength] = useState(0);
     const [state, formAction] = useActionState(postCommentAction, initialActionState);
@@ -134,13 +193,37 @@ function CommentComposer(props: {
         }
     }, [state, onPosted, onUnauthorized]);
 
+    const handleInsertGame = (game: CommentGameRef) => {
+        const ta = textareaRef.current;
+        if (!ta) return;
+        const nextLength = insertGameReference(ta, game, MAX_BODY_LENGTH);
+        if (nextLength !== null) setBodyLength(nextLength);
+    };
+
     return (
         <Form ref={formRef} className="comment-composer" action={formAction}>
             <input type="hidden" name="gameDate" value={gameDate}/>
             <label className="comment-composer__label" htmlFor={`day-comment-${gameDate}`}>
                 Your comment
             </label>
+            {games.length > 0 && (
+                <div className="comment-composer__games" aria-label="Insert a game link">
+                    {games.map((game) => (
+                        <button
+                            key={game.appId}
+                            type="button"
+                            className="comment-composer__game-chip"
+                            title={`Insert Steam link for ${game.name}`}
+                            aria-label={`Insert Steam link for ${game.name}`}
+                            onClick={() => handleInsertGame(game)}
+                        >
+                            {game.name}
+                        </button>
+                    ))}
+                </div>
+            )}
             <textarea
+                ref={textareaRef}
                 id={`day-comment-${gameDate}`}
                 className="comment-composer__input"
                 name="body"
@@ -173,14 +256,16 @@ function CommentComposer(props: {
  *
  * @param props - Component properties.
  * @param props.gameDate - The game date whose comments are displayed.
+ * @param props.games - Today's picks for quick Steam-link chips in the composer.
  * @param props.readOnly - When true, shows the comment list only (no composer or react).
  * @returns The comments section, or `null` when no game date is provided.
  */
 export default function DayComments(props: {
     gameDate?: string;
+    games?: CommentGameRef[];
     readOnly?: boolean;
 }): React.ReactElement | null {
-    const {gameDate, readOnly = false} = props;
+    const {gameDate, games, readOnly = false} = props;
     const {isSignedIn, steamId, refreshAuth} = useAuth();
     const canModerate = isSignedIn === true && steamId === COMMENT_MODERATOR_STEAM_ID;
     const [archivingId, setArchivingId] = useState<number | null>(null);
@@ -302,7 +387,9 @@ export default function DayComments(props: {
                                             onUnauthorized={handleUnauthorized}
                                         />
                                     </div>
-                                    <p className="day-comments__text">{comment.body}</p>
+                                    <p className="day-comments__text">
+                                        <CommentBodyText body={comment.body}/>
+                                    </p>
                                 </div>
                             </li>
                         );
@@ -313,6 +400,7 @@ export default function DayComments(props: {
             {!readOnly && (isSignedIn === true ? (
                 <CommentComposer
                     gameDate={gameDate}
+                    games={games}
                     onPosted={handlePosted}
                     onUnauthorized={handleUnauthorized}
                 />

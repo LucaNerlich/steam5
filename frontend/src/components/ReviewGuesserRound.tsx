@@ -32,6 +32,8 @@ interface Props {
     totalRounds: number;
     pickName?: string;
     gameDate?: string;
+    /** Today's picks for comment quick-link chips. */
+    dayGames?: {appId: number; name: string}[];
     prefilled?: { selectedLabel: string; actualBucket?: string; totalReviews?: number };
     allResults?: Record<number, {
         appId: number;
@@ -99,6 +101,7 @@ export default function ReviewGuesserRound({
                                                totalRounds,
                                                pickName,
                                                gameDate,
+                                               dayGames,
                                                prefilled,
                                                allResults
                                            }: Props) {
@@ -434,7 +437,7 @@ export default function ReviewGuesserRound({
             )}
 
             {/* Comments are public for every visitor; posting/reacting still requires sign-in. */}
-            <DayComments gameDate={gameDate} />
+            <DayComments gameDate={gameDate} games={dayGames} />
 
             <AuthWarningModal
                 isOpen={showAuthWarning}

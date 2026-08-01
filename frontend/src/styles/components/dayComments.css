@@ -155,6 +155,17 @@
     overflow-wrap: anywhere;
 }
 
+.day-comments__game-link {
+    color: var(--color-primary);
+    text-decoration: underline;
+    text-underline-offset: 0.12em;
+    overflow-wrap: anywhere;
+}
+
+.day-comments__game-link:hover {
+    text-decoration-thickness: 2px;
+}
+
 .day-comments__empty,
 .day-comments__status {
     margin: 0;
@@ -188,6 +199,35 @@
     clip-path: inset(50%);
     white-space: nowrap;
     border: 0;
+}
+
+.comment-composer__games {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+}
+
+.comment-composer__game-chip {
+    display: inline-flex;
+    align-items: center;
+    max-width: 100%;
+    padding: 0.18rem 0.45rem;
+    border: 1px solid color-mix(in srgb, var(--color-border) 85%, transparent);
+    border-radius: 0.4rem;
+    background: color-mix(in srgb, var(--color-surface) 80%, transparent);
+    color: var(--color-text);
+    font: inherit;
+    font-size: 0.76rem;
+    line-height: 1.25;
+    cursor: pointer;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.comment-composer__game-chip:hover {
+    background: color-mix(in srgb, var(--color-primary) 10%, var(--color-surface));
+    border-color: color-mix(in srgb, var(--color-primary) 35%, var(--color-border));
 }
 
 .comment-composer__input {

@@ -38,6 +38,17 @@ export type DayComment = {
     reactions: CommentReactionDto[];
 };
 
+/** A day's pick shown as a quick-insert chip in the comment composer. */
+export type CommentGameRef = {
+    appId: number;
+    name: string;
+};
+
+/** Steam store URL for a review-game pick. */
+export function steamStoreUrl(appId: number): string {
+    return `https://store.steampowered.com/app/${appId}`;
+}
+
 /**
  * Builds the API URL for comments associated with a game date.
  *
