@@ -67,9 +67,8 @@ public class DomainCacheEvictor {
     }
 
     /**
-     * Clears cached comment-list (and highlight) entries for the given day only.
-     * Keys match {@code CommentService.listComments} ({@code gameDate + ':' + viewer})
-     * and {@code CommentService.getYesterdayHighlight} ({@code gameDate + ':highlight'}).
+     * Clears cached comment-list entries for the given day only.
+     * Keys match {@code CommentService.listComments}: {@code gameDate.toString() + ':' + viewer}.
      *
      * @param day the day whose comment cache entries must be dropped
      */

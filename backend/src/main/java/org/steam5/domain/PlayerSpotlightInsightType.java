@@ -1,9 +1,9 @@
 package org.steam5.domain;
 
 /**
- * The first six values (DAY_STREAK, BEST_DAY_EVER, BEAT_THE_ODDS, WELCOME_BACK,
- * MOST_IMPROVED, HOT_STREAK) form {@link org.steam5.service.PlayerSpotlightService}'s "competitive
- * pool": every one of them that has at least one qualifying candidate on a
+ * The first seven values (DAY_STREAK, BEST_DAY_EVER, BEAT_THE_ODDS, WELCOME_BACK,
+ * MOST_IMPROVED, HOT_STREAK, TOP_COMMENT) form {@link org.steam5.service.PlayerSpotlightService}'s
+ * "competitive pool": every one of them that has at least one qualifying candidate on a
  * given day is entered into a uniform-random lottery (NOT a priority ladder —
  * the enum declaration order only matters as the fixed order in which each
  * tier's qualification is evaluated, not as a preference ranking).
@@ -28,7 +28,7 @@ package org.steam5.domain;
  * merely logs persistence failures, so on any day the new tier wins the
  * lottery, the INSERT will throw a CHECK-constraint violation and the
  * spotlight box will simply disappear from the site that day with no
- * visible error.
+ * visible error. See also {@code db/player-spotlights-widen-insight-type.sql}.
  */
 public enum PlayerSpotlightInsightType {
     DAY_STREAK,
@@ -37,6 +37,7 @@ public enum PlayerSpotlightInsightType {
     WELCOME_BACK,
     MOST_IMPROVED,
     HOT_STREAK,
+    TOP_COMMENT,
     WEEKLY_ACHIEVEMENT,
     MILESTONE
 }

@@ -408,7 +408,7 @@ export default function DayComments(props: {
                 <p className="day-comments__empty">
                     {readOnly
                         ? "No comments for this day."
-                        : "No comments yet — finish the day, drop a take, and react to others. Yesterday's top comment can land on round 1."}
+                        : "No comments yet. Be the first to share a take — strong reactions can earn a Player Spotlight."}
                 </p>
             )}
 

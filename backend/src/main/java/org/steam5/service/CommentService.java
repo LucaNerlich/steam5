@@ -30,7 +30,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -118,42 +117,6 @@ public class CommentService {
             ));
         }
         return result;
-    }
-
-    /**
-     * Returns yesterday's (UTC game day) unarchived comment with the most reactions.
-     * Empty when no comment from yesterday has at least one reaction.
-     */
-    @Transactional(readOnly = true)
-    @Cacheable(
-            value = "comments-for-day",
-            key = "T(org.steam5.domain.GameDate).todayUtc().minusDays(1).toString() + ':highlight'",
-            unless = "#result == null || #result.isEmpty()"
-    )
-    public Optional<CommentHighlightDto> getYesterdayHighlight() {
-        final LocalDate yesterday = GameDate.todayUtc().minusDays(1);
-        final Optional<Long> topId = commentRepository.findTopReactedCommentId(yesterday);
-        if (topId.isEmpty()) {
-            return Optional.empty();
-        }
-        final Comment comment = commentRepository.findById(topId.get()).orElse(null);
-        if (comment == null || comment.isArchived() || !comment.getGameDate().equals(yesterday)) {
-            return Optional.empty();
-        }
-
-        final Map<ReactionType, Long> counts = new EnumMap<>(ReactionType.class);
-        long total = 0L;
-        for (final CommentReactionRepository.ReactionCountRow row
-                : commentReactionRepository.countByCommentIds(List.of(comment.getId()))) {
-            counts.put(row.getReactionType(), row.getReactionCount());
-            total += row.getReactionCount();
-        }
-        if (total <= 0L) {
-            return Optional.empty();
-        }
-
-        final CommentDto dto = toDto(comment, counts, Set.of());
-        return Optional.of(new CommentHighlightDto(yesterday.toString(), total, dto));
     }
 
     /**
@@ -305,13 +268,6 @@ public class CommentService {
             String createdAt,
             AuthorDto author,
             List<ReactionDto> reactions
-    ) {
-    }
-
-    public record CommentHighlightDto(
-            String gameDate,
-            long totalReactions,
-            CommentDto comment
     ) {
     }
 }

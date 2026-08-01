@@ -38,6 +38,10 @@
     border-color: color-mix(in srgb, var(--color-accent) 40%, var(--color-border));
 }
 
+.player-spotlight--top-comment {
+    border-color: color-mix(in srgb, var(--color-accent) 45%, var(--color-border));
+}
+
 .player-spotlight__eyebrow {
     margin: 0 0 4px;
     font-size: x-small;

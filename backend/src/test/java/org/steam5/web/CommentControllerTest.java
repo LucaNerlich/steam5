@@ -12,7 +12,6 @@ import org.steam5.service.CommentService;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -214,43 +213,6 @@ class CommentControllerTest {
         assertEquals(200, response.getStatusCode().value());
         assertEquals("private, no-store", response.getHeaders().getFirst("Cache-Control"));
         assertSame(reactions, response.getBody());
-    }
-
-    @Test
-    void yesterdayHighlight_returns204WhenEmpty() {
-        when(commentService.getYesterdayHighlight()).thenReturn(Optional.empty());
-
-        ResponseEntity<?> response = controller.yesterdayHighlight();
-
-        assertEquals(204, response.getStatusCode().value());
-        assertEquals(
-                "public, s-maxage=300, max-age=60, stale-while-revalidate=300",
-                response.getHeaders().getFirst("Cache-Control"));
-        assertNull(response.getBody());
-    }
-
-    @Test
-    void yesterdayHighlight_returns200WithBodyWhenPresent() {
-        CommentService.CommentHighlightDto body = new CommentService.CommentHighlightDto(
-                GameDate.todayUtc().minusDays(1).toString(),
-                5L,
-                new CommentService.CommentDto(
-                        1L,
-                        "nice",
-                        null,
-                        new CommentService.AuthorDto("u1", "Alice", null, null),
-                        List.of()
-                )
-        );
-        when(commentService.getYesterdayHighlight()).thenReturn(Optional.of(body));
-
-        ResponseEntity<?> response = controller.yesterdayHighlight();
-
-        assertEquals(200, response.getStatusCode().value());
-        assertEquals(
-                "public, s-maxage=300, max-age=60, stale-while-revalidate=300",
-                response.getHeaders().getFirst("Cache-Control"));
-        assertSame(body, response.getBody());
     }
 
     @Test

@@ -259,43 +259,6 @@ class CommentServiceTest {
     }
 
     @Test
-    void getYesterdayHighlight_emptyWhenNoTopComment() {
-        LocalDate yesterday = day.minusDays(1);
-        when(commentRepository.findTopReactedCommentId(yesterday)).thenReturn(Optional.empty());
-
-        assertTrue(service.getYesterdayHighlight().isEmpty());
-        verify(commentReactionRepository, never()).countByCommentIds(any());
-    }
-
-    @Test
-    void getYesterdayHighlight_returnsTopCommentWithTotalReactions() {
-        LocalDate yesterday = day.minusDays(1);
-        Comment comment = comment(42L, "u1", "yesterday banger");
-        comment.setGameDate(yesterday);
-        when(commentRepository.findTopReactedCommentId(yesterday)).thenReturn(Optional.of(42L));
-        when(commentRepository.findById(42L)).thenReturn(Optional.of(comment));
-
-        CommentReactionRepository.ReactionCountRow thumbs = mock(CommentReactionRepository.ReactionCountRow.class);
-        when(thumbs.getCommentId()).thenReturn(42L);
-        when(thumbs.getReactionType()).thenReturn(ReactionType.THUMBS_UP);
-        when(thumbs.getReactionCount()).thenReturn(4L);
-        CommentReactionRepository.ReactionCountRow hug = mock(CommentReactionRepository.ReactionCountRow.class);
-        when(hug.getCommentId()).thenReturn(42L);
-        when(hug.getReactionType()).thenReturn(ReactionType.HUG);
-        when(hug.getReactionCount()).thenReturn(2L);
-        when(commentReactionRepository.countByCommentIds(List.of(42L))).thenReturn(List.of(thumbs, hug));
-        when(userRepository.findById("u1")).thenReturn(Optional.of(user("u1", "Alice", "https://a")));
-
-        CommentService.CommentHighlightDto highlight = service.getYesterdayHighlight().orElseThrow();
-
-        assertEquals(yesterday.toString(), highlight.gameDate());
-        assertEquals(6L, highlight.totalReactions());
-        assertEquals(42L, highlight.comment().id());
-        assertEquals("yesterday banger", highlight.comment().body());
-        assertEquals("Alice", highlight.comment().author().personaName());
-    }
-
-    @Test
     void archiveComment_forbidsNonModerator() {
         ReviewGameException ex = assertThrows(ReviewGameException.class,
                 () -> service.archiveComment(7L, "someone-else"));

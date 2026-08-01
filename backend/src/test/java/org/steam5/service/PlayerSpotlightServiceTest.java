@@ -3,17 +3,23 @@ package org.steam5.service;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.steam5.domain.Comment;
 import org.steam5.domain.GameDate;
 import org.steam5.domain.Guess;
 import org.steam5.domain.PlayerSpotlight;
 import org.steam5.domain.PlayerSpotlightInsightType;
+import org.steam5.domain.ReactionType;
+import org.steam5.repository.CommentReactionRepository;
+import org.steam5.repository.CommentRepository;
 import org.steam5.repository.GuessRepository;
 import org.steam5.repository.PlayerSpotlightRepository;
 import org.steam5.repository.UserRepository;
 
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Random;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -26,6 +32,8 @@ class PlayerSpotlightServiceTest {
     private UserRepository userRepository;
     private StatisticsService statisticsService;
     private PlayerSpotlightRepository playerSpotlightRepository;
+    private CommentRepository commentRepository;
+    private CommentReactionRepository commentReactionRepository;
     private PlayerSpotlightService service;
 
     private final LocalDate today = GameDate.todayUtc();
@@ -36,8 +44,17 @@ class PlayerSpotlightServiceTest {
         userRepository = mock(UserRepository.class);
         statisticsService = mock(StatisticsService.class);
         playerSpotlightRepository = mock(PlayerSpotlightRepository.class);
+        commentRepository = mock(CommentRepository.class);
+        commentReactionRepository = mock(CommentReactionRepository.class);
 
-        service = new PlayerSpotlightService(guessRepository, userRepository, statisticsService, playerSpotlightRepository);
+        service = new PlayerSpotlightService(
+                guessRepository,
+                userRepository,
+                statisticsService,
+                playerSpotlightRepository,
+                commentRepository,
+                commentReactionRepository
+        );
 
         // Safe defaults so tiers below the one under test don't NPE on unstubbed mocks.
         when(playerSpotlightRepository.existsById(any())).thenReturn(false);
@@ -46,6 +63,8 @@ class PlayerSpotlightServiceTest {
         when(guessRepository.findDailyTotalsBySteamIdIn(anyList())).thenReturn(List.of());
         when(guessRepository.findRoundAvgScoresInRange(any(), any())).thenReturn(List.of());
         when(guessRepository.findByGameDateAndRoundIndex(any(), anyInt())).thenReturn(List.of());
+        when(commentRepository.findTopReactedCommentId(any())).thenReturn(Optional.empty());
+        when(commentReactionRepository.countByCommentIds(anyList())).thenReturn(List.of());
         // Default: every requested steamId gets enough (35) low-signal rounds in the recency
         // window to clear the activity floor. Wider history-prefetch windows (~60d) default to
         // empty so tier tests that need specific history stub via stubRecentHistory(...).
@@ -364,6 +383,42 @@ class PlayerSpotlightServiceTest {
         final List<String> sorted = List.of("playerA", "playerB").stream().sorted().toList();
         final int expectedIndex = new Random(PlayerSpotlightService.mixSeed(today.toEpochDay())).nextInt(sorted.size());
         assertEquals(sorted.get(expectedIndex), picked);
+    }
+
+    @Test
+    void topCommentTierWinsWhenEligibleAuthorHadYesterdaysMostReactedComment() {
+        final LocalDate yesterday = today.minusDays(1);
+        final GuessRepository.AllTimeStatsRow commenter = allTimeRow("commenter", 100, 2.0);
+        stubAllTimeStats(commenter);
+
+        final List<GuessRepository.UserDateRow> dates = consecutiveDaysEnding("commenter", yesterday, 1);
+        when(guessRepository.findDistinctDatesUpToForUsers(anyList(), eq(today))).thenReturn(dates);
+
+        final Comment comment = new Comment();
+        comment.setId(77L);
+        comment.setSteamId("commenter");
+        comment.setGameDate(yesterday);
+        comment.setBody("These picks were wild");
+        comment.setArchived(false);
+        comment.setCreatedAt(OffsetDateTime.parse("2026-07-30T18:00:00Z"));
+        when(commentRepository.findTopReactedCommentId(yesterday)).thenReturn(Optional.of(77L));
+        when(commentRepository.findById(77L)).thenReturn(Optional.of(comment));
+
+        final CommentReactionRepository.ReactionCountRow countRow =
+                mock(CommentReactionRepository.ReactionCountRow.class);
+        when(countRow.getCommentId()).thenReturn(77L);
+        when(countRow.getReactionType()).thenReturn(ReactionType.THUMBS_UP);
+        when(countRow.getReactionCount()).thenReturn(5L);
+        when(commentReactionRepository.countByCommentIds(List.of(77L))).thenReturn(List.of(countRow));
+
+        service.computeAndPersistForToday();
+
+        final ArgumentCaptor<PlayerSpotlight> captor = ArgumentCaptor.forClass(PlayerSpotlight.class);
+        verify(playerSpotlightRepository).save(captor.capture());
+        assertEquals("commenter", captor.getValue().getSteamId());
+        assertEquals(PlayerSpotlightInsightType.TOP_COMMENT, captor.getValue().getInsightType());
+        assertTrue(captor.getValue().getDetail().contains("These picks were wild"));
+        assertEquals(5.0, captor.getValue().getStatValue());
     }
 
     @Test
