@@ -256,7 +256,11 @@
     cursor: pointer;
 }
 
-.reaction-bar__chip:hover:not(:disabled) {
+span.reaction-bar__chip {
+    cursor: default;
+}
+
+button.reaction-bar__chip:hover:not(:disabled) {
     background: color-mix(in srgb, var(--color-surface) 70%, transparent);
     border-color: color-mix(in srgb, var(--color-border) 70%, transparent);
 }

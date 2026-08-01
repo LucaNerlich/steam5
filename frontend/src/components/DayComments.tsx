@@ -166,12 +166,14 @@ function CommentComposer(props: {
  *
  * @param props - Component properties.
  * @param props.gameDate - The game date whose comments are displayed.
+ * @param props.readOnly - When true, shows the comment list only (no composer or react).
  * @returns The comments section, or `null` when no game date is provided.
  */
 export default function DayComments(props: {
     gameDate?: string;
+    readOnly?: boolean;
 }): React.ReactElement | null {
-    const {gameDate} = props;
+    const {gameDate, readOnly = false} = props;
     const {isSignedIn, refreshAuth} = useAuth();
 
     const swrKey = gameDate ? commentsUrl(gameDate) : null;
@@ -192,6 +194,7 @@ export default function DayComments(props: {
     if (!gameDate) return null;
 
     const commentCount = data?.length ?? 0;
+    const canReact = !readOnly && isSignedIn === true;
 
     return (
         <section className="day-comments" aria-label="Day comments">
@@ -207,7 +210,9 @@ export default function DayComments(props: {
             {isLoading && <p className="day-comments__status">Loading comments…</p>}
             {loadError && <p className="day-comments__status">Could not load comments.</p>}
             {!isLoading && !loadError && commentCount === 0 && (
-                <p className="day-comments__empty">No comments yet. Be the first to share a take.</p>
+                <p className="day-comments__empty">
+                    {readOnly ? "No comments for this day." : "No comments yet. Be the first to share a take."}
+                </p>
             )}
 
             {data && data.length > 0 && (
@@ -245,7 +250,8 @@ export default function DayComments(props: {
                                         <ReactionBar
                                             commentId={comment.id}
                                             reactions={comment.reactions}
-                                            canReact={isSignedIn === true}
+                                            canReact={canReact}
+                                            readOnly={readOnly}
                                             onToggled={handlePosted}
                                             onUnauthorized={handleUnauthorized}
                                         />
@@ -258,7 +264,7 @@ export default function DayComments(props: {
                 </ul>
             )}
 
-            {isSignedIn === true ? (
+            {!readOnly && (isSignedIn === true ? (
                 <CommentComposer
                     gameDate={gameDate}
                     onPosted={handlePosted}
@@ -277,7 +283,7 @@ export default function DayComments(props: {
                     </button>
                     {" "}to leave a comment or react.
                 </p>
-            )}
+            ))}
         </section>
     );
 }

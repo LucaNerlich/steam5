@@ -25,8 +25,10 @@ export default function ReactionBar(props: {
     canReact: boolean;
     onToggled: () => void | Promise<unknown>;
     onUnauthorized?: () => void;
+    /** When true, show reaction counts only — no picker or toggle controls. */
+    readOnly?: boolean;
 }) {
-    const {commentId, reactions, canReact, onToggled, onUnauthorized} = props;
+    const {commentId, reactions, canReact, onToggled, onUnauthorized, readOnly = false} = props;
     const [pending, setPending] = useState<ReactionType | null>(null);
     const [open, setOpen] = useState(false);
     const rootRef = useRef<HTMLDivElement>(null);
@@ -74,7 +76,7 @@ export default function ReactionBar(props: {
     }, [open]);
 
     const handleToggle = async (reactionType: ReactionType) => {
-        if (pending) return;
+        if (readOnly || pending) return;
         if (!canReact) {
             window.location.href = buildSteamLoginUrl();
             return;
@@ -101,12 +103,35 @@ export default function ReactionBar(props: {
     };
 
     const handleOpenPicker = () => {
+        if (readOnly) return;
         if (!canReact) {
             window.location.href = buildSteamLoginUrl();
             return;
         }
         setOpen((value) => !value);
     };
+
+    if (readOnly) {
+        if (present.length === 0) return null;
+        return (
+            <div className="reaction-bar" ref={rootRef}>
+                <div className="reaction-bar__summary" aria-label="Reactions">
+                    {present.map(({type, count}) => (
+                        <span
+                            key={type}
+                            className="reaction-bar__chip"
+                            aria-label={`${REACTION_EMOJI[type]} reaction, ${count}`}
+                        >
+                            <span className="reaction-bar__emoji" aria-hidden="true">
+                                {REACTION_EMOJI[type]}
+                            </span>
+                            <span className="reaction-bar__count">{count}</span>
+                        </span>
+                    ))}
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="reaction-bar" ref={rootRef}>
