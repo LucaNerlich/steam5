@@ -29,18 +29,25 @@ const MAX_BODY_LENGTH = 1000;
 
 const initialActionState: CommentActionState = {ok: false};
 
-const STEAM_STORE_URL_RE = /https:\/\/store\.steampowered\.com\/app\/\d+/g;
+/** Markdown game refs from chips, plus bare Steam store URLs. */
+const GAME_LINK_RE =
+    /\[([^\]]+)]\((https:\/\/store\.steampowered\.com\/app\/\d+)\)|https:\/\/store\.steampowered\.com\/app\/\d+/g;
+
+function sanitizeGameLinkLabel(name: string): string {
+    return name.replace(/[\[\]]/g, "").trim() || "Steam game";
+}
 
 /**
- * Renders comment body text with Steam store URLs as links.
+ * Renders comment body text with Steam game refs as named links.
  */
 function CommentBodyText({body}: {body: string}): React.ReactElement {
     const nodes: React.ReactNode[] = [];
     let last = 0;
-    for (const match of body.matchAll(STEAM_STORE_URL_RE)) {
+    for (const match of body.matchAll(GAME_LINK_RE)) {
         const index = match.index ?? 0;
         if (index > last) nodes.push(body.slice(last, index));
-        const url = match[0];
+        const label = match[1] ? sanitizeGameLinkLabel(match[1]) : match[0];
+        const url = match[2] ?? match[0];
         nodes.push(
             <a
                 key={`${url}-${index}`}
@@ -48,11 +55,12 @@ function CommentBodyText({body}: {body: string}): React.ReactElement {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="day-comments__game-link"
+                title={label}
             >
-                {url}
+                {label}
             </a>,
         );
-        last = index + url.length;
+        last = index + match[0].length;
     }
     if (last < body.length) nodes.push(body.slice(last));
     return <>{nodes}</>;
@@ -134,8 +142,8 @@ function insertGameReference(
     game: CommentGameRef,
     maxLength: number,
 ): number | null {
-    const link = steamStoreUrl(game.appId);
-    const snippet = `${game.name} ${link}`;
+    const label = sanitizeGameLinkLabel(game.name);
+    const snippet = `[${label}](${steamStoreUrl(game.appId)})`;
     const start = textarea.selectionStart ?? textarea.value.length;
     const end = textarea.selectionEnd ?? start;
     const before = textarea.value.slice(0, start);
@@ -208,18 +216,21 @@ function CommentComposer(props: {
             </label>
             {games.length > 0 && (
                 <div className="comment-composer__games" aria-label="Insert a game link">
-                    {games.map((game) => (
-                        <button
-                            key={game.appId}
-                            type="button"
-                            className="comment-composer__game-chip"
-                            title={`Insert Steam link for ${game.name}`}
-                            aria-label={`Insert Steam link for ${game.name}`}
-                            onClick={() => handleInsertGame(game)}
-                        >
-                            {game.name}
-                        </button>
-                    ))}
+                    {games.map((game) => {
+                        const label = game.name || `App ${game.appId}`;
+                        return (
+                            <button
+                                key={game.appId}
+                                type="button"
+                                className="comment-composer__game-chip"
+                                title={label}
+                                aria-label={label}
+                                onClick={() => handleInsertGame(game)}
+                            >
+                                {label}
+                            </button>
+                        );
+                    })}
                 </div>
             )}
             <textarea
