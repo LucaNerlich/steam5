@@ -18,6 +18,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequiredArgsConstructor
@@ -31,9 +32,28 @@ public class CommentController {
     // Keep a short revalidating TTL so archival is not stuck behind a year-long immutable cache.
     private static final String CACHE_HISTORICAL = "private, max-age=300, must-revalidate";
     private static final String CACHE_NO_STORE = "private, no-store";
+    // Yesterday's top comment is stable for most of the day (writes closed; archive is rare).
+    private static final String CACHE_HIGHLIGHT = "public, s-maxage=300, max-age=60, stale-while-revalidate=300";
 
     private final CommentService commentService;
     private final CommentRateLimiter commentRateLimiter;
+
+    /**
+     * Yesterday's (UTC) comment with the most reactions. 204 when none qualify.
+     * Literal path must stay ahead of {@code /{date}} for clarity.
+     */
+    @GetMapping("/highlight/yesterday")
+    public ResponseEntity<?> yesterdayHighlight() {
+        final Optional<CommentService.CommentHighlightDto> highlight =
+                commentService.getYesterdayHighlight();
+        return highlight
+                .<ResponseEntity<?>>map(body -> ResponseEntity.ok()
+                        .header("Cache-Control", CACHE_HIGHLIGHT)
+                        .body(body))
+                .orElseGet(() -> ResponseEntity.noContent()
+                        .header("Cache-Control", CACHE_HIGHLIGHT)
+                        .build());
+    }
 
     @GetMapping("/{date}")
     public ResponseEntity<?> listComments(

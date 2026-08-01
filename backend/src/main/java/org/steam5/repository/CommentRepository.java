@@ -16,6 +16,21 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
 
     List<Comment> findByGameDateAndArchivedFalseOrderByCreatedAtDesc(LocalDate gameDate, Pageable pageable);
 
+    /**
+     * Yesterday-style highlight: unarchived comment with the most reactions (at least one),
+     * earliest {@code createdAt} wins ties. Returns at most one id.
+     */
+    @Query(value = """
+            SELECT c.id
+            FROM comments c
+            INNER JOIN comment_reactions r ON r.comment_id = c.id
+            WHERE c.game_date = :date AND c.archived = false
+            GROUP BY c.id
+            ORDER BY COUNT(r.id) DESC, MIN(c.created_at) ASC
+            LIMIT 1
+            """, nativeQuery = true)
+    Optional<Long> findTopReactedCommentId(@Param("date") LocalDate date);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select c from Comment c where c.id = :id")
     Optional<Comment> findByIdForUpdate(@Param("id") Long id);

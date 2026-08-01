@@ -406,7 +406,9 @@ export default function DayComments(props: {
             {loadError && <p className="day-comments__status">Could not load comments.</p>}
             {!isLoading && !loadError && commentCount === 0 && (
                 <p className="day-comments__empty">
-                    {readOnly ? "No comments for this day." : "No comments yet. Be the first to share a take."}
+                    {readOnly
+                        ? "No comments for this day."
+                        : "No comments yet — finish the day, drop a take, and react to others. Yesterday's top comment can land on round 1."}
                 </p>
             )}
 

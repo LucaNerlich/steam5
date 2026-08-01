@@ -5,6 +5,7 @@ import ReviewGuesserHero from "@/components/ReviewGuesserHero";
 import GameInfoSection from "@/components/GameInfoSection";
 import NewsBox from "@/components/NewsBox";
 import PlayerSpotlight from "@/components/PlayerSpotlight";
+import CommentSpotlight from "@/components/CommentSpotlight";
 import ReviewGuesserRound from "@/components/ReviewGuesserRound";
 import {Suspense} from "react";
 import {cookies} from "next/headers";
@@ -111,6 +112,7 @@ export default async function ReviewGuesserRoundPage({params}: { params: Promise
             </Suspense>
 
             {roundIndex === 1 && <PlayerSpotlight/>}
+            {roundIndex === 1 && <CommentSpotlight/>}
             {roundIndex === 1 && <NewsBox/>}
 
             <GameInfoSection pick={pick}/>
