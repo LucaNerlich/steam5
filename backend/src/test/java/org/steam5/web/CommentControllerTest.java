@@ -53,7 +53,8 @@ class CommentControllerTest {
         ResponseEntity<?> response = controller.listComments(past.toString(), "viewer");
 
         assertEquals(200, response.getStatusCode().value());
-        assertEquals("private, max-age=300", response.getHeaders().getFirst("Cache-Control"));
+        assertEquals("private, max-age=31536000, immutable",
+                response.getHeaders().getFirst("Cache-Control"));
         verify(commentService).listComments(past, "viewer");
     }
 

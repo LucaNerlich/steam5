@@ -179,8 +179,14 @@ export default function DayComments(props: {
     const swrKey = gameDate ? commentsUrl(gameDate) : null;
     const {data, error: loadError, isLoading, mutate} = useSWR<DayComment[]>(
         swrKey,
-        () => fetchComments(gameDate as string),
-        {revalidateOnFocus: false},
+        () => fetchComments(gameDate as string, {immutable: readOnly}),
+        readOnly
+            ? {
+                revalidateOnFocus: false,
+                revalidateOnReconnect: false,
+                revalidateIfStale: false,
+            }
+            : {revalidateOnFocus: false},
     );
 
     const handlePosted = useCallback(() => {

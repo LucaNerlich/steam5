@@ -67,6 +67,16 @@ describe('fetchComments', () => {
         expect(fetchMock).toHaveBeenCalledWith('/api/review-game/comments/2026-07-31', {cache: 'no-store'});
     });
 
+    it('uses force-cache when fetching immutable archive comments', async () => {
+        fetchMock.mockResolvedValue(mockResponse(true, []));
+
+        await fetchComments('2026-07-31', {immutable: true});
+
+        expect(fetchMock).toHaveBeenCalledWith('/api/review-game/comments/2026-07-31', {
+            cache: 'force-cache',
+        });
+    });
+
     it('throws when the proxy responds non-OK', async () => {
         fetchMock.mockResolvedValue(mockResponse(false, {error: 'boom'}));
 

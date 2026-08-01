@@ -27,7 +27,8 @@ public class CommentController {
     private static final int MAX_BODY_LENGTH = 1000;
     // Viewer-specific reactedByViewer flags — keep out of shared/CDN caches.
     private static final String CACHE_LIVE = "private, max-age=30, must-revalidate";
-    private static final String CACHE_HISTORICAL = "private, max-age=300";
+    // Past days are treated as immutable for comments (archive UI is read-only).
+    private static final String CACHE_HISTORICAL = "private, max-age=31536000, immutable";
 
     private final CommentService commentService;
     private final CommentRateLimiter commentRateLimiter;

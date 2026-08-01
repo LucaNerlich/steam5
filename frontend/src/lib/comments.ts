@@ -51,8 +51,15 @@ export function commentsUrl(gameDate: string): string {
  * @param gameDate - The game date used to identify the comments.
  * @returns The comments associated with the game date.
  */
-export async function fetchComments(gameDate: string): Promise<DayComment[]> {
-    const res = await fetch(commentsUrl(gameDate), {cache: "no-store"});
+export async function fetchComments(
+    gameDate: string,
+    options?: {immutable?: boolean},
+): Promise<DayComment[]> {
+    // Archive / past days advertise long Cache-Control; allow the browser to honor it.
+    // Live day stays no-store so newly posted comments show up promptly.
+    const res = await fetch(commentsUrl(gameDate), {
+        cache: options?.immutable ? "force-cache" : "no-store",
+    });
     if (!res.ok) {
         throw new Error("Failed to fetch comments");
     }
