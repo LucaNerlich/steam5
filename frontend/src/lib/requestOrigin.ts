@@ -19,10 +19,15 @@ function originsMatch(candidate: string, trusted: string): boolean {
     }
 }
 
+function isNonProduction(): boolean {
+    return process.env.NODE_ENV !== "production";
+}
+
 function isAllowedOrigin(candidate: string, trusted: string): boolean {
     if (originsMatch(candidate, trusted)) return true;
+    if (!isNonProduction()) return false;
     try {
-        // Local Next.js → backend proxy during development.
+        // Local Next.js → backend proxy during development / non-prod only.
         return isLoopbackHostname(new URL(candidate).hostname);
     } catch {
         return false;

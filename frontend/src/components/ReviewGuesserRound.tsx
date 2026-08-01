@@ -14,6 +14,7 @@ import RoundSummary from "@/components/RoundSummary";
 import DayComments from "@/components/DayComments";
 import {buildSteamLoginUrl} from "@/components/SteamLoginButton";
 import {useAuth} from "@/contexts/AuthContext";
+import type {CommentGameRef} from "@/lib/comments";
 import useServerGuesses from "@/lib/hooks/useServerGuesses";
 import useRoundArrowNavigation from "@/lib/hooks/useRoundArrowNavigation";
 import {loadDay, saveRound, type StoredDay, type RoundResult} from "@/lib/storage";
@@ -33,7 +34,7 @@ interface Props {
     pickName?: string;
     gameDate?: string;
     /** Today's picks for comment quick-link chips. */
-    dayGames?: {appId: number; name: string}[];
+    dayGames?: CommentGameRef[];
     prefilled?: { selectedLabel: string; actualBucket?: string; totalReviews?: number };
     allResults?: Record<number, {
         appId: number;

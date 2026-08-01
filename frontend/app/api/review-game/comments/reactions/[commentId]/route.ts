@@ -1,22 +1,35 @@
 import {NextRequest, NextResponse} from "next/server";
 import {cookies} from "next/headers";
 import {BACKEND_ORIGIN} from "@/lib/backend";
+import {isTrustedBrowserOrigin} from "@/lib/requestOrigin";
 
 const NO_STORE = {"Cache-Control": "private, no-store"} as const;
 
 /**
  * Toggles the authenticated user's reaction to a review-game comment.
  *
- * @param commentId - The identifier of the comment whose reaction is toggled
- * @returns The backend reaction response, or an unauthorized or forwarding-error response
+ * Requires a trusted Origin/Referer before using the session cookie, matching
+ * the comment-archive mutation proxy.
  */
 export async function POST(
     req: NextRequest,
     {params}: { params: Promise<{ commentId: string }> },
 ) {
     const {commentId} = await params;
+    if (!isTrustedBrowserOrigin(req.headers)) {
+        console.error("[comments/reactions] Rejected untrusted origin", {
+            commentId,
+            origin: req.headers.get("origin"),
+            referer: req.headers.get("referer"),
+        });
+        return NextResponse.json(
+            {error: "forbidden"},
+            {status: 403, headers: NO_STORE},
+        );
+    }
     const token = (await cookies()).get("s5_token")?.value;
     if (!token) {
+        console.error("[comments/reactions] Missing authentication", {commentId});
         return NextResponse.json(
             {error: "Unauthorized"},
             {status: 401, headers: NO_STORE},

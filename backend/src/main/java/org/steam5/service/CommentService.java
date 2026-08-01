@@ -2,6 +2,7 @@ package org.steam5.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -151,7 +152,10 @@ public class CommentService {
     @Transactional
     public void archiveComment(final Long commentId, final String steamId) {
         if (!CommentModerator.isModerator(steamId)) {
-            log.warn("Rejected comment archive: commentId={} steamId={}", commentId, steamId);
+            // Do not log raw Steam IDs on rejected authz attempts — correlate via request ID.
+            final String correlationId = MDC.get("correlationId");
+            log.warn("Rejected comment archive: commentId={} correlationId={}",
+                    commentId, correlationId != null ? correlationId : "n/a");
             throw new ReviewGameException(403, "forbidden");
         }
         final Comment comment = commentRepository.findByIdForUpdate(commentId)
