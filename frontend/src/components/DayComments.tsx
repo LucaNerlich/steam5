@@ -1,11 +1,11 @@
 "use client";
 
-import React, {useActionState, useCallback, useEffect, useRef, useState} from "react";
+import React, {useActionState, useCallback, useEffect, useId, useRef, useState} from "react";
 import Link from "next/link";
 import Form from "next/form";
 import {useFormStatus} from "react-dom";
 import useSWR from "swr";
-import {ArchiveIcon} from "@phosphor-icons/react/ssr";
+import {ArchiveIcon, GameControllerIcon} from "@phosphor-icons/react/ssr";
 import {useAuth} from "@/contexts/AuthContext";
 import {buildSteamLoginUrl} from "@/components/SteamLoginButton";
 import ReactionBar from "@/components/ReactionBar";
@@ -165,6 +165,88 @@ function insertGameReference(
  *
  * @param props - The game date and callbacks for successful or unauthorized submissions.
  */
+/**
+ * Compact trigger that opens today's game picks for inserting Steam links.
+ */
+function GameLinkPicker(props: {
+    games: CommentGameRef[];
+    onPick: (game: CommentGameRef) => void;
+}): React.ReactElement {
+    const {games, onPick} = props;
+    const [open, setOpen] = useState(false);
+    const rootRef = useRef<HTMLDivElement>(null);
+    const pickerId = useId();
+
+    useEffect(() => {
+        if (!open) return;
+
+        const onPointerDown = (event: MouseEvent | TouchEvent) => {
+            const target = event.target as Node | null;
+            if (rootRef.current && target && !rootRef.current.contains(target)) {
+                setOpen(false);
+            }
+        };
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.key === "Escape") setOpen(false);
+        };
+
+        document.addEventListener("mousedown", onPointerDown);
+        document.addEventListener("touchstart", onPointerDown);
+        document.addEventListener("keydown", onKeyDown);
+        return () => {
+            document.removeEventListener("mousedown", onPointerDown);
+            document.removeEventListener("touchstart", onPointerDown);
+            document.removeEventListener("keydown", onKeyDown);
+        };
+    }, [open]);
+
+    return (
+        <div className="comment-composer__game-picker" ref={rootRef}>
+            <button
+                type="button"
+                className={`comment-composer__game-trigger${open ? " comment-composer__game-trigger--open" : ""}`}
+                aria-haspopup="menu"
+                aria-expanded={open}
+                aria-controls={pickerId}
+                title="Insert a game link"
+                aria-label="Insert a game link"
+                onClick={() => setOpen((value) => !value)}
+            >
+                <GameControllerIcon size={18} weight="regular" aria-hidden="true"/>
+                <span className="comment-composer__game-trigger-plus" aria-hidden="true">+</span>
+            </button>
+            {open && (
+                <div
+                    id={pickerId}
+                    className="comment-composer__game-menu"
+                    role="menu"
+                    aria-label="Today's games"
+                >
+                    {games.map((game) => {
+                        const label = game.name || `App ${game.appId}`;
+                        return (
+                            <button
+                                key={game.appId}
+                                type="button"
+                                role="menuitem"
+                                className="comment-composer__game-option"
+                                title={label}
+                                aria-label={label}
+                                onClick={() => {
+                                    onPick(game);
+                                    setOpen(false);
+                                }}
+                            >
+                                {label}
+                            </button>
+                        );
+                    })}
+                </div>
+            )}
+        </div>
+    );
+}
+
 function CommentComposer(props: {
     gameDate: string;
     games?: CommentGameRef[];
@@ -214,25 +296,6 @@ function CommentComposer(props: {
             <label className="comment-composer__label" htmlFor={`day-comment-${gameDate}`}>
                 Your comment
             </label>
-            {games.length > 0 && (
-                <div className="comment-composer__games" aria-label="Insert a game link">
-                    {games.map((game) => {
-                        const label = game.name || `App ${game.appId}`;
-                        return (
-                            <button
-                                key={game.appId}
-                                type="button"
-                                className="comment-composer__game-chip"
-                                title={label}
-                                aria-label={label}
-                                onClick={() => handleInsertGame(game)}
-                            >
-                                {label}
-                            </button>
-                        );
-                    })}
-                </div>
-            )}
             <textarea
                 ref={textareaRef}
                 id={`day-comment-${gameDate}`}
@@ -244,6 +307,9 @@ function CommentComposer(props: {
                 onInput={(e) => setBodyLength(e.currentTarget.value.length)}
             />
             <div className="comment-composer__actions">
+                {games.length > 0 && (
+                    <GameLinkPicker games={games} onPick={handleInsertGame}/>
+                )}
                 <span
                     className={`comment-composer__count${remaining <= 40 ? " comment-composer__count--warn" : ""}`}
                     aria-live="polite"
