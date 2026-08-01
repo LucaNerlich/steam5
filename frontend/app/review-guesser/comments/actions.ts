@@ -14,6 +14,19 @@ export type CommentActionState = {
 };
 
 /**
+ * Extracts a machine error code from either controller Map bodies (`error`)
+ * or {@code ApiError} bodies (`message` holds the code; `error` is the HTTP reason phrase).
+ */
+function upstreamErrorCode(body: {error?: string; message?: string} | null | undefined): string | undefined {
+    const isCode = (value: string | undefined): value is string =>
+        typeof value === 'string' && /^[a-z][a-z0-9_]*$/.test(value);
+
+    if (isCode(body?.error)) return body.error;
+    if (isCode(body?.message)) return body.message;
+    return undefined;
+}
+
+/**
  * Submits a day comment using the server-side session.
  *
  * @param formData - Form data containing the game date and comment body
@@ -64,10 +77,13 @@ export async function postCommentAction(
             return {ok: false, unauthorized: true, error: 'Sign in with Steam to post a comment.'};
         }
         if (!res.ok) {
-            const err = await res.json().catch(() => ({})) as {error?: string};
-            const code = err?.error;
+            const err = await res.json().catch(() => ({})) as {error?: string; message?: string};
+            const code = upstreamErrorCode(err);
             if (code === 'day_not_complete') {
                 return {ok: false, error: 'Finish all rounds for this day before commenting.'};
+            }
+            if (code === 'not_current_game_day') {
+                return {ok: false, error: 'Comments are only open for today’s game.'};
             }
             if (code === 'rate_limit_exceeded') {
                 return {ok: false, error: 'Too many comments — try again in a minute.'};

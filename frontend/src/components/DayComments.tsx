@@ -5,10 +5,13 @@ import Link from "next/link";
 import Form from "next/form";
 import {useFormStatus} from "react-dom";
 import useSWR from "swr";
+import {ArchiveIcon} from "@phosphor-icons/react/ssr";
 import {useAuth} from "@/contexts/AuthContext";
 import {buildSteamLoginUrl} from "@/components/SteamLoginButton";
 import ReactionBar from "@/components/ReactionBar";
 import {
+    COMMENT_MODERATOR_STEAM_ID,
+    archiveComment,
     commentsUrl,
     fetchComments,
     type DayComment,
@@ -178,13 +181,17 @@ export default function DayComments(props: {
     readOnly?: boolean;
 }): React.ReactElement | null {
     const {gameDate, readOnly = false} = props;
-    const {isSignedIn, refreshAuth} = useAuth();
+    const {isSignedIn, steamId, refreshAuth} = useAuth();
+    const canModerate = isSignedIn === true && steamId === COMMENT_MODERATOR_STEAM_ID;
+    const [archivingId, setArchivingId] = useState<number | null>(null);
 
     const swrKey = gameDate ? commentsUrl(gameDate) : null;
+    // Long browser cache only for anonymous archive views (no reactedByViewer).
+    const immutableFetch = readOnly && isSignedIn !== true;
     const {data, error: loadError, isLoading, mutate} = useSWR<DayComment[]>(
         swrKey,
-        () => fetchComments(gameDate as string, {immutable: readOnly}),
-        readOnly
+        () => fetchComments(gameDate as string, {immutable: immutableFetch}),
+        readOnly && !canModerate
             ? {
                 revalidateOnFocus: false,
                 revalidateOnReconnect: false,
@@ -200,6 +207,22 @@ export default function DayComments(props: {
     const handleUnauthorized = useCallback(() => {
         refreshAuth();
     }, [refreshAuth]);
+
+    const handleArchive = useCallback(async (commentId: number) => {
+        if (archivingId !== null) return;
+        setArchivingId(commentId);
+        try {
+            await archiveComment(commentId);
+            await mutate();
+        } catch (e) {
+            const message = e instanceof Error ? e.message : "";
+            if (message === "unauthorized") {
+                refreshAuth();
+            }
+        } finally {
+            setArchivingId(null);
+        }
+    }, [archivingId, mutate, refreshAuth]);
 
     if (!gameDate) return null;
 
@@ -255,6 +278,19 @@ export default function DayComments(props: {
                                                 >
                                                     {relative}
                                                 </time>
+                                            )}
+                                            {canModerate && (
+                                                <button
+                                                    type="button"
+                                                    className="day-comments__archive"
+                                                    title="Archive comment"
+                                                    aria-label="Archive comment"
+                                                    disabled={archivingId !== null}
+                                                    onClick={() => void handleArchive(comment.id)}
+                                                >
+                                                    <ArchiveIcon size={14} weight="regular" aria-hidden="true"/>
+                                                    <span>{archivingId === comment.id ? "…" : "Archive"}</span>
+                                                </button>
                                             )}
                                         </div>
                                         <ReactionBar

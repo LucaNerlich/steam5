@@ -24,9 +24,6 @@ function isUtcToday(date: string): boolean {
 
 /**
  * Retrieves review-game comments for a specified date.
- *
- * @param params - Route parameters containing the requested date.
- * @returns A response containing the comments, or an error response when retrieval fails.
  */
 export async function GET(
     _req: NextRequest,
@@ -39,13 +36,13 @@ export async function GET(
         headers.authorization = `Bearer ${token}`;
     }
     const today = isUtcToday(date);
-    const cacheHeaders = today ? CACHE_LIVE : CACHE_HISTORICAL;
+    // Authenticated bodies include reactedByViewer — never long-cache them.
+    const cacheHeaders = token ? NO_STORE : (today ? CACHE_LIVE : CACHE_HISTORICAL);
     try {
         const res = await fetch(
             `${BACKEND_ORIGIN}/api/review-game/comments/${encodeURIComponent(date)}`,
             {
                 headers,
-                // Authenticated bodies include reactedByViewer — do not share across users.
                 ...(token
                     ? {cache: "no-store" as const}
                     : {next: {revalidate: today ? 30 : 31536000}}),

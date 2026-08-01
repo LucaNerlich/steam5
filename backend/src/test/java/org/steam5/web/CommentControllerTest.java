@@ -3,6 +3,7 @@ package org.steam5.web;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.ResponseEntity;
+import org.steam5.domain.CommentModerator;
 import org.steam5.domain.GameDate;
 import org.steam5.domain.ReactionType;
 import org.steam5.service.CommentRateLimiter;
@@ -33,7 +34,7 @@ class CommentControllerTest {
     }
 
     @Test
-    void listComments_usesLiveCacheControlForToday() {
+    void listComments_usesLiveCacheControlForTodayAnonymous() {
         LocalDate today = GameDate.todayUtc();
         when(commentService.listComments(today, null)).thenReturn(List.of());
 
@@ -46,15 +47,27 @@ class CommentControllerTest {
     }
 
     @Test
-    void listComments_usesHistoricalCacheControlForPastDates() {
+    void listComments_usesHistoricalCacheControlForPastDatesAnonymous() {
+        LocalDate past = GameDate.todayUtc().minusDays(3);
+        when(commentService.listComments(past, null)).thenReturn(List.of());
+
+        ResponseEntity<?> response = controller.listComments(past.toString(), null);
+
+        assertEquals(200, response.getStatusCode().value());
+        assertEquals("private, max-age=31536000, immutable",
+                response.getHeaders().getFirst("Cache-Control"));
+        verify(commentService).listComments(past, null);
+    }
+
+    @Test
+    void listComments_usesNoStoreWhenAuthenticated() {
         LocalDate past = GameDate.todayUtc().minusDays(3);
         when(commentService.listComments(past, "viewer")).thenReturn(List.of());
 
         ResponseEntity<?> response = controller.listComments(past.toString(), "viewer");
 
         assertEquals(200, response.getStatusCode().value());
-        assertEquals("private, max-age=31536000, immutable",
-                response.getHeaders().getFirst("Cache-Control"));
+        assertEquals("private, no-store", response.getHeaders().getFirst("Cache-Control"));
         verify(commentService).listComments(past, "viewer");
     }
 
@@ -79,9 +92,22 @@ class CommentControllerTest {
     }
 
     @Test
+    void createComment_rejectsPastGameDayWithoutConsumingRateLimit() {
+        String past = GameDate.todayUtc().minusDays(1).toString();
+
+        ResponseEntity<?> response = controller.createComment(
+                past, "u1", new CommentController.CreateCommentRequest("hi"));
+
+        assertEquals(400, response.getStatusCode().value());
+        assertEquals("not_current_game_day", ((Map<?, ?>) response.getBody()).get("error"));
+        verify(commentRateLimiter, never()).tryAcquireComment(any());
+        verify(commentService, never()).createComment(any(), any(), any());
+    }
+
+    @Test
     void createComment_returns401WhenUnauthenticated() {
         ResponseEntity<?> response = controller.createComment(
-                "2026-07-30", null, new CommentController.CreateCommentRequest("hi"));
+                GameDate.todayUtc().toString(), null, new CommentController.CreateCommentRequest("hi"));
 
         assertEquals(401, response.getStatusCode().value());
         assertEquals("unauthenticated", ((Map<?, ?>) response.getBody()).get("error"));
@@ -91,7 +117,7 @@ class CommentControllerTest {
     @Test
     void createComment_rejectsBlankBody() {
         ResponseEntity<?> response = controller.createComment(
-                "2026-07-30", "u1", new CommentController.CreateCommentRequest("   "));
+                GameDate.todayUtc().toString(), "u1", new CommentController.CreateCommentRequest("   "));
 
         assertEquals(400, response.getStatusCode().value());
         assertEquals("invalid_body", ((Map<?, ?>) response.getBody()).get("error"));
@@ -103,7 +129,7 @@ class CommentControllerTest {
         String tooLong = "x".repeat(1001);
 
         ResponseEntity<?> response = controller.createComment(
-                "2026-07-30", "u1", new CommentController.CreateCommentRequest(tooLong));
+                GameDate.todayUtc().toString(), "u1", new CommentController.CreateCommentRequest(tooLong));
 
         assertEquals(400, response.getStatusCode().value());
         assertEquals("body_too_long", ((Map<?, ?>) response.getBody()).get("error"));
@@ -113,9 +139,10 @@ class CommentControllerTest {
     @Test
     void createComment_returns429WhenRateLimited() {
         when(commentRateLimiter.tryAcquireComment("u1")).thenReturn(false);
+        LocalDate today = GameDate.todayUtc();
 
         ResponseEntity<?> response = controller.createComment(
-                "2026-07-30", "u1", new CommentController.CreateCommentRequest("hi"));
+                today.toString(), "u1", new CommentController.CreateCommentRequest("hi"));
 
         assertEquals(429, response.getStatusCode().value());
         assertEquals("rate_limit_exceeded", ((Map<?, ?>) response.getBody()).get("error"));
@@ -124,21 +151,21 @@ class CommentControllerTest {
 
     @Test
     void createComment_returns201AndDelegatesWhenValid() {
+        LocalDate today = GameDate.todayUtc();
         CommentService.CommentDto dto = new CommentService.CommentDto(
-                1L, "hi", "2026-07-30T12:00:00Z",
+                1L, "hi", today + "T12:00:00Z",
                 new CommentService.AuthorDto("u1", "Alice", null, null),
                 List.of()
         );
-        when(commentService.createComment(eq("u1"), eq(LocalDate.of(2026, 7, 30)), eq("hi")))
-                .thenReturn(dto);
+        when(commentService.createComment(eq("u1"), eq(today), eq("hi"))).thenReturn(dto);
 
         ResponseEntity<?> response = controller.createComment(
-                "2026-07-30", "u1", new CommentController.CreateCommentRequest("  hi  "));
+                today.toString(), "u1", new CommentController.CreateCommentRequest("  hi  "));
 
         assertEquals(201, response.getStatusCode().value());
-        assertEquals("no-store", response.getHeaders().getFirst("Cache-Control"));
+        assertEquals("private, no-store", response.getHeaders().getFirst("Cache-Control"));
         assertSame(dto, response.getBody());
-        verify(commentService).createComment(eq("u1"), eq(LocalDate.of(2026, 7, 30)), eq("hi"));
+        verify(commentService).createComment(eq("u1"), eq(today), eq("hi"));
     }
 
     @Test
@@ -184,7 +211,25 @@ class CommentControllerTest {
                 7L, "u1", new CommentController.ReactionRequest("HUG"));
 
         assertEquals(200, response.getStatusCode().value());
-        assertEquals("no-store", response.getHeaders().getFirst("Cache-Control"));
+        assertEquals("private, no-store", response.getHeaders().getFirst("Cache-Control"));
         assertSame(reactions, response.getBody());
+    }
+
+    @Test
+    void archiveComment_returns401WhenUnauthenticated() {
+        ResponseEntity<?> response = controller.archiveComment(7L, null);
+
+        assertEquals(401, response.getStatusCode().value());
+        assertEquals("unauthenticated", ((Map<?, ?>) response.getBody()).get("error"));
+        verify(commentService, never()).archiveComment(any(), any());
+    }
+
+    @Test
+    void archiveComment_delegatesWhenAuthenticated() {
+        ResponseEntity<?> response = controller.archiveComment(7L, CommentModerator.STEAM_ID);
+
+        assertEquals(200, response.getStatusCode().value());
+        assertEquals("private, no-store", response.getHeaders().getFirst("Cache-Control"));
+        verify(commentService).archiveComment(7L, CommentModerator.STEAM_ID);
     }
 }

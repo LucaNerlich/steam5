@@ -123,14 +123,28 @@ describe('postCommentAction happy path and upstream errors', () => {
         consoleError.mockRestore();
     });
 
-    it('maps day_not_complete to a friendly error', async () => {
-        fetchMock.mockResolvedValue(mockResponse(400, {error: 'day_not_complete'}));
+    it('maps day_not_complete from ApiError.message to a friendly error', async () => {
+        fetchMock.mockResolvedValue(mockResponse(400, {
+            error: 'Bad Request',
+            message: 'day_not_complete',
+        }));
 
         const res = await postCommentAction(undefined, form('2026-07-31', 'hello'));
 
         expect(res).toEqual({
             ok: false,
             error: 'Finish all rounds for this day before commenting.',
+        });
+    });
+
+    it('maps not_current_game_day to a friendly error', async () => {
+        fetchMock.mockResolvedValue(mockResponse(400, {error: 'not_current_game_day'}));
+
+        const res = await postCommentAction(undefined, form('2026-07-31', 'hello'));
+
+        expect(res).toEqual({
+            ok: false,
+            error: 'Comments are only open for today’s game.',
         });
     });
 

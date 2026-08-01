@@ -1,7 +1,9 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 import {
+    COMMENT_MODERATOR_STEAM_ID,
     REACTION_EMOJI,
     REACTION_TYPES,
+    archiveComment,
     commentsUrl,
     fetchComments,
     toggleReaction,
@@ -116,5 +118,40 @@ describe('toggleReaction', () => {
         fetchMock.mockResolvedValue(mockResponse(false, {}));
 
         await expect(toggleReaction(42, 'HUG')).rejects.toThrow('Failed to toggle reaction');
+    });
+
+    it('maps ApiError.message codes for non-OK responses', async () => {
+        fetchMock.mockResolvedValue(mockResponse(false, {
+            error: 'Bad Request',
+            message: 'not_current_game_day',
+        }, 400));
+
+        await expect(toggleReaction(42, 'HUG')).rejects.toThrow('not_current_game_day');
+    });
+});
+
+describe('archiveComment', () => {
+    it('POSTs to the archive proxy', async () => {
+        fetchMock.mockResolvedValue(mockResponse(true, {ok: true}, 200));
+
+        await archiveComment(42);
+
+        expect(fetchMock).toHaveBeenCalledWith('/api/review-game/comments/archive/42', {
+            method: 'POST',
+            headers: {accept: 'application/json'},
+            cache: 'no-store',
+        });
+    });
+
+    it('throws unauthorized for 401 responses', async () => {
+        fetchMock.mockResolvedValue(mockResponse(false, {error: 'Unauthorized'}, 401));
+
+        await expect(archiveComment(42)).rejects.toThrow('unauthorized');
+    });
+});
+
+describe('COMMENT_MODERATOR_STEAM_ID', () => {
+    it('matches the hardcoded moderator account', () => {
+        expect(COMMENT_MODERATOR_STEAM_ID).toBe('76561198028075069');
     });
 });

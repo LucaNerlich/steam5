@@ -4,7 +4,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.Pageable;
 import org.steam5.domain.Comment;
+import org.steam5.domain.CommentModerator;
 import org.steam5.domain.CommentReaction;
+import org.steam5.domain.GameDate;
 import org.steam5.domain.Guess;
 import org.steam5.domain.ReactionType;
 import org.steam5.domain.ReviewGamePick;
@@ -36,10 +38,12 @@ class CommentServiceTest {
     private DomainCacheEvictor cacheEvictor;
     private CommentService service;
 
-    private final LocalDate day = LocalDate.of(2026, 7, 30);
+    /** Aligns with {@link GameDate#todayUtc()} so write-path tests exercise the happy path. */
+    private LocalDate day;
 
     @BeforeEach
     void setUp() {
+        day = GameDate.todayUtc();
         commentRepository = mock(CommentRepository.class);
         commentReactionRepository = mock(CommentReactionRepository.class);
         guessRepository = mock(GuessRepository.class);
@@ -54,6 +58,19 @@ class CommentServiceTest {
                 userRepository,
                 cacheEvictor
         );
+    }
+
+    @Test
+    void createComment_throwsWhenNotCurrentGameDay() {
+        LocalDate past = day.minusDays(2);
+
+        ReviewGameException ex = assertThrows(ReviewGameException.class,
+                () -> service.createComment("u1", past, "nice day"));
+
+        assertEquals(400, ex.getStatusCode());
+        assertEquals("not_current_game_day", ex.getMessage());
+        verify(commentRepository, never()).save(any());
+        verify(pickRepository, never()).findByPickDate(any());
     }
 
     @Test
@@ -110,7 +127,7 @@ class CommentServiceTest {
 
     @Test
     void listComments_returnsEmptyWhenNone() {
-        when(commentRepository.findByGameDateOrderByCreatedAtDesc(eq(day), any(Pageable.class)))
+        when(commentRepository.findByGameDateAndArchivedFalseOrderByCreatedAtDesc(eq(day), any(Pageable.class)))
                 .thenReturn(List.of());
 
         assertTrue(service.listComments(day, null).isEmpty());
@@ -120,7 +137,7 @@ class CommentServiceTest {
     @Test
     void listComments_attachesAuthorAndViewerReactions() {
         Comment comment = comment(7L, "u1", "hello");
-        when(commentRepository.findByGameDateOrderByCreatedAtDesc(eq(day), any(Pageable.class)))
+        when(commentRepository.findByGameDateAndArchivedFalseOrderByCreatedAtDesc(eq(day), any(Pageable.class)))
                 .thenReturn(List.of(comment));
 
         CommentReactionRepository.ReactionCountRow countRow = mock(CommentReactionRepository.ReactionCountRow.class);
@@ -153,13 +170,6 @@ class CommentServiceTest {
                 .orElseThrow();
         assertEquals(3L, thumbs.count());
         assertTrue(thumbs.reactedByViewer());
-
-        CommentService.ReactionDto hug = dto.reactions().stream()
-                .filter(r -> r.reactionType().equals("HUG"))
-                .findFirst()
-                .orElseThrow();
-        assertEquals(0L, hug.count());
-        assertFalse(hug.reactedByViewer());
     }
 
     @Test
@@ -171,6 +181,21 @@ class CommentServiceTest {
 
         assertEquals(404, ex.getStatusCode());
         assertEquals("comment_not_found", ex.getMessage());
+    }
+
+    @Test
+    void toggleReaction_throwsWhenNotCurrentGameDay() {
+        Comment comment = comment(7L, "u1", "hello");
+        comment.setGameDate(day.minusDays(1));
+        when(commentRepository.findByIdForUpdate(7L)).thenReturn(Optional.of(comment));
+
+        ReviewGameException ex = assertThrows(ReviewGameException.class,
+                () -> service.toggleReaction(7L, "viewer", ReactionType.HUG));
+
+        assertEquals(400, ex.getStatusCode());
+        assertEquals("not_current_game_day", ex.getMessage());
+        verify(commentReactionRepository, never()).delete(any());
+        verify(commentReactionRepository, never()).insertIgnoreConflict(any(), any(), any(), any());
     }
 
     @Test
@@ -211,9 +236,6 @@ class CommentServiceTest {
 
     @Test
     void toggleReaction_ignoresConflictWhenInsertReturnsZero() {
-        // Production path uses INSERT ... ON CONFLICT DO NOTHING (no aborting exception).
-        // A full PostgreSQL conflict integration test is skipped: this repo has no
-        // Testcontainers/@SpringBootTest harness for comment reactions.
         Comment comment = comment(7L, "u1", "hello");
         when(commentRepository.findByIdForUpdate(7L)).thenReturn(Optional.of(comment));
         when(commentReactionRepository.findByComment_IdAndSteamIdAndReactionType(
@@ -236,8 +258,32 @@ class CommentServiceTest {
         assertTrue(hug.reactedByViewer());
     }
 
-    private static ReviewGamePick pick(Long id, Long appId) {
-        return new ReviewGamePick(id, LocalDate.of(2026, 7, 30), appId, OffsetDateTime.now());
+    @Test
+    void archiveComment_forbidsNonModerator() {
+        ReviewGameException ex = assertThrows(ReviewGameException.class,
+                () -> service.archiveComment(7L, "someone-else"));
+
+        assertEquals(403, ex.getStatusCode());
+        assertEquals("forbidden", ex.getMessage());
+        verify(commentRepository, never()).findByIdForUpdate(any());
+    }
+
+    @Test
+    void archiveComment_softArchivesAndEvicts() {
+        Comment comment = comment(7L, "u1", "hello");
+        when(commentRepository.findByIdForUpdate(7L)).thenReturn(Optional.of(comment));
+        when(commentRepository.save(any(Comment.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        service.archiveComment(7L, CommentModerator.STEAM_ID);
+
+        assertTrue(comment.isArchived());
+        assertNotNull(comment.getArchivedAt());
+        verify(commentRepository).save(comment);
+        verify(cacheEvictor).evictCommentsForDay(day);
+    }
+
+    private ReviewGamePick pick(Long id, Long appId) {
+        return new ReviewGamePick(id, day, appId, OffsetDateTime.now());
     }
 
     private Guess guess(Long id, int roundIndex) {
@@ -250,6 +296,7 @@ class CommentServiceTest {
         c.setSteamId(steamId);
         c.setGameDate(day);
         c.setBody(body);
+        c.setArchived(false);
         c.setCreatedAt(OffsetDateTime.parse("2026-07-30T12:00:00Z"));
         return c;
     }

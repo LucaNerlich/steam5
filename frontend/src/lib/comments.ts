@@ -1,5 +1,8 @@
 export type ReactionType = "THUMBS_UP" | "LAUGH_CRYING" | "LAUGH_TEAR" | "HUG";
 
+/** Steam ID allowed to soft-archive comments (must match backend CommentModerator). */
+export const COMMENT_MODERATOR_STEAM_ID = "76561198028075069";
+
 export const REACTION_TYPES: ReactionType[] = [
     "THUMBS_UP",
     "LAUGH_CRYING",
@@ -87,7 +90,7 @@ export async function toggleReaction(
         },
     );
     if (!res.ok) {
-        const err = await res.json().catch(() => ({})) as {error?: string};
+        const err = await res.json().catch(() => ({})) as {error?: string; message?: string};
         if (
             res.status === 401
             || err?.error === "unauthenticated"
@@ -95,7 +98,38 @@ export async function toggleReaction(
         ) {
             throw new Error("unauthorized");
         }
-        throw new Error(err?.error || "Failed to toggle reaction");
+        const code = (typeof err?.message === "string" && /^[a-z][a-z0-9_]*$/.test(err.message))
+            ? err.message
+            : err?.error;
+        throw new Error(code || "Failed to toggle reaction");
     }
     return res.json();
+}
+
+/**
+ * Soft-archives a comment (moderator only).
+ */
+export async function archiveComment(commentId: number): Promise<void> {
+    const res = await fetch(
+        `/api/review-game/comments/archive/${encodeURIComponent(String(commentId))}`,
+        {
+            method: "POST",
+            headers: {accept: "application/json"},
+            cache: "no-store",
+        },
+    );
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({})) as {error?: string; message?: string};
+        if (
+            res.status === 401
+            || err?.error === "unauthenticated"
+            || err?.error === "Unauthorized"
+        ) {
+            throw new Error("unauthorized");
+        }
+        const code = (typeof err?.message === "string" && /^[a-z][a-z0-9_]*$/.test(err.message))
+            ? err.message
+            : err?.error;
+        throw new Error(code || "Failed to archive comment");
+    }
 }

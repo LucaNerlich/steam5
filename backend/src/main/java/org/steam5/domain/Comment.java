@@ -33,6 +33,13 @@ public class Comment {
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 
+    /** Soft-hidden from public lists when true; not hard-deleted. */
+    @Column(name = "archived", nullable = false)
+    private boolean archived = false;
+
+    @Column(name = "archived_at")
+    private OffsetDateTime archivedAt;
+
     /**
      * Sets the creation timestamp before persistence when it has not been provided.
      */

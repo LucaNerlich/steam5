@@ -27,19 +27,13 @@ public class CommentController {
     private static final int MAX_BODY_LENGTH = 1000;
     // Viewer-specific reactedByViewer flags — keep out of shared/CDN caches.
     private static final String CACHE_LIVE = "private, max-age=30, must-revalidate";
-    // Past days are treated as immutable for comments (archive UI is read-only).
+    // Past days are immutable for anonymous lists (writes are blocked for non-current game day).
     private static final String CACHE_HISTORICAL = "private, max-age=31536000, immutable";
+    private static final String CACHE_NO_STORE = "private, no-store";
 
     private final CommentService commentService;
     private final CommentRateLimiter commentRateLimiter;
 
-    /**
-     * Lists comments for the specified date.
-     *
-     * @param date   the date in ISO-8601 format
-     * @param steamId the authenticated viewer's Steam ID, if available
-     * @return       the comments for the date, or a bad-request response when the date is invalid
-     */
     @GetMapping("/{date}")
     public ResponseEntity<?> listComments(
             @PathVariable("date") final String date,
@@ -50,22 +44,19 @@ public class CommentController {
         } catch (DateTimeParseException ex) {
             return ResponseEntity.badRequest().body(Map.of("error", "invalid_date"));
         }
-        final boolean isToday = day.equals(GameDate.todayUtc());
-        final String cc = isToday ? CACHE_LIVE : CACHE_HISTORICAL;
+        // Authenticated payloads include reactedByViewer — never long-cache them.
+        final String cc;
+        if (steamId != null && !steamId.isBlank()) {
+            cc = CACHE_NO_STORE;
+        } else {
+            final boolean isToday = day.equals(GameDate.todayUtc());
+            cc = isToday ? CACHE_LIVE : CACHE_HISTORICAL;
+        }
         return ResponseEntity.ok()
                 .header("Cache-Control", cc)
                 .body(commentService.listComments(day, steamId));
     }
 
-    /**
-     * Creates a comment for the specified date.
-     *
-     * @param date the comment date in ISO-8601 format
-     * @param steamId the authenticated Steam user identifier
-     * @param req the request containing the comment body
-     * @return the created comment, or an error response for unauthenticated, invalid,
-     *         rate-limited, or invalid-date requests
-     */
     @PostMapping("/{date}")
     public ResponseEntity<?> createComment(
             @PathVariable("date") final String date,
@@ -87,23 +78,19 @@ public class CommentController {
         } catch (DateTimeParseException ex) {
             return ResponseEntity.badRequest().body(Map.of("error", "invalid_date"));
         }
+        // Reject non-current game days before consuming a rate-limit token.
+        if (!day.equals(GameDate.todayUtc())) {
+            return ResponseEntity.badRequest().body(Map.of("error", "not_current_game_day"));
+        }
         if (!commentRateLimiter.tryAcquireComment(steamId)) {
             return ResponseEntity.status(429).body(Map.of("error", "rate_limit_exceeded"));
         }
         final CommentService.CommentDto created = commentService.createComment(steamId, day, body);
         return ResponseEntity.status(201)
-                .header("Cache-Control", "no-store")
+                .header("Cache-Control", CACHE_NO_STORE)
                 .body(created);
     }
 
-    /**
-     * Toggles a reaction on a comment for an authenticated user.
-     *
-     * @param commentId the identifier of the comment
-     * @param req       the requested reaction type
-     * @return the updated reactions, or an error response for invalid authentication,
-     *         reaction types, or rate limits
-     */
     @PostMapping("/{commentId}/reactions")
     public ResponseEntity<?> toggleReaction(
             @PathVariable("commentId") final Long commentId,
@@ -127,8 +114,24 @@ public class CommentController {
         final List<CommentService.ReactionDto> reactions =
                 commentService.toggleReaction(commentId, steamId, reactionType);
         return ResponseEntity.ok()
-                .header("Cache-Control", "no-store")
+                .header("Cache-Control", CACHE_NO_STORE)
                 .body(reactions);
+    }
+
+    /**
+     * Soft-archives a comment. Only the hardcoded comment moderator may call this.
+     */
+    @PostMapping("/{commentId}/archive")
+    public ResponseEntity<?> archiveComment(
+            @PathVariable("commentId") final Long commentId,
+            @CurrentUser final String steamId) {
+        if (steamId == null) {
+            return ResponseEntity.status(401).body(Map.of("error", "unauthenticated"));
+        }
+        commentService.archiveComment(commentId, steamId);
+        return ResponseEntity.ok()
+                .header("Cache-Control", CACHE_NO_STORE)
+                .body(Map.of("ok", true));
     }
 
     public record CreateCommentRequest(String body) {

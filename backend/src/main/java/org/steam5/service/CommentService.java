@@ -8,7 +8,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.steam5.domain.Comment;
+import org.steam5.domain.CommentModerator;
 import org.steam5.domain.CommentReaction;
+import org.steam5.domain.GameDate;
 import org.steam5.domain.ReactionType;
 import org.steam5.domain.User;
 import org.steam5.http.ReviewGameException;
@@ -43,16 +45,14 @@ public class CommentService {
     private final DomainCacheEvictor cacheEvictor;
 
     /**
-     * Creates a comment for a completed game day.
+     * Creates a comment for the current UTC game day after the user has completed it.
      *
-     * @param steamId  the Steam ID of the comment author
-     * @param gameDate the game date associated with the comment
-     * @param body     the comment text
-     * @return         the created comment
-     * @throws ReviewGameException if the user has not completed the game for the specified day
+     * @throws ReviewGameException if the date is not today's game day, or the day is incomplete
      */
     @Transactional
     public CommentDto createComment(final String steamId, final LocalDate gameDate, final String body) {
+        requireCurrentGameDay(gameDate);
+
         final int guessedRounds = guessRepository.findAllForDay(steamId, gameDate).size();
         final int pickCount = pickRepository.findByPickDate(gameDate).size();
         if (pickCount <= 0 || guessedRounds < pickCount) {
@@ -63,22 +63,19 @@ public class CommentService {
         comment.setSteamId(steamId);
         comment.setGameDate(gameDate);
         comment.setBody(body.trim());
+        comment.setArchived(false);
         final Comment saved = commentRepository.save(comment);
         evictCommentsForDayAfterCommit(gameDate);
         return toDto(saved, Map.of(), Set.of());
     }
 
     /**
-     * Lists the newest comments for a game date, including reaction counts and author details.
-     *
-     * @param gameDate       the game date whose comments are requested
-     * @param viewerSteamId  the optional Steam ID used to identify the viewer's reactions
-     * @return the comments for the specified game date, with at most 100 entries
+     * Lists unarchived comments for a game date (newest first), with reactions and authors.
      */
     @Transactional(readOnly = true)
     @Cacheable(value = "comments-for-day", key = "#gameDate.toString() + ':' + (#viewerSteamId != null ? #viewerSteamId : 'anon')")
     public List<CommentDto> listComments(final LocalDate gameDate, final String viewerSteamId) {
-        final List<Comment> comments = commentRepository.findByGameDateOrderByCreatedAtDesc(
+        final List<Comment> comments = commentRepository.findByGameDateAndArchivedFalseOrderByCreatedAtDesc(
                 gameDate, PageRequest.of(0, LIST_PAGE_SIZE));
         if (comments.isEmpty()) {
             return List.of();
@@ -120,28 +117,22 @@ public class CommentService {
     }
 
     /**
-     * Toggles the specified reaction for a comment and returns the comment's updated reaction counts.
-     *
-     * @param commentId    the ID of the comment to update
-     * @param steamId      the Steam ID of the reacting user
-     * @param reactionType the reaction type to add or remove
-     * @return the updated reaction details for the comment
-     * @throws ReviewGameException if the comment does not exist
+     * Toggles a reaction on a comment for the current UTC game day.
      */
     @Transactional
     public List<ReactionDto> toggleReaction(final Long commentId, final String steamId, final ReactionType reactionType) {
-        // Row-lock the comment so concurrent toggles for the same target serialize
-        // their existence check + insert/delete. Inserts use ON CONFLICT DO NOTHING.
         final Comment comment = commentRepository.findByIdForUpdate(commentId)
                 .orElseThrow(() -> new ReviewGameException(404, "comment_not_found"));
+        if (comment.isArchived()) {
+            throw new ReviewGameException(404, "comment_not_found");
+        }
+        requireCurrentGameDay(comment.getGameDate());
 
         final var existing = commentReactionRepository.findByComment_IdAndSteamIdAndReactionType(
                 commentId, steamId, reactionType);
         if (existing.isPresent()) {
             commentReactionRepository.delete(existing.get());
         } else {
-            // Conflict-safe insert: concurrent toggles under the comment row-lock are
-            // rare, but ON CONFLICT keeps the outer transaction usable either way.
             commentReactionRepository.insertIgnoreConflict(
                     commentId, steamId, reactionType.name(), OffsetDateTime.now());
         }
@@ -151,12 +142,36 @@ public class CommentService {
     }
 
     /**
-     * Builds reaction details for a comment, including aggregate counts and the viewer's reaction status.
+     * Soft-archives a comment so it no longer appears in public lists.
      *
-     * @param commentId      the comment whose reactions are mapped
-     * @param viewerSteamId  the Steam ID of the viewer
-     * @return              reaction details for each reaction type
+     * @throws ReviewGameException 403 when the caller is not the hardcoded moderator
      */
+    @Transactional
+    public void archiveComment(final Long commentId, final String steamId) {
+        if (!CommentModerator.isModerator(steamId)) {
+            throw new ReviewGameException(403, "forbidden");
+        }
+        final Comment comment = commentRepository.findByIdForUpdate(commentId)
+                .orElseThrow(() -> new ReviewGameException(404, "comment_not_found"));
+        if (comment.isArchived()) {
+            return;
+        }
+        comment.setArchived(true);
+        comment.setArchivedAt(OffsetDateTime.now());
+        commentRepository.save(comment);
+        evictCommentsForDayAfterCommit(comment.getGameDate());
+    }
+
+    /**
+     * Ensures {@code gameDate} matches {@link GameDate#todayUtc()} — the same calendar
+     * anchor used for daily picks (UTC midnight / ~02:00 CEST), not the viewer's local clock.
+     */
+    private static void requireCurrentGameDay(final LocalDate gameDate) {
+        if (!gameDate.equals(GameDate.todayUtc())) {
+            throw new ReviewGameException(400, "not_current_game_day");
+        }
+    }
+
     private List<ReactionDto> buildReactionDtos(final Long commentId, final String viewerSteamId) {
         final Map<ReactionType, Long> counts = new EnumMap<>(ReactionType.class);
         for (final CommentReactionRepository.ReactionCountRow row
@@ -171,14 +186,6 @@ public class CommentService {
         return reactionDtos(counts, viewerHeld);
     }
 
-    /**
-     * Converts a comment and its reaction data into a comment DTO.
-     *
-     * @param comment     the comment to convert
-     * @param counts      reaction counts grouped by type
-     * @param viewerHeld  reaction types held by the viewer
-     * @return            the converted comment DTO
-     */
     private CommentDto toDto(final Comment comment,
                              final Map<ReactionType, Long> counts,
                              final Set<ReactionType> viewerHeld) {
@@ -199,13 +206,6 @@ public class CommentService {
         );
     }
 
-    /**
-     * Creates an author DTO from a Steam ID and optional user profile data.
-     *
-     * @param steamId the Steam ID used when profile data is unavailable
-     * @param user the user's profile data, or {@code null}
-     * @return the mapped author details, using fallback profile fields when necessary
-     */
     private static AuthorDto toAuthor(final String steamId, final User user) {
         if (user == null) {
             return new AuthorDto(steamId, steamId, null, null);
@@ -222,13 +222,6 @@ public class CommentService {
         return new AuthorDto(user.getSteamId(), personaName, avatar, avatarBlurdata);
     }
 
-    /**
-     * Creates reaction DTOs for every supported reaction type.
-     *
-     * @param counts     reaction counts by type
-     * @param viewerHeld reaction types held by the viewer
-     * @return reaction DTOs with counts and viewer-reaction status
-     */
     private static List<ReactionDto> reactionDtos(final Map<ReactionType, Long> counts,
                                                   final Set<ReactionType> viewerHeld) {
         final List<ReactionDto> reactions = new ArrayList<>(ReactionType.values().length);
@@ -242,12 +235,6 @@ public class CommentService {
         return reactions;
     }
 
-    /**
-     * Evicts cached comments for a game day after the current transaction commits,
-     * or immediately when transaction synchronization is unavailable.
-     *
-     * @param day the game day whose cached comments should be evicted
-     */
     private void evictCommentsForDayAfterCommit(final LocalDate day) {
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {

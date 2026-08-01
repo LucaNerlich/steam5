@@ -121,6 +121,31 @@
     font-variant-numeric: tabular-nums;
 }
 
+.day-comments__archive {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    margin: 0;
+    padding: 0.05rem 0.2rem;
+    border: 0;
+    background: transparent;
+    color: var(--color-muted);
+    font: inherit;
+    font-size: 0.72rem;
+    line-height: 1.2;
+    cursor: pointer;
+}
+
+.day-comments__archive:hover:not(:disabled) {
+    color: var(--color-text);
+    text-decoration: underline;
+}
+
+.day-comments__archive:disabled {
+    opacity: 0.55;
+    cursor: default;
+}
+
 .day-comments__text {
     margin: 0;
     font-size: 0.9rem;
