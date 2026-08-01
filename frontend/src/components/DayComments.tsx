@@ -161,11 +161,6 @@ function insertGameReference(
 }
 
 /**
- * Renders a form for submitting a comment associated with a game date.
- *
- * @param props - The game date and callbacks for successful or unauthorized submissions.
- */
-/**
  * Compact trigger that opens today's game picks for inserting Steam links.
  */
 function GameLinkPicker(props: {
@@ -247,6 +242,11 @@ function GameLinkPicker(props: {
     );
 }
 
+/**
+ * Renders a form for submitting a comment associated with a game date.
+ *
+ * @param props - The game date and callbacks for successful or unauthorized submissions.
+ */
 function CommentComposer(props: {
     gameDate: string;
     games?: CommentGameRef[];

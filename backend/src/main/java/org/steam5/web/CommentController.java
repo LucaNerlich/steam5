@@ -1,6 +1,8 @@
 package org.steam5.web;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -19,6 +21,7 @@ import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/review-game/comments")
@@ -43,7 +46,7 @@ public class CommentController {
         try {
             day = LocalDate.parse(date);
         } catch (DateTimeParseException ex) {
-            return ResponseEntity.badRequest().body(Map.of("error", "invalid_date"));
+            return rejected("GET /api/review-game/comments/{date}", "invalid_date", 400);
         }
         // Authenticated payloads include reactedByViewer — never long-cache them.
         final String cc;
@@ -64,27 +67,27 @@ public class CommentController {
             @CurrentUser final String steamId,
             @RequestBody(required = false) final CreateCommentRequest req) {
         if (steamId == null) {
-            return ResponseEntity.status(401).body(Map.of("error", "unauthenticated"));
+            return rejected("POST /api/review-game/comments/{date}", "unauthenticated", 401);
         }
         if (req == null || req.body() == null || req.body().isBlank()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "invalid_body"));
+            return rejected("POST /api/review-game/comments/{date}", "invalid_body", 400);
         }
         final String body = req.body().trim();
         if (body.length() > MAX_BODY_LENGTH) {
-            return ResponseEntity.badRequest().body(Map.of("error", "body_too_long"));
+            return rejected("POST /api/review-game/comments/{date}", "body_too_long", 400);
         }
         final LocalDate day;
         try {
             day = LocalDate.parse(date);
         } catch (DateTimeParseException ex) {
-            return ResponseEntity.badRequest().body(Map.of("error", "invalid_date"));
+            return rejected("POST /api/review-game/comments/{date}", "invalid_date", 400);
         }
         // Reject non-current game days before consuming a rate-limit token.
         if (!day.equals(GameDate.todayUtc())) {
-            return ResponseEntity.badRequest().body(Map.of("error", "not_current_game_day"));
+            return rejected("POST /api/review-game/comments/{date}", "not_current_game_day", 400);
         }
         if (!commentRateLimiter.tryAcquireComment(steamId)) {
-            return ResponseEntity.status(429).body(Map.of("error", "rate_limit_exceeded"));
+            return rejected("POST /api/review-game/comments/{date}", "rate_limit_exceeded", 429);
         }
         final CommentService.CommentDto created = commentService.createComment(steamId, day, body);
         return ResponseEntity.status(201)
@@ -98,19 +101,19 @@ public class CommentController {
             @CurrentUser final String steamId,
             @RequestBody(required = false) final ReactionRequest req) {
         if (steamId == null) {
-            return ResponseEntity.status(401).body(Map.of("error", "unauthenticated"));
+            return rejected("POST /api/review-game/comments/{commentId}/reactions", "unauthenticated", 401);
         }
         if (req == null || req.reactionType() == null || req.reactionType().isBlank()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "invalid_reaction_type"));
+            return rejected("POST /api/review-game/comments/{commentId}/reactions", "invalid_reaction_type", 400);
         }
         final ReactionType reactionType;
         try {
             reactionType = ReactionType.valueOf(req.reactionType().trim());
         } catch (IllegalArgumentException ex) {
-            return ResponseEntity.badRequest().body(Map.of("error", "invalid_reaction_type"));
+            return rejected("POST /api/review-game/comments/{commentId}/reactions", "invalid_reaction_type", 400);
         }
         if (!commentRateLimiter.tryAcquireReaction(steamId)) {
-            return ResponseEntity.status(429).body(Map.of("error", "rate_limit_exceeded"));
+            return rejected("POST /api/review-game/comments/{commentId}/reactions", "rate_limit_exceeded", 429);
         }
         final List<CommentService.ReactionDto> reactions =
                 commentService.toggleReaction(commentId, steamId, reactionType);
@@ -127,12 +130,26 @@ public class CommentController {
             @PathVariable("commentId") final Long commentId,
             @CurrentUser final String steamId) {
         if (steamId == null) {
-            return ResponseEntity.status(401).body(Map.of("error", "unauthenticated"));
+            return rejected("POST /api/review-game/comments/{commentId}/archive", "unauthenticated", 401);
         }
         commentService.archiveComment(commentId, steamId);
         return ResponseEntity.ok()
                 .header("Cache-Control", CACHE_NO_STORE)
                 .body(Map.of("ok", true));
+    }
+
+    /**
+     * Structured rejection log for auth/validation/rate-limit branches.
+     * Omits request bodies, tokens, and raw Steam IDs.
+     */
+    private static ResponseEntity<Map<String, String>> rejected(
+            final String endpoint,
+            final String error,
+            final int status) {
+        final String correlationId = MDC.get("correlationId");
+        log.warn("Comment API rejected: endpoint={} error={} status={} correlationId={}",
+                endpoint, error, status, correlationId != null ? correlationId : "n/a");
+        return ResponseEntity.status(status).body(Map.of("error", error));
     }
 
     public record CreateCommentRequest(String body) {

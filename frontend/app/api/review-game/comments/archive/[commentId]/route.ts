@@ -1,7 +1,7 @@
 import {NextRequest, NextResponse} from "next/server";
 import {cookies} from "next/headers";
 import {BACKEND_ORIGIN} from "@/lib/backend";
-import {isTrustedBrowserOrigin} from "@/lib/requestOrigin";
+import {rejectUntrustedOrigin} from "@/lib/requestOrigin";
 
 const NO_STORE = {"Cache-Control": "private, no-store"} as const;
 
@@ -17,17 +17,8 @@ export async function POST(
     {params}: { params: Promise<{ commentId: string }> },
 ) {
     const {commentId} = await params;
-    if (!isTrustedBrowserOrigin(req.headers)) {
-        console.error("[comments/archive] Rejected untrusted origin", {
-            commentId,
-            origin: req.headers.get("origin"),
-            referer: req.headers.get("referer"),
-        });
-        return NextResponse.json(
-            {error: "forbidden"},
-            {status: 403, headers: NO_STORE},
-        );
-    }
+    const rejected = rejectUntrustedOrigin(req.headers, "comments/archive", commentId);
+    if (rejected) return rejected;
     const token = (await cookies()).get("s5_token")?.value;
     if (!token) {
         console.error("[comments/archive] Missing authentication", {commentId});

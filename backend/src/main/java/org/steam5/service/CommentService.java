@@ -13,7 +13,9 @@ import org.steam5.domain.Comment;
 import org.steam5.domain.CommentModerator;
 import org.steam5.domain.CommentReaction;
 import org.steam5.domain.GameDate;
+import org.steam5.domain.Guess;
 import org.steam5.domain.ReactionType;
+import org.steam5.domain.ReviewGamePick;
 import org.steam5.domain.User;
 import org.steam5.http.ReviewGameException;
 import org.steam5.repository.CommentReactionRepository;
@@ -56,9 +58,18 @@ public class CommentService {
     public CommentDto createComment(final String steamId, final LocalDate gameDate, final String body) {
         requireCurrentGameDay(gameDate);
 
-        final int guessedRounds = guessRepository.findAllForDay(steamId, gameDate).size();
-        final int pickCount = pickRepository.findByPickDate(gameDate).size();
-        if (pickCount <= 0 || guessedRounds < pickCount) {
+        final List<ReviewGamePick> picks = pickRepository.findByPickDate(gameDate);
+        if (picks.isEmpty()) {
+            throw new ReviewGameException(400, "day_not_complete");
+        }
+        final Set<Long> pickAppIds = picks.stream()
+                .map(ReviewGamePick::getAppId)
+                .collect(Collectors.toSet());
+        final Set<Long> completedPickAppIds = guessRepository.findAllForDay(steamId, gameDate).stream()
+                .map(Guess::getAppId)
+                .filter(pickAppIds::contains)
+                .collect(Collectors.toSet());
+        if (completedPickAppIds.size() < pickAppIds.size()) {
             throw new ReviewGameException(400, "day_not_complete");
         }
 
@@ -166,7 +177,9 @@ public class CommentService {
         comment.setArchived(true);
         comment.setArchivedAt(OffsetDateTime.now());
         commentRepository.save(comment);
-        log.info("Archived comment: commentId={} steamId={}", commentId, steamId);
+        final String correlationId = MDC.get("correlationId");
+        log.info("Archived comment: commentId={} correlationId={}",
+                commentId, correlationId != null ? correlationId : "n/a");
         evictCommentsForDayAfterCommit(comment.getGameDate());
     }
 

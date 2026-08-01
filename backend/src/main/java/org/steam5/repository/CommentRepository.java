@@ -26,7 +26,7 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
             INNER JOIN comment_reactions r ON r.comment_id = c.id
             WHERE c.game_date = :date AND c.archived = false
             GROUP BY c.id
-            ORDER BY COUNT(r.id) DESC, MIN(c.created_at) ASC
+            ORDER BY COUNT(r.id) DESC, MIN(c.created_at) ASC, c.id ASC
             LIMIT 1
             """, nativeQuery = true)
     Optional<Long> findTopReactedCommentId(@Param("date") LocalDate date);

@@ -79,7 +79,7 @@ class CommentServiceTest {
                 pick(1L, 10L), pick(2L, 20L)
         ));
         when(guessRepository.findAllForDay("u1", day)).thenReturn(List.of(
-                guess(1L, 1)
+                guess(1L, 1, 10L)
         ));
 
         ReviewGameException ex = assertThrows(ReviewGameException.class,
@@ -92,21 +92,41 @@ class CommentServiceTest {
     }
 
     @Test
+    void createComment_throwsWhenGuessesDoNotMatchCurrentPicks() {
+        when(pickRepository.findByPickDate(day)).thenReturn(List.of(
+                pick(1L, 10L), pick(2L, 20L)
+        ));
+        // Two guesses, but for stale/other app IDs — must not count as complete.
+        when(guessRepository.findAllForDay("u1", day)).thenReturn(List.of(
+                guess(1L, 1, 99L), guess(2L, 2, 98L)
+        ));
+
+        ReviewGameException ex = assertThrows(ReviewGameException.class,
+                () -> service.createComment("u1", day, "nice day"));
+
+        assertEquals(400, ex.getStatusCode());
+        assertEquals("day_not_complete", ex.getMessage());
+        verify(commentRepository, never()).save(any());
+    }
+
+    @Test
     void createComment_throwsWhenNoPicksExist() {
         when(pickRepository.findByPickDate(day)).thenReturn(List.of());
-        when(guessRepository.findAllForDay("u1", day)).thenReturn(List.of());
 
         ReviewGameException ex = assertThrows(ReviewGameException.class,
                 () -> service.createComment("u1", day, "hello"));
 
         assertEquals(400, ex.getStatusCode());
         assertEquals("day_not_complete", ex.getMessage());
+        verify(guessRepository, never()).findAllForDay(any(), any());
     }
 
     @Test
     void createComment_persistsAndEvictsWhenDayComplete() {
         when(pickRepository.findByPickDate(day)).thenReturn(List.of(pick(1L, 10L), pick(2L, 20L)));
-        when(guessRepository.findAllForDay("u1", day)).thenReturn(List.of(guess(1L, 1), guess(2L, 2)));
+        when(guessRepository.findAllForDay("u1", day)).thenReturn(List.of(
+                guess(1L, 1, 10L), guess(2L, 2, 20L)
+        ));
         when(commentRepository.save(any(Comment.class))).thenAnswer(inv -> {
             Comment c = inv.getArgument(0);
             c.setId(99L);
@@ -286,8 +306,8 @@ class CommentServiceTest {
         return new ReviewGamePick(id, day, appId, OffsetDateTime.now());
     }
 
-    private Guess guess(Long id, int roundIndex) {
-        return new Guess(id, "u1", day, roundIndex, 10L + roundIndex, "1-100", "1-100", 5, OffsetDateTime.now());
+    private Guess guess(Long id, int roundIndex, Long appId) {
+        return new Guess(id, "u1", day, roundIndex, appId, "1-100", "1-100", 5, OffsetDateTime.now());
     }
 
     private Comment comment(Long id, String steamId, String body) {
