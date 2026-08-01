@@ -107,14 +107,19 @@ describe('postCommentAction happy path and upstream errors', () => {
         expect(JSON.parse(init.body as string)).toEqual({body: 'hello'});
     });
 
-    it('returns a generic error when fetch throws', async () => {
+    it('returns outcome-unknown without prompting retry when fetch throws', async () => {
         const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
         fetchMock.mockRejectedValue(new Error('network down'));
 
         const res = await postCommentAction(undefined, form('2026-07-31', 'hello'));
 
-        expect(res).toEqual({ok: false, error: 'Something went wrong. Please try again.'});
+        expect(res.ok).toBe(false);
+        expect(res.outcomeUnknown).toBe(true);
+        expect(res.error).toMatch(/could not confirm/i);
+        expect(res.error).not.toMatch(/try again/i);
         expect(consoleError).toHaveBeenCalled();
+        // Single attempt only — ambiguous failures must not encourage a second POST.
+        expect(fetchMock).toHaveBeenCalledTimes(1);
         consoleError.mockRestore();
     });
 

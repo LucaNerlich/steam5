@@ -8,6 +8,8 @@ export type CommentActionState = {
     ok: boolean;
     error?: string;
     unauthorized?: boolean;
+    /** True when the POST may have succeeded but the client never saw a response. */
+    outcomeUnknown?: boolean;
     commentId?: number;
 };
 
@@ -80,6 +82,11 @@ export async function postCommentAction(
         return {ok: true, commentId: typeof json.id === 'number' ? json.id : undefined};
     } catch (e) {
         console.error('postCommentAction failed', e);
-        return {ok: false, error: 'Something went wrong. Please try again.'};
+        // Ambiguous failure: the comment may already exist. Do not prompt a retry.
+        return {
+            ok: false,
+            outcomeUnknown: true,
+            error: 'We could not confirm whether your comment was posted. Check the list before posting again.',
+        };
     }
 }

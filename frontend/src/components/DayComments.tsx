@@ -122,6 +122,10 @@ function CommentComposer(props: {
             void onPosted();
             return () => window.clearTimeout(timer);
         }
+        if (state.outcomeUnknown) {
+            // Refresh so a comment that may have landed is visible before any re-submit.
+            void onPosted();
+        }
         if (state.unauthorized) {
             onUnauthorized();
         }
