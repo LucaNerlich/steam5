@@ -1,6 +1,7 @@
 package org.steam5.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -31,6 +32,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class CommentService {
@@ -149,6 +151,7 @@ public class CommentService {
     @Transactional
     public void archiveComment(final Long commentId, final String steamId) {
         if (!CommentModerator.isModerator(steamId)) {
+            log.warn("Rejected comment archive: commentId={} steamId={}", commentId, steamId);
             throw new ReviewGameException(403, "forbidden");
         }
         final Comment comment = commentRepository.findByIdForUpdate(commentId)
@@ -159,6 +162,7 @@ public class CommentService {
         comment.setArchived(true);
         comment.setArchivedAt(OffsetDateTime.now());
         commentRepository.save(comment);
+        log.info("Archived comment: commentId={} steamId={}", commentId, steamId);
         evictCommentsForDayAfterCommit(comment.getGameDate());
     }
 

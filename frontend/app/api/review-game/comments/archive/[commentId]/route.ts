@@ -1,17 +1,28 @@
 import {NextRequest, NextResponse} from "next/server";
 import {cookies} from "next/headers";
 import {BACKEND_ORIGIN} from "@/lib/backend";
+import {isTrustedBrowserOrigin} from "@/lib/requestOrigin";
 
 const NO_STORE = {"Cache-Control": "private, no-store"} as const;
 
 /**
  * Soft-archives a comment via the authenticated moderator session.
+ *
+ * Cookie auth alone is not enough for this mutating route: require a trusted
+ * Origin/Referer so cross-site pages cannot trigger archive via the session cookie.
+ * (s5_token stays SameSite=Lax for Steam OAuth return compatibility.)
  */
 export async function POST(
-    _req: NextRequest,
+    req: NextRequest,
     {params}: { params: Promise<{ commentId: string }> },
 ) {
     const {commentId} = await params;
+    if (!isTrustedBrowserOrigin(req.headers)) {
+        return NextResponse.json(
+            {error: "forbidden"},
+            {status: 403, headers: NO_STORE},
+        );
+    }
     const token = (await cookies()).get("s5_token")?.value;
     if (!token) {
         return NextResponse.json(

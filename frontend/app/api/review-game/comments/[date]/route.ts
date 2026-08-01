@@ -3,7 +3,7 @@ import {cookies} from "next/headers";
 import {BACKEND_ORIGIN} from "@/lib/backend";
 
 const CACHE_LIVE = {"Cache-Control": "private, max-age=30, must-revalidate"} as const;
-const CACHE_HISTORICAL = {"Cache-Control": "private, max-age=31536000, immutable"} as const;
+const CACHE_HISTORICAL = {"Cache-Control": "private, max-age=300, must-revalidate"} as const;
 const NO_STORE = {"Cache-Control": "private, no-store"} as const;
 
 function isUtcToday(date: string): boolean {
@@ -45,7 +45,7 @@ export async function GET(
                 headers,
                 ...(token
                     ? {cache: "no-store" as const}
-                    : {next: {revalidate: today ? 30 : 31536000}}),
+                    : {next: {revalidate: today ? 30 : 300}}),
             },
         );
         if (!res.ok) {

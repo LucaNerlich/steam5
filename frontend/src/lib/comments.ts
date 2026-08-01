@@ -44,6 +44,33 @@ export type CommentGameRef = {
     name: string;
 };
 
+type ApiErrorBody = {
+    error?: string;
+    message?: string;
+};
+
+/**
+ * Maps a failed comment-mutation response to a client Error.
+ * Normalizes 401/unauthorized and prefers snake_case machine codes from ApiError.message.
+ */
+export function commentMutationError(
+    status: number,
+    body: ApiErrorBody,
+    fallback: string,
+): Error {
+    if (
+        status === 401
+        || body?.error === "unauthenticated"
+        || body?.error === "Unauthorized"
+    ) {
+        return new Error("unauthorized");
+    }
+    const code = (typeof body?.message === "string" && /^[a-z][a-z0-9_]*$/.test(body.message))
+        ? body.message
+        : body?.error;
+    return new Error(code || fallback);
+}
+
 /** Steam store URL for a review-game pick. */
 export function steamStoreUrl(appId: number): string {
     return `https://store.steampowered.com/app/${appId}`;
@@ -69,8 +96,8 @@ export async function fetchComments(
     gameDate: string,
     options?: {immutable?: boolean},
 ): Promise<DayComment[]> {
-    // Archive / past days advertise long Cache-Control; allow the browser to honor it.
-    // Live day stays no-store so newly posted comments show up promptly.
+    // Historical lists use a short revalidating Cache-Control; allow the browser to honor it.
+    // Live / authenticated fetches stay no-store.
     const res = await fetch(commentsUrl(gameDate), {
         cache: options?.immutable ? "force-cache" : "no-store",
     });
@@ -101,18 +128,8 @@ export async function toggleReaction(
         },
     );
     if (!res.ok) {
-        const err = await res.json().catch(() => ({})) as {error?: string; message?: string};
-        if (
-            res.status === 401
-            || err?.error === "unauthenticated"
-            || err?.error === "Unauthorized"
-        ) {
-            throw new Error("unauthorized");
-        }
-        const code = (typeof err?.message === "string" && /^[a-z][a-z0-9_]*$/.test(err.message))
-            ? err.message
-            : err?.error;
-        throw new Error(code || "Failed to toggle reaction");
+        const err = await res.json().catch(() => ({})) as ApiErrorBody;
+        throw commentMutationError(res.status, err, "Failed to toggle reaction");
     }
     return res.json();
 }
@@ -130,17 +147,7 @@ export async function archiveComment(commentId: number): Promise<void> {
         },
     );
     if (!res.ok) {
-        const err = await res.json().catch(() => ({})) as {error?: string; message?: string};
-        if (
-            res.status === 401
-            || err?.error === "unauthenticated"
-            || err?.error === "Unauthorized"
-        ) {
-            throw new Error("unauthorized");
-        }
-        const code = (typeof err?.message === "string" && /^[a-z][a-z0-9_]*$/.test(err.message))
-            ? err.message
-            : err?.error;
-        throw new Error(code || "Failed to archive comment");
+        const err = await res.json().catch(() => ({})) as ApiErrorBody;
+        throw commentMutationError(res.status, err, "Failed to archive comment");
     }
 }

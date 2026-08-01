@@ -4,6 +4,7 @@ import {
     REACTION_EMOJI,
     REACTION_TYPES,
     archiveComment,
+    commentMutationError,
     commentsUrl,
     fetchComments,
     steamStoreUrl,
@@ -148,6 +149,27 @@ describe('archiveComment', () => {
         fetchMock.mockResolvedValue(mockResponse(false, {error: 'Unauthorized'}, 401));
 
         await expect(archiveComment(42)).rejects.toThrow('unauthorized');
+    });
+});
+
+describe('commentMutationError', () => {
+    it('normalizes unauthorized responses', () => {
+        expect(commentMutationError(401, {error: 'unauthenticated'}, 'fallback').message)
+            .toBe('unauthorized');
+        expect(commentMutationError(403, {error: 'Unauthorized'}, 'fallback').message)
+            .toBe('unauthorized');
+    });
+
+    it('prefers snake_case ApiError.message codes', () => {
+        expect(commentMutationError(400, {
+            error: 'Bad Request',
+            message: 'not_current_game_day',
+        }, 'fallback').message).toBe('not_current_game_day');
+    });
+
+    it('falls back when no machine code is present', () => {
+        expect(commentMutationError(500, {}, 'Failed to archive comment').message)
+            .toBe('Failed to archive comment');
     });
 });
 

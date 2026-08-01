@@ -27,8 +27,9 @@ public class CommentController {
     private static final int MAX_BODY_LENGTH = 1000;
     // Viewer-specific reactedByViewer flags — keep out of shared/CDN caches.
     private static final String CACHE_LIVE = "private, max-age=30, must-revalidate";
-    // Past days are immutable for anonymous lists (writes are blocked for non-current game day).
-    private static final String CACHE_HISTORICAL = "private, max-age=31536000, immutable";
+    // Past days are write-closed for users, but moderators can still soft-archive.
+    // Keep a short revalidating TTL so archival is not stuck behind a year-long immutable cache.
+    private static final String CACHE_HISTORICAL = "private, max-age=300, must-revalidate";
     private static final String CACHE_NO_STORE = "private, no-store";
 
     private final CommentService commentService;
