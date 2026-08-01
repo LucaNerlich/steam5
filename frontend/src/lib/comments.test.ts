@@ -4,14 +4,14 @@ import {
     REACTION_TYPES,
     commentsUrl,
     fetchComments,
-    postComment,
     toggleReaction,
     type DayComment,
 } from './comments';
 
-function mockResponse(ok: boolean, body: unknown) {
+function mockResponse(ok: boolean, body: unknown, status = ok ? 200 : 500) {
     return {
         ok,
+        status,
         json: async () => body,
     } as unknown as Response;
 }
@@ -74,52 +74,6 @@ describe('fetchComments', () => {
     });
 });
 
-describe('postComment', () => {
-    it('POSTs JSON body to the day proxy and returns the created comment', async () => {
-        const created: DayComment = {
-            id: 2,
-            body: 'great day',
-            createdAt: '2026-07-31T12:00:00Z',
-            author: {steamId: 'u1', personaName: 'Alice', avatar: null, avatarBlurdata: null},
-            reactions: [],
-        };
-        fetchMock.mockResolvedValue(mockResponse(true, created));
-
-        const result = await postComment('2026-07-31', 'great day');
-
-        expect(result).toEqual(created);
-        expect(fetchMock).toHaveBeenCalledWith('/api/review-game/comments/2026-07-31', {
-            method: 'POST',
-            headers: {'content-type': 'application/json', accept: 'application/json'},
-            body: JSON.stringify({body: 'great day'}),
-            cache: 'no-store',
-        });
-    });
-
-    it('throws with the API error message when available', async () => {
-        fetchMock.mockResolvedValue(mockResponse(false, {error: 'day_not_complete'}));
-
-        await expect(postComment('2026-07-31', 'hi')).rejects.toThrow('day_not_complete');
-    });
-
-    it('throws a fallback message when the error body has no error field', async () => {
-        fetchMock.mockResolvedValue(mockResponse(false, {}));
-
-        await expect(postComment('2026-07-31', 'hi')).rejects.toThrow('Failed to post comment');
-    });
-
-    it('throws a fallback message when error JSON parsing fails', async () => {
-        fetchMock.mockResolvedValue({
-            ok: false,
-            json: async () => {
-                throw new Error('invalid json');
-            },
-        } as unknown as Response);
-
-        await expect(postComment('2026-07-31', 'hi')).rejects.toThrow('Failed to post comment');
-    });
-});
-
 describe('toggleReaction', () => {
     it('POSTs the reaction type to the reactions proxy', async () => {
         const reactions = [{reactionType: 'THUMBS_UP', count: 1, reactedByViewer: true}];
@@ -137,9 +91,15 @@ describe('toggleReaction', () => {
     });
 
     it('throws with the API error message when available', async () => {
-        fetchMock.mockResolvedValue(mockResponse(false, {error: 'rate_limit_exceeded'}));
+        fetchMock.mockResolvedValue(mockResponse(false, {error: 'rate_limit_exceeded'}, 429));
 
         await expect(toggleReaction(42, 'HUG')).rejects.toThrow('rate_limit_exceeded');
+    });
+
+    it('throws unauthorized for 401 responses', async () => {
+        fetchMock.mockResolvedValue(mockResponse(false, {error: 'unauthenticated'}, 401));
+
+        await expect(toggleReaction(42, 'HUG')).rejects.toThrow('unauthorized');
     });
 
     it('throws a fallback message when the error body is empty', async () => {

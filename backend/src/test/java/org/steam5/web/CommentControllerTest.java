@@ -67,12 +67,13 @@ class CommentControllerTest {
     }
 
     @Test
-    void createComment_rejectsMalformedDate() {
+    void createComment_rejectsMalformedDateWithoutConsumingRateLimit() {
         ResponseEntity<?> response = controller.createComment(
                 "not-a-date", "u1", new CommentController.CreateCommentRequest("hi"));
 
         assertEquals(400, response.getStatusCode().value());
         assertEquals("invalid_date", ((Map<?, ?>) response.getBody()).get("error"));
+        verify(commentRateLimiter, never()).tryAcquireComment(any());
         verify(commentService, never()).createComment(any(), any(), any());
     }
 
@@ -121,7 +122,7 @@ class CommentControllerTest {
     }
 
     @Test
-    void createComment_returns200AndDelegatesWhenValid() {
+    void createComment_returns201AndDelegatesWhenValid() {
         CommentService.CommentDto dto = new CommentService.CommentDto(
                 1L, "hi", "2026-07-30T12:00:00Z",
                 new CommentService.AuthorDto("u1", "Alice", null, null),
@@ -133,9 +134,10 @@ class CommentControllerTest {
         ResponseEntity<?> response = controller.createComment(
                 "2026-07-30", "u1", new CommentController.CreateCommentRequest("  hi  "));
 
-        assertEquals(200, response.getStatusCode().value());
+        assertEquals(201, response.getStatusCode().value());
         assertEquals("no-store", response.getHeaders().getFirst("Cache-Control"));
         assertSame(dto, response.getBody());
+        verify(commentService).createComment(eq("u1"), eq(LocalDate.of(2026, 7, 30)), eq("hi"));
     }
 
     @Test

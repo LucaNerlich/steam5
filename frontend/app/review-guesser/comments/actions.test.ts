@@ -95,7 +95,7 @@ describe('postCommentAction happy path and upstream errors', () => {
     beforeEach(() => cookieGet.mockReturnValue({value: 'jwt-token'}));
 
     it('POSTs to the backend with Bearer auth and returns the comment id', async () => {
-        fetchMock.mockResolvedValue(mockResponse(200, {id: 42, body: 'hello'}));
+        fetchMock.mockResolvedValue(mockResponse(201, {id: 42, body: 'hello'}));
 
         const res = await postCommentAction(undefined, form('2026-07-31', '  hello  '));
 
@@ -105,6 +105,17 @@ describe('postCommentAction happy path and upstream errors', () => {
         expect(init.method).toBe('POST');
         expect((init.headers as Record<string, string>).authorization).toBe('Bearer jwt-token');
         expect(JSON.parse(init.body as string)).toEqual({body: 'hello'});
+    });
+
+    it('returns a generic error when fetch throws', async () => {
+        const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+        fetchMock.mockRejectedValue(new Error('network down'));
+
+        const res = await postCommentAction(undefined, form('2026-07-31', 'hello'));
+
+        expect(res).toEqual({ok: false, error: 'Something went wrong. Please try again.'});
+        expect(consoleError).toHaveBeenCalled();
+        consoleError.mockRestore();
     });
 
     it('maps day_not_complete to a friendly error', async () => {

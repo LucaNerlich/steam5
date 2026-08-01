@@ -10,7 +10,7 @@ import java.time.OffsetDateTime;
 
 @Entity
 @Table(name = "comments", indexes = {
-        @Index(name = "idx_comments_game_date", columnList = "game_date")
+        @Index(name = "idx_comments_game_date", columnList = "game_date, created_at DESC")
 })
 @Data
 @NoArgsConstructor

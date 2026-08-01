@@ -24,8 +24,9 @@ export default function ReactionBar(props: {
     reactions: CommentReactionDto[];
     canReact: boolean;
     onToggled: () => void | Promise<unknown>;
+    onUnauthorized?: () => void;
 }) {
-    const {commentId, reactions, canReact, onToggled} = props;
+    const {commentId, reactions, canReact, onToggled, onUnauthorized} = props;
     const [pending, setPending] = useState<ReactionType | null>(null);
     const [open, setOpen] = useState(false);
     const rootRef = useRef<HTMLDivElement>(null);
@@ -83,7 +84,16 @@ export default function ReactionBar(props: {
             await toggleReaction(commentId, reactionType);
             await onToggled();
             setOpen(false);
-        } catch {
+        } catch (e) {
+            const message = e instanceof Error ? e.message : "";
+            if (
+                message === "unauthorized"
+                || message === "unauthenticated"
+                || message === "Unauthorized"
+            ) {
+                onUnauthorized?.();
+                return;
+            }
             // Keep current UI; SWR will retain prior data.
         } finally {
             setPending(null);

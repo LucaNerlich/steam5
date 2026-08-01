@@ -247,6 +247,7 @@ export default function DayComments(props: {
                                             reactions={comment.reactions}
                                             canReact={isSignedIn === true}
                                             onToggled={handlePosted}
+                                            onUnauthorized={handleUnauthorized}
                                         />
                                     </div>
                                     <p className="day-comments__text">{comment.body}</p>

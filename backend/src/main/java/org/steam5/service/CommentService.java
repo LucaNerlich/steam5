@@ -2,7 +2,6 @@ package org.steam5.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +19,7 @@ import org.steam5.repository.ReviewGamePickRepository;
 import org.steam5.repository.UserRepository;
 
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.HashMap;
@@ -131,8 +131,7 @@ public class CommentService {
     @Transactional
     public List<ReactionDto> toggleReaction(final Long commentId, final String steamId, final ReactionType reactionType) {
         // Row-lock the comment so concurrent toggles for the same target serialize
-        // their existence check + insert/delete. The unique constraint remains a
-        // backstop; DataIntegrityViolationException is treated as a no-op insert.
+        // their existence check + insert/delete. Inserts use ON CONFLICT DO NOTHING.
         final Comment comment = commentRepository.findByIdForUpdate(commentId)
                 .orElseThrow(() -> new ReviewGameException(404, "comment_not_found"));
 
@@ -141,16 +140,10 @@ public class CommentService {
         if (existing.isPresent()) {
             commentReactionRepository.delete(existing.get());
         } else {
-            final CommentReaction reaction = new CommentReaction();
-            reaction.setComment(comment);
-            reaction.setSteamId(steamId);
-            reaction.setReactionType(reactionType);
-            try {
-                commentReactionRepository.saveAndFlush(reaction);
-            } catch (DataIntegrityViolationException ignored) {
-                // Another request inserted the same (comment, steamId, type) under
-                // the unique constraint; treat as already reacted.
-            }
+            // Conflict-safe insert: concurrent toggles under the comment row-lock are
+            // rare, but ON CONFLICT keeps the outer transaction usable either way.
+            commentReactionRepository.insertIgnoreConflict(
+                    commentId, steamId, reactionType.name(), OffsetDateTime.now());
         }
 
         evictCommentsForDayAfterCommit(comment.getGameDate());

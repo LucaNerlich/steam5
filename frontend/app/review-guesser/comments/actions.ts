@@ -79,6 +79,7 @@ export async function postCommentAction(
         const json = await res.json() as {id?: number};
         return {ok: true, commentId: typeof json.id === 'number' ? json.id : undefined};
     } catch (e) {
-        return {ok: false, error: e instanceof Error ? e.message : 'Unknown error'};
+        console.error('postCommentAction failed', e);
+        return {ok: false, error: 'Something went wrong. Please try again.'};
     }
 }

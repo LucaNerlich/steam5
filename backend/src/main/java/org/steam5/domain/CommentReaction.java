@@ -2,8 +2,11 @@ package org.steam5.domain;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 
 import java.time.OffsetDateTime;
 
@@ -11,13 +14,17 @@ import java.time.OffsetDateTime;
 @Table(name = "comment_reactions", uniqueConstraints = {
         @UniqueConstraint(name = "uq_comment_reaction", columnNames = {"comment_id", "steam_id", "reaction_type"})
 })
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@ToString(exclude = "comment")
 public class CommentReaction {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @EqualsAndHashCode.Include
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)

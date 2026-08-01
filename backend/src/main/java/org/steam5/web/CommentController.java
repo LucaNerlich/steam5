@@ -80,17 +80,17 @@ public class CommentController {
         if (body.length() > MAX_BODY_LENGTH) {
             return ResponseEntity.badRequest().body(Map.of("error", "body_too_long"));
         }
-        if (!commentRateLimiter.tryAcquireComment(steamId)) {
-            return ResponseEntity.status(429).body(Map.of("error", "rate_limit_exceeded"));
-        }
         final LocalDate day;
         try {
             day = LocalDate.parse(date);
         } catch (DateTimeParseException ex) {
             return ResponseEntity.badRequest().body(Map.of("error", "invalid_date"));
         }
+        if (!commentRateLimiter.tryAcquireComment(steamId)) {
+            return ResponseEntity.status(429).body(Map.of("error", "rate_limit_exceeded"));
+        }
         final CommentService.CommentDto created = commentService.createComment(steamId, day, body);
-        return ResponseEntity.ok()
+        return ResponseEntity.status(201)
                 .header("Cache-Control", "no-store")
                 .body(created);
     }

@@ -1,7 +1,8 @@
 package org.steam5.service;
 
+import com.github.benmanes.caffeine.cache.Cache;
 import lombok.RequiredArgsConstructor;
-import org.springframework.cache.Cache;
+import org.springframework.cache.caffeine.CaffeineCache;
 import org.springframework.cache.CacheManager;
 import org.springframework.stereotype.Component;
 
@@ -42,7 +43,7 @@ public class DomainCacheEvictor {
      * review-game responses embed app details so they must be dropped too.
      */
     public void evictAppDetail(final Long appId) {
-        final Cache oneDay = cacheManager.getCache(ONE_DAY);
+        final org.springframework.cache.Cache oneDay = cacheManager.getCache(ONE_DAY);
         if (oneDay != null) {
             oneDay.evict(appId);
         }
@@ -66,12 +67,27 @@ public class DomainCacheEvictor {
     }
 
     /**
-     * Clears cached comment data for all days.
+     * Clears cached comment-list entries for the given day only.
+     * Keys match {@code CommentService.listComments}: {@code gameDate.toString() + ':' + viewer}.
      *
-     * @param day the day associated with the modified comments
+     * @param day the day whose comment cache entries must be dropped
      */
     public void evictCommentsForDay(final LocalDate day) {
-        clear(COMMENTS_FOR_DAY);
+        final org.springframework.cache.Cache cache = cacheManager.getCache(COMMENTS_FOR_DAY);
+        if (cache == null) {
+            return;
+        }
+        if (!(cache instanceof CaffeineCache caffeineCache)) {
+            cache.clear();
+            return;
+        }
+        final String prefix = day.toString() + ":";
+        final Cache<Object, Object> nativeCache = caffeineCache.getNativeCache();
+        for (final Object key : nativeCache.asMap().keySet()) {
+            if (key instanceof String s && s.startsWith(prefix)) {
+                caffeineCache.evict(key);
+            }
+        }
     }
 
     /**
@@ -80,7 +96,7 @@ public class DomainCacheEvictor {
      * @param cacheName the name of the cache to clear
      */
     private void clear(final String cacheName) {
-        final Cache cache = cacheManager.getCache(cacheName);
+        final org.springframework.cache.Cache cache = cacheManager.getCache(cacheName);
         if (cache != null) {
             cache.clear();
         }

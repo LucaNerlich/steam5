@@ -60,27 +60,6 @@ export async function fetchComments(gameDate: string): Promise<DayComment[]> {
 }
 
 /**
- * Creates a comment for a game date.
- *
- * @param gameDate - The game date associated with the comment
- * @param body - The comment text
- * @returns The created comment
- */
-export async function postComment(gameDate: string, body: string): Promise<DayComment> {
-    const res = await fetch(commentsUrl(gameDate), {
-        method: "POST",
-        headers: {"content-type": "application/json", accept: "application/json"},
-        body: JSON.stringify({body}),
-        cache: "no-store",
-    });
-    if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err?.error || "Failed to post comment");
-    }
-    return res.json();
-}
-
-/**
  * Toggles a reaction on a comment.
  *
  * @param commentId - The identifier of the comment to update
@@ -101,7 +80,14 @@ export async function toggleReaction(
         },
     );
     if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
+        const err = await res.json().catch(() => ({})) as {error?: string};
+        if (
+            res.status === 401
+            || err?.error === "unauthenticated"
+            || err?.error === "Unauthorized"
+        ) {
+            throw new Error("unauthorized");
+        }
         throw new Error(err?.error || "Failed to toggle reaction");
     }
     return res.json();

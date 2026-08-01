@@ -2,7 +2,6 @@ package org.steam5.service;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Pageable;
 import org.steam5.domain.Comment;
 import org.steam5.domain.CommentReaction;
@@ -188,7 +187,7 @@ class CommentServiceTest {
                 service.toggleReaction(7L, "viewer", ReactionType.LAUGH_CRYING);
 
         verify(commentReactionRepository).delete(existing);
-        verify(commentReactionRepository, never()).saveAndFlush(any());
+        verify(commentReactionRepository, never()).insertIgnoreConflict(any(), any(), any(), any());
         verify(cacheEvictor).evictCommentsForDay(day);
         assertEquals(ReactionType.values().length, reactions.size());
     }
@@ -199,27 +198,28 @@ class CommentServiceTest {
         when(commentRepository.findByIdForUpdate(7L)).thenReturn(Optional.of(comment));
         when(commentReactionRepository.findByComment_IdAndSteamIdAndReactionType(
                 7L, "viewer", ReactionType.HUG)).thenReturn(Optional.empty());
+        when(commentReactionRepository.insertIgnoreConflict(eq(7L), eq("viewer"), eq("HUG"), any()))
+                .thenReturn(1);
         when(commentReactionRepository.countByCommentIds(List.of(7L))).thenReturn(List.of());
         when(commentReactionRepository.findByComment_IdInAndSteamId(List.of(7L), "viewer")).thenReturn(List.of());
 
         service.toggleReaction(7L, "viewer", ReactionType.HUG);
 
-        verify(commentReactionRepository).saveAndFlush(argThat(r ->
-                r.getComment() == comment
-                        && "viewer".equals(r.getSteamId())
-                        && r.getReactionType() == ReactionType.HUG
-        ));
+        verify(commentReactionRepository).insertIgnoreConflict(eq(7L), eq("viewer"), eq("HUG"), any());
         verify(cacheEvictor).evictCommentsForDay(day);
     }
 
     @Test
-    void toggleReaction_treatsUniqueConstraintConflictAsAlreadyReacted() {
+    void toggleReaction_ignoresConflictWhenInsertReturnsZero() {
+        // Production path uses INSERT ... ON CONFLICT DO NOTHING (no aborting exception).
+        // A full PostgreSQL conflict integration test is skipped: this repo has no
+        // Testcontainers/@SpringBootTest harness for comment reactions.
         Comment comment = comment(7L, "u1", "hello");
         when(commentRepository.findByIdForUpdate(7L)).thenReturn(Optional.of(comment));
         when(commentReactionRepository.findByComment_IdAndSteamIdAndReactionType(
                 7L, "viewer", ReactionType.HUG)).thenReturn(Optional.empty());
-        when(commentReactionRepository.saveAndFlush(any(CommentReaction.class)))
-                .thenThrow(new DataIntegrityViolationException("uq_comment_reaction"));
+        when(commentReactionRepository.insertIgnoreConflict(eq(7L), eq("viewer"), eq("HUG"), any()))
+                .thenReturn(0);
         when(commentReactionRepository.countByCommentIds(List.of(7L))).thenReturn(List.of());
         when(commentReactionRepository.findByComment_IdInAndSteamId(List.of(7L), "viewer"))
                 .thenReturn(List.of(new CommentReaction(9L, comment, "viewer", ReactionType.HUG, OffsetDateTime.now())));
@@ -227,6 +227,7 @@ class CommentServiceTest {
         List<CommentService.ReactionDto> reactions =
                 assertDoesNotThrow(() -> service.toggleReaction(7L, "viewer", ReactionType.HUG));
 
+        verify(commentReactionRepository).insertIgnoreConflict(eq(7L), eq("viewer"), eq("HUG"), any());
         verify(cacheEvictor).evictCommentsForDay(day);
         CommentService.ReactionDto hug = reactions.stream()
                 .filter(r -> r.reactionType().equals("HUG"))
