@@ -1,5 +1,12 @@
 [
     {
+        "start": "2026-08-03",
+        "end": "2026-08-09",
+        "title": "Comments Are Live 💬",
+        "text": "<p>You can now leave <strong>comments</strong> on each day's rounds! Share your takes, react to other players' comments, and strong takes can even earn a Player Spotlight.</p><p>Not signed in? You can read comments anytime. Signed in? The full conversation unlocks once you've finished all of today's rounds — sign in with Steam to post your own or react once it does.</p>",
+        "footer": "Drop a take after today's rounds — good ones might earn a Player Spotlight!"
+    },
+    {
         "start": "2026-04-12",
         "end": "2026-04-19",
         "title": "Profile Stats Expanded",

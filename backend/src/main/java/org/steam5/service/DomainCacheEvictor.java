@@ -1,9 +1,12 @@
 package org.steam5.service;
 
+import com.github.benmanes.caffeine.cache.Cache;
 import lombok.RequiredArgsConstructor;
-import org.springframework.cache.Cache;
+import org.springframework.cache.caffeine.CaffeineCache;
 import org.springframework.cache.CacheManager;
 import org.springframework.stereotype.Component;
+
+import java.time.LocalDate;
 
 /**
  * Single owner of the domain cache topology: which Caffeine caches exist and which
@@ -22,6 +25,7 @@ public class DomainCacheEvictor {
     static final String ONE_DAY = "one-day";
     static final String LEADERBOARD_STATIC = "leaderboard-static";
     static final String STATS_HOURLY = "stats-hourly";
+    static final String COMMENTS_FOR_DAY = "comments-for-day";
 
     private final CacheManager cacheManager;
 
@@ -39,7 +43,7 @@ public class DomainCacheEvictor {
      * review-game responses embed app details so they must be dropped too.
      */
     public void evictAppDetail(final Long appId) {
-        final Cache oneDay = cacheManager.getCache(ONE_DAY);
+        final org.springframework.cache.Cache oneDay = cacheManager.getCache(ONE_DAY);
         if (oneDay != null) {
             oneDay.evict(appId);
         }
@@ -56,19 +60,43 @@ public class DomainCacheEvictor {
     }
 
     /**
-     * Drop cached {@code stats-hourly} entries (hardest-games ranking, top-games-by-reviews,
-     * daily-avg-scores, etc). Call after the hardest-games materialized view refresh, since
-     * this cache's 1-hour TTL would otherwise let the "Last updated" header outrun the cached
-     * body it labels by up to that long. Coarse (whole-cache) on purpose, matching {@link
-     * #evictLeaderboardStatic()} — cheap and infrequent (once daily), so clearing unrelated
-     * entries in the same cache is an acceptable trade for not tracking per-key dependencies.
+     * Clears cached hourly statistics, including hardest-games rankings and related aggregates.
      */
     public void evictStatsHourly() {
         clear(STATS_HOURLY);
     }
 
+    /**
+     * Clears cached comment-list entries for the given day only.
+     * Keys match {@code CommentService.listComments}: {@code gameDate.toString() + ':' + viewer}.
+     *
+     * @param day the day whose comment cache entries must be dropped
+     */
+    public void evictCommentsForDay(final LocalDate day) {
+        final org.springframework.cache.Cache cache = cacheManager.getCache(COMMENTS_FOR_DAY);
+        if (cache == null) {
+            return;
+        }
+        if (!(cache instanceof CaffeineCache caffeineCache)) {
+            cache.clear();
+            return;
+        }
+        final String prefix = day.toString() + ":";
+        final Cache<Object, Object> nativeCache = caffeineCache.getNativeCache();
+        for (final Object key : nativeCache.asMap().keySet()) {
+            if (key instanceof String s && s.startsWith(prefix)) {
+                caffeineCache.evict(key);
+            }
+        }
+    }
+
+    /**
+     * Clears the named cache when it is available.
+     *
+     * @param cacheName the name of the cache to clear
+     */
     private void clear(final String cacheName) {
-        final Cache cache = cacheManager.getCache(cacheName);
+        final org.springframework.cache.Cache cache = cacheManager.getCache(cacheName);
         if (cache != null) {
             cache.clear();
         }

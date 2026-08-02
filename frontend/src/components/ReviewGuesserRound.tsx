@@ -11,8 +11,10 @@ import RoundResultActions from "@/components/RoundResultActions";
 import OtherPlayersNow from "@/components/OtherPlayersNow";
 import ShareControls from "@/components/ShareControls";
 import RoundSummary from "@/components/RoundSummary";
+import DayComments from "@/components/DayComments";
 import {buildSteamLoginUrl} from "@/components/SteamLoginButton";
 import {useAuth} from "@/contexts/AuthContext";
+import type {CommentGameRef} from "@/lib/comments";
 import useServerGuesses from "@/lib/hooks/useServerGuesses";
 import useRoundArrowNavigation from "@/lib/hooks/useRoundArrowNavigation";
 import {loadDay, saveRound, type StoredDay, type RoundResult} from "@/lib/storage";
@@ -31,6 +33,8 @@ interface Props {
     totalRounds: number;
     pickName?: string;
     gameDate?: string;
+    /** Today's picks for comment quick-link chips. */
+    dayGames?: CommentGameRef[];
     prefilled?: { selectedLabel: string; actualBucket?: string; totalReviews?: number };
     allResults?: Record<number, {
         appId: number;
@@ -98,6 +102,7 @@ export default function ReviewGuesserRound({
                                                totalRounds,
                                                pickName,
                                                gameDate,
+                                               dayGames,
                                                prefilled,
                                                allResults
                                            }: Props) {
@@ -242,6 +247,18 @@ export default function ReviewGuesserRound({
         return Math.max(...keys);
     })();
     const latestStored = storedResults[latestStoredRoundIndex] || mergedServerResults[latestStoredRoundIndex];
+    const latestResult = (Object.keys(mergedServerResults).length > 0
+        ? mergedServerResults[latestStoredRoundIndex]
+        : null) ||
+        latestStored ||
+        {
+            appId,
+            pickName,
+            selectedLabel: (storedThisRound?.selectedLabel ?? renderSelectedLabel ?? '') as string,
+            actualBucket: effectiveResponse ? effectiveResponse.actualBucket : (storedThisRound?.actualBucket ?? ''),
+            totalReviews: effectiveResponse ? effectiveResponse.totalReviews : (storedThisRound?.totalReviews ?? 0),
+            correct: effectiveResponse ? effectiveResponse.correct : (storedThisRound?.correct ?? false),
+        };
 
     // Submitted flag: either current state submitted, or restored from storage, or authenticated prefilled for this round
     const submittedFlag = Boolean(state && (state.ok || state.error)) || Boolean(storedThisRound) || Boolean(prefilled);
@@ -386,17 +403,7 @@ export default function ReviewGuesserRound({
                                     gameDate={gameDate}
                                     totalRounds={totalRounds}
                                     latestRound={latestStoredRoundIndex}
-                                    latest={(Object.keys(mergedServerResults).length > 0 ? mergedServerResults[latestStoredRoundIndex] : null) ||
-                                        latestStored ||
-                                        {
-                                            appId,
-                                            pickName,
-                                            selectedLabel: (storedThisRound?.selectedLabel ?? renderSelectedLabel ?? '') as string,
-                                            actualBucket: effectiveResponse ? effectiveResponse.actualBucket : (storedThisRound?.actualBucket ?? ''),
-                                            totalReviews: effectiveResponse ? effectiveResponse.totalReviews : (storedThisRound?.totalReviews ?? 0),
-                                            correct: effectiveResponse ? effectiveResponse.correct : (storedThisRound?.correct ?? false),
-                                        }
-                                    }
+                                    latest={latestResult}
                                     results={!serverGuessesLoading && hasServerResults ? serverResults : undefined}
                                     signedIn={signedIn}
                                 />
@@ -405,17 +412,7 @@ export default function ReviewGuesserRound({
                                     gameDate={gameDate}
                                     totalRounds={totalRounds}
                                     latestRound={latestStoredRoundIndex}
-                                    latest={(Object.keys(mergedServerResults).length > 0 ? mergedServerResults[latestStoredRoundIndex] : null) ||
-                                        latestStored ||
-                                        {
-                                            appId,
-                                            pickName,
-                                            selectedLabel: (storedThisRound?.selectedLabel ?? renderSelectedLabel ?? '') as string,
-                                            actualBucket: effectiveResponse ? effectiveResponse.actualBucket : (storedThisRound?.actualBucket ?? ''),
-                                            totalReviews: effectiveResponse ? effectiveResponse.totalReviews : (storedThisRound?.totalReviews ?? 0),
-                                            correct: effectiveResponse ? effectiveResponse.correct : (storedThisRound?.correct ?? false),
-                                        }
-                                    }
+                                    latest={latestResult}
                                     results={!serverGuessesLoading && hasServerResults ? serverResults : undefined}
                                 />
                                 {signedOutDuringPlay ? (
@@ -439,6 +436,17 @@ export default function ReviewGuesserRound({
                     </RoundResultActions>
                 </RoundResultDialog>
             )}
+
+            {/* Comments are public for every visitor; posting/reacting still requires sign-in,
+                and signed-in players only see them once they finish all of today's rounds. */}
+            <DayComments
+                gameDate={gameDate}
+                games={dayGames}
+                totalRounds={totalRounds}
+                latestRound={latestStoredRoundIndex}
+                latest={latestResult}
+                results={!serverGuessesLoading && hasServerResults ? serverResults : undefined}
+            />
 
             <AuthWarningModal
                 isOpen={showAuthWarning}

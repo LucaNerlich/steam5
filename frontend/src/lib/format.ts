@@ -29,6 +29,32 @@ export function formatDate(date: string | Date, locale?: string): string {
     return d.toLocaleDateString(locale, {year: 'numeric', month: 'short', day: 'numeric'});
 }
 
+/**
+ * Compact relative timestamp for comment lists (e.g. "just now", "5m", "3h", "2d").
+ * Falls back to a short date for anything older than a week.
+ */
+export function formatRelativeTime(
+    date: string | Date,
+    now: Date = new Date(),
+    locale?: string,
+): string {
+    const d = typeof date === 'string' ? new Date(date) : date;
+    if (Number.isNaN(d.getTime())) return '';
+
+    const diffMs = now.getTime() - d.getTime();
+    if (diffMs < 0) return formatDate(d, locale);
+
+    const seconds = Math.floor(diffMs / 1000);
+    if (seconds < 45) return 'just now';
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h`;
+    const days = Math.floor(hours / 24);
+    if (days < 7) return `${days}d`;
+    return formatDate(d, locale);
+}
+
 export function formatPrice(amountCents: number, currency: string = 'USD', locale?: string): string {
     const amount = (amountCents ?? 0) / 100;
     try {

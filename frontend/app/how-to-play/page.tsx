@@ -62,6 +62,11 @@ const SPOTLIGHT_TIERS: { type: InsightType; name: string; description: string }[
         description: "Your recent two-week average is well above your all-time average.",
     },
     {
+        type: "TOP_COMMENT",
+        name: "Top Comment",
+        description: "Your comment from yesterday got the most reactions.",
+    },
+    {
         type: "WEEKLY_ACHIEVEMENT",
         name: "Weekly Achievement",
         description: "You earned one of the weekly leaderboard badges.",

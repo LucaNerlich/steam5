@@ -5,12 +5,15 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.steam5.domain.Comment;
 import org.steam5.domain.GameDate;
 import org.steam5.domain.Guess;
 import org.steam5.domain.PlayerSpotlight;
 import org.steam5.domain.PlayerSpotlightInsightType;
 import org.steam5.domain.StreakCalculator;
 import org.steam5.domain.User;
+import org.steam5.repository.CommentReactionRepository;
+import org.steam5.repository.CommentRepository;
 import org.steam5.repository.GuessRepository;
 import org.steam5.repository.PlayerSpotlightRepository;
 import org.steam5.repository.UserRepository;
@@ -36,8 +39,8 @@ import java.util.stream.Collectors;
  * <p>
  * Selection is a lottery, not a priority ladder: every tier in the fixed-order
  * "competitive pool" (DAY_STREAK, BEST_DAY_EVER, BEAT_THE_ODDS, WELCOME_BACK,
- * MOST_IMPROVED, HOT_STREAK) that has at least one qualifying candidate is
- * added to a list, and one entry is drawn uniformly at random via
+ * MOST_IMPROVED, HOT_STREAK, TOP_COMMENT) that has at least one qualifying
+ * candidate is added to a list, and one entry is drawn uniformly at random via
  * {@code new Random(today.toEpochDay())}. This means no single ambient tier
  * (e.g. DAY_STREAK, which is easy to qualify for) can dominate just because
  * it's evaluated first — it only gets an edge if it's the ONLY tier that
@@ -143,6 +146,15 @@ public class PlayerSpotlightService {
             "In red-hot form: %.1f pts/round over the last %d days, way past their usual %.1f.",
             "%.1f pts/round these last %d days — comfortably ahead of their usual %.1f.");
 
+    static final List<String> TOP_COMMENT_HEADLINES = List.of(
+            "Crowd favorite!", "Yesterday's top take!", "Comment of the day!");
+    static final List<String> TOP_COMMENT_DETAILS = List.of(
+            "Yesterday's most-reacted comment (%d reactions): \"%s\"",
+            "Led the conversation yesterday with %d reactions: \"%s\"",
+            "Took the comment spotlight yesterday (%d reactions): \"%s\"");
+    private static final int TOP_COMMENT_QUOTE_MAX = 280;
+    private static final int DETAIL_MAX_LENGTH = 500;
+
     static final List<String> MILESTONE_HEADLINES = List.of(
             "A steady presence!", "Rock solid, day after day!", "Always shows up!");
     static final List<String> MILESTONE_JUST_CROSSED_DETAILS = List.of(
@@ -204,6 +216,8 @@ public class PlayerSpotlightService {
     private final UserRepository userRepository;
     private final StatisticsService statisticsService;
     private final PlayerSpotlightRepository playerSpotlightRepository;
+    private final CommentRepository commentRepository;
+    private final CommentReactionRepository commentReactionRepository;
 
     /**
      * Computes and persists today's spotlight, if one doesn't already exist.
@@ -291,6 +305,7 @@ public class PlayerSpotlightService {
         addIfQualifying(qualifying, PlayerSpotlightInsightType.WELCOME_BACK, evaluateWelcomeBackTier(eligible, historyByPlayer, today));
         addIfQualifying(qualifying, PlayerSpotlightInsightType.MOST_IMPROVED, evaluateMostImprovedTier(eligible, today, historyByPlayer));
         addIfQualifying(qualifying, PlayerSpotlightInsightType.HOT_STREAK, evaluateHotStreakTier(eligible, today, historyByPlayer));
+        addIfQualifying(qualifying, PlayerSpotlightInsightType.TOP_COMMENT, evaluateTopCommentTier(eligible, yesterday, today));
 
         if (!qualifying.isEmpty()) {
             final Set<PlayerSpotlightInsightType> recentlyFeatured = recentlyFeaturedInsightTypes(recentSpotlights);
@@ -610,6 +625,66 @@ public class PlayerSpotlightService {
                     headline, detail, "Recent avg", recentAvg));
         }
         return tier;
+    }
+
+    /**
+     * Features the author of yesterday's most-reacted unarchived day comment when that
+     * author is in the eligible pool. At most one candidate (the top comment).
+     */
+    private List<Tiered> evaluateTopCommentTier(final List<Candidate> eligible,
+                                                 final LocalDate yesterday,
+                                                 final LocalDate today) {
+        final Optional<Long> topId = commentRepository.findTopReactedCommentId(yesterday);
+        if (topId.isEmpty()) {
+            return List.of();
+        }
+        final Comment comment = commentRepository.findById(topId.get()).orElse(null);
+        if (comment == null || comment.isArchived() || !yesterday.equals(comment.getGameDate())) {
+            return List.of();
+        }
+        final boolean authorEligible = eligible.stream().anyMatch(c -> c.steamId().equals(comment.getSteamId()));
+        if (!authorEligible) {
+            return List.of();
+        }
+
+        long totalReactions = 0L;
+        for (final CommentReactionRepository.ReactionCountRow row
+                : commentReactionRepository.countByCommentIds(List.of(comment.getId()))) {
+            totalReactions += row.getReactionCount() != null ? row.getReactionCount() : 0L;
+        }
+        if (totalReactions <= 0L) {
+            return List.of();
+        }
+
+        final Random copyRandom = copyRandom(today, PlayerSpotlightInsightType.TOP_COMMENT);
+        final String headline = pickPhrase(TOP_COMMENT_HEADLINES, copyRandom);
+        final String detailTemplate = pickPhrase(TOP_COMMENT_DETAILS, copyRandom);
+        final String quote = truncateForSpotlight(comment.getBody(), TOP_COMMENT_QUOTE_MAX);
+        final String detail = truncateForSpotlight(
+                String.format(detailTemplate, totalReactions, quote), DETAIL_MAX_LENGTH);
+
+        return List.of(new Tiered(
+                comment.getSteamId(),
+                PlayerSpotlightInsightType.TOP_COMMENT,
+                headline,
+                detail,
+                "Reactions",
+                (double) totalReactions
+        ));
+    }
+
+    static String truncateForSpotlight(final String text, final int maxLen) {
+        if (text == null) {
+            return "";
+        }
+        final String normalized = text.trim().replaceAll("\\s+", " ");
+        if (normalized.length() <= maxLen) {
+            return normalized;
+        }
+        if (maxLen <= 1) {
+            return "…";
+        }
+        return normalized.substring(0, maxLen - 1).trim() + "…";
     }
 
     private List<Tiered> evaluateMilestoneTier(final List<Candidate> eligible, final LocalDate today) {

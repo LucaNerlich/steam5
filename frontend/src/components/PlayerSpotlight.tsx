@@ -11,6 +11,7 @@ export type InsightType =
     | "MOST_IMPROVED"
     | "WEEKLY_ACHIEVEMENT"
     | "HOT_STREAK"
+    | "TOP_COMMENT"
     | "MILESTONE";
 
 type SpotlightResponse = {
@@ -32,6 +33,7 @@ const INSIGHT_MODIFIER: Record<InsightType, string> = {
     MOST_IMPROVED: "most-improved",
     WEEKLY_ACHIEVEMENT: "weekly-achievement",
     HOT_STREAK: "hot-streak",
+    TOP_COMMENT: "top-comment",
     MILESTONE: "milestone",
 };
 
@@ -43,6 +45,7 @@ export const INSIGHT_EMOJI: Record<InsightType, string> = {
     MOST_IMPROVED: "📊",
     WEEKLY_ACHIEVEMENT: "🏅",
     HOT_STREAK: "📈",
+    TOP_COMMENT: "💬",
     MILESTONE: "⭐",
 };
 

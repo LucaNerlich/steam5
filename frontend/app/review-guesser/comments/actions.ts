@@ -1,0 +1,108 @@
+'use server';
+
+import {cookies} from 'next/headers';
+
+const MAX_BODY_LENGTH = 1000;
+
+export type CommentActionState = {
+    ok: boolean;
+    error?: string;
+    unauthorized?: boolean;
+    /** True when the POST may have succeeded but the client never saw a response. */
+    outcomeUnknown?: boolean;
+    commentId?: number;
+};
+
+/**
+ * Extracts a machine error code from either controller Map bodies (`error`)
+ * or {@code ApiError} bodies (`message` holds the code; `error` is the HTTP reason phrase).
+ */
+function upstreamErrorCode(body: {error?: string; message?: string} | null | undefined): string | undefined {
+    const isCode = (value: string | undefined): value is string =>
+        typeof value === 'string' && /^[a-z][a-z0-9_]*$/.test(value);
+
+    if (isCode(body?.error)) return body.error;
+    if (isCode(body?.message)) return body.message;
+    return undefined;
+}
+
+/**
+ * Submits a day comment using the server-side session.
+ *
+ * @param formData - Form data containing the game date and comment body
+ * @returns The submission status, optional error message, and created comment ID on success
+ */
+export async function postCommentAction(
+    _prev: CommentActionState | undefined,
+    formData: FormData,
+): Promise<CommentActionState> {
+    const gameDateRaw = formData.get('gameDate');
+    const bodyRaw = formData.get('body');
+
+    const gameDate = typeof gameDateRaw === 'string' ? gameDateRaw.trim() : '';
+    const body = typeof bodyRaw === 'string' ? bodyRaw.trim() : '';
+
+    if (!gameDate || !/^\d{4}-\d{2}-\d{2}$/.test(gameDate)) {
+        return {ok: false, error: 'Invalid date'};
+    }
+    if (!body) {
+        return {ok: false, error: 'Comment cannot be empty'};
+    }
+    if (body.length > MAX_BODY_LENGTH) {
+        return {ok: false, error: `Comments must be ${MAX_BODY_LENGTH} characters or fewer.`};
+    }
+
+    const token = (await cookies()).get('s5_token')?.value;
+    if (!token) {
+        return {ok: false, unauthorized: true, error: 'Sign in with Steam to post a comment.'};
+    }
+
+    try {
+        const backend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
+        const res = await fetch(
+            `${backend}/api/review-game/comments/${encodeURIComponent(gameDate)}`,
+            {
+                method: 'POST',
+                headers: {
+                    'content-type': 'application/json',
+                    accept: 'application/json',
+                    authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({body}),
+                cache: 'no-store',
+            },
+        );
+
+        if (res.status === 401) {
+            return {ok: false, unauthorized: true, error: 'Sign in with Steam to post a comment.'};
+        }
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({})) as {error?: string; message?: string};
+            const code = upstreamErrorCode(err);
+            if (code === 'day_not_complete') {
+                return {ok: false, error: 'Finish all rounds for this day before commenting.'};
+            }
+            if (code === 'not_current_game_day') {
+                return {ok: false, error: 'Comments are only open for today’s game.'};
+            }
+            if (code === 'rate_limit_exceeded') {
+                return {ok: false, error: 'Too many comments — try again in a minute.'};
+            }
+            if (code === 'body_too_long') {
+                return {ok: false, error: `Comments must be ${MAX_BODY_LENGTH} characters or fewer.`};
+            }
+            return {ok: false, error: code || `Upstream error ${res.status}`};
+        }
+
+        const json = await res.json() as {id?: number};
+        return {ok: true, commentId: typeof json.id === 'number' ? json.id : undefined};
+    } catch (e) {
+        console.error('postCommentAction failed', e);
+        // Ambiguous failure: the comment may already exist. Do not prompt a retry.
+        return {
+            ok: false,
+            outcomeUnknown: true,
+            error: 'We could not confirm whether your comment was posted. Check the list before posting again.',
+        };
+    }
+}

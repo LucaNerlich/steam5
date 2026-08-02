@@ -4,6 +4,7 @@ import ReviewGuesserHero from "@/components/ReviewGuesserHero";
 import ArchiveOfflineRound from "@/components/ArchiveOfflineRound";
 import ArchiveResetForDay from "@/components/ArchiveResetForDay";
 import ArchiveSummary from "@/components/ArchiveSummary";
+import DayComments from "@/components/DayComments";
 import Link from "next/link";
 import {formatDate} from "@/lib/format";
 import {buildBreadcrumbJsonLd} from "@/lib/seo";
@@ -81,6 +82,7 @@ export default async function ArchivePage({params}: { params: Promise<{ date: st
                 __html: JSON.stringify(breadcrumbJsonLd)
             }} />
             <h1>Archive — {formatDate(date)}</h1>
+            <DayComments gameDate={date} readOnly/>
             <ArchiveSummary
                 date={date}
                 bucketLabels={data.buckets}
