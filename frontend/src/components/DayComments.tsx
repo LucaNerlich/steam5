@@ -5,7 +5,7 @@ import Link from "next/link";
 import Form from "next/form";
 import {useFormStatus} from "react-dom";
 import useSWR from "swr";
-import {ArchiveIcon, GameControllerIcon} from "@phosphor-icons/react/ssr";
+import {ArchiveIcon, GameControllerIcon, PaperPlaneRightIcon} from "@phosphor-icons/react/ssr";
 import {useAuth} from "@/contexts/AuthContext";
 import {buildSteamLoginUrl} from "@/components/SteamLoginButton";
 import ReactionBar from "@/components/ReactionBar";
@@ -19,6 +19,7 @@ import {
     type DayComment,
 } from "@/lib/comments";
 import {formatRelativeTime} from "@/lib/format";
+import type {RoundResult, StoredDay} from "@/lib/storage";
 import {
     postCommentAction,
     type CommentActionState,
@@ -130,6 +131,7 @@ function CommentSubmitButton({disabled}: {disabled: boolean}): React.ReactElemen
             disabled={pending || disabled}
         >
             {pending ? "Posting…" : "Post"}
+            {!pending && <PaperPlaneRightIcon size={16} weight="bold" aria-hidden="true"/>}
         </button>
     );
 }
@@ -312,9 +314,10 @@ function CommentComposer(props: {
                 )}
                 <span
                     className={`comment-composer__count${remaining <= 40 ? " comment-composer__count--warn" : ""}`}
+                    title="Characters remaining"
                     aria-live="polite"
                 >
-                    {remaining}
+                    {remaining} left
                 </span>
                 <span className={`comment-composer__posted ${posted ? "is-visible" : ""}`}>
                     Posted
@@ -335,14 +338,21 @@ function CommentComposer(props: {
  * @param props.gameDate - The game date whose comments are displayed.
  * @param props.games - Today's picks for quick Steam-link chips in the composer.
  * @param props.readOnly - When true, shows the comment list only (no composer or react).
- * @returns The comments section, or `null` when no game date is provided.
+ * @param props.totalRounds - Total rounds for this day; with `latestRound`/`latest`/`results`,
+ * used to hide comments from signed-in players until they finish the day (readOnly is exempt).
+ * @returns The comments section, or `null` when no game date is provided, or when a signed-in
+ * player has not yet completed all rounds for this day.
  */
 export default function DayComments(props: {
     gameDate?: string;
     games?: CommentGameRef[];
     readOnly?: boolean;
+    totalRounds?: number;
+    latestRound?: number;
+    latest?: RoundResult;
+    results?: Record<number, RoundResult>;
 }): React.ReactElement | null {
-    const {gameDate, games, readOnly = false} = props;
+    const {gameDate, games, readOnly = false, totalRounds, latestRound, latest, results} = props;
     const {isSignedIn, steamId, refreshAuth} = useAuth();
     const canModerate = isSignedIn === true && steamId === COMMENT_MODERATOR_STEAM_ID;
     const [archivingId, setArchivingId] = useState<number | null>(null);
@@ -387,6 +397,26 @@ export default function DayComments(props: {
     }, [archivingId, mutate, refreshAuth]);
 
     if (!gameDate) return null;
+
+    // Comments unlock for signed-in players only once they've finished every
+    // round for this day (same completion check as RoundSummary/ShareControls).
+    // Readonly (archive) views and anonymous visitors are exempt from this gate.
+    if (!readOnly && isSignedIn === true && totalRounds !== undefined && latestRound !== undefined && latest) {
+        let stored: StoredDay | null = null;
+        try {
+            const raw = typeof window !== "undefined" ? window.localStorage.getItem(`review-guesser:${gameDate}`) : null;
+            stored = raw ? (JSON.parse(raw) as StoredDay) : null;
+        } catch {
+            stored = null;
+        }
+        const merged: Record<number, RoundResult> = {
+            ...(stored?.results || {}),
+            ...(results || {}),
+            [latestRound]: latest,
+        };
+        const isComplete = Object.keys(merged).length >= totalRounds;
+        if (!isComplete) return null;
+    }
 
     const commentCount = data?.length ?? 0;
     const canReact = !readOnly && isSignedIn === true;

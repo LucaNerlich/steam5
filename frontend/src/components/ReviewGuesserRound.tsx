@@ -437,8 +437,16 @@ export default function ReviewGuesserRound({
                 </RoundResultDialog>
             )}
 
-            {/* Comments are public for every visitor; posting/reacting still requires sign-in. */}
-            <DayComments gameDate={gameDate} games={dayGames} />
+            {/* Comments are public for every visitor; posting/reacting still requires sign-in,
+                and signed-in players only see them once they finish all of today's rounds. */}
+            <DayComments
+                gameDate={gameDate}
+                games={dayGames}
+                totalRounds={totalRounds}
+                latestRound={latestStoredRoundIndex}
+                latest={latestResult}
+                results={!serverGuessesLoading && hasServerResults ? serverResults : undefined}
+            />
 
             <AuthWarningModal
                 isOpen={showAuthWarning}
