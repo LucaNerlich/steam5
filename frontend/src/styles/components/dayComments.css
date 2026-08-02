@@ -316,10 +316,6 @@
     color: var(--color-error);
 }
 
-.comment-composer__submit {
-    min-width: 5.5rem;
-}
-
 .comment-composer__posted {
     font-size: 0.76rem;
     font-weight: 600;
