@@ -10,6 +10,7 @@ import {useAuth} from "@/contexts/AuthContext";
 import {buildSteamLoginUrl} from "@/components/SteamLoginButton";
 import ReactionBar from "@/components/ReactionBar";
 import Avatar from "@/components/Avatar";
+import ConfirmModal from "@/components/ConfirmModal";
 import {
     COMMENT_MODERATOR_STEAM_ID,
     archiveComment,
@@ -370,9 +371,7 @@ function MentionMenu(props: {
                     title={candidate.personaName}
                     onClick={() => onPick(candidate)}
                 >
-                    {candidate.avatar && (
-                        <Avatar src={candidate.avatar} name={candidate.personaName} size={20} className="comment-composer__mention-avatar"/>
-                    )}
+                    <Avatar src={candidate.avatar} name={candidate.personaName} size={20} className="comment-composer__mention-avatar"/>
                     <span>{candidate.personaName}</span>
                 </button>
             ))}
@@ -564,6 +563,7 @@ export default function DayComments(props: {
     const {isSignedIn, steamId, refreshAuth} = useAuth();
     const canModerate = isSignedIn === true && steamId === COMMENT_MODERATOR_STEAM_ID;
     const [archivingId, setArchivingId] = useState<number | null>(null);
+    const [confirmArchiveId, setConfirmArchiveId] = useState<number | null>(null);
     const [openPickerCommentId, setOpenPickerCommentId] = useState<number | null>(null);
 
     const swrKey = gameDate ? commentsUrl(gameDate) : null;
@@ -604,6 +604,13 @@ export default function DayComments(props: {
             setArchivingId(null);
         }
     }, [archivingId, mutate, refreshAuth]);
+
+    const confirmArchive = useCallback(() => {
+        if (confirmArchiveId === null) return;
+        const id = confirmArchiveId;
+        setConfirmArchiveId(null);
+        void handleArchive(id);
+    }, [confirmArchiveId, handleArchive]);
 
     if (!gameDate) return null;
 
@@ -692,7 +699,7 @@ export default function DayComments(props: {
                                                     title="Archive comment"
                                                     aria-label="Archive comment"
                                                     disabled={archivingId !== null}
-                                                    onClick={() => void handleArchive(comment.id)}
+                                                    onClick={() => setConfirmArchiveId(comment.id)}
                                                 >
                                                     <ArchiveIcon size={14} weight="regular" aria-hidden="true"/>
                                                     <span>{archivingId === comment.id ? "…" : "Archive"}</span>
@@ -743,6 +750,16 @@ export default function DayComments(props: {
                     {" "}to leave a comment or react.
                 </p>
             ))}
+
+            <ConfirmModal
+                isOpen={confirmArchiveId !== null}
+                title="Archive this comment?"
+                message="The comment will be hidden from everyone. This can't be undone from here."
+                confirmLabel="Archive"
+                cancelLabel="Cancel"
+                onConfirm={confirmArchive}
+                onCancel={() => setConfirmArchiveId(null)}
+            />
         </section>
     );
 }
