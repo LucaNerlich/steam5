@@ -27,12 +27,24 @@ export default function ReactionBar(props: {
     onUnauthorized?: () => void;
     /** When true, show reaction counts only — no picker or toggle controls. */
     readOnly?: boolean;
+    /** Notifies the parent list item when the reaction picker opens or closes. */
+    onPickerOpenChange?: (open: boolean) => void;
 }) {
-    const {commentId, reactions, canReact, onToggled, onUnauthorized, readOnly = false} = props;
+    const {commentId, reactions, canReact, onToggled, onUnauthorized, readOnly = false, onPickerOpenChange} = props;
     const [pending, setPending] = useState<ReactionType | null>(null);
     const [open, setOpen] = useState(false);
     const rootRef = useRef<HTMLDivElement>(null);
     const pickerId = useId();
+
+    // Kept in a ref so the effect below only re-runs when `open` changes,
+    // not on every parent render (the callback is typically a fresh closure).
+    const onPickerOpenChangeRef = useRef(onPickerOpenChange);
+    onPickerOpenChangeRef.current = onPickerOpenChange;
+
+    useEffect(() => {
+        onPickerOpenChangeRef.current?.(open);
+        return () => onPickerOpenChangeRef.current?.(false);
+    }, [open]);
 
     const byType = new Map<string, CommentReactionDto>();
     for (const reaction of reactions) {
