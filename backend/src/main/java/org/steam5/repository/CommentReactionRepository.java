@@ -14,7 +14,12 @@ import java.util.Optional;
 
 public interface CommentReactionRepository extends JpaRepository<CommentReaction, Long> {
 
-    List<CommentReaction> findByComment_IdIn(Collection<Long> commentIds);
+    /**
+     * Returns reaction rows for the given comments ordered by creation time, with id as a
+     * tiebreaker so grouping by (commentId, reactionType) into reactor display names is
+     * deterministic even when timestamps collide.
+     */
+    List<CommentReaction> findByComment_IdInOrderByCreatedAtAscIdAsc(Collection<Long> commentIds);
 
     List<CommentReaction> findByComment_IdInAndSteamId(Collection<Long> commentIds, String steamId);
 

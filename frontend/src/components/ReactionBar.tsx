@@ -13,6 +13,18 @@ import {
 import "@/styles/components/dayComments.css";
 
 /**
+ * Builds a tooltip string listing reactor names, appending an overflow note
+ * (e.g. "and 3 more") when the total count exceeds the returned names.
+ * Returns undefined when there are no resolved reactor names to show.
+ */
+function reactorTooltip(count: number, reactors: string[]): string | undefined {
+    if (reactors.length === 0) return undefined;
+    const remaining = count - reactors.length;
+    const names = reactors.join(", ");
+    return remaining > 0 ? `${names} and ${remaining} more` : names;
+}
+
+/**
  * Compact reaction summary plus a single picker control for a comment.
  *
  * Shows only reactions that already have a count; a smile button opens the
@@ -66,9 +78,10 @@ export default function ReactionBar(props: {
                 type,
                 count,
                 active: Boolean(entry?.reactedByViewer),
+                reactors: entry?.reactors ?? [],
             };
         })
-        .filter((row): row is {type: ReactionType; count: number; active: boolean} => row !== null);
+        .filter((row): row is {type: ReactionType; count: number; active: boolean; reactors: string[]} => row !== null);
 
     useEffect(() => {
         if (!open) return;
@@ -134,11 +147,12 @@ export default function ReactionBar(props: {
         return (
             <div className="reaction-bar" ref={rootRef}>
                 <div className="reaction-bar__summary" aria-label="Reactions">
-                    {present.map(({type, count}) => (
+                    {present.map(({type, count, reactors}) => (
                         <span
                             key={type}
                             className="reaction-bar__chip"
                             aria-label={`${REACTION_EMOJI[type]} reaction, ${count}`}
+                            title={reactorTooltip(count, reactors)}
                         >
                             <span className="reaction-bar__emoji" aria-hidden="true">
                                 {REACTION_EMOJI[type]}
@@ -155,23 +169,27 @@ export default function ReactionBar(props: {
         <div className="reaction-bar" ref={rootRef}>
             {present.length > 0 && (
                 <div className="reaction-bar__summary" aria-label="Reactions">
-                    {present.map(({type, count, active}) => (
-                        <button
-                            key={type}
-                            type="button"
-                            className={`reaction-bar__chip${active ? " reaction-bar__chip--active" : ""}`}
-                            disabled={pending !== null}
-                            aria-pressed={active}
-                            title={canReact ? (active ? "Remove reaction" : "Add reaction") : "Sign in to react"}
-                            aria-label={`${REACTION_EMOJI[type]} reaction, ${count}${canReact ? "" : " (sign in to react)"}`}
-                            onClick={() => handleToggle(type)}
-                        >
-                            <span className="reaction-bar__emoji" aria-hidden="true">
-                                {REACTION_EMOJI[type]}
-                            </span>
-                            <span className="reaction-bar__count">{count}</span>
-                        </button>
-                    ))}
+                    {present.map(({type, count, active, reactors}) => {
+                        const actionHint = canReact ? (active ? "Remove reaction" : "Add reaction") : "Sign in to react";
+                        const tooltip = reactorTooltip(count, reactors);
+                        return (
+                            <button
+                                key={type}
+                                type="button"
+                                className={`reaction-bar__chip${active ? " reaction-bar__chip--active" : ""}`}
+                                disabled={pending !== null}
+                                aria-pressed={active}
+                                title={tooltip ? `${actionHint} — ${tooltip}` : actionHint}
+                                aria-label={`${REACTION_EMOJI[type]} reaction, ${count}${canReact ? "" : " (sign in to react)"}`}
+                                onClick={() => handleToggle(type)}
+                            >
+                                <span className="reaction-bar__emoji" aria-hidden="true">
+                                    {REACTION_EMOJI[type]}
+                                </span>
+                                <span className="reaction-bar__count">{count}</span>
+                            </button>
+                        );
+                    })}
                 </div>
             )}
 

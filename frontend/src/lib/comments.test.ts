@@ -64,7 +64,9 @@ describe('fetchComments', () => {
             body: 'hi',
             createdAt: '2026-07-31T12:00:00Z',
             author: {steamId: 'u1', personaName: 'Alice', avatar: null},
-            reactions: [],
+            reactions: [
+                {reactionType: 'THUMBS_UP', count: 2, reactedByViewer: false, reactors: ['Alice', 'Bob']},
+            ],
         }];
         fetchMock.mockResolvedValue(mockResponse(true, comments));
 
@@ -93,7 +95,7 @@ describe('fetchComments', () => {
 
 describe('toggleReaction', () => {
     it('POSTs the reaction type to the reactions proxy', async () => {
-        const reactions = [{reactionType: 'THUMBS_UP', count: 1, reactedByViewer: true}];
+        const reactions = [{reactionType: 'THUMBS_UP', count: 1, reactedByViewer: true, reactors: ['Alice']}];
         fetchMock.mockResolvedValue(mockResponse(true, reactions));
 
         const result = await toggleReaction(42, 'THUMBS_UP');
