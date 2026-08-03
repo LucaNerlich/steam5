@@ -41,6 +41,11 @@ const fetcher = async (url: string): Promise<LeaderboardFetchResult> => {
     return {data, refreshedAt: r.headers.get('X-Leaderboard-Refreshed-At')};
 };
 
+/**
+ * Displays a sortable leaderboard with player statistics, achievements, and average points.
+ *
+ * @param props - Leaderboard configuration, including the timeframe, refresh interval, accessibility label, and optional initial data.
+ */
 export default function LeaderboardTable(props: {
     mode: 'today' | 'weekly' | 'weekly-floating' | 'season' | 'all';
     refreshMs?: number;

@@ -23,6 +23,14 @@ const fetcher = async (url: string): Promise<PerfectDaysFetchResult> => {
     return {data, refreshedAt: r.headers.get('X-Leaderboard-Refreshed-At')};
 };
 
+/**
+ * Displays perfect-day records and player rankings.
+ *
+ * @param props - Configuration for initial data, refresh metadata, and refresh timing.
+ * @param props.initialData - Optional perfect-day records used while fetching updated data.
+ * @param props.initialRefreshedAt - Optional timestamp associated with the initial data.
+ * @param props.refreshMs - Optional interval, in milliseconds, for refreshing the records.
+ */
 export default function PerfectDaysTable(props: {
     initialData?: PerfectDay[] | null;
     initialRefreshedAt?: string | null;

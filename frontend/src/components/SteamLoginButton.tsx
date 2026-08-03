@@ -9,6 +9,11 @@ import Link from "next/link";
 import {useAuth} from "@/contexts/AuthContext";
 import Avatar from "@/components/Avatar";
 
+/**
+ * Builds the Steam login URL with the configured authentication callback.
+ *
+ * @returns The Steam login endpoint URL with an encoded callback URL.
+ */
 export function buildSteamLoginUrl(): string {
     const backend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
     const envBase = process.env.NEXT_PUBLIC_DOMAIN;
@@ -17,6 +22,11 @@ export function buildSteamLoginUrl(): string {
     return `${backend}/api/auth/steam/login?redirect=${encodeURIComponent(callback)}`;
 }
 
+/**
+ * Renders a Steam sign-in control or the signed-in user's profile link.
+ *
+ * @returns The Steam sign-in button or the user's profile link.
+ */
 export default function SteamLoginButton(): React.ReactElement {
     const {isSignedIn, steamId, avatar} = useAuth();
     const clearedRef = useRef(false);

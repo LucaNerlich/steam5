@@ -1,15 +1,24 @@
 import type {CSSProperties} from "react";
 import "@/styles/components/avatar.css";
 
+/**
+ * Extracts the uppercase initial from a name.
+ *
+ * @param name - The name from which to derive the initial
+ * @returns The uppercase first character of the trimmed name, or `"?"` when the name is absent or blank
+ */
 function initialsFor(name?: string | null): string {
     const trimmed = name?.trim();
     return trimmed ? trimmed.charAt(0).toUpperCase() : "?";
 }
 
 /**
- * Renders a player avatar image, or an initials fallback when no avatar is available.
- * Shared across the header, leaderboards, "playing now", and comments so every
- * avatar in the app looks and behaves the same.
+ * Renders an avatar image or an initials fallback.
+ *
+ * @param src - The avatar image URL
+ * @param name - The name used for the title and initials fallback
+ * @param size - The avatar dimensions in pixels
+ * @param className - Additional CSS classes
  */
 export default function Avatar({src, name, size = 32, className}: {
     src?: string | null;

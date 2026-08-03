@@ -16,6 +16,13 @@ type LeaderEntry = {
     avatarBlurdata?: string | null;
 };
 
+/**
+ * Renders the achievements leaderboard table.
+ *
+ * @param achievements - Achievement records to display
+ * @param serverOffsetMinutes - Server time offset used to calculate achievement metrics and titles
+ * @param leaderboardEntries - Leaderboard players matched to achievement winners
+ */
 export default function AchievementsTable({
     achievements,
     serverOffsetMinutes,

@@ -65,7 +65,10 @@ type BodyMatch = {
 };
 
 /**
- * Renders comment body text with Steam game refs and @mentions as links.
+ * Renders comment text with valid Steam game references and user mentions as links.
+ *
+ * @param body - The comment text to render
+ * @returns The rendered comment text
  */
 export function CommentBodyText({body}: {body: string}): React.ReactElement {
     const matches: BodyMatch[] = [];
@@ -127,9 +130,9 @@ export function CommentBodyText({body}: {body: string}): React.ReactElement {
 }
 
 /**
- * Renders a profile link with a user's avatar or name initials fallback.
+ * Links the comment author's avatar to their profile.
  *
- * @param props - The user's Steam ID, display name, and optional avatar URL.
+ * @param props - The author's Steam ID, display name, and optional avatar URL.
  */
 function CommentAvatar(props: {
     steamId: string;

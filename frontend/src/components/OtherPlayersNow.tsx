@@ -39,9 +39,9 @@ function presenceLabel(uniquePlayerCount: number, reconnecting: boolean): string
 }
 
 /**
- * Displays the number of players currently active in the round and their avatars when available.
+ * Displays current round presence information, including player avatars when available.
  *
- * @returns The presence indicator, or `null` when the round has no active presence to display.
+ * @returns The presence indicator, or `null` when disconnected without reconnecting or when no players are present.
  */
 export default function OtherPlayersNow(): React.ReactElement | null {
     const {uniquePlayerCount, players, connected, reconnecting} = useRoundPresenceContext();
