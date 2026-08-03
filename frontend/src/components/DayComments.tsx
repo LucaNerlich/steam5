@@ -318,7 +318,7 @@ function CommentComposer(props: {
                     title="Characters remaining"
                     aria-live="polite"
                 >
-                    {remaining} left
+                    {remaining} chars left
                 </span>
                 <span className={`comment-composer__posted ${posted ? "is-visible" : ""}`}>
                     Posted
