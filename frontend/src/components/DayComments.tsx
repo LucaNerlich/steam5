@@ -19,6 +19,7 @@ import {
     type DayComment,
 } from "@/lib/comments";
 import {formatRelativeTime} from "@/lib/format";
+import {nextOpenPickerId} from "@/lib/reactionPicker";
 import type {RoundResult, StoredDay} from "@/lib/storage";
 import {
     postCommentAction,
@@ -498,9 +499,9 @@ export default function DayComments(props: {
                                             readOnly={readOnly}
                                             onToggled={handlePosted}
                                             onUnauthorized={handleUnauthorized}
+                                            open={openPickerCommentId === comment.id}
                                             onPickerOpenChange={(isOpen) => {
-                                                setOpenPickerCommentId((prev) =>
-                                                    isOpen ? comment.id : (prev === comment.id ? null : prev));
+                                                setOpenPickerCommentId((prev) => nextOpenPickerId(prev, comment.id, isOpen));
                                             }}
                                         />
                                     </div>
