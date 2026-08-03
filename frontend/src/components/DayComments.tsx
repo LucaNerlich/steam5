@@ -9,6 +9,7 @@ import {ArchiveIcon, GameControllerIcon, PaperPlaneRightIcon} from "@phosphor-ic
 import {useAuth} from "@/contexts/AuthContext";
 import {buildSteamLoginUrl} from "@/components/SteamLoginButton";
 import ReactionBar from "@/components/ReactionBar";
+import Avatar from "@/components/Avatar";
 import {
     COMMENT_MODERATOR_STEAM_ID,
     archiveComment,
@@ -126,19 +127,6 @@ export function CommentBodyText({body}: {body: string}): React.ReactElement {
 }
 
 /**
- * Gets the uppercase initial for a name.
- *
- * @param name - The name to extract an initial from
- * @returns The uppercase first character of the trimmed name, or `"?"` when the name is missing or blank
- */
-function initialsFor(name: string | null | undefined): string {
-    if (!name) return "?";
-    const trimmed = name.trim();
-    if (!trimmed) return "?";
-    return trimmed.charAt(0).toUpperCase();
-}
-
-/**
  * Renders a profile link with a user's avatar or name initials fallback.
  *
  * @param props - The user's Steam ID, display name, and optional avatar URL.
@@ -151,25 +139,9 @@ function CommentAvatar(props: {
     const {steamId, personaName, avatar} = props;
     const displayName = personaName || "Player";
     const profileUrl = `/profile/${steamId}`;
-    const content = avatar ? (
-        <img
-            className="day-comments__avatar"
-            src={avatar}
-            alt=""
-            title={displayName}
-            width={32}
-            height={32}
-            loading="lazy"
-            referrerPolicy="no-referrer"
-        />
-    ) : (
-        <span className="day-comments__avatar" title={displayName} aria-hidden="true">
-            {initialsFor(personaName)}
-        </span>
-    );
     return (
         <Link href={profileUrl} className="day-comments__avatar-link" aria-label={`View ${displayName}'s profile`}>
-            {content}
+            <Avatar src={avatar} name={personaName} size={32} className="day-comments__avatar"/>
         </Link>
     );
 }
@@ -396,15 +368,7 @@ function MentionMenu(props: {
                     onClick={() => onPick(candidate)}
                 >
                     {candidate.avatar && (
-                        <img
-                            className="comment-composer__mention-avatar"
-                            src={candidate.avatar}
-                            alt=""
-                            width={20}
-                            height={20}
-                            loading="lazy"
-                            referrerPolicy="no-referrer"
-                        />
+                        <Avatar src={candidate.avatar} name={candidate.personaName} size={20} className="comment-composer__mention-avatar"/>
                     )}
                     <span>{candidate.personaName}</span>
                 </button>

@@ -1,7 +1,7 @@
 "use client";
 
 import "@/styles/components/leaderboard.css";
-import Image from "next/image";
+import Avatar from "@/components/Avatar";
 import useSWR from "swr";
 import {useCallback, useMemo, useState} from "react";
 import {
@@ -221,15 +221,7 @@ export default function LeaderboardTable(props: {
                             <td>
                                 <div className="leaderboard__player">
                                     {entry.avatar && (
-                                        <div className="leaderboard__avatar-wrap"
-                                             style={{backgroundImage: entry.avatarBlurdata ? `url(${entry.avatarBlurdata})` : undefined}}>
-                                            <Image className="leaderboard__avatar"
-                                                   src={entry.avatar}
-                                                   placeholder={'empty'}
-                                                   alt=""
-                                                   width={24}
-                                                   height={24}/>
-                                        </div>
+                                        <Avatar src={entry.avatar} name={entry.personaName} size={29}/>
                                     )}
                                     <a href={`/profile/${encodeURIComponent(entry.steamId)}`}
                                        className="leaderboard__profile-link">

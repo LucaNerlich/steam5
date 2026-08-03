@@ -85,6 +85,7 @@ html:has(.leaderboard-layout) {
     border-bottom: 1px solid var(--color-border);
     padding: 0.5rem 0.6rem;
     text-align: left;
+    vertical-align: middle;
     white-space: nowrap;
 }
 
@@ -98,7 +99,7 @@ html:has(.leaderboard-layout) {
 }
 
 .leaderboard__player {
-    display: inline-flex;
+    display: flex;
     align-items: center;
     gap: 0.4rem;
 }
@@ -137,22 +138,6 @@ html:has(.leaderboard-layout) {
 .leaderboard__table th[aria-sort="ascending"] button.sortable .sort-indicator,
 .leaderboard__table th[aria-sort="descending"] button.sortable .sort-indicator {
     opacity: 1;
-}
-
-.leaderboard__avatar-wrap {
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    background-size: cover;
-    background-position: center;
-    overflow: hidden;
-}
-
-.leaderboard__avatar {
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    object-fit: cover;
 }
 
 .leaderboard__profile {

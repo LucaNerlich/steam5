@@ -75,23 +75,6 @@
     text-decoration: none;
 }
 
-.day-comments__avatar {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    border: 2px solid var(--color-surface);
-    background: var(--color-surface-variant);
-    object-fit: cover;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: var(--color-text);
-    text-transform: uppercase;
-    overflow: hidden;
-}
-
 .day-comments__body {
     display: flex;
     flex-direction: column;
@@ -228,13 +211,14 @@
     margin-right: auto;
 }
 
-.comment-composer__game-trigger {
+.comment-composer__game-trigger,
+.reaction-bar__trigger {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 0.05rem;
-    width: 1.85rem;
-    height: 1.85rem;
+    width: 2.2rem;
+    height: 2.2rem;
     padding: 0;
     border: 1px solid var(--color-border);
     border-radius: 9999px;
@@ -245,12 +229,15 @@
 }
 
 .comment-composer__game-trigger:hover,
-.comment-composer__game-trigger--open {
+.comment-composer__game-trigger--open,
+.reaction-bar__trigger:hover:not(:disabled),
+.reaction-bar__trigger--open {
     color: var(--color-text);
     border-color: color-mix(in srgb, var(--color-primary) 45%, var(--color-border));
 }
 
-.comment-composer__game-trigger-plus {
+.comment-composer__game-trigger-plus,
+.reaction-bar__trigger-plus {
     font-size: 0.7rem;
     font-weight: 700;
     line-height: 1;
@@ -372,10 +359,6 @@
 
 .comment-composer__mention-avatar {
     flex: 0 0 auto;
-    width: 20px;
-    height: 20px;
-    border-radius: 9999px;
-    object-fit: cover;
 }
 
 .comment-composer__mention-status {
@@ -483,35 +466,6 @@ button.reaction-bar__chip:hover:not(:disabled) {
 
 .reaction-bar__picker-wrap {
     position: relative;
-}
-
-.reaction-bar__trigger {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.05rem;
-    width: 1.85rem;
-    height: 1.85rem;
-    padding: 0;
-    border: 1px solid var(--color-border);
-    border-radius: 9999px;
-    background: var(--color-surface);
-    color: var(--color-muted);
-    cursor: pointer;
-    transition: border-color 120ms ease, color 120ms ease, background-color 120ms ease;
-}
-
-.reaction-bar__trigger:hover:not(:disabled),
-.reaction-bar__trigger--open {
-    color: var(--color-text);
-    border-color: color-mix(in srgb, var(--color-primary) 45%, var(--color-border));
-}
-
-.reaction-bar__trigger-plus {
-    font-size: 0.7rem;
-    font-weight: 700;
-    line-height: 1;
-    margin-left: -0.1rem;
 }
 
 .reaction-bar__picker {

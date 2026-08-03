@@ -7,6 +7,7 @@ import SignInImage from "../../public/sign-in-through-steam.png"
 import {UserCheckIcon} from "@phosphor-icons/react/ssr";
 import Link from "next/link";
 import {useAuth} from "@/contexts/AuthContext";
+import Avatar from "@/components/Avatar";
 
 export function buildSteamLoginUrl(): string {
     const backend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
@@ -17,7 +18,7 @@ export function buildSteamLoginUrl(): string {
 }
 
 export default function SteamLoginButton(): React.ReactElement {
-    const {isSignedIn, steamId, avatar, avatarBlurdata} = useAuth();
+    const {isSignedIn, steamId, avatar} = useAuth();
     const clearedRef = useRef(false);
 
     useEffect(() => {
@@ -47,13 +48,7 @@ export default function SteamLoginButton(): React.ReactElement {
                       title="Your Profile">
                     <span className="mobile__hide">Profile</span>
                     {avatar ? (
-                        <span className="header__avatar-wrap">
-                            <Image className="header__avatar"
-                                   src={avatar}
-                                   alt=""
-                                   width={28}
-                                   height={28}/>
-                        </span>
+                        <Avatar src={avatar} size={28}/>
                     ) : (
                         <UserCheckIcon size={28}/>
                     )}

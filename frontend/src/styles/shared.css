@@ -92,7 +92,7 @@ button:disabled {
     background: var(--color-surface);
 }
 
-:not(header) > .container img {
+:not(header) > .container img:not(.avatar) {
     border-radius: 0.5rem;
     object-fit: cover;
 }

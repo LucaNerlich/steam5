@@ -1,7 +1,7 @@
 "use client";
 
 import "@/styles/components/leaderboard.css";
-import Image from "next/image";
+import Avatar from "@/components/Avatar";
 import Link from "next/link";
 import useSWR from "swr";
 import {useMemo} from "react";
@@ -88,15 +88,7 @@ export default function PerfectDaysTable(props: {
                             <td>
                                 <div className="leaderboard__player">
                                     {entry.avatar && (
-                                        <div className="leaderboard__avatar-wrap">
-                                            <Image
-                                                className="leaderboard__avatar"
-                                                src={entry.avatar}
-                                                alt={`${entry.personaName}'s avatar`}
-                                                width={24}
-                                                height={24}
-                                            />
-                                        </div>
+                                        <Avatar src={entry.avatar} name={entry.personaName} size={29}/>
                                     )}
                                     <span className="leaderboard__profile-link">{entry.personaName}</span>
                                 </div>
@@ -138,15 +130,7 @@ export default function PerfectDaysTable(props: {
                             <td>
                                 <div className="leaderboard__player">
                                     {player.avatar && (
-                                        <div className="leaderboard__avatar-wrap">
-                                            <Image
-                                                className="leaderboard__avatar"
-                                                src={player.avatar}
-                                                alt={`${player.name}'s avatar`}
-                                                width={24}
-                                                height={24}
-                                            />
-                                        </div>
+                                        <Avatar src={player.avatar} name={player.name} size={29}/>
                                     )}
                                     <span className="leaderboard__profile-link">{player.name}</span>
                                 </div>
