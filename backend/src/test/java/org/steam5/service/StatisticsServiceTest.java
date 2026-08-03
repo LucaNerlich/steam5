@@ -118,7 +118,6 @@ class StatisticsServiceTest {
         assertEquals("76561198000000001", entry.steamId());
         assertEquals("Alice", entry.personaName());
         assertEquals("https://avatar/full.jpg", entry.avatar());
-        assertEquals("data:blur", entry.avatarBlurdata());
         assertEquals("https://steamcommunity.com/id/alice", entry.profileUrl());
         assertEquals(LocalDate.of(2026, 1, 15), entry.gameDate());
         assertEquals(List.of("Half-Life", "Portal 2", "Left 4 Dead"), entry.appNames());

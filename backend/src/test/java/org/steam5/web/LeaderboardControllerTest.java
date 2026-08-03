@@ -69,7 +69,7 @@ public class LeaderboardControllerTest {
         when(guessRepository.findAllByDate(pickDate)).thenReturn(guesses);
 
         List<LeaderboardService.LeaderEntry> canned = List.of(
-                new LeaderboardService.LeaderEntry("u1", "User One", 5L, 1L, 1L, 0L, 0L, 0L, 5.0, 1, null, null, null)
+                new LeaderboardService.LeaderEntry("u1", "User One", 5L, 1L, 1L, 0L, 0L, 0L, 5.0, 1, null, null)
         );
         when(leaderboardService.buildLeaderboard(guesses, pickDate)).thenReturn(canned);
 
@@ -87,8 +87,8 @@ public class LeaderboardControllerTest {
         LeaderboardController c = newController();
 
         List<LeaderboardService.LeaderEntry> canned = List.of(
-                new LeaderboardService.LeaderEntry("u1", "User One", 5L, 1L, 1L, 0L, 0L, 0L, 5.0, 1, null, null, null),
-                new LeaderboardService.LeaderEntry("u2", "u2", 1L, 1L, 0L, 0L, 1L, 0L, 1.0, 0, null, null, null)
+                new LeaderboardService.LeaderEntry("u1", "User One", 5L, 1L, 1L, 0L, 0L, 0L, 5.0, 1, null, null),
+                new LeaderboardService.LeaderEntry("u2", "u2", 1L, 1L, 0L, 0L, 1L, 0L, 1.0, 0, null, null)
         );
         when(leaderboardService.buildAllTimeLeaderboard(any(LocalDate.class))).thenReturn(canned);
 
@@ -120,7 +120,7 @@ public class LeaderboardControllerTest {
         when(reviewGameStateService.generateDailyPicks()).thenReturn(List.of());
 
         List<LeaderboardService.LeaderEntry> canned = List.of(
-                new LeaderboardService.LeaderEntry("u1", "User One", 7L, 2L, 1L, 0L, 0L, 1L, 3.5, 1, null, null, null)
+                new LeaderboardService.LeaderEntry("u1", "User One", 7L, 2L, 1L, 0L, 0L, 1L, 3.5, 1, null, null)
         );
         when(leaderboardService.buildWeeklyLeaderboard(any(LocalDate.class))).thenReturn(canned);
 
@@ -160,7 +160,7 @@ public class LeaderboardControllerTest {
         when(reviewGameStateService.generateDailyPicks()).thenReturn(List.of());
 
         List<LeaderboardService.LeaderEntry> canned = List.of(
-                new LeaderboardService.LeaderEntry("u1", "User One", 10L, 2L, 1L, 0L, 0L, 1L, 5.0, 1, null, null, null)
+                new LeaderboardService.LeaderEntry("u1", "User One", 10L, 2L, 1L, 0L, 0L, 1L, 5.0, 1, null, null)
         );
         when(leaderboardService.buildMonthlyLeaderboard(any(LocalDate.class))).thenReturn(canned);
 
@@ -193,7 +193,7 @@ public class LeaderboardControllerTest {
         when(cache.get(anyString())).thenReturn(null);
 
         List<LeaderboardService.LeaderEntry> canned = List.of(
-                new LeaderboardService.LeaderEntry("u1", "User One", 20L, 4L, 2L, 1L, 1L, 0L, 5.0, 1, null, null, null)
+                new LeaderboardService.LeaderEntry("u1", "User One", 20L, 4L, 2L, 1L, 1L, 0L, 5.0, 1, null, null)
         );
         when(leaderboardService.buildSeasonLeaderboard(any(LocalDate.class))).thenReturn(canned);
 
@@ -222,7 +222,7 @@ public class LeaderboardControllerTest {
         when(seasonService.findSeasonContaining(any(LocalDate.class))).thenReturn(Optional.of(season));
 
         List<LeaderboardService.LeaderEntry> cached = List.of(
-                new LeaderboardService.LeaderEntry("u1", "User One", 20L, 4L, 2L, 1L, 1L, 0L, 5.0, 1, null, null, null)
+                new LeaderboardService.LeaderEntry("u1", "User One", 20L, 4L, 2L, 1L, 1L, 0L, 5.0, 1, null, null)
         );
         Cache cache = mock(Cache.class);
         when(cacheManager.getCache("leaderboard-static")).thenReturn(cache);

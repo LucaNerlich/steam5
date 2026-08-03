@@ -9,7 +9,6 @@ type AuthState = {
     isSignedIn: boolean;
     steamId?: string | null;
     avatar?: string | null;
-    avatarBlurdata?: string | null;
     isLoading?: boolean;
 };
 
@@ -28,7 +27,6 @@ const authFetcher = async (url: string): Promise<AuthState> => {
         isSignedIn: Boolean(data?.signedIn),
         steamId: data?.steamId || null,
         avatar: data?.avatar || null,
-        avatarBlurdata: data?.avatarBlurdata || null,
     };
 };
 

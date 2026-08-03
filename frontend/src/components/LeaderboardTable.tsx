@@ -1,7 +1,7 @@
 "use client";
 
 import "@/styles/components/leaderboard.css";
-import Image from "next/image";
+import Avatar from "@/components/Avatar";
 import useSWR from "swr";
 import {useCallback, useMemo, useState} from "react";
 import {
@@ -25,7 +25,6 @@ type LeaderEntry = {
     avgPoints: number;
     streak: number;
     avatar?: string | null;
-    avatarBlurdata?: string | null;
     profileUrl?: string | null;
 };
 
@@ -41,6 +40,11 @@ const fetcher = async (url: string): Promise<LeaderboardFetchResult> => {
     return {data, refreshedAt: r.headers.get('X-Leaderboard-Refreshed-At')};
 };
 
+/**
+ * Displays a sortable leaderboard with player statistics, achievements, and average points.
+ *
+ * @param props - Leaderboard configuration, including the timeframe, refresh interval, accessibility label, and optional initial data.
+ */
 export default function LeaderboardTable(props: {
     mode: 'today' | 'weekly' | 'weekly-floating' | 'season' | 'all';
     refreshMs?: number;
@@ -220,17 +224,7 @@ export default function LeaderboardTable(props: {
                             <td>{i + 1}</td>
                             <td>
                                 <div className="leaderboard__player">
-                                    {entry.avatar && (
-                                        <div className="leaderboard__avatar-wrap"
-                                             style={{backgroundImage: entry.avatarBlurdata ? `url(${entry.avatarBlurdata})` : undefined}}>
-                                            <Image className="leaderboard__avatar"
-                                                   src={entry.avatar}
-                                                   placeholder={'empty'}
-                                                   alt=""
-                                                   width={24}
-                                                   height={24}/>
-                                        </div>
-                                    )}
+                                    <Avatar src={entry.avatar} name={entry.personaName} size={29}/>
                                     <a href={`/profile/${encodeURIComponent(entry.steamId)}`}
                                        className="leaderboard__profile-link">
                                         <strong>{entry.personaName || 'no-name'}</strong>

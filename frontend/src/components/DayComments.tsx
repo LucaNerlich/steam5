@@ -9,6 +9,8 @@ import {ArchiveIcon, GameControllerIcon, PaperPlaneRightIcon} from "@phosphor-ic
 import {useAuth} from "@/contexts/AuthContext";
 import {buildSteamLoginUrl} from "@/components/SteamLoginButton";
 import ReactionBar from "@/components/ReactionBar";
+import Avatar from "@/components/Avatar";
+import ConfirmModal from "@/components/ConfirmModal";
 import {
     COMMENT_MODERATOR_STEAM_ID,
     archiveComment,
@@ -64,7 +66,10 @@ type BodyMatch = {
 };
 
 /**
- * Renders comment body text with Steam game refs and @mentions as links.
+ * Renders comment text with valid Steam game references and user mentions as links.
+ *
+ * @param body - The comment text to render
+ * @returns The rendered comment text
  */
 export function CommentBodyText({body}: {body: string}): React.ReactElement {
     const matches: BodyMatch[] = [];
@@ -126,22 +131,9 @@ export function CommentBodyText({body}: {body: string}): React.ReactElement {
 }
 
 /**
- * Gets the uppercase initial for a name.
+ * Links the comment author's avatar to their profile.
  *
- * @param name - The name to extract an initial from
- * @returns The uppercase first character of the trimmed name, or `"?"` when the name is missing or blank
- */
-function initialsFor(name: string | null | undefined): string {
-    if (!name) return "?";
-    const trimmed = name.trim();
-    if (!trimmed) return "?";
-    return trimmed.charAt(0).toUpperCase();
-}
-
-/**
- * Renders a profile link with a user's avatar or name initials fallback.
- *
- * @param props - The user's Steam ID, display name, and optional avatar URL.
+ * @param props - The author's Steam ID, display name, and optional avatar URL.
  */
 function CommentAvatar(props: {
     steamId: string;
@@ -151,25 +143,9 @@ function CommentAvatar(props: {
     const {steamId, personaName, avatar} = props;
     const displayName = personaName || "Player";
     const profileUrl = `/profile/${steamId}`;
-    const content = avatar ? (
-        <img
-            className="day-comments__avatar"
-            src={avatar}
-            alt=""
-            title={displayName}
-            width={32}
-            height={32}
-            loading="lazy"
-            referrerPolicy="no-referrer"
-        />
-    ) : (
-        <span className="day-comments__avatar" title={displayName} aria-hidden="true">
-            {initialsFor(personaName)}
-        </span>
-    );
     return (
         <Link href={profileUrl} className="day-comments__avatar-link" aria-label={`View ${displayName}'s profile`}>
-            {content}
+            <Avatar src={avatar} name={personaName} size={32}/>
         </Link>
     );
 }
@@ -395,17 +371,7 @@ function MentionMenu(props: {
                     title={candidate.personaName}
                     onClick={() => onPick(candidate)}
                 >
-                    {candidate.avatar && (
-                        <img
-                            className="comment-composer__mention-avatar"
-                            src={candidate.avatar}
-                            alt=""
-                            width={20}
-                            height={20}
-                            loading="lazy"
-                            referrerPolicy="no-referrer"
-                        />
-                    )}
+                    <Avatar src={candidate.avatar} name={candidate.personaName} size={20} className="comment-composer__mention-avatar"/>
                     <span>{candidate.personaName}</span>
                 </button>
             ))}
@@ -597,6 +563,7 @@ export default function DayComments(props: {
     const {isSignedIn, steamId, refreshAuth} = useAuth();
     const canModerate = isSignedIn === true && steamId === COMMENT_MODERATOR_STEAM_ID;
     const [archivingId, setArchivingId] = useState<number | null>(null);
+    const [confirmArchiveId, setConfirmArchiveId] = useState<number | null>(null);
     const [openPickerCommentId, setOpenPickerCommentId] = useState<number | null>(null);
 
     const swrKey = gameDate ? commentsUrl(gameDate) : null;
@@ -637,6 +604,13 @@ export default function DayComments(props: {
             setArchivingId(null);
         }
     }, [archivingId, mutate, refreshAuth]);
+
+    const confirmArchive = useCallback(() => {
+        if (confirmArchiveId === null) return;
+        const id = confirmArchiveId;
+        setConfirmArchiveId(null);
+        void handleArchive(id);
+    }, [confirmArchiveId, handleArchive]);
 
     if (!gameDate) return null;
 
@@ -725,7 +699,7 @@ export default function DayComments(props: {
                                                     title="Archive comment"
                                                     aria-label="Archive comment"
                                                     disabled={archivingId !== null}
-                                                    onClick={() => void handleArchive(comment.id)}
+                                                    onClick={() => setConfirmArchiveId(comment.id)}
                                                 >
                                                     <ArchiveIcon size={14} weight="regular" aria-hidden="true"/>
                                                     <span>{archivingId === comment.id ? "…" : "Archive"}</span>
@@ -776,6 +750,16 @@ export default function DayComments(props: {
                     {" "}to leave a comment or react.
                 </p>
             ))}
+
+            <ConfirmModal
+                isOpen={confirmArchiveId !== null}
+                title="Archive this comment?"
+                message="The comment will be hidden from everyone. This can't be undone from here."
+                confirmLabel="Archive"
+                cancelLabel="Cancel"
+                onConfirm={confirmArchive}
+                onCancel={() => setConfirmArchiveId(null)}
+            />
         </section>
     );
 }

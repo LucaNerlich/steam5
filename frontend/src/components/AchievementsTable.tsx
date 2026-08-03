@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import Avatar from "@/components/Avatar";
 import {
     ACHIEVEMENT_LABELS,
     ACHIEVEMENT_ICONS,
@@ -13,9 +13,15 @@ type LeaderEntry = {
     steamId: string;
     personaName: string;
     avatar?: string | null;
-    avatarBlurdata?: string | null;
 };
 
+/**
+ * Renders the achievements leaderboard table.
+ *
+ * @param achievements - Achievement records to display
+ * @param serverOffsetMinutes - Server time offset used to calculate achievement metrics and titles
+ * @param leaderboardEntries - Leaderboard players matched to achievement winners
+ */
 export default function AchievementsTable({
     achievements,
     serverOffsetMinutes,
@@ -65,21 +71,7 @@ export default function AchievementsTable({
                                     </td>
                                     <td>
                                         <div className="leaderboard__player">
-                                            {entry.avatar && (
-                                                <div
-                                                    className="leaderboard__avatar-wrap"
-                                                    style={{backgroundImage: entry.avatarBlurdata ? `url(${entry.avatarBlurdata})` : undefined}}
-                                                >
-                                                    <Image
-                                                        className="leaderboard__avatar"
-                                                        src={entry.avatar}
-                                                        placeholder="empty"
-                                                        alt=""
-                                                        width={24}
-                                                        height={24}
-                                                    />
-                                                </div>
-                                            )}
+                                            <Avatar src={entry.avatar} name={entry.personaName} size={29}/>
                                             <a
                                                 href={`/profile/${encodeURIComponent(achievement.steamId)}`}
                                                 className="leaderboard__profile-link"

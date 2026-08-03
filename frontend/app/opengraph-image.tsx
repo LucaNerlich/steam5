@@ -49,7 +49,6 @@ export default async function Image(req: Request) {
         steamId: string;
         personaName?: string | null;
         avatar?: string | null;
-        avatarBlurdata?: string | null;
         profileUrl?: string | null;
         stats: { totalPoints: number; rounds: number; hits: number; tooHigh: number; tooLow: number; avgPoints: number };
         days: Array<{ date: string; rounds: Array<{ points: number; selectedBucket: string; actualBucket: string }> }>;

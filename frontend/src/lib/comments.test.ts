@@ -63,7 +63,7 @@ describe('fetchComments', () => {
             id: 1,
             body: 'hi',
             createdAt: '2026-07-31T12:00:00Z',
-            author: {steamId: 'u1', personaName: 'Alice', avatar: null, avatarBlurdata: null},
+            author: {steamId: 'u1', personaName: 'Alice', avatar: null},
             reactions: [],
         }];
         fetchMock.mockResolvedValue(mockResponse(true, comments));

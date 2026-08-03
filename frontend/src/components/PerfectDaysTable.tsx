@@ -1,7 +1,7 @@
 "use client";
 
 import "@/styles/components/leaderboard.css";
-import Image from "next/image";
+import Avatar from "@/components/Avatar";
 import Link from "next/link";
 import useSWR from "swr";
 import {useMemo} from "react";
@@ -23,6 +23,14 @@ const fetcher = async (url: string): Promise<PerfectDaysFetchResult> => {
     return {data, refreshedAt: r.headers.get('X-Leaderboard-Refreshed-At')};
 };
 
+/**
+ * Displays perfect-day records and player rankings.
+ *
+ * @param props - Configuration for initial data, refresh metadata, and refresh timing.
+ * @param props.initialData - Optional perfect-day records used while fetching updated data.
+ * @param props.initialRefreshedAt - Optional timestamp associated with the initial data.
+ * @param props.refreshMs - Optional interval, in milliseconds, for refreshing the records.
+ */
 export default function PerfectDaysTable(props: {
     initialData?: PerfectDay[] | null;
     initialRefreshedAt?: string | null;
@@ -42,14 +50,14 @@ export default function PerfectDaysTable(props: {
     const lastUpdatedText = formatRefreshedAt(refreshedAt);
 
     const playerCounts = useMemo(() => {
-        const counts = new Map<string, { steamId: string; name: string; avatar?: string | null; avatarBlurdata?: string | null; count: number }>();
+        const counts = new Map<string, { steamId: string; name: string; avatar?: string | null; count: number }>();
         for (const entry of data ?? []) {
             const key = entry.steamId;
             const existing = counts.get(key);
             if (existing) {
                 existing.count++;
             } else {
-                counts.set(key, {steamId: entry.steamId, name: entry.personaName, avatar: entry.avatar, avatarBlurdata: entry.avatarBlurdata, count: 1});
+                counts.set(key, {steamId: entry.steamId, name: entry.personaName, avatar: entry.avatar, count: 1});
             }
         }
         return [...counts.values()].sort((a, b) => b.count - a.count);
@@ -87,17 +95,7 @@ export default function PerfectDaysTable(props: {
                             <td className="num">{i + 1}</td>
                             <td>
                                 <div className="leaderboard__player">
-                                    {entry.avatar && (
-                                        <div className="leaderboard__avatar-wrap">
-                                            <Image
-                                                className="leaderboard__avatar"
-                                                src={entry.avatar}
-                                                alt={`${entry.personaName}'s avatar`}
-                                                width={24}
-                                                height={24}
-                                            />
-                                        </div>
-                                    )}
+                                    <Avatar src={entry.avatar} name={entry.personaName} size={29}/>
                                     <span className="leaderboard__profile-link">{entry.personaName}</span>
                                 </div>
                             </td>
@@ -137,17 +135,7 @@ export default function PerfectDaysTable(props: {
                             <td className="num">{i + 1}</td>
                             <td>
                                 <div className="leaderboard__player">
-                                    {player.avatar && (
-                                        <div className="leaderboard__avatar-wrap">
-                                            <Image
-                                                className="leaderboard__avatar"
-                                                src={player.avatar}
-                                                alt={`${player.name}'s avatar`}
-                                                width={24}
-                                                height={24}
-                                            />
-                                        </div>
-                                    )}
+                                    <Avatar src={player.avatar} name={player.name} size={29}/>
                                     <span className="leaderboard__profile-link">{player.name}</span>
                                 </div>
                             </td>

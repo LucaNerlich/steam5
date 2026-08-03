@@ -22,7 +22,6 @@ export async function GET(req: NextRequest) {
             signedIn: Boolean(data.valid),
             steamId: data.steamId,
             avatar: data.avatar ?? null,
-            avatarBlurdata: data.avatarBlurdata ?? null,
         }, {status: 200, headers: NO_STORE});
     } catch {
         return NextResponse.json({signedIn: false}, {status: 200, headers: NO_STORE});

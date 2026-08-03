@@ -4,22 +4,10 @@ import React from "react";
 import Link from "next/link";
 import {useRoundPresenceContext} from "@/contexts/RoundPresenceContext";
 import type {PlayerInfo} from "@/lib/hooks/useRoundPresence";
+import Avatar from "@/components/Avatar";
 import "@/styles/components/otherPlayersNow.css";
 
 const MAX_VISIBLE_AVATARS = 8;
-
-/**
- * Generates a fallback initial for a player's name.
- *
- * @param name - The player's name, or `null` when unavailable
- * @returns The uppercase first character of the trimmed name, or `?` when no name is provided
- */
-function initialsFor(name: string | null): string {
-    if (!name) return "?";
-    const trimmed = name.trim();
-    if (!trimmed) return "?";
-    return trimmed.charAt(0).toUpperCase();
-}
 
 /**
  * Renders a player's avatar linked to their Steam profile.
@@ -30,29 +18,9 @@ function initialsFor(name: string | null): string {
 function PlayerAvatar({player}: {player: PlayerInfo}): React.ReactElement {
     const displayName = player.personaName || "Player";
     const profileUrl = `/profile/${player.steamId}`;
-    const content = player.avatar ? (
-        <img
-            className="other-players__avatar"
-            src={player.avatar}
-            alt={displayName}
-            title={displayName}
-            width={32}
-            height={32}
-            loading="lazy"
-            referrerPolicy="no-referrer"
-        />
-    ) : (
-        <span
-            className="other-players__avatar"
-            title={displayName}
-            aria-label={displayName}
-        >
-            {initialsFor(player.personaName)}
-        </span>
-    );
     return (
         <Link href={profileUrl} aria-label={`View ${displayName}'s Steam profile`}>
-            {content}
+            <Avatar src={player.avatar} name={player.personaName} size={32} className="other-players__avatar"/>
         </Link>
     );
 }
@@ -71,9 +39,9 @@ function presenceLabel(uniquePlayerCount: number, reconnecting: boolean): string
 }
 
 /**
- * Displays the number of players currently active in the round and their avatars when available.
+ * Displays current round presence information, including player avatars when available.
  *
- * @returns The presence indicator, or `null` when the round has no active presence to display.
+ * @returns The presence indicator, or `null` when disconnected without reconnecting or when no players are present.
  */
 export default function OtherPlayersNow(): React.ReactElement | null {
     const {uniquePlayerCount, players, connected, reconnecting} = useRoundPresenceContext();
@@ -97,7 +65,8 @@ export default function OtherPlayersNow(): React.ReactElement | null {
                     ))}
                     {overflow > 0 && (
                         <span
-                            className="other-players__overflow"
+                            className="avatar other-players__overflow"
+                            style={{width: 32, height: 32}}
                             title={`${overflow} more player${overflow === 1 ? "" : "s"}`}
                             aria-label={`${overflow} more players`}
                         >

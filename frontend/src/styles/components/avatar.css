@@ -1,0 +1,16 @@
+.avatar {
+    border-radius: 0.5rem;
+    border: 2px solid var(--color-surface);
+    background: var(--color-surface-variant);
+    object-fit: cover;
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-text);
+    text-transform: uppercase;
+    overflow: hidden;
+}

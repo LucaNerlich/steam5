@@ -42,7 +42,6 @@ describe('fetchPerfectDays', () => {
             steamId: '76561198000000001',
             personaName: 'Alice',
             avatar: 'https://avatar/full.jpg',
-            avatarBlurdata: 'data:blur',
             profileUrl: 'https://steamcommunity.com/id/alice',
             gameDate: '2026-01-15',
             appNames: ['Half-Life', 'Portal 2'],

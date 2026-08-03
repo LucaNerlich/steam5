@@ -229,7 +229,7 @@ public class CommentService {
 
     private static AuthorDto toAuthor(final String steamId, final User user) {
         if (user == null) {
-            return new AuthorDto(steamId, steamId, null, null);
+            return new AuthorDto(steamId, steamId, null);
         }
         final String personaName = (user.getPersonaName() != null && !user.getPersonaName().isBlank())
                 ? user.getPersonaName()
@@ -237,10 +237,7 @@ public class CommentService {
         final String avatar = (user.getAvatarFull() != null && !user.getAvatarFull().isBlank())
                 ? user.getAvatarFull()
                 : user.getAvatar();
-        final String avatarBlurdata = (user.getBlurdataAvatarFull() != null && !user.getBlurdataAvatarFull().isBlank())
-                ? user.getBlurdataAvatarFull()
-                : user.getBlurdataAvatar();
-        return new AuthorDto(user.getSteamId(), personaName, avatar, avatarBlurdata);
+        return new AuthorDto(user.getSteamId(), personaName, avatar);
     }
 
     private static List<ReactionDto> reactionDtos(final Map<ReactionType, Long> counts,
@@ -269,7 +266,7 @@ public class CommentService {
         }
     }
 
-    public record AuthorDto(String steamId, String personaName, String avatar, String avatarBlurdata) {
+    public record AuthorDto(String steamId, String personaName, String avatar) {
     }
 
     public record ReactionDto(String reactionType, long count, boolean reactedByViewer) {

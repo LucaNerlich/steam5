@@ -303,7 +303,6 @@ public class StatisticsService {
                         row.getSteamId(),
                         row.getPersonaName(),
                         row.getAvatarFull(),
-                        row.getBlurdataAvatarFull(),
                         row.getProfileUrl(),
                         row.getGameDate(),
                         row.getAppNames() != null ? List.of(row.getAppNames().split(", ")) : List.of()
@@ -430,7 +429,6 @@ public class StatisticsService {
             String steamId,
             String personaName,
             String avatar,
-            String avatarBlurdata,
             String profileUrl,
             LocalDate gameDate,
             List<String> appNames
