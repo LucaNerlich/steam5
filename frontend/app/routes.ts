@@ -16,6 +16,7 @@ export const Routes = {
     randomArchive: '/review-guesser/random',
     seasons: '/review-guesser/seasons',
     seasonDetail: (seasonNumber: number | string) => `/review-guesser/seasons/${seasonNumber}`,
+    profile: (steamId: string) => `/profile/${steamId}`,
     imprint: '/imprint',
     privacy: '/privacy',
     howToPlay: '/how-to-play',

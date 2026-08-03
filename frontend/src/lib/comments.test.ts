@@ -7,9 +7,11 @@ import {
     commentMutationError,
     commentsUrl,
     fetchComments,
+    searchMentionCandidates,
     steamStoreUrl,
     toggleReaction,
     type DayComment,
+    type MentionCandidate,
 } from './comments';
 
 function mockResponse(ok: boolean, body: unknown, status = ok ? 200 : 500) {
@@ -182,5 +184,43 @@ describe('COMMENT_MODERATOR_STEAM_ID', () => {
 describe('steamStoreUrl', () => {
     it('builds the Steam store app URL', () => {
         expect(steamStoreUrl(620)).toBe('https://store.steampowered.com/app/620');
+    });
+});
+
+describe('MentionCandidate', () => {
+    it('supports steamId, personaName, and an optional avatar', () => {
+        const withAvatar: MentionCandidate = {steamId: 'u1', personaName: 'Alice', avatar: 'https://x/a.jpg'};
+        const withoutAvatar: MentionCandidate = {steamId: 'u2', personaName: 'Bob'};
+
+        expect(withAvatar.steamId).toBe('u1');
+        expect(withoutAvatar.avatar).toBeUndefined();
+    });
+});
+
+describe('searchMentionCandidates', () => {
+    it('GETs the users search proxy with cache no-store and returns parsed candidates', async () => {
+        const candidates: MentionCandidate[] = [{steamId: 'u1', personaName: 'Alice', avatar: null}];
+        fetchMock.mockResolvedValue(mockResponse(true, candidates));
+
+        const result = await searchMentionCandidates('ali');
+
+        expect(result).toEqual(candidates);
+        expect(fetchMock).toHaveBeenCalledWith('/api/users/search?q=ali', {cache: 'no-store'});
+    });
+
+    it('encodes special characters in the query', async () => {
+        fetchMock.mockResolvedValue(mockResponse(true, []));
+
+        await searchMentionCandidates('a b&c');
+
+        expect(fetchMock).toHaveBeenCalledWith('/api/users/search?q=a%20b%26c', {cache: 'no-store'});
+    });
+
+    it('returns an empty list rather than throwing when the proxy responds non-OK', async () => {
+        fetchMock.mockResolvedValue(mockResponse(false, {error: 'boom'}));
+
+        const result = await searchMentionCandidates('ali');
+
+        expect(result).toEqual([]);
     });
 });

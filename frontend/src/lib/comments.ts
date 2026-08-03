@@ -44,6 +44,13 @@ export type CommentGameRef = {
     name: string;
 };
 
+/** A user match returned by the @mention autocomplete search. */
+export type MentionCandidate = {
+    steamId: string;
+    personaName: string;
+    avatar?: string | null;
+};
+
 type ApiErrorBody = {
     error?: string;
     message?: string;
@@ -131,6 +138,22 @@ export async function toggleReaction(
         const err = await res.json().catch(() => ({})) as ApiErrorBody;
         throw commentMutationError(res.status, err, "Failed to toggle reaction");
     }
+    return res.json();
+}
+
+/**
+ * Searches users by persona name for the @mention autocomplete dropdown.
+ * Returns an empty list on a non-OK response rather than throwing, since this
+ * drives a debounced, best-effort suggestion UI.
+ *
+ * @param q - The partial persona name typed after '@'.
+ * @returns Matching mention candidates, or an empty list on failure.
+ */
+export async function searchMentionCandidates(q: string): Promise<MentionCandidate[]> {
+    const res = await fetch(`/api/users/search?q=${encodeURIComponent(q)}`, {
+        cache: "no-store",
+    });
+    if (!res.ok) return [];
     return res.json();
 }
 
