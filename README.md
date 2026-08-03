@@ -289,6 +289,11 @@ npm run dev
   --clean` (see `leaderboard-mv-maintenance.sql`), and exposes the same `X-Leaderboard-Refreshed-At`
   header/"Last updated" UI as the other four.
 - Profile history lookup uses `(steam_id, game_date, round_index)` via `findBySteamIdOrderByGameDateDescRoundIndexAsc`.
+- `UserRepository`'s @mention-autocomplete search (`findTop10ByPersonaNameContainingIgnoreCase...`, backing
+  `GET /api/users/search`) relies on `idx_users_persona_name` — not auto-bootstrapped like the leaderboard
+  MVs' indexes, so apply `backend/src/main/resources/db/users-add-persona-name-index.sql` manually. The
+  script is safe to re-run (`CREATE INDEX CONCURRENTLY IF NOT EXISTS`); see the file's header comment for
+  the one edge case that isn't (an `INVALID` index left by an interrupted prior run).
 - `SteamAppReviewsRepository` random-pick methods use a two-phase CTE + `NOT EXISTS` pattern to avoid random sorting on the full table.
 - Optional DBA-only index for large review datasets:
   ```sql
