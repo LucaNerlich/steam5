@@ -41,10 +41,13 @@ export default function ConfirmModal({
                 )
             ).filter((element) => !element.hasAttribute("disabled"));
 
-        const focusFirstElement = () => {
+        const focusInitialElement = () => {
             const focusables = getFocusableElements();
             const fallback = modal.querySelector<HTMLElement>("#confirm-modal-title");
-            const target = focusables[0] ?? fallback ?? modal;
+            // Default focus to the last action (Cancel) rather than the first
+            // (Confirm), so an accidental Enter can't trigger a destructive
+            // action — per WAI-ARIA guidance for confirmation dialogs.
+            const target = focusables[focusables.length - 1] ?? fallback ?? modal;
             target?.focus();
         };
 
@@ -85,7 +88,7 @@ export default function ConfirmModal({
         document.addEventListener("keydown", handleKeyDown);
         const raf = requestAnimationFrame(() => {
             if (!modal.contains(document.activeElement)) {
-                focusFirstElement();
+                focusInitialElement();
             }
         });
 
