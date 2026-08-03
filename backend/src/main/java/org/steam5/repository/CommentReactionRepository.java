@@ -14,7 +14,28 @@ import java.util.Optional;
 
 public interface CommentReactionRepository extends JpaRepository<CommentReaction, Long> {
 
-    List<CommentReaction> findByComment_IdIn(Collection<Long> commentIds);
+    /**
+     * Returns, for each (comment, reactionType) group among the given comments, only the first
+     * {@code limit} reaction rows ordered by creation time (id as a tiebreaker for deterministic
+     * grouping when timestamps collide). Capping in the database avoids loading every reaction
+     * on popular comments just to keep a handful of reactor names.
+     */
+    @Query(value = """
+            SELECT ranked.id, ranked.comment_id, ranked.steam_id, ranked.reaction_type, ranked.created_at
+            FROM (
+                SELECT r.id, r.comment_id, r.steam_id, r.reaction_type, r.created_at,
+                       ROW_NUMBER() OVER (
+                           PARTITION BY r.comment_id, r.reaction_type
+                           ORDER BY r.created_at ASC, r.id ASC
+                       ) AS rn
+                FROM comment_reactions r
+                WHERE r.comment_id IN (:commentIds)
+            ) ranked
+            WHERE ranked.rn <= :limit
+            ORDER BY ranked.comment_id, ranked.reaction_type, ranked.created_at ASC, ranked.id ASC
+            """, nativeQuery = true)
+    List<CommentReaction> findTopReactorsByCommentIds(@Param("commentIds") Collection<Long> commentIds,
+                                                       @Param("limit") int limit);
 
     List<CommentReaction> findByComment_IdInAndSteamId(Collection<Long> commentIds, String steamId);
 

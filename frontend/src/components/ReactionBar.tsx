@@ -13,11 +13,26 @@ import {
 import "@/styles/components/dayComments.css";
 
 /**
- * Compact reaction summary plus a single picker control for a comment.
+ * Formats resolved reactor names for a tooltip, including an overflow count when needed.
  *
- * Shows only reactions that already have a count; a smile button opens the
- * four-emoji picker. Signed-out viewers can see counts and are sent to Steam
- * login when they try to react.
+ * @param count - Total number of reactors
+ * @param reactors - Resolved reactor names to display
+ * @returns A formatted list of reactor names, or `undefined` when no names are available
+ */
+function reactorTooltip(count: number, reactors: string[]): string | undefined {
+    if (reactors.length === 0) return undefined;
+    const remaining = count - reactors.length;
+    const names = reactors.join(", ");
+    return remaining > 0 ? `${names} and ${remaining} more` : names;
+}
+
+/**
+ * Displays comment reactions and provides controls for adding or removing them.
+ *
+ * Read-only mode displays reaction counts and reactor tooltips without interactive controls.
+ * Unauthenticated users are directed to Steam login when they attempt to react.
+ *
+ * @param props - Comment reaction data and display, authentication, refresh, and picker-state options.
  */
 export default function ReactionBar(props: {
     commentId: number;
@@ -66,9 +81,10 @@ export default function ReactionBar(props: {
                 type,
                 count,
                 active: Boolean(entry?.reactedByViewer),
+                reactors: entry?.reactors ?? [],
             };
         })
-        .filter((row): row is {type: ReactionType; count: number; active: boolean} => row !== null);
+        .filter((row): row is {type: ReactionType; count: number; active: boolean; reactors: string[]} => row !== null);
 
     useEffect(() => {
         if (!open) return;
@@ -134,18 +150,22 @@ export default function ReactionBar(props: {
         return (
             <div className="reaction-bar" ref={rootRef}>
                 <div className="reaction-bar__summary" aria-label="Reactions">
-                    {present.map(({type, count}) => (
-                        <span
-                            key={type}
-                            className="reaction-bar__chip"
-                            aria-label={`${REACTION_EMOJI[type]} reaction, ${count}`}
-                        >
-                            <span className="reaction-bar__emoji" aria-hidden="true">
-                                {REACTION_EMOJI[type]}
+                    {present.map(({type, count, reactors}) => {
+                        const tooltip = reactorTooltip(count, reactors);
+                        return (
+                            <span
+                                key={type}
+                                className="reaction-bar__chip"
+                                aria-label={`${REACTION_EMOJI[type]} reaction, ${count}${tooltip ? ` — ${tooltip}` : ""}`}
+                                title={tooltip}
+                            >
+                                <span className="reaction-bar__emoji" aria-hidden="true">
+                                    {REACTION_EMOJI[type]}
+                                </span>
+                                <span className="reaction-bar__count">{count}</span>
                             </span>
-                            <span className="reaction-bar__count">{count}</span>
-                        </span>
-                    ))}
+                        );
+                    })}
                 </div>
             </div>
         );
@@ -155,23 +175,27 @@ export default function ReactionBar(props: {
         <div className="reaction-bar" ref={rootRef}>
             {present.length > 0 && (
                 <div className="reaction-bar__summary" aria-label="Reactions">
-                    {present.map(({type, count, active}) => (
-                        <button
-                            key={type}
-                            type="button"
-                            className={`reaction-bar__chip${active ? " reaction-bar__chip--active" : ""}`}
-                            disabled={pending !== null}
-                            aria-pressed={active}
-                            title={canReact ? (active ? "Remove reaction" : "Add reaction") : "Sign in to react"}
-                            aria-label={`${REACTION_EMOJI[type]} reaction, ${count}${canReact ? "" : " (sign in to react)"}`}
-                            onClick={() => handleToggle(type)}
-                        >
-                            <span className="reaction-bar__emoji" aria-hidden="true">
-                                {REACTION_EMOJI[type]}
-                            </span>
-                            <span className="reaction-bar__count">{count}</span>
-                        </button>
-                    ))}
+                    {present.map(({type, count, active, reactors}) => {
+                        const actionHint = canReact ? (active ? "Remove reaction" : "Add reaction") : "Sign in to react";
+                        const tooltip = reactorTooltip(count, reactors);
+                        return (
+                            <button
+                                key={type}
+                                type="button"
+                                className={`reaction-bar__chip${active ? " reaction-bar__chip--active" : ""}`}
+                                disabled={pending !== null}
+                                aria-pressed={active}
+                                title={tooltip ? `${actionHint} — ${tooltip}` : actionHint}
+                                aria-label={`${REACTION_EMOJI[type]} reaction, ${count}${canReact ? "" : " (sign in to react)"}${tooltip ? ` — ${tooltip}` : ""}`}
+                                onClick={() => handleToggle(type)}
+                            >
+                                <span className="reaction-bar__emoji" aria-hidden="true">
+                                    {REACTION_EMOJI[type]}
+                                </span>
+                                <span className="reaction-bar__count">{count}</span>
+                            </button>
+                        );
+                    })}
                 </div>
             )}
 

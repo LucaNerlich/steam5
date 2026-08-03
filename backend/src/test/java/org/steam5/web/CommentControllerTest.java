@@ -203,7 +203,7 @@ class CommentControllerTest {
     @Test
     void toggleReaction_returns200AndDelegatesWhenValid() {
         List<CommentService.ReactionDto> reactions = List.of(
-                new CommentService.ReactionDto("HUG", 1L, true)
+                new CommentService.ReactionDto("HUG", 1L, true, List.of("Alice"))
         );
         when(commentService.toggleReaction(7L, "u1", ReactionType.HUG)).thenReturn(reactions);
 

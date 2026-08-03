@@ -20,6 +20,7 @@ import org.steam5.repository.UserRepository;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -182,7 +183,6 @@ class CommentServiceTest {
         assertEquals("hello", dto.body());
         assertEquals("Alice", dto.author().personaName());
         verify(commentReactionRepository).findByComment_IdInAndSteamId(List.of(7L), "viewer");
-        verify(commentReactionRepository, never()).findByComment_IdIn(any());
 
         CommentService.ReactionDto thumbs = dto.reactions().stream()
                 .filter(r -> r.reactionType().equals("THUMBS_UP"))
@@ -190,6 +190,85 @@ class CommentServiceTest {
                 .orElseThrow();
         assertEquals(3L, thumbs.count());
         assertTrue(thumbs.reactedByViewer());
+    }
+
+    @Test
+    void listComments_attachesReactorNames() {
+        Comment comment = comment(7L, "u1", "hello");
+        when(commentRepository.findByGameDateAndArchivedFalseOrderByCreatedAtDesc(eq(day), any(Pageable.class)))
+                .thenReturn(List.of(comment));
+
+        CommentReactionRepository.ReactionCountRow countRow = mock(CommentReactionRepository.ReactionCountRow.class);
+        when(countRow.getCommentId()).thenReturn(7L);
+        when(countRow.getReactionType()).thenReturn(ReactionType.THUMBS_UP);
+        when(countRow.getReactionCount()).thenReturn(2L);
+        when(commentReactionRepository.countByCommentIds(List.of(7L))).thenReturn(List.of(countRow));
+
+        CommentReaction reactorOne = new CommentReaction();
+        reactorOne.setComment(comment);
+        reactorOne.setSteamId("u2");
+        reactorOne.setReactionType(ReactionType.THUMBS_UP);
+        CommentReaction reactorTwo = new CommentReaction();
+        reactorTwo.setComment(comment);
+        reactorTwo.setSteamId("u3");
+        reactorTwo.setReactionType(ReactionType.THUMBS_UP);
+        when(commentReactionRepository.findTopReactorsByCommentIds(List.of(7L), 5))
+                .thenReturn(List.of(reactorOne, reactorTwo));
+
+        when(userRepository.findAllById(any())).thenReturn(List.of(
+                user("u1", "Alice", "https://a"),
+                user("u2", "Bob", "https://b"),
+                user("u3", "Carol", "https://c")
+        ));
+
+        List<CommentService.CommentDto> result = service.listComments(day, null);
+
+        CommentService.ReactionDto thumbs = result.getFirst().reactions().stream()
+                .filter(r -> r.reactionType().equals("THUMBS_UP"))
+                .findFirst()
+                .orElseThrow();
+        assertEquals(List.of("Bob", "Carol"), thumbs.reactors());
+        verify(userRepository, times(1)).findAllById(any());
+    }
+
+    @Test
+    void listComments_capsReactorNamesAtMaxReactorsPerType() {
+        Comment comment = comment(7L, "u1", "hello");
+        when(commentRepository.findByGameDateAndArchivedFalseOrderByCreatedAtDesc(eq(day), any(Pageable.class)))
+                .thenReturn(List.of(comment));
+
+        CommentReactionRepository.ReactionCountRow countRow = mock(CommentReactionRepository.ReactionCountRow.class);
+        when(countRow.getCommentId()).thenReturn(7L);
+        when(countRow.getReactionType()).thenReturn(ReactionType.THUMBS_UP);
+        when(countRow.getReactionCount()).thenReturn(7L);
+        when(commentReactionRepository.countByCommentIds(List.of(7L))).thenReturn(List.of(countRow));
+
+        // More reactor rows than MAX_REACTORS_PER_TYPE, in chronological repository order.
+        List<String> reactorSteamIds = List.of("u2", "u3", "u4", "u5", "u6", "u7", "u8");
+        List<CommentReaction> reactorRows = new ArrayList<>();
+        for (String steamId : reactorSteamIds) {
+            CommentReaction reactor = new CommentReaction();
+            reactor.setComment(comment);
+            reactor.setSteamId(steamId);
+            reactor.setReactionType(ReactionType.THUMBS_UP);
+            reactorRows.add(reactor);
+        }
+        when(commentReactionRepository.findTopReactorsByCommentIds(List.of(7L), 5)).thenReturn(reactorRows);
+
+        List<User> users = new ArrayList<>();
+        users.add(user("u1", "Alice", "https://a"));
+        for (int i = 0; i < reactorSteamIds.size(); i++) {
+            users.add(user(reactorSteamIds.get(i), "User" + (i + 2), null));
+        }
+        when(userRepository.findAllById(any())).thenReturn(users);
+
+        List<CommentService.CommentDto> result = service.listComments(day, null);
+
+        CommentService.ReactionDto thumbs = result.getFirst().reactions().stream()
+                .filter(r -> r.reactionType().equals("THUMBS_UP"))
+                .findFirst()
+                .orElseThrow();
+        assertEquals(List.of("User2", "User3", "User4", "User5", "User6"), thumbs.reactors());
     }
 
     @Test
@@ -227,6 +306,10 @@ class CommentServiceTest {
                 7L, "viewer", ReactionType.LAUGH_CRYING)).thenReturn(Optional.of(existing));
         when(commentReactionRepository.countByCommentIds(List.of(7L))).thenReturn(List.of());
         when(commentReactionRepository.findByComment_IdInAndSteamId(List.of(7L), "viewer")).thenReturn(List.of());
+        CommentReaction remaining = new CommentReaction(4L, comment, "other", ReactionType.HUG, OffsetDateTime.now());
+        when(commentReactionRepository.findTopReactorsByCommentIds(List.of(7L), 5))
+                .thenReturn(List.of(remaining));
+        when(userRepository.findAllById(any())).thenReturn(List.of(user("other", "Dave", "https://d")));
 
         List<CommentService.ReactionDto> reactions =
                 service.toggleReaction(7L, "viewer", ReactionType.LAUGH_CRYING);
@@ -235,6 +318,11 @@ class CommentServiceTest {
         verify(commentReactionRepository, never()).insertIgnoreConflict(any(), any(), any(), any());
         verify(cacheEvictor).evictCommentsForDay(day);
         assertEquals(ReactionType.values().length, reactions.size());
+        CommentService.ReactionDto hug = reactions.stream()
+                .filter(r -> r.reactionType().equals("HUG"))
+                .findFirst()
+                .orElseThrow();
+        assertEquals(List.of("Dave"), hug.reactors());
     }
 
     @Test
@@ -247,11 +335,20 @@ class CommentServiceTest {
                 .thenReturn(1);
         when(commentReactionRepository.countByCommentIds(List.of(7L))).thenReturn(List.of());
         when(commentReactionRepository.findByComment_IdInAndSteamId(List.of(7L), "viewer")).thenReturn(List.of());
+        CommentReaction inserted = new CommentReaction(5L, comment, "viewer", ReactionType.HUG, OffsetDateTime.now());
+        when(commentReactionRepository.findTopReactorsByCommentIds(List.of(7L), 5))
+                .thenReturn(List.of(inserted));
+        when(userRepository.findAllById(any())).thenReturn(List.of(user("viewer", "Viewer", null)));
 
-        service.toggleReaction(7L, "viewer", ReactionType.HUG);
+        List<CommentService.ReactionDto> reactions = service.toggleReaction(7L, "viewer", ReactionType.HUG);
 
         verify(commentReactionRepository).insertIgnoreConflict(eq(7L), eq("viewer"), eq("HUG"), any());
         verify(cacheEvictor).evictCommentsForDay(day);
+        CommentService.ReactionDto hug = reactions.stream()
+                .filter(r -> r.reactionType().equals("HUG"))
+                .findFirst()
+                .orElseThrow();
+        assertEquals(List.of("Viewer"), hug.reactors());
     }
 
     @Test
@@ -265,6 +362,9 @@ class CommentServiceTest {
         when(commentReactionRepository.countByCommentIds(List.of(7L))).thenReturn(List.of());
         when(commentReactionRepository.findByComment_IdInAndSteamId(List.of(7L), "viewer"))
                 .thenReturn(List.of(new CommentReaction(9L, comment, "viewer", ReactionType.HUG, OffsetDateTime.now())));
+        when(commentReactionRepository.findTopReactorsByCommentIds(List.of(7L), 5))
+                .thenReturn(List.of(new CommentReaction(9L, comment, "viewer", ReactionType.HUG, OffsetDateTime.now())));
+        when(userRepository.findAllById(any())).thenReturn(List.of(user("viewer", "Viewer", null)));
 
         List<CommentService.ReactionDto> reactions =
                 assertDoesNotThrow(() -> service.toggleReaction(7L, "viewer", ReactionType.HUG));
@@ -276,6 +376,7 @@ class CommentServiceTest {
                 .findFirst()
                 .orElseThrow();
         assertTrue(hug.reactedByViewer());
+        assertEquals(List.of("Viewer"), hug.reactors());
     }
 
     @Test

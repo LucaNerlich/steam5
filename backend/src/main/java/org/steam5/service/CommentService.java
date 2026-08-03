@@ -42,6 +42,9 @@ public class CommentService {
 
     private static final int LIST_PAGE_SIZE = 100;
 
+    /** Maximum number of resolved reactor names attached to each {@link ReactionDto}. */
+    private static final int MAX_REACTORS_PER_TYPE = 5;
+
     private final CommentRepository commentRepository;
     private final CommentReactionRepository commentReactionRepository;
     private final GuessRepository guessRepository;
@@ -114,8 +117,21 @@ public class CommentService {
             }
         }
 
+        final Map<Long, Map<ReactionType, List<String>>> reactorIdsByComment = new HashMap<>();
+        final Set<String> reactorSteamIds = new HashSet<>();
+        for (final CommentReaction row
+                : commentReactionRepository.findTopReactorsByCommentIds(commentIds, MAX_REACTORS_PER_TYPE)) {
+            reactorIdsByComment
+                    .computeIfAbsent(row.getComment().getId(), id -> new EnumMap<>(ReactionType.class))
+                    .computeIfAbsent(row.getReactionType(), type -> new ArrayList<>())
+                    .add(row.getSteamId());
+            reactorSteamIds.add(row.getSteamId());
+        }
+
         final Set<String> authorIds = comments.stream().map(Comment::getSteamId).collect(Collectors.toSet());
-        final Map<String, User> usersById = userRepository.findAllById(authorIds).stream()
+        final Set<String> userIdsToResolve = new HashSet<>(authorIds);
+        userIdsToResolve.addAll(reactorSteamIds);
+        final Map<String, User> usersById = userRepository.findAllById(userIdsToResolve).stream()
                 .collect(Collectors.toMap(User::getSteamId, u -> u, (a, b) -> a));
 
         final List<CommentDto> result = new ArrayList<>(comments.size());
@@ -124,7 +140,9 @@ public class CommentService {
                     comment,
                     countsByComment.getOrDefault(comment.getId(), Map.of()),
                     viewerReactionsByComment.getOrDefault(comment.getId(), Set.of()),
-                    usersById.get(comment.getSteamId())
+                    usersById.get(comment.getSteamId()),
+                    reactorIdsByComment.getOrDefault(comment.getId(), Map.of()),
+                    usersById
             ));
         }
         return result;
@@ -193,6 +211,13 @@ public class CommentService {
         }
     }
 
+    /**
+     * Builds reaction details for a comment, including counts, viewer state, and reactor display names.
+     *
+     * @param commentId    the comment identifier
+     * @param viewerSteamId the Steam ID of the viewing user
+     * @return the reaction details for every reaction type
+     */
     private List<ReactionDto> buildReactionDtos(final Long commentId, final String viewerSteamId) {
         final Map<ReactionType, Long> counts = new EnumMap<>(ReactionType.class);
         for (final CommentReactionRepository.ReactionCountRow row
@@ -204,50 +229,105 @@ public class CommentService {
                 : commentReactionRepository.findByComment_IdInAndSteamId(List.of(commentId), viewerSteamId)) {
             viewerHeld.add(reaction.getReactionType());
         }
-        return reactionDtos(counts, viewerHeld);
+
+        final Map<ReactionType, List<String>> reactorIdsByType = new EnumMap<>(ReactionType.class);
+        final Set<String> reactorSteamIds = new HashSet<>();
+        for (final CommentReaction row
+                : commentReactionRepository.findTopReactorsByCommentIds(List.of(commentId), MAX_REACTORS_PER_TYPE)) {
+            reactorIdsByType.computeIfAbsent(row.getReactionType(), type -> new ArrayList<>()).add(row.getSteamId());
+            reactorSteamIds.add(row.getSteamId());
+        }
+        final Map<String, User> usersById = userRepository.findAllById(reactorSteamIds).stream()
+                .collect(Collectors.toMap(User::getSteamId, u -> u, (a, b) -> a));
+
+        return reactionDtos(counts, viewerHeld, reactorIdsByType, usersById);
     }
 
     private CommentDto toDto(final Comment comment,
                              final Map<ReactionType, Long> counts,
                              final Set<ReactionType> viewerHeld) {
         final User user = userRepository.findById(comment.getSteamId()).orElse(null);
-        return toDto(comment, counts, viewerHeld, user);
+        return toDto(comment, counts, viewerHeld, user, Map.of(), Map.of());
     }
 
+    /**
+     * Converts a comment and its associated author and reaction data into a comment DTO.
+     *
+     * @param comment          the comment to convert
+     * @param counts           reaction counts grouped by reaction type
+     * @param viewerHeld      reaction types held by the current viewer
+     * @param user             the comment author's user record
+     * @param reactorIdsByType reactor identifiers grouped by reaction type
+     * @param usersById        users indexed by their identifiers
+     * @return the converted comment DTO
+     */
     private CommentDto toDto(final Comment comment,
                              final Map<ReactionType, Long> counts,
                              final Set<ReactionType> viewerHeld,
-                             final User user) {
+                             final User user,
+                             final Map<ReactionType, List<String>> reactorIdsByType,
+                             final Map<String, User> usersById) {
         return new CommentDto(
                 comment.getId(),
                 comment.getBody(),
                 comment.getCreatedAt() != null ? comment.getCreatedAt().toString() : null,
                 toAuthor(comment.getSteamId(), user),
-                reactionDtos(counts, viewerHeld)
+                reactionDtos(counts, viewerHeld, reactorIdsByType, usersById)
         );
     }
 
+    /**
+     * Converts a Steam identifier and user record into an author DTO.
+     *
+     * @param steamId the Steam identifier used when no user record is available
+     * @param user    the user record, if available
+     * @return the author DTO with resolved display name and avatar
+     */
     private static AuthorDto toAuthor(final String steamId, final User user) {
         if (user == null) {
             return new AuthorDto(steamId, steamId, null);
         }
-        final String personaName = (user.getPersonaName() != null && !user.getPersonaName().isBlank())
-                ? user.getPersonaName()
-                : user.getSteamId();
         final String avatar = (user.getAvatarFull() != null && !user.getAvatarFull().isBlank())
                 ? user.getAvatarFull()
                 : user.getAvatar();
-        return new AuthorDto(user.getSteamId(), personaName, avatar);
+        return new AuthorDto(user.getSteamId(), resolveDisplayName(steamId, user), avatar);
     }
 
+    /** Prefers the user's persona name, falling back to the raw Steam ID when unresolved or blank. */
+    private static String resolveDisplayName(final String steamId, final User user) {
+        if (user == null) {
+            return steamId;
+        }
+        return (user.getPersonaName() != null && !user.getPersonaName().isBlank())
+                ? user.getPersonaName()
+                : user.getSteamId();
+    }
+
+    /**
+     * Builds reaction DTOs for all available reaction types.
+     *
+     * @param counts           reaction counts by type
+     * @param viewerHeld       reaction types held by the current viewer
+     * @param reactorIdsByType reactor Steam IDs grouped by reaction type
+     * @param usersById        users used to resolve reactor display names
+     * @return reaction DTOs containing counts, viewer state, and up to five reactor names per type
+     */
     private static List<ReactionDto> reactionDtos(final Map<ReactionType, Long> counts,
-                                                  final Set<ReactionType> viewerHeld) {
+                                                  final Set<ReactionType> viewerHeld,
+                                                  final Map<ReactionType, List<String>> reactorIdsByType,
+                                                  final Map<String, User> usersById) {
         final List<ReactionDto> reactions = new ArrayList<>(ReactionType.values().length);
         for (final ReactionType type : ReactionType.values()) {
+            final List<String> reactorIds = reactorIdsByType.getOrDefault(type, List.of());
+            final List<String> reactorNames = reactorIds.stream()
+                    .limit(MAX_REACTORS_PER_TYPE)
+                    .map(steamId -> resolveDisplayName(steamId, usersById.get(steamId)))
+                    .toList();
             reactions.add(new ReactionDto(
                     type.name(),
                     counts.getOrDefault(type, 0L),
-                    viewerHeld.contains(type)
+                    viewerHeld.contains(type),
+                    reactorNames
             ));
         }
         return reactions;
@@ -269,7 +349,7 @@ public class CommentService {
     public record AuthorDto(String steamId, String personaName, String avatar) {
     }
 
-    public record ReactionDto(String reactionType, long count, boolean reactedByViewer) {
+    public record ReactionDto(String reactionType, long count, boolean reactedByViewer, List<String> reactors) {
     }
 
     public record CommentDto(

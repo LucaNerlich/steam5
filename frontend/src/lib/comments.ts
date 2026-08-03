@@ -27,6 +27,7 @@ export type CommentReactionDto = {
     reactionType: ReactionType | string;
     count: number;
     reactedByViewer: boolean;
+    reactors: string[];
 };
 
 export type DayComment = {
