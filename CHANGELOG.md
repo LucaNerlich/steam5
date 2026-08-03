@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.20.0] - 2026-08-03
+
+### Added
+
+- Added a tooltip that shows who reacted when hovering over a comment's reaction emoji, with an overflow note when there are more reactors than fit
+
 ## [1.19.0] - 2026-08-03
 
 ### Added
