@@ -40,6 +40,10 @@
     content-visibility: auto;
 }
 
+.day-comments__list--picker-open {
+    content-visibility: visible;
+}
+
 .day-comments__item {
     display: grid;
     grid-template-columns: auto 1fr;
@@ -58,6 +62,12 @@
 
 .day-comments__item:last-child {
     padding-bottom: 0.15rem;
+}
+
+.day-comments__item--picker-open {
+    content-visibility: visible;
+    isolation: isolate;
+    z-index: 10;
 }
 
 .day-comments__avatar-link {
@@ -306,14 +316,15 @@
     font-size: 0.74rem;
     color: var(--color-muted);
     font-variant-numeric: tabular-nums;
-}
-
-.comment-composer__actions > .comment-composer__count:first-child {
     margin-right: auto;
 }
 
 .comment-composer__count--warn {
     color: var(--color-error);
+}
+
+.comment-composer__submit {
+    justify-content: flex-end;
 }
 
 .comment-composer__posted {
@@ -356,6 +367,7 @@
     display: inline-flex;
     align-items: center;
     gap: 0.18rem;
+    min-height: 1.85rem;
     padding: 0.1rem 0.32rem;
     border: 1px solid transparent;
     border-radius: 0.4rem;

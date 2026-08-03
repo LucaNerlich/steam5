@@ -111,9 +111,7 @@ export default async function ArchivePage({params}: { params: Promise<{ date: st
                     <GameInfoSection pick={pick}/>
                 </div>
             ))}
-            <div className="archive__reset">
-                <ArchiveResetForDay date={date}/>
-            </div>
+            <ArchiveResetForDay date={date}/>
         </section>
     );
 }

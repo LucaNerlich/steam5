@@ -27,12 +27,30 @@ export default function ReactionBar(props: {
     onUnauthorized?: () => void;
     /** When true, show reaction counts only — no picker or toggle controls. */
     readOnly?: boolean;
+    /** Whether the picker is open. Owned by the parent so only one picker across the list is ever open. */
+    open?: boolean;
+    /** Requests that the picker be opened or closed. */
+    onPickerOpenChange?: (open: boolean) => void;
 }) {
-    const {commentId, reactions, canReact, onToggled, onUnauthorized, readOnly = false} = props;
+    const {
+        commentId, reactions, canReact, onToggled, onUnauthorized, readOnly = false,
+        open = false, onPickerOpenChange,
+    } = props;
     const [pending, setPending] = useState<ReactionType | null>(null);
-    const [open, setOpen] = useState(false);
     const rootRef = useRef<HTMLDivElement>(null);
     const pickerId = useId();
+
+    // Kept in a ref so the outside-click/Escape effect below only re-subscribes
+    // when `open` changes, not on every parent render (the callback is
+    // typically a fresh closure), and so unmount cleanup calls the latest one.
+    const onPickerOpenChangeRef = useRef(onPickerOpenChange);
+    useEffect(() => {
+        onPickerOpenChangeRef.current = onPickerOpenChange;
+    }, [onPickerOpenChange]);
+
+    useEffect(() => {
+        return () => onPickerOpenChangeRef.current?.(false);
+    }, []);
 
     const byType = new Map<string, CommentReactionDto>();
     for (const reaction of reactions) {
@@ -58,11 +76,11 @@ export default function ReactionBar(props: {
         const onPointerDown = (event: MouseEvent | TouchEvent) => {
             const target = event.target as Node | null;
             if (rootRef.current && target && !rootRef.current.contains(target)) {
-                setOpen(false);
+                onPickerOpenChangeRef.current?.(false);
             }
         };
         const onKeyDown = (event: KeyboardEvent) => {
-            if (event.key === "Escape") setOpen(false);
+            if (event.key === "Escape") onPickerOpenChangeRef.current?.(false);
         };
 
         document.addEventListener("mousedown", onPointerDown);
@@ -85,7 +103,7 @@ export default function ReactionBar(props: {
         try {
             await toggleReaction(commentId, reactionType);
             await onToggled();
-            setOpen(false);
+            onPickerOpenChange?.(false);
         } catch (e) {
             const message = e instanceof Error ? e.message : "";
             if (
@@ -108,7 +126,7 @@ export default function ReactionBar(props: {
             window.location.href = buildSteamLoginUrl();
             return;
         }
-        setOpen((value) => !value);
+        onPickerOpenChange?.(!open);
     };
 
     if (readOnly) {

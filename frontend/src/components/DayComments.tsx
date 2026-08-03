@@ -19,6 +19,7 @@ import {
     type DayComment,
 } from "@/lib/comments";
 import {formatRelativeTime} from "@/lib/format";
+import {nextOpenPickerId} from "@/lib/reactionPicker";
 import type {RoundResult, StoredDay} from "@/lib/storage";
 import {
     postCommentAction,
@@ -356,6 +357,7 @@ export default function DayComments(props: {
     const {isSignedIn, steamId, refreshAuth} = useAuth();
     const canModerate = isSignedIn === true && steamId === COMMENT_MODERATOR_STEAM_ID;
     const [archivingId, setArchivingId] = useState<number | null>(null);
+    const [openPickerCommentId, setOpenPickerCommentId] = useState<number | null>(null);
 
     const swrKey = gameDate ? commentsUrl(gameDate) : null;
     // Long browser cache only for anonymous archive views (no reactedByViewer).
@@ -443,13 +445,16 @@ export default function DayComments(props: {
             )}
 
             {data && data.length > 0 && (
-                <ul className="day-comments__list">
+                <ul className={`day-comments__list${openPickerCommentId !== null ? " day-comments__list--picker-open" : ""}`}>
                     {data.map((comment) => {
                         const author = comment.author;
                         const displayName = author.personaName || author.steamId;
                         const relative = comment.createdAt ? formatRelativeTime(comment.createdAt) : "";
                         return (
-                            <li key={comment.id} className="day-comments__item">
+                            <li
+                                key={comment.id}
+                                className={`day-comments__item${openPickerCommentId === comment.id ? " day-comments__item--picker-open" : ""}`}
+                            >
                                 <CommentAvatar
                                     steamId={author.steamId}
                                     personaName={displayName}
@@ -494,6 +499,10 @@ export default function DayComments(props: {
                                             readOnly={readOnly}
                                             onToggled={handlePosted}
                                             onUnauthorized={handleUnauthorized}
+                                            open={openPickerCommentId === comment.id}
+                                            onPickerOpenChange={(isOpen) => {
+                                                setOpenPickerCommentId((prev) => nextOpenPickerId(prev, comment.id, isOpen));
+                                            }}
                                         />
                                     </div>
                                     <p className="day-comments__text">
