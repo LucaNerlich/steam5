@@ -95,7 +95,7 @@ describe('ReactionBar reactor tooltip', () => {
         expect(html).toContain('title="Sign in to react"');
     });
 
-    it('keeps the action hint available through aria-label on the interactive chip', () => {
+    it('keeps the action hint available through aria-label on the interactive chip, alongside reactor names', () => {
         const html = renderToStaticMarkup(
             <ReactionBar
                 commentId={1}
@@ -105,6 +105,33 @@ describe('ReactionBar reactor tooltip', () => {
             />,
         );
 
+        expect(html).toContain('aria-label="👍 reaction, 2 (sign in to react) — Alice, Bob"');
+    });
+
+    it('omits the reactor-name suffix from aria-label on the interactive chip when there are none', () => {
+        const html = renderToStaticMarkup(
+            <ReactionBar
+                commentId={1}
+                reactions={[reaction({reactors: []})]}
+                canReact={false}
+                onToggled={() => {}}
+            />,
+        );
+
         expect(html).toContain('aria-label="👍 reaction, 2 (sign in to react)"');
+    });
+
+    it('exposes reactor names through aria-label on the read-only chip too, since native title tooltips are not reliably announced by screen readers or shown on touch', () => {
+        const html = renderToStaticMarkup(
+            <ReactionBar
+                commentId={1}
+                reactions={[reaction({count: 5, reactors: ['Alice', 'Bob']})]}
+                canReact={false}
+                onToggled={() => {}}
+                readOnly
+            />,
+        );
+
+        expect(html).toContain('aria-label="👍 reaction, 5 — Alice, Bob and 3 more"');
     });
 });

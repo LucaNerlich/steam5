@@ -120,7 +120,7 @@ public class CommentService {
         final Map<Long, Map<ReactionType, List<String>>> reactorIdsByComment = new HashMap<>();
         final Set<String> reactorSteamIds = new HashSet<>();
         for (final CommentReaction row
-                : commentReactionRepository.findByComment_IdInOrderByCreatedAtAscIdAsc(commentIds)) {
+                : commentReactionRepository.findTopReactorsByCommentIds(commentIds, MAX_REACTORS_PER_TYPE)) {
             reactorIdsByComment
                     .computeIfAbsent(row.getComment().getId(), id -> new EnumMap<>(ReactionType.class))
                     .computeIfAbsent(row.getReactionType(), type -> new ArrayList<>())
@@ -233,7 +233,7 @@ public class CommentService {
         final Map<ReactionType, List<String>> reactorIdsByType = new EnumMap<>(ReactionType.class);
         final Set<String> reactorSteamIds = new HashSet<>();
         for (final CommentReaction row
-                : commentReactionRepository.findByComment_IdInOrderByCreatedAtAscIdAsc(List.of(commentId))) {
+                : commentReactionRepository.findTopReactorsByCommentIds(List.of(commentId), MAX_REACTORS_PER_TYPE)) {
             reactorIdsByType.computeIfAbsent(row.getReactionType(), type -> new ArrayList<>()).add(row.getSteamId());
             reactorSteamIds.add(row.getSteamId());
         }

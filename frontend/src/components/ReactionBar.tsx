@@ -150,19 +150,22 @@ export default function ReactionBar(props: {
         return (
             <div className="reaction-bar" ref={rootRef}>
                 <div className="reaction-bar__summary" aria-label="Reactions">
-                    {present.map(({type, count, reactors}) => (
-                        <span
-                            key={type}
-                            className="reaction-bar__chip"
-                            aria-label={`${REACTION_EMOJI[type]} reaction, ${count}`}
-                            title={reactorTooltip(count, reactors)}
-                        >
-                            <span className="reaction-bar__emoji" aria-hidden="true">
-                                {REACTION_EMOJI[type]}
+                    {present.map(({type, count, reactors}) => {
+                        const tooltip = reactorTooltip(count, reactors);
+                        return (
+                            <span
+                                key={type}
+                                className="reaction-bar__chip"
+                                aria-label={`${REACTION_EMOJI[type]} reaction, ${count}${tooltip ? ` — ${tooltip}` : ""}`}
+                                title={tooltip}
+                            >
+                                <span className="reaction-bar__emoji" aria-hidden="true">
+                                    {REACTION_EMOJI[type]}
+                                </span>
+                                <span className="reaction-bar__count">{count}</span>
                             </span>
-                            <span className="reaction-bar__count">{count}</span>
-                        </span>
-                    ))}
+                        );
+                    })}
                 </div>
             </div>
         );
@@ -183,7 +186,7 @@ export default function ReactionBar(props: {
                                 disabled={pending !== null}
                                 aria-pressed={active}
                                 title={tooltip ? `${actionHint} — ${tooltip}` : actionHint}
-                                aria-label={`${REACTION_EMOJI[type]} reaction, ${count}${canReact ? "" : " (sign in to react)"}`}
+                                aria-label={`${REACTION_EMOJI[type]} reaction, ${count}${canReact ? "" : " (sign in to react)"}${tooltip ? ` — ${tooltip}` : ""}`}
                                 onClick={() => handleToggle(type)}
                             >
                                 <span className="reaction-bar__emoji" aria-hidden="true">
