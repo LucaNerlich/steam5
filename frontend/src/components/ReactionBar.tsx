@@ -13,9 +13,11 @@ import {
 import "@/styles/components/dayComments.css";
 
 /**
- * Builds a tooltip string listing reactor names, appending an overflow note
- * (e.g. "and 3 more") when the total count exceeds the returned names.
- * Returns undefined when there are no resolved reactor names to show.
+ * Formats resolved reactor names for a tooltip, including an overflow count when needed.
+ *
+ * @param count - Total number of reactors
+ * @param reactors - Resolved reactor names to display
+ * @returns A formatted list of reactor names, or `undefined` when no names are available
  */
 function reactorTooltip(count: number, reactors: string[]): string | undefined {
     if (reactors.length === 0) return undefined;
@@ -25,11 +27,12 @@ function reactorTooltip(count: number, reactors: string[]): string | undefined {
 }
 
 /**
- * Compact reaction summary plus a single picker control for a comment.
+ * Displays comment reactions and provides controls for adding or removing them.
  *
- * Shows only reactions that already have a count; a smile button opens the
- * four-emoji picker. Signed-out viewers can see counts and are sent to Steam
- * login when they try to react.
+ * Read-only mode displays reaction counts and reactor tooltips without interactive controls.
+ * Unauthenticated users are directed to Steam login when they attempt to react.
+ *
+ * @param props - Comment reaction data and display, authentication, refresh, and picker-state options.
  */
 export default function ReactionBar(props: {
     commentId: number;

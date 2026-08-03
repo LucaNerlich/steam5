@@ -211,6 +211,13 @@ public class CommentService {
         }
     }
 
+    /**
+     * Builds reaction details for a comment, including counts, viewer state, and reactor display names.
+     *
+     * @param commentId    the comment identifier
+     * @param viewerSteamId the Steam ID of the viewing user
+     * @return the reaction details for every reaction type
+     */
     private List<ReactionDto> buildReactionDtos(final Long commentId, final String viewerSteamId) {
         final Map<ReactionType, Long> counts = new EnumMap<>(ReactionType.class);
         for (final CommentReactionRepository.ReactionCountRow row
@@ -243,6 +250,17 @@ public class CommentService {
         return toDto(comment, counts, viewerHeld, user, Map.of(), Map.of());
     }
 
+    /**
+     * Converts a comment and its associated author and reaction data into a comment DTO.
+     *
+     * @param comment          the comment to convert
+     * @param counts           reaction counts grouped by reaction type
+     * @param viewerHeld      reaction types held by the current viewer
+     * @param user             the comment author's user record
+     * @param reactorIdsByType reactor identifiers grouped by reaction type
+     * @param usersById        users indexed by their identifiers
+     * @return the converted comment DTO
+     */
     private CommentDto toDto(final Comment comment,
                              final Map<ReactionType, Long> counts,
                              final Set<ReactionType> viewerHeld,
@@ -258,6 +276,13 @@ public class CommentService {
         );
     }
 
+    /**
+     * Converts a Steam identifier and user record into an author DTO.
+     *
+     * @param steamId the Steam identifier used when no user record is available
+     * @param user    the user record, if available
+     * @return the author DTO with resolved display name and avatar
+     */
     private static AuthorDto toAuthor(final String steamId, final User user) {
         if (user == null) {
             return new AuthorDto(steamId, steamId, null);
@@ -278,6 +303,15 @@ public class CommentService {
                 : user.getSteamId();
     }
 
+    /**
+     * Builds reaction DTOs for all available reaction types.
+     *
+     * @param counts           reaction counts by type
+     * @param viewerHeld       reaction types held by the current viewer
+     * @param reactorIdsByType reactor Steam IDs grouped by reaction type
+     * @param usersById        users used to resolve reactor display names
+     * @return reaction DTOs containing counts, viewer state, and up to five reactor names per type
+     */
     private static List<ReactionDto> reactionDtos(final Map<ReactionType, Long> counts,
                                                   final Set<ReactionType> viewerHeld,
                                                   final Map<ReactionType, List<String>> reactorIdsByType,
