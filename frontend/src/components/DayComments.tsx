@@ -144,7 +144,7 @@ function CommentAvatar(props: {
     const profileUrl = `/profile/${steamId}`;
     return (
         <Link href={profileUrl} className="day-comments__avatar-link" aria-label={`View ${displayName}'s profile`}>
-            <Avatar src={avatar} name={personaName} size={32} className="day-comments__avatar"/>
+            <Avatar src={avatar} name={personaName} size={32}/>
         </Link>
     );
 }
