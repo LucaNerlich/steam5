@@ -23,6 +23,8 @@ import java.util.List;
 public class UserSearchController {
 
     private static final int MIN_QUERY_LENGTH = 2;
+    // Bounds the LIKE pattern sent to the DB; well above any realistic persona name length.
+    private static final int MAX_QUERY_LENGTH = 64;
 
     private final UserRepository userRepository;
 
@@ -30,7 +32,7 @@ public class UserSearchController {
     public List<UserSearchDto> search(@RequestParam(name = "q", required = false) final String q,
                                       @CurrentUser final String steamId) {
         final String query = q == null ? "" : q.trim();
-        if (query.length() < MIN_QUERY_LENGTH) {
+        if (query.length() < MIN_QUERY_LENGTH || query.length() > MAX_QUERY_LENGTH) {
             return Collections.emptyList();
         }
         final List<User> matches =

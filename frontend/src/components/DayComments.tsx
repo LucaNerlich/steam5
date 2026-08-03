@@ -44,6 +44,9 @@ const GAME_LINK_RE =
 /** Markdown @mention tokens inserted by the composer's mention picker. */
 const MENTION_RE = /\[(@[^\]]+)]\(mention:([^)]+)\)/g;
 
+/** SteamID64s are numeric; reject anything else (e.g. `../`) before it reaches an href. */
+const STEAM_ID_RE = /^\d{1,20}$/;
+
 function sanitizeGameLinkLabel(name: string): string {
     return name.replace(/[\[\]]/g, "").trim() || "Steam game";
 }
@@ -88,9 +91,10 @@ export function CommentBodyText({body}: {body: string}): React.ReactElement {
     }
 
     for (const match of body.matchAll(MENTION_RE)) {
+        const steamId = match[2];
+        if (!STEAM_ID_RE.test(steamId)) continue; // malformed token; leave the raw text unlinked
         const index = match.index ?? 0;
         const label = sanitizeMentionLabel(match[1]);
-        const steamId = match[2];
         matches.push({
             index,
             length: match[0].length,

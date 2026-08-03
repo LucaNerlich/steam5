@@ -81,10 +81,6 @@ CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_pick_app_date
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_pick_date
     ON review_game_pick (pick_date);
 
--- Excluded-app lookups by app.
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_excluded_app_id
-    ON excluded_app (app_id);
-
 -- Genres join table.
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_sag_app
     ON steam_app_genre (app_id);
@@ -121,3 +117,14 @@ CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_screenshot_app
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_screenshot_missing_blurhash
     ON screenshots (id)
     WHERE (blurhash_thumb IS NULL OR blurhash_thumb = '' OR blurhash_full IS NULL OR blurhash_full = '');
+
+-- ============================================================================
+-- Superseded -- safe to run even if never applied; drops leftovers from an earlier version
+-- of this file.
+-- ============================================================================
+
+-- idx_excluded_app_id (excluded_app.app_id) was briefly listed above, but app_id is that
+-- table's @Id (primary key) -- Postgres already auto-creates a unique index on it, so a second
+-- index on the same single column is pure dead weight (extra storage, extra write cost on every
+-- insert/delete, zero read benefit). Drop it if an earlier run of this file already created it.
+DROP INDEX CONCURRENTLY IF EXISTS idx_excluded_app_id;

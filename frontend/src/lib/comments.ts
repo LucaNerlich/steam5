@@ -143,18 +143,22 @@ export async function toggleReaction(
 
 /**
  * Searches users by persona name for the @mention autocomplete dropdown.
- * Returns an empty list on a non-OK response rather than throwing, since this
- * drives a debounced, best-effort suggestion UI.
+ * Returns an empty list rather than throwing on a non-OK response, a network
+ * failure, or invalid JSON, since this drives a debounced, best-effort suggestion UI.
  *
  * @param q - The partial persona name typed after '@'.
  * @returns Matching mention candidates, or an empty list on failure.
  */
 export async function searchMentionCandidates(q: string): Promise<MentionCandidate[]> {
-    const res = await fetch(`/api/users/search?q=${encodeURIComponent(q)}`, {
-        cache: "no-store",
-    });
-    if (!res.ok) return [];
-    return res.json();
+    try {
+        const res = await fetch(`/api/users/search?q=${encodeURIComponent(q)}`, {
+            cache: "no-store",
+        });
+        if (!res.ok) return [];
+        return await res.json();
+    } catch {
+        return [];
+    }
 }
 
 /**
