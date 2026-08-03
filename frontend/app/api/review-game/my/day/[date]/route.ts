@@ -1,9 +1,10 @@
-import {NextResponse} from "next/server";
+import {NextRequest, NextResponse} from "next/server";
 import {cookies} from "next/headers";
+import {forwardedForHeaders} from "@/lib/backend";
 
 const BACKEND_ORIGIN = process.env.NEXT_PUBLIC_API_DOMAIN || "http://localhost:8080";
 
-export async function GET(_req: Request, {params}: { params: Promise<{ date: string }> }) {
+export async function GET(req: NextRequest, {params}: { params: Promise<{ date: string }> }) {
     const {date} = await params;
     const token = (await cookies()).get('s5_token')?.value;
     if (!token) {
@@ -14,7 +15,7 @@ export async function GET(_req: Request, {params}: { params: Promise<{ date: str
     }
     try {
         const res = await fetch(`${BACKEND_ORIGIN}/api/review-game/my/day/${encodeURIComponent(date)}`, {
-            headers: {"accept": "application/json", "authorization": `Bearer ${token}`},
+            headers: {"accept": "application/json", "authorization": `Bearer ${token}`, ...forwardedForHeaders(req)},
             cache: 'no-store'
         });
         if (!res.ok) {

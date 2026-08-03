@@ -44,6 +44,13 @@ export type CommentGameRef = {
     name: string;
 };
 
+/** A user match returned by the @mention autocomplete search. */
+export type MentionCandidate = {
+    steamId: string;
+    personaName: string;
+    avatar?: string | null;
+};
+
 type ApiErrorBody = {
     error?: string;
     message?: string;
@@ -132,6 +139,36 @@ export async function toggleReaction(
         throw commentMutationError(res.status, err, "Failed to toggle reaction");
     }
     return res.json();
+}
+
+/** Thrown by {@link searchMentionCandidates} on a 429, so callers can surface it instead of silently showing no results. */
+export class MentionSearchRateLimitedError extends Error {
+    constructor() {
+        super("rate_limit_exceeded");
+    }
+}
+
+/**
+ * Searches users by persona name for the @mention autocomplete dropdown.
+ * Returns an empty list rather than throwing on a network failure, invalid JSON, or most
+ * non-OK responses, since this drives a debounced, best-effort suggestion UI — except a 429,
+ * which throws {@link MentionSearchRateLimitedError} so it isn't indistinguishable from "no matches".
+ *
+ * @param q - The partial persona name typed after '@'.
+ * @returns Matching mention candidates, or an empty list on failure.
+ */
+export async function searchMentionCandidates(q: string): Promise<MentionCandidate[]> {
+    try {
+        const res = await fetch(`/api/users/search?q=${encodeURIComponent(q)}`, {
+            cache: "no-store",
+        });
+        if (res.status === 429) throw new MentionSearchRateLimitedError();
+        if (!res.ok) return [];
+        return await res.json();
+    } catch (e) {
+        if (e instanceof MentionSearchRateLimitedError) throw e;
+        return [];
+    }
 }
 
 /**

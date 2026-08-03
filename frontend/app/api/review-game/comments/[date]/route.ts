@@ -1,6 +1,6 @@
 import {NextRequest, NextResponse} from "next/server";
 import {cookies} from "next/headers";
-import {BACKEND_ORIGIN} from "@/lib/backend";
+import {BACKEND_ORIGIN, forwardedForHeaders} from "@/lib/backend";
 
 const CACHE_LIVE = {"Cache-Control": "private, max-age=30, must-revalidate"} as const;
 const CACHE_HISTORICAL = {"Cache-Control": "private, max-age=300, must-revalidate"} as const;
@@ -26,12 +26,12 @@ function isUtcToday(date: string): boolean {
  * Retrieves review-game comments for a specified date.
  */
 export async function GET(
-    _req: NextRequest,
+    req: NextRequest,
     {params}: { params: Promise<{ date: string }> },
 ) {
     const {date} = await params;
     const token = (await cookies()).get("s5_token")?.value;
-    const headers: Record<string, string> = {accept: "application/json"};
+    const headers: Record<string, string> = {accept: "application/json", ...forwardedForHeaders(req)};
     if (token) {
         headers.authorization = `Bearer ${token}`;
     }

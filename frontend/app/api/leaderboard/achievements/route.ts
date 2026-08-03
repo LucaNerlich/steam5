@@ -1,11 +1,12 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { forwardedForHeaders } from "@/lib/backend";
 
 const BACKEND_ORIGIN = process.env.NEXT_PUBLIC_API_DOMAIN || "http://localhost:8080";
 
 // Revalidate defaults to the shortest TTL (daily); per-fetch revalidate handles longer ones
 export const revalidate = 300;
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const timeframe = searchParams.get('timeframe') || 'all';
@@ -16,7 +17,7 @@ export async function GET(request: Request) {
     const cacheTime = timeframe === 'daily' ? 300 : timeframe === 'weekly' || timeframe === 'season' ? 3600 : 86400;
 
     const res = await fetch(url, {
-      headers: { accept: "application/json" },
+      headers: { accept: "application/json", ...forwardedForHeaders(request) },
       next: { revalidate: cacheTime },
     });
     const data = await res.json();

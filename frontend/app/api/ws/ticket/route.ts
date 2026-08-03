@@ -1,5 +1,6 @@
 import {NextRequest, NextResponse} from 'next/server';
 import {cookies} from 'next/headers';
+import {forwardedForHeaders} from '@/lib/backend';
 
 const BACKEND_ORIGIN = process.env.API_DOMAIN || process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
 const isDevelopment = process.env.NODE_ENV === 'development';
@@ -61,6 +62,7 @@ export async function GET(request: NextRequest) {
                 authorization: `Bearer ${token}`,
                 accept: 'application/json',
                 'content-type': 'application/json',
+                ...forwardedForHeaders(request),
             },
             body: JSON.stringify({scopeKey}),
             cache: 'no-store',

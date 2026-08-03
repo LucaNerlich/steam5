@@ -1,13 +1,14 @@
-import {NextResponse} from "next/server";
+import {NextRequest, NextResponse} from "next/server";
+import {forwardedForHeaders} from "@/lib/backend";
 
 const BACKEND_ORIGIN = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
 const revalidate = 600; // 10 minutes
 
-export async function GET() {
+export async function GET(req: NextRequest) {
     try {
         const url = `${BACKEND_ORIGIN}/api/stats/game?topGamesLimit=10`;
         const res = await fetch(url, {
-            headers: {accept: 'application/json'},
+            headers: {accept: 'application/json', ...forwardedForHeaders(req)},
             next: {revalidate, tags: ['stats:game']},
         });
 

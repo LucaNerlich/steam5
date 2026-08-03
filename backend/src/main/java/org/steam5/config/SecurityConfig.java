@@ -9,6 +9,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 import org.springframework.core.env.Environment;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -22,6 +23,7 @@ import org.springframework.security.web.authentication.www.BasicAuthenticationFi
 import org.steam5.security.AdminTokenFilter;
 import org.steam5.security.AuthRateLimitFilter;
 import org.steam5.security.PresenceRateLimitFilter;
+import org.steam5.security.UserSearchRateLimitFilter;
 
 import java.util.Arrays;
 
@@ -82,7 +84,8 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http,
                                                    AdminTokenFilter adminTokenFilter,
                                                    AuthRateLimitFilter authRateLimitFilter,
-                                                   PresenceRateLimitFilter presenceRateLimitFilter) throws Exception {
+                                                   PresenceRateLimitFilter presenceRateLimitFilter,
+                                                   UserSearchRateLimitFilter userSearchRateLimitFilter) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
@@ -93,6 +96,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/cache/**").permitAll()
                         .requestMatchers("/api/leaderboard/**").permitAll()
                         .requestMatchers("/api/profile/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/users/search").permitAll()
                         .requestMatchers("/api/admin/**").authenticated()
                         .requestMatchers("/api/seasons/**").permitAll()
                         .requestMatchers("/api/stats/**").permitAll()
@@ -107,6 +111,7 @@ public class SecurityConfig {
                 // first registration ends up earliest in the chain.
                 .addFilterBefore(authRateLimitFilter, BasicAuthenticationFilter.class)
                 .addFilterBefore(presenceRateLimitFilter, BasicAuthenticationFilter.class)
+                .addFilterBefore(userSearchRateLimitFilter, BasicAuthenticationFilter.class)
                 .addFilterBefore(adminTokenFilter, BasicAuthenticationFilter.class)
                 .httpBasic(basic -> {
                 })

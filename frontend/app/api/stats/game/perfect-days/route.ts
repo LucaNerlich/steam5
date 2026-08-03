@@ -1,17 +1,17 @@
-import {BACKEND_ORIGIN} from "@/lib/backend";
-import {NextResponse} from "next/server";
+import {BACKEND_ORIGIN, forwardedForHeaders} from "@/lib/backend";
+import {NextRequest, NextResponse} from "next/server";
 
 export const revalidate = 600;
 const FETCH_TIMEOUT_MS = 30_000;
 
-export async function GET() {
+export async function GET(req: NextRequest) {
     try {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
         try {
             const res = await fetch(`${BACKEND_ORIGIN}/api/stats/game/perfect-days`, {
-                headers: {"accept": "application/json"},
+                headers: {"accept": "application/json", ...forwardedForHeaders(req)},
                 next: {revalidate, tags: ["stats-perfect-days"]},
                 signal: controller.signal,
             });

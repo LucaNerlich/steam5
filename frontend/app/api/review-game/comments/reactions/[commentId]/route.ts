@@ -1,6 +1,6 @@
 import {NextRequest, NextResponse} from "next/server";
 import {cookies} from "next/headers";
-import {BACKEND_ORIGIN} from "@/lib/backend";
+import {BACKEND_ORIGIN, forwardedForHeaders} from "@/lib/backend";
 import {rejectUntrustedOrigin} from "@/lib/requestOrigin";
 
 const NO_STORE = {"Cache-Control": "private, no-store"} as const;
@@ -36,6 +36,7 @@ export async function POST(
                     accept: "application/json",
                     "content-type": "application/json",
                     authorization: `Bearer ${token}`,
+                    ...forwardedForHeaders(req),
                 },
                 body: JSON.stringify(body),
                 cache: "no-store",

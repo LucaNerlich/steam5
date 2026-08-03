@@ -14,13 +14,18 @@ import {
     archiveComment,
     commentsUrl,
     fetchComments,
+    MentionSearchRateLimitedError,
+    searchMentionCandidates,
     steamStoreUrl,
     type CommentGameRef,
     type DayComment,
+    type MentionCandidate,
 } from "@/lib/comments";
 import {formatRelativeTime} from "@/lib/format";
+import {useDebouncedValue} from "@/lib/hooks/useDebouncedValue";
 import {nextOpenPickerId} from "@/lib/reactionPicker";
 import type {RoundResult, StoredDay} from "@/lib/storage";
+import {Routes} from "../../app/routes";
 import {
     postCommentAction,
     type CommentActionState,
@@ -28,6 +33,8 @@ import {
 import "@/styles/components/dayComments.css";
 
 const MAX_BODY_LENGTH = 1000;
+const MIN_MENTION_QUERY_LENGTH = 2;
+const MENTION_DEBOUNCE_MS = 300;
 
 const initialActionState: CommentActionState = {ok: false};
 
@@ -35,34 +42,84 @@ const initialActionState: CommentActionState = {ok: false};
 const GAME_LINK_RE =
     /\[([^\]]+)]\((https:\/\/store\.steampowered\.com\/app\/\d+)\)|https:\/\/store\.steampowered\.com\/app\/\d+/g;
 
+/** Markdown @mention tokens inserted by the composer's mention picker. */
+const MENTION_RE = /\[(@[^\]]+)]\(mention:([^)]+)\)/g;
+
+/** SteamID64s are numeric; reject anything else (e.g. `../`) before it reaches an href. */
+const STEAM_ID_RE = /^\d{1,20}$/;
+
 function sanitizeGameLinkLabel(name: string): string {
     return name.replace(/[\[\]]/g, "").trim() || "Steam game";
 }
 
+/** Strips markdown-breaking characters from a persona name used as a mention label. */
+function sanitizeMentionLabel(name: string): string {
+    return name.replace(/[\[\]]/g, "").trim() || "Player";
+}
+
+type BodyMatch = {
+    index: number;
+    length: number;
+    node: React.ReactNode;
+};
+
 /**
- * Renders comment body text with Steam game refs as named links.
+ * Renders comment body text with Steam game refs and @mentions as links.
  */
-function CommentBodyText({body}: {body: string}): React.ReactElement {
-    const nodes: React.ReactNode[] = [];
-    let last = 0;
+export function CommentBodyText({body}: {body: string}): React.ReactElement {
+    const matches: BodyMatch[] = [];
+
     for (const match of body.matchAll(GAME_LINK_RE)) {
         const index = match.index ?? 0;
-        if (index > last) nodes.push(body.slice(last, index));
         const label = match[1] ? sanitizeGameLinkLabel(match[1]) : match[0];
         const url = match[2] ?? match[0];
-        nodes.push(
-            <a
-                key={`${url}-${index}`}
-                href={url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="day-comments__game-link"
-                title={label}
-            >
-                {label}
-            </a>,
-        );
-        last = index + match[0].length;
+        matches.push({
+            index,
+            length: match[0].length,
+            node: (
+                <a
+                    key={`game-${url}-${index}`}
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="day-comments__game-link"
+                    title={label}
+                >
+                    {label}
+                </a>
+            ),
+        });
+    }
+
+    for (const match of body.matchAll(MENTION_RE)) {
+        const steamId = match[2];
+        if (!STEAM_ID_RE.test(steamId)) continue; // malformed token; leave the raw text unlinked
+        const index = match.index ?? 0;
+        const label = sanitizeMentionLabel(match[1]);
+        matches.push({
+            index,
+            length: match[0].length,
+            node: (
+                <Link
+                    key={`mention-${steamId}-${index}`}
+                    href={Routes.profile(steamId)}
+                    className="day-comments__mention-link"
+                >
+                    {label}
+                </Link>
+            ),
+        });
+    }
+
+    matches.sort((a, b) => a.index - b.index);
+
+    const nodes: React.ReactNode[] = [];
+    let last = 0;
+    for (const match of matches) {
+        if (match.index < last) continue; // overlapping match, keep the earlier one
+        if (match.index > last) nodes.push(body.slice(last, match.index));
+        nodes.push(match.node);
+        last = match.index + match.length;
     }
     if (last < body.length) nodes.push(body.slice(last));
     return <>{nodes}</>;
@@ -164,6 +221,47 @@ function insertGameReference(
 }
 
 /**
+ * Scans left from the caret for an active, unclosed `@query` mention token.
+ * Returns null when the caret isn't inside one (no '@' before whitespace, or
+ * the '@' is part of a word like an email address).
+ */
+function detectMentionQuery(value: string, caret: number): {start: number; query: string} | null {
+    const upToCaret = value.slice(0, caret);
+    const atIndex = upToCaret.lastIndexOf("@");
+    if (atIndex === -1) return null;
+    const query = upToCaret.slice(atIndex + 1);
+    if (/\s/.test(query)) return null;
+    const charBeforeAt = atIndex > 0 ? upToCaret[atIndex - 1] : "";
+    if (/\w/.test(charBeforeAt)) return null;
+    return {start: atIndex, query};
+}
+
+/**
+ * Replaces an in-progress `@query` token with a mention reference at the textarea caret.
+ */
+function insertMentionReference(
+    textarea: HTMLTextAreaElement,
+    candidate: MentionCandidate,
+    mentionStart: number,
+    maxLength: number,
+): number | null {
+    const label = sanitizeMentionLabel(candidate.personaName);
+    const snippet = `[@${label}](mention:${candidate.steamId})`;
+    const caret = textarea.selectionStart ?? textarea.value.length;
+    const before = textarea.value.slice(0, mentionStart);
+    const after = textarea.value.slice(caret);
+    const padAfter = after.length > 0 && !/^\s/.test(after) ? " " : "";
+    const insertion = `${snippet}${padAfter}`;
+    const next = before + insertion + after;
+    if (next.length > maxLength) return null;
+    textarea.value = next;
+    const nextCaret = (before + insertion).length;
+    textarea.focus();
+    textarea.setSelectionRange(nextCaret, nextCaret);
+    return next.length;
+}
+
+/**
  * Compact trigger that opens today's game picks for inserting Steam links.
  */
 function GameLinkPicker(props: {
@@ -246,6 +344,76 @@ function GameLinkPicker(props: {
 }
 
 /**
+ * Suggestion dropdown for the @mention autocomplete, anchored below the composer's textarea.
+ * Closes on outside-click or Escape.
+ */
+function MentionMenu(props: {
+    id: string;
+    candidates: MentionCandidate[];
+    onPick: (candidate: MentionCandidate) => void;
+    onClose: () => void;
+}): React.ReactElement {
+    const {id, candidates, onPick, onClose} = props;
+    const rootRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const onPointerDown = (event: MouseEvent | TouchEvent) => {
+            const target = event.target as Node | null;
+            if (rootRef.current && target && !rootRef.current.contains(target)) {
+                onClose();
+            }
+        };
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.key === "Escape") onClose();
+        };
+
+        document.addEventListener("mousedown", onPointerDown);
+        document.addEventListener("touchstart", onPointerDown);
+        document.addEventListener("keydown", onKeyDown);
+        return () => {
+            document.removeEventListener("mousedown", onPointerDown);
+            document.removeEventListener("touchstart", onPointerDown);
+            document.removeEventListener("keydown", onKeyDown);
+        };
+    }, [onClose]);
+
+    return (
+        <div
+            id={id}
+            ref={rootRef}
+            className="comment-composer__mention-menu"
+            role="listbox"
+            aria-label="Mention suggestions"
+        >
+            {candidates.map((candidate) => (
+                <button
+                    key={candidate.steamId}
+                    type="button"
+                    role="option"
+                    aria-selected="false"
+                    className="comment-composer__mention-option"
+                    title={candidate.personaName}
+                    onClick={() => onPick(candidate)}
+                >
+                    {candidate.avatar && (
+                        <img
+                            className="comment-composer__mention-avatar"
+                            src={candidate.avatar}
+                            alt=""
+                            width={20}
+                            height={20}
+                            loading="lazy"
+                            referrerPolicy="no-referrer"
+                        />
+                    )}
+                    <span>{candidate.personaName}</span>
+                </button>
+            ))}
+        </div>
+    );
+}
+
+/**
  * Renders a form for submitting a comment associated with a game date.
  *
  * @param props - The game date and callbacks for successful or unauthorized submissions.
@@ -257,6 +425,7 @@ function CommentComposer(props: {
     onUnauthorized: () => void;
 }): React.ReactElement {
     const {gameDate, games = [], onPosted, onUnauthorized} = props;
+    const {isSignedIn, steamId} = useAuth();
     const formRef = useRef<HTMLFormElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const [posted, setPosted] = useState(false);
@@ -264,6 +433,12 @@ function CommentComposer(props: {
     const [state, formAction] = useActionState(postCommentAction, initialActionState);
     const lastHandled = useRef<CommentActionState | null>(null);
     const remaining = MAX_BODY_LENGTH - bodyLength;
+    const mentionMenuId = useId();
+
+    const [mention, setMention] = useState<{start: number; query: string} | null>(null);
+    const [mentionCandidates, setMentionCandidates] = useState<MentionCandidate[]>([]);
+    const [mentionRateLimited, setMentionRateLimited] = useState(false);
+    const debouncedMentionQuery = useDebouncedValue(mention?.query ?? null, MENTION_DEBOUNCE_MS);
 
     useEffect(() => {
         if (!state || state === lastHandled.current) return;
@@ -272,6 +447,9 @@ function CommentComposer(props: {
         if (state.ok) {
             formRef.current?.reset();
             setBodyLength(0);
+            setMention(null);
+            setMentionCandidates([]);
+            setMentionRateLimited(false);
             setPosted(true);
             const timer = window.setTimeout(() => setPosted(false), 1500);
             void onPosted();
@@ -286,6 +464,29 @@ function CommentComposer(props: {
         }
     }, [state, onPosted, onUnauthorized]);
 
+    useEffect(() => {
+        if (isSignedIn !== true || debouncedMentionQuery === null
+            || debouncedMentionQuery.trim().length < MIN_MENTION_QUERY_LENGTH) {
+            setMentionCandidates([]);
+            return;
+        }
+        let cancelled = false;
+        void searchMentionCandidates(debouncedMentionQuery.trim()).then((candidates) => {
+            if (cancelled) return;
+            setMentionRateLimited(false);
+            setMentionCandidates(candidates.filter((candidate) => candidate.steamId !== steamId));
+        }).catch((error: unknown) => {
+            if (cancelled) return;
+            if (error instanceof MentionSearchRateLimitedError) {
+                setMentionRateLimited(true);
+                setMentionCandidates([]);
+            }
+        });
+        return () => {
+            cancelled = true;
+        };
+    }, [isSignedIn, debouncedMentionQuery, steamId]);
+
     const handleInsertGame = (game: CommentGameRef) => {
         const ta = textareaRef.current;
         if (!ta) return;
@@ -293,22 +494,61 @@ function CommentComposer(props: {
         if (nextLength !== null) setBodyLength(nextLength);
     };
 
+    const closeMentionMenu = useCallback(() => {
+        setMention(null);
+        setMentionCandidates([]);
+        setMentionRateLimited(false);
+    }, []);
+
+    const handlePickMention = (candidate: MentionCandidate) => {
+        const ta = textareaRef.current;
+        if (!ta || !mention) return;
+        const nextLength = insertMentionReference(ta, candidate, mention.start, MAX_BODY_LENGTH);
+        if (nextLength !== null) setBodyLength(nextLength);
+        closeMentionMenu();
+    };
+
+    const handleBodyInput = (e: React.FormEvent<HTMLTextAreaElement>) => {
+        const value = e.currentTarget.value;
+        setBodyLength(value.length);
+        const caret = e.currentTarget.selectionStart ?? value.length;
+        setMention(detectMentionQuery(value, caret));
+    };
+
+    const mentionOpen = isSignedIn === true && mention !== null && mentionCandidates.length > 0;
+
     return (
         <Form ref={formRef} className="comment-composer" action={formAction}>
             <input type="hidden" name="gameDate" value={gameDate}/>
             <label className="comment-composer__label" htmlFor={`day-comment-${gameDate}`}>
                 Your comment
             </label>
-            <textarea
-                ref={textareaRef}
-                id={`day-comment-${gameDate}`}
-                className="comment-composer__input"
-                name="body"
-                maxLength={MAX_BODY_LENGTH}
-                placeholder="Share your take on today's games…"
-                required
-                onInput={(e) => setBodyLength(e.currentTarget.value.length)}
-            />
+            <div className="comment-composer__input-wrap">
+                <textarea
+                    ref={textareaRef}
+                    id={`day-comment-${gameDate}`}
+                    className="comment-composer__input"
+                    name="body"
+                    maxLength={MAX_BODY_LENGTH}
+                    placeholder="Share your take on today's games… Type @ to mention someone."
+                    required
+                    aria-expanded={mentionOpen}
+                    aria-controls={mentionOpen ? mentionMenuId : undefined}
+                    onInput={handleBodyInput}
+                />
+                {mentionOpen ? (
+                    <MentionMenu
+                        id={mentionMenuId}
+                        candidates={mentionCandidates}
+                        onPick={handlePickMention}
+                        onClose={closeMentionMenu}
+                    />
+                ) : (mention !== null && mentionRateLimited && (
+                    <p className="comment-composer__mention-status" role="status">
+                        Mention search is busy — try again in a moment.
+                    </p>
+                ))}
+            </div>
             <div className="comment-composer__actions">
                 {games.length > 0 && (
                     <GameLinkPicker games={games} onPick={handleInsertGame}/>
@@ -318,7 +558,7 @@ function CommentComposer(props: {
                     title="Characters remaining"
                     aria-live="polite"
                 >
-                    {remaining} left
+                    {remaining} chars left
                 </span>
                 <span className={`comment-composer__posted ${posted ? "is-visible" : ""}`}>
                     Posted

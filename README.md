@@ -289,13 +289,19 @@ npm run dev
   --clean` (see `leaderboard-mv-maintenance.sql`), and exposes the same `X-Leaderboard-Refreshed-At`
   header/"Last updated" UI as the other four.
 - Profile history lookup uses `(steam_id, game_date, round_index)` via `findBySteamIdOrderByGameDateDescRoundIndexAsc`.
-- `SteamAppReviewsRepository` random-pick methods use a two-phase CTE + `NOT EXISTS` pattern to avoid random sorting on the full table.
-- Optional DBA-only index for large review datasets:
-  ```sql
-  CREATE INDEX idx_reviews_eligible ON steam_app_reviews (app_id)
-  WHERE (total_positive + total_negative) > 0;
-  ```
-  Add this as a migration when schema management is centralized.
+- `UserRepository`'s @mention-autocomplete search (`findTop10ByPersonaNameContainingIgnoreCase...`, backing
+  `GET /api/users/search`) relies on `idx_users_persona_name_trgm`, a `pg_trgm` GIN index on
+  `UPPER(persona_name)` — a plain B-tree can't serve a leading-wildcard, case-folded `LIKE`. Not
+  auto-bootstrapped like the leaderboard MVs' indexes, so it must be applied manually.
+- `SteamAppReviewsRepository` random-pick methods use a two-phase CTE + `NOT EXISTS` pattern to avoid random sorting on the full table; `idx_reviews_eligible` is an optional partial index for very large review datasets.
+- **`backend/src/main/resources/db/all-indexes.sql`** is the single consolidated, manual-apply index
+  reference for prod — every index that isn't auto-created by Hibernate ddl-auto or the leaderboard-MV
+  bootstrap, including `idx_users_persona_name_trgm` and `idx_reviews_eligible` above, plus a set of
+  join/detail-table indexes (`steam_app_genre`/`category`/`developer`/`publisher`, `price`, `screenshots`,
+  two more on `steam_app_reviews`) that existed under the old Flyway-managed schema and were never
+  recreated after the switch to ddl-auto. Every statement uses `CREATE INDEX CONCURRENTLY IF NOT EXISTS`,
+  so the whole file is safe to re-run, in part or in full, at any time — see its header comment for the
+  one edge case that isn't safe (an `INVALID` index left behind by an interrupted prior `CONCURRENTLY` run).
 - `GuessRepository` multi-scan CTE methods (`findUsersByPerfectDays*`, `findUsersByDailyTimeDiff*`) are currently service-cached; if data volume grows, prioritize window-function rewrites.
 - `GuessRepository#leaderboardAllTime` (a JPQL query, distinct from the materialized-view path above) currently has no callers — the all-time leaderboard read path now goes entirely through `mv_leaderboard_all_time`. Kept as-is rather than deleted in this pass; a future cleanup could remove it if it stays unused.
 

@@ -1,12 +1,13 @@
 import {NextRequest, NextResponse} from "next/server";
+import {forwardedForHeaders} from "@/lib/backend";
 
 const BACKEND_ORIGIN = process.env.NEXT_PUBLIC_API_DOMAIN || "http://localhost:8080";
 
-export async function GET(_req: NextRequest, context: { params: Promise<{ steamId: string }> }) {
+export async function GET(req: NextRequest, context: { params: Promise<{ steamId: string }> }) {
     const { steamId } = await context.params;
     try {
         const res = await fetch(`${BACKEND_ORIGIN}/api/profile/${encodeURIComponent(steamId)}`, {
-            headers: {"accept": "application/json"},
+            headers: {"accept": "application/json", ...forwardedForHeaders(req)},
             next: { revalidate: 300, tags: [`profile:${steamId}`] },
         });
         const data = await res.json();
