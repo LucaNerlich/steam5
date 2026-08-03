@@ -1,6 +1,13 @@
 [
     {
         "start": "2026-08-03",
+        "end": "2026-08-10",
+        "title": "Tag Players in Comments 🏷️",
+        "text": "<p>You can now <strong>@mention</strong> other players in your comments! Type <code>@</code> followed by a name to pull up suggestions, then pick a player to tag them — their name becomes a link straight to their profile.</p><p>Only signed-in players can post mentions, but everyone reading the thread will see who got called out.</p>",
+        "footer": "Try it in today's comments — type @ and see who shows up!"
+    },
+    {
+        "start": "2026-08-03",
         "end": "2026-08-09",
         "title": "Comments Are Live 💬",
         "text": "<p>You can now leave <strong>comments</strong> on each day's rounds! Share your takes, react to other players' comments, and strong takes can even earn a Player Spotlight.</p><p>Not signed in? You can read comments anytime. Signed in? The full conversation unlocks once you've finished all of today's rounds — sign in with Steam to post your own or react once it does.</p>",

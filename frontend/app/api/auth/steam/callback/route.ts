@@ -1,5 +1,6 @@
 import {revalidatePath, revalidateTag} from 'next/cache';
 import {NextRequest, NextResponse} from "next/server";
+import {forwardedForHeaders} from "@/lib/backend";
 
 const BACKEND_ORIGIN = process.env.NEXT_PUBLIC_API_DOMAIN || "http://localhost:8080";
 
@@ -48,7 +49,7 @@ export async function GET(req: NextRequest) {
     const verifyUrl = `${BACKEND_ORIGIN}/api/auth/steam/callback${qs ? `?${qs}` : ''}`;
 
     try {
-        const res = await fetch(verifyUrl, {headers: {accept: 'application/json'}});
+        const res = await fetch(verifyUrl, {headers: {accept: 'application/json', ...forwardedForHeaders(req)}});
         if (!res.ok) {
             console.log('[steam5] callback verify failed', {base, status: res.status});
             const resp = NextResponse.redirect(new URL('/review-guesser/1?auth=failed', base));

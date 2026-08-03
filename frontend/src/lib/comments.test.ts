@@ -7,6 +7,7 @@ import {
     commentMutationError,
     commentsUrl,
     fetchComments,
+    MentionSearchRateLimitedError,
     searchMentionCandidates,
     steamStoreUrl,
     toggleReaction,
@@ -222,5 +223,11 @@ describe('searchMentionCandidates', () => {
         const result = await searchMentionCandidates('ali');
 
         expect(result).toEqual([]);
+    });
+
+    it('throws MentionSearchRateLimitedError on a 429 instead of returning an empty list', async () => {
+        fetchMock.mockResolvedValue(mockResponse(false, {error: 'rate_limit_exceeded'}, 429));
+
+        await expect(searchMentionCandidates('ali')).rejects.toThrow(MentionSearchRateLimitedError);
     });
 });

@@ -1,15 +1,16 @@
-import {NextResponse} from "next/server";
+import {NextRequest, NextResponse} from "next/server";
+import {forwardedForHeaders} from "@/lib/backend";
 
 export const revalidate = 300;
 
 const BACKEND_ORIGIN = process.env.NEXT_PUBLIC_API_DOMAIN || "http://localhost:8080";
 
-export async function GET(_req: Request, {params}: { params: Promise<{ date: string }> }) {
+export async function GET(req: NextRequest, {params}: { params: Promise<{ date: string }> }) {
     const {date} = await params;
     try {
         const res = await fetch(`${BACKEND_ORIGIN}/api/review-game/day/${encodeURIComponent(date)}`, {
             next: {revalidate: 300},
-            headers: {"accept": "application/json"}
+            headers: {"accept": "application/json", ...forwardedForHeaders(req)}
         });
         if (!res.ok) return NextResponse.json([], {status: res.status});
         const data = await res.json() as { picks: Array<{ appId: number; name: string }> };

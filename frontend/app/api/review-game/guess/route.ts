@@ -1,5 +1,6 @@
 import {NextRequest, NextResponse} from "next/server";
 import type {GuessRequest, GuessResponse} from "@/types/review-game";
+import {forwardedForHeaders} from "@/lib/backend";
 
 const BACKEND_ORIGIN = process.env.NEXT_PUBLIC_API_DOMAIN || "http://localhost:8080";
 
@@ -8,7 +9,7 @@ export async function POST(req: NextRequest) {
         const body: GuessRequest = await req.json();
         const res = await fetch(`${BACKEND_ORIGIN}/api/review-game/guess`, {
             method: "POST",
-            headers: {"content-type": "application/json", "accept": "application/json"},
+            headers: {"content-type": "application/json", "accept": "application/json", ...forwardedForHeaders(req)},
             body: JSON.stringify(body)
         });
         const data: GuessResponse = await res.json();

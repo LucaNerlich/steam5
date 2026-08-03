@@ -1,9 +1,10 @@
-import {NextResponse} from "next/server";
+import {NextRequest, NextResponse} from "next/server";
 import {cookies} from "next/headers";
+import {forwardedForHeaders} from "@/lib/backend";
 
 const BACKEND_ORIGIN = process.env.NEXT_PUBLIC_API_DOMAIN || "http://localhost:8080";
 
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
     const {searchParams} = new URL(req.url);
     const from = searchParams.get('from') || '';
     const to = searchParams.get('to') || '';
@@ -22,7 +23,7 @@ export async function GET(req: Request) {
         const url = `${BACKEND_ORIGIN}/api/review-game/my/history${params.toString() ? '?' + params.toString() : ''}`;
 
         const res = await fetch(url, {
-            headers: {"accept": "application/json", "authorization": `Bearer ${token}`},
+            headers: {"accept": "application/json", "authorization": `Bearer ${token}`, ...forwardedForHeaders(req)},
             cache: 'no-store'
         });
         if (!res.ok) {

@@ -50,6 +50,14 @@ describe('CommentBodyText mentions', () => {
         expect(html).toContain('just a normal comment, no refs here');
     });
 
+    it('leaves a mention with a non-numeric steamId unlinked instead of rendering it as an href', () => {
+        const html = render('sketchy [@Alice](mention:../) mention');
+
+        expect(html).not.toContain('href="/profile/../"');
+        expect(html).not.toContain('<a');
+        expect(html).toContain('[@Alice](mention:../)');
+    });
+
     it('renders both a game link and a mention together in caret order', () => {
         const html = render(
             'ping [@Alice](mention:76500000000000001) about [Half-Life 2](https://store.steampowered.com/app/220)',

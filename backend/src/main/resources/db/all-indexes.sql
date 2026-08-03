@@ -52,8 +52,16 @@ CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_guesses_game_date
 
 -- Backs the @mention-autocomplete search (UserRepository#findTop10By...ContainingIgnoreCase...,
 -- GET /api/users/search). Not auto-created by anything else.
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_users_persona_name
-    ON users (persona_name);
+--
+-- A plain B-tree can't serve this: ContainingIgnoreCase compiles to
+-- `WHERE UPPER(persona_name) LIKE UPPER('%q%')` -- a leading-wildcard LIKE on an expression, not
+-- the raw column. pg_trgm's GIN index support recognizes the LIKE operator applied to whatever
+-- expression it indexes (leading wildcard included), so indexing UPPER(persona_name) directly
+-- matches the query Hibernate actually generates, with no Java/repository change needed.
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_users_persona_name_trgm
+    ON users USING gin (UPPER(persona_name) gin_trgm_ops);
 
 -- Optional DBA enhancement for very large review datasets (see SteamAppReviewsRepository's
 -- random-pick queries, which anti-join against "eligible" apps via NOT EXISTS). Partial index --
@@ -128,3 +136,8 @@ CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_screenshot_missing_blurhash
 -- index on the same single column is pure dead weight (extra storage, extra write cost on every
 -- insert/delete, zero read benefit). Drop it if an earlier run of this file already created it.
 DROP INDEX CONCURRENTLY IF EXISTS idx_excluded_app_id;
+
+-- idx_users_persona_name (a plain B-tree on the raw column) was briefly listed above, but it
+-- could never actually serve the ContainingIgnoreCase query -- replaced by
+-- idx_users_persona_name_trgm above. Drop it if an earlier run of this file already created it.
+DROP INDEX CONCURRENTLY IF EXISTS idx_users_persona_name;

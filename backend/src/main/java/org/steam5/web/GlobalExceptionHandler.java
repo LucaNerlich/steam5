@@ -5,12 +5,27 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.server.ResponseStatusException;
 import org.steam5.http.ReviewGameException;
 
 @Slf4j
 @ControllerAdvice
 public class GlobalExceptionHandler {
+
+    // Thrown when a @Validated controller's @RequestParam/@PathVariable (e.g. @Size) fails.
+    // Without this, the generic Exception handler below would catch it first and return 500 —
+    // Spring's own default 400 handling for this ErrorResponse-implementing exception only
+    // kicks in when no @ExceptionHandler in the app matches, and our Exception.class handler
+    // always matches.
+    @ExceptionHandler(HandlerMethodValidationException.class)
+    public ResponseEntity<ApiError> handleHandlerMethodValidationException(HandlerMethodValidationException ex,
+                                                                            HttpServletRequest request) {
+        log.warn("Request parameter validation failed: uri={}", request.getRequestURI());
+        return ResponseEntity.status(400).body(
+            ApiError.of(400, "Invalid request parameters", request.getRequestURI())
+        );
+    }
 
     @ExceptionHandler(ReviewGameException.class)
     public ResponseEntity<ApiError> handleReviewGameException(ReviewGameException ex,

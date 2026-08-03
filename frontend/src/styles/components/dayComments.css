@@ -378,6 +378,22 @@
     object-fit: cover;
 }
 
+.comment-composer__mention-status {
+    position: absolute;
+    top: calc(100% + 0.3rem);
+    left: 0;
+    z-index: 5;
+    margin: 0;
+    padding: 0.35rem 0.6rem;
+    max-width: min(18rem, 80vw);
+    border: 1px solid var(--color-border);
+    border-radius: 0.65rem;
+    background: var(--color-surface);
+    color: var(--color-muted);
+    font-size: 0.78rem;
+    box-shadow: 0 4px 14px color-mix(in srgb, var(--color-text) 10%, transparent);
+}
+
 .comment-composer__actions {
     display: flex;
     align-items: center;

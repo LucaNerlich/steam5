@@ -52,7 +52,7 @@ public class UserSearchRateLimitFilter extends OncePerRequestFilter {
         final AtomicInteger count = requestCounts.get(ip, k -> new AtomicInteger(0));
 
         if (count.incrementAndGet() > MAX_REQUESTS_PER_MINUTE) {
-            log.warn("User search rate limit exceeded: ip={}", ip);
+            log.warn("User search rate limit exceeded");
             response.setStatus(429);
             response.setContentType("application/json");
             response.getWriter().write("{\"error\":\"rate_limit_exceeded\"}");

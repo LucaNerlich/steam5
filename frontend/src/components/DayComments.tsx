@@ -14,6 +14,7 @@ import {
     archiveComment,
     commentsUrl,
     fetchComments,
+    MentionSearchRateLimitedError,
     searchMentionCandidates,
     steamStoreUrl,
     type CommentGameRef,
@@ -436,6 +437,7 @@ function CommentComposer(props: {
 
     const [mention, setMention] = useState<{start: number; query: string} | null>(null);
     const [mentionCandidates, setMentionCandidates] = useState<MentionCandidate[]>([]);
+    const [mentionRateLimited, setMentionRateLimited] = useState(false);
     const debouncedMentionQuery = useDebouncedValue(mention?.query ?? null, MENTION_DEBOUNCE_MS);
 
     useEffect(() => {
@@ -447,6 +449,7 @@ function CommentComposer(props: {
             setBodyLength(0);
             setMention(null);
             setMentionCandidates([]);
+            setMentionRateLimited(false);
             setPosted(true);
             const timer = window.setTimeout(() => setPosted(false), 1500);
             void onPosted();
@@ -470,7 +473,14 @@ function CommentComposer(props: {
         let cancelled = false;
         void searchMentionCandidates(debouncedMentionQuery.trim()).then((candidates) => {
             if (cancelled) return;
+            setMentionRateLimited(false);
             setMentionCandidates(candidates.filter((candidate) => candidate.steamId !== steamId));
+        }).catch((error: unknown) => {
+            if (cancelled) return;
+            if (error instanceof MentionSearchRateLimitedError) {
+                setMentionRateLimited(true);
+                setMentionCandidates([]);
+            }
         });
         return () => {
             cancelled = true;
@@ -487,6 +497,7 @@ function CommentComposer(props: {
     const closeMentionMenu = useCallback(() => {
         setMention(null);
         setMentionCandidates([]);
+        setMentionRateLimited(false);
     }, []);
 
     const handlePickMention = (candidate: MentionCandidate) => {
@@ -525,14 +536,18 @@ function CommentComposer(props: {
                     aria-controls={mentionOpen ? mentionMenuId : undefined}
                     onInput={handleBodyInput}
                 />
-                {mentionOpen && (
+                {mentionOpen ? (
                     <MentionMenu
                         id={mentionMenuId}
                         candidates={mentionCandidates}
                         onPick={handlePickMention}
                         onClose={closeMentionMenu}
                     />
-                )}
+                ) : (mention !== null && mentionRateLimited && (
+                    <p className="comment-composer__mention-status" role="status">
+                        Mention search is busy — try again in a moment.
+                    </p>
+                ))}
             </div>
             <div className="comment-composer__actions">
                 {games.length > 0 && (

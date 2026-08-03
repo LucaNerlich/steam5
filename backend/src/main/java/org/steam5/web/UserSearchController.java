@@ -1,5 +1,6 @@
 package org.steam5.web;
 
+import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -24,15 +25,20 @@ public class UserSearchController {
 
     private static final int MIN_QUERY_LENGTH = 2;
     // Bounds the LIKE pattern sent to the DB; well above any realistic persona name length.
+    // Enforced via @Size so an oversized q is rejected (400) before it reaches the query,
+    // instead of silently swallowed like the min-length case below.
     private static final int MAX_QUERY_LENGTH = 64;
 
     private final UserRepository userRepository;
 
     @GetMapping("/search")
-    public List<UserSearchDto> search(@RequestParam(name = "q", required = false) final String q,
-                                      @CurrentUser final String steamId) {
+    public List<UserSearchDto> search(
+            @RequestParam(name = "q", required = false)
+            @Size(max = MAX_QUERY_LENGTH, message = "q exceeds maximum length")
+            final String q,
+            @CurrentUser final String steamId) {
         final String query = q == null ? "" : q.trim();
-        if (query.length() < MIN_QUERY_LENGTH || query.length() > MAX_QUERY_LENGTH) {
+        if (query.length() < MIN_QUERY_LENGTH) {
             return Collections.emptyList();
         }
         final List<User> matches =
