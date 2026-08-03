@@ -154,7 +154,7 @@ class CommentControllerTest {
         LocalDate today = GameDate.todayUtc();
         CommentService.CommentDto dto = new CommentService.CommentDto(
                 1L, "hi", today + "T12:00:00Z",
-                new CommentService.AuthorDto("u1", "Alice", null, null),
+                new CommentService.AuthorDto("u1", "Alice", null),
                 List.of()
         );
         when(commentService.createComment(eq("u1"), eq(today), eq("hi"))).thenReturn(dto);

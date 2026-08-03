@@ -102,6 +102,8 @@ html:has(.leaderboard-layout) {
     display: flex;
     align-items: center;
     gap: 0.4rem;
+    content-visibility: auto;
+    contain-intrinsic-size: 0 29px;
 }
 
 .leaderboard__table thead tr th {
@@ -163,8 +165,6 @@ html:has(.leaderboard-layout) {
 .leaderboard__profile-link:visited {
     color: var(--color-text);
 }
-
-/* No internal Next blur needed; using backgroundImage placeholder */
 
 .leaderboard__subline {
     margin-top: 0.4rem;

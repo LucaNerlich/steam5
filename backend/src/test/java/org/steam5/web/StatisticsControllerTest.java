@@ -76,7 +76,7 @@ class StatisticsControllerTest {
     @Test
     void perfectDays_setsRefreshedAtHeaderWhenStateExists() {
         List<StatisticsService.PerfectDayEntry> canned = List.of(
-                new StatisticsService.PerfectDayEntry("76561198000000001", "Alice", "avatar.jpg", "blur",
+                new StatisticsService.PerfectDayEntry("76561198000000001", "Alice", "avatar.jpg",
                         "https://steamcommunity.com/id/alice", java.time.LocalDate.of(2026, 1, 15), List.of("Portal"))
         );
         when(statisticsService.getPerfectDays()).thenReturn(canned);

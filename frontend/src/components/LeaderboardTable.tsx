@@ -25,7 +25,6 @@ type LeaderEntry = {
     avgPoints: number;
     streak: number;
     avatar?: string | null;
-    avatarBlurdata?: string | null;
     profileUrl?: string | null;
 };
 
@@ -225,9 +224,7 @@ export default function LeaderboardTable(props: {
                             <td>{i + 1}</td>
                             <td>
                                 <div className="leaderboard__player">
-                                    {entry.avatar && (
-                                        <Avatar src={entry.avatar} name={entry.personaName} size={29}/>
-                                    )}
+                                    <Avatar src={entry.avatar} name={entry.personaName} size={29}/>
                                     <a href={`/profile/${encodeURIComponent(entry.steamId)}`}
                                        className="leaderboard__profile-link">
                                         <strong>{entry.personaName || 'no-name'}</strong>

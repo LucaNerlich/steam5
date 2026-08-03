@@ -131,7 +131,6 @@ public class LeaderboardService {
                             row.getAvgPoints() != null ? row.getAvgPoints() : 0.0,
                             streak,
                             blankToNull(row.getAvatarFull()),
-                            blankToNull(row.getBlurdataAvatarFull()),
                             blankToNull(row.getProfileUrl())
                     );
                 })
@@ -174,9 +173,8 @@ public class LeaderboardService {
     private LeaderEntry getLeaderEntry(final String steamId, final long totalPoints, final long rounds, final long hits, final long flops, final long tooHigh, final long tooLow, final double avgPoints, final int streak, final User user) {
         final String personaName = user != null && user.getPersonaName() != null && !user.getPersonaName().isBlank() ? user.getPersonaName() : steamId;
         final String avatar = user != null ? blankToNull(user.getAvatarFull()) : null;
-        final String avatarBlurdata = user != null ? blankToNull(user.getBlurdataAvatarFull()) : null;
         final String profileUrl = user != null ? blankToNull(user.getProfileUrl()) : null;
-        return new LeaderEntry(steamId, personaName, totalPoints, rounds, hits, flops, tooHigh, tooLow, avgPoints, streak, avatar, avatarBlurdata, profileUrl);
+        return new LeaderEntry(steamId, personaName, totalPoints, rounds, hits, flops, tooHigh, tooLow, avgPoints, streak, avatar, profileUrl);
     }
 
     public record LeaderEntry(String steamId,
@@ -186,7 +184,6 @@ public class LeaderboardService {
                               double avgPoints,
                               int streak,
                               String avatar,
-                              String avatarBlurdata,
                               String profileUrl) {
     }
 }

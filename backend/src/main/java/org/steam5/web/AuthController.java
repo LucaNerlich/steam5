@@ -162,7 +162,6 @@ public class AuthController {
         final User user = userRepository.findById(steamId).orElse(null);
         if (user != null) {
             body.put("avatar", user.getAvatar());
-            body.put("avatarBlurdata", user.getBlurdataAvatar());
         }
         // Token validation is per-user and must never be stored by any cache.
         return ResponseEntity.ok()

@@ -21,7 +21,6 @@ export type CommentAuthor = {
     steamId: string;
     personaName: string;
     avatar: string | null;
-    avatarBlurdata: string | null;
 };
 
 export type CommentReactionDto = {

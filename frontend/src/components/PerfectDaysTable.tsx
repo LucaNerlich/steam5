@@ -50,14 +50,14 @@ export default function PerfectDaysTable(props: {
     const lastUpdatedText = formatRefreshedAt(refreshedAt);
 
     const playerCounts = useMemo(() => {
-        const counts = new Map<string, { steamId: string; name: string; avatar?: string | null; avatarBlurdata?: string | null; count: number }>();
+        const counts = new Map<string, { steamId: string; name: string; avatar?: string | null; count: number }>();
         for (const entry of data ?? []) {
             const key = entry.steamId;
             const existing = counts.get(key);
             if (existing) {
                 existing.count++;
             } else {
-                counts.set(key, {steamId: entry.steamId, name: entry.personaName, avatar: entry.avatar, avatarBlurdata: entry.avatarBlurdata, count: 1});
+                counts.set(key, {steamId: entry.steamId, name: entry.personaName, avatar: entry.avatar, count: 1});
             }
         }
         return [...counts.values()].sort((a, b) => b.count - a.count);
@@ -95,9 +95,7 @@ export default function PerfectDaysTable(props: {
                             <td className="num">{i + 1}</td>
                             <td>
                                 <div className="leaderboard__player">
-                                    {entry.avatar && (
-                                        <Avatar src={entry.avatar} name={entry.personaName} size={29}/>
-                                    )}
+                                    <Avatar src={entry.avatar} name={entry.personaName} size={29}/>
                                     <span className="leaderboard__profile-link">{entry.personaName}</span>
                                 </div>
                             </td>
@@ -137,9 +135,7 @@ export default function PerfectDaysTable(props: {
                             <td className="num">{i + 1}</td>
                             <td>
                                 <div className="leaderboard__player">
-                                    {player.avatar && (
-                                        <Avatar src={player.avatar} name={player.name} size={29}/>
-                                    )}
+                                    <Avatar src={player.avatar} name={player.name} size={29}/>
                                     <span className="leaderboard__profile-link">{player.name}</span>
                                 </div>
                             </td>

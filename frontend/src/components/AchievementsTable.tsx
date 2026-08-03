@@ -13,7 +13,6 @@ type LeaderEntry = {
     steamId: string;
     personaName: string;
     avatar?: string | null;
-    avatarBlurdata?: string | null;
 };
 
 /**
@@ -72,9 +71,7 @@ export default function AchievementsTable({
                                     </td>
                                     <td>
                                         <div className="leaderboard__player">
-                                            {entry.avatar && (
-                                                <Avatar src={entry.avatar} name={entry.personaName} size={29}/>
-                                            )}
+                                            <Avatar src={entry.avatar} name={entry.personaName} size={29}/>
                                             <a
                                                 href={`/profile/${encodeURIComponent(achievement.steamId)}`}
                                                 className="leaderboard__profile-link"
