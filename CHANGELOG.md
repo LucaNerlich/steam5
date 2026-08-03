@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.19.0] - 2026-08-03
+
+### Added
+
+- Added day comments with emoji reactions, letting signed-in players discuss and react to each day's games once they've finished all rounds
+- Added @mention autocomplete in the comment composer to search for and tag other players
+- Added day-game chips in the comment composer to quickly insert links to that day's games
+- Added a "yesterday's top comment" spotlight alongside the player spotlight
+
+### Fixed
+
+- Unified avatars across the header, leaderboards, "playing now", and comments into one consistent style, and fixed leaderboard rows not being vertically centered
+- Fixed a hydration error on the leaderboard caused by a timezone/locale mismatch between server and client
+- Fixed comment composer alignment, reaction popover stacking order, and the archive reset row layout
+- Fixed avatars below 40x40 showing a Next.js blur-placeholder warning
+
+### Changed
+
+- Added intraday refresh triggers for the Perfect Days, Hardest Games, and Season leaderboards so they update more frequently throughout the day
+- Stopped preloading archive pages from the Perfect Days and Hardest Games leaderboard tabs to reduce unnecessary requests
+
 ## [1.18.1] - 2026-07-24
 
 ### Fixed
