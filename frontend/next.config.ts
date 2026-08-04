@@ -7,6 +7,7 @@ const nextConfig: NextConfig = {
     reactCompiler: true,
     experimental: {
         turbopackFileSystemCacheForDev: true,
+        turbopackRustReactCompiler: true,
     },
     images: {
         remotePatterns: [
