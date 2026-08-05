@@ -117,6 +117,8 @@ html:has(.leaderboard-layout) {
     align-items: center;
     gap: 0.4rem;
     min-width: 0;
+    content-visibility: auto;
+    contain-intrinsic-size: 0 29px;
 }
 
 .leaderboard__table thead tr th {
