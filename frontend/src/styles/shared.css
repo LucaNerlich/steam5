@@ -96,3 +96,10 @@ button:disabled {
     border-radius: 0.5rem;
     object-fit: cover;
 }
+
+.truncate {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
