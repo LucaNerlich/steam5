@@ -75,6 +75,7 @@ export default function AchievementsTable({
                                             <a
                                                 href={`/profile/${encodeURIComponent(achievement.steamId)}`}
                                                 className="leaderboard__profile-link"
+                                                title={entry.personaName || achievement.steamId}
                                             >
                                                 {entry.personaName || achievement.steamId}
                                             </a>

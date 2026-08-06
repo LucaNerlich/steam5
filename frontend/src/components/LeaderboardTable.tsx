@@ -221,12 +221,13 @@ export default function LeaderboardTable(props: {
                     <tbody>
                     {sorted.map((entry, i) => (
                         <tr key={entry.profileUrl}>
-                            <td>{i + 1}</td>
+                            <td className="num">{i + 1}</td>
                             <td>
                                 <div className="leaderboard__player">
                                     <Avatar src={entry.avatar} name={entry.personaName} size={29}/>
                                     <a href={`/profile/${encodeURIComponent(entry.steamId)}`}
-                                       className="leaderboard__profile-link">
+                                       className="leaderboard__profile-link"
+                                       title={entry.personaName || 'no-name'}>
                                         <strong>{entry.personaName || 'no-name'}</strong>
                                     </a>
                                     {(() => {

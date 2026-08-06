@@ -96,7 +96,7 @@ export default function PerfectDaysTable(props: {
                             <td>
                                 <div className="leaderboard__player">
                                     <Avatar src={entry.avatar} name={entry.personaName} size={29}/>
-                                    <span className="leaderboard__profile-link">{entry.personaName}</span>
+                                    <span className="leaderboard__profile-link" title={entry.personaName}>{entry.personaName}</span>
                                 </div>
                             </td>
                             <td>{formatDate(entry.gameDate)}</td>
@@ -136,7 +136,7 @@ export default function PerfectDaysTable(props: {
                             <td>
                                 <div className="leaderboard__player">
                                     <Avatar src={player.avatar} name={player.name} size={29}/>
-                                    <span className="leaderboard__profile-link">{player.name}</span>
+                                    <span className="leaderboard__profile-link" title={player.name}>{player.name}</span>
                                 </div>
                             </td>
                             <td className="num">{player.count}</td>
