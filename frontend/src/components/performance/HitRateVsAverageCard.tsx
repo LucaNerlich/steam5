@@ -46,7 +46,7 @@ export default function HitRateVsAverageCard({rounds}: { rounds: Round[] }): Rea
         rounds: number
     }>>("/api/leaderboard/all", fetcher, {refreshInterval: 300000, revalidateOnFocus: false});
     const globalAvg = useMemo(() => {
-        if (!leaders || leaders.length === 0) return null as number | null;
+        if (!Array.isArray(leaders) || leaders.length === 0) return null as number | null;
         let h = 0, t = 0;
         for (const l of leaders) {
             h += (l.hits || 0);

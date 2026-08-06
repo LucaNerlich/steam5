@@ -1,5 +1,8 @@
 import {ImageResponse} from "next/og";
 
+// Depends on per-request search params (variant/steamId/gameDate) and live
+// backend fetches, so it can't be statically prerendered at build time.
+export const dynamic = "force-dynamic";
 export const size = {width: 1200, height: 630};
 export const contentType = "image/png";
 
