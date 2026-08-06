@@ -1,6 +1,5 @@
 import {ImageResponse} from "next/og";
 
-export const runtime = "edge";
 export const size = {width: 1200, height: 630};
 export const contentType = "image/png";
 
@@ -11,7 +10,6 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
     for (let i = 0; i < len; i++) {
         binary += String.fromCharCode(bytes[i]);
     }
-    // Edge runtime provides btoa
     return btoa(binary);
 }
 

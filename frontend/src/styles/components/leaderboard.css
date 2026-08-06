@@ -171,7 +171,19 @@ html:has(.leaderboard-layout) {
     text-decoration: underline;
     text-underline-offset: 2px;
     font-weight: 600;
+    flex: 1 1 auto;
     min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Achievement badge must not out-compete the player name for space in the
+   fixed-width name column — cap and truncate it instead of letting it push
+   the name down to a sliver. */
+.leaderboard__achievement {
+    flex-shrink: 0;
+    max-width: 90px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -230,6 +242,12 @@ html:has(.leaderboard-layout) {
     .leaderboard__table th.num:not(:first-child),
     .leaderboard__table td.num:not(:first-child) {
         width: 3rem;
+    }
+
+    /* The name column is too narrow on mobile to also fit an achievement
+       badge without squeezing the player name unreadably short. */
+    .leaderboard__achievement {
+        display: none;
     }
 
     /* Hide Flops, Too High, and Too Low on mobile to save space */
