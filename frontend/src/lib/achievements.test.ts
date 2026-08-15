@@ -53,6 +53,16 @@ describe('formatTimeOfDay (TZ pinned to UTC)', () => {
         // Server reports 60 minutes past midnight with a +60min offset → UTC midnight.
         expect(formatTimeOfDay(60, 60)).toBe('12:00 AM');
     });
+
+    it('normalizes negative totals from positive-offset timezones', () => {
+        // Server 00:30 with a +120min offset → UTC 22:30 the previous day.
+        expect(formatTimeOfDay(30, 120)).toBe('10:30 PM');
+    });
+
+    it('carries fractional minutes that round to 60 into the next hour', () => {
+        // 3:59.6 rounds to 4:00 instead of rendering "3:60".
+        expect(formatTimeOfDay(3 * 60 + 59.6)).toBe('4:00 AM');
+    });
 });
 
 describe('getAchievementTitle', () => {

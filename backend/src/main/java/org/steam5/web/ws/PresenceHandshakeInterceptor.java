@@ -33,6 +33,13 @@ public class PresenceHandshakeInterceptor implements HandshakeInterceptor {
 
     public static final Pattern SCOPE_KEY_PATTERN = Pattern.compile("^\\d{4}-\\d{2}-\\d{2}(:\\d+:\\d+)?$");
 
+    /**
+     * Subprotocol prefix used to pass the presence ticket during the WebSocket
+     * handshake instead of a URL query parameter, keeping the ticket out of
+     * access logs and proxy log pipelines.
+     */
+    public static final String TICKET_SUBPROTOCOL_PREFIX = "s5ticket.";
+
     private final List<String> allowedOrigins;
     private final PresenceRateLimiter presenceRateLimiter;
     private final PresenceMetrics presenceMetrics;
@@ -84,7 +91,19 @@ public class PresenceHandshakeInterceptor implements HandshakeInterceptor {
         final URI uri = request.getURI();
         final String query = uri.getRawQuery();
         final String scopeKey = extractParam(query, "scopeKey");
-        final String ticket = extractParam(query, "ticket");
+        String ticket = extractParam(query, "ticket");
+
+        // The client may pass the ticket as a WebSocket subprotocol instead of a URL
+        // query parameter so it does not leak into access logs. When offered, echo the
+        // selected subprotocol back so the handshake completes. The query parameter
+        // takes precedence for backward compatibility.
+        if (ticket == null || ticket.isBlank()) {
+            final String selected = ticketSubprotocol(request.getHeaders().getFirst("Sec-WebSocket-Protocol"));
+            if (selected != null) {
+                response.getHeaders().set("Sec-WebSocket-Protocol", selected);
+                ticket = selected.substring(TICKET_SUBPROTOCOL_PREFIX.length());
+            }
+        }
 
         if (scopeKey == null || scopeKey.isBlank()) {
             log.debug("Rejecting presence handshake — missing scopeKey");
@@ -180,5 +199,23 @@ public class PresenceHandshakeInterceptor implements HandshakeInterceptor {
                 .getQueryParams()
                 .get(name);
         return (values != null && !values.isEmpty()) ? values.get(0) : null;
+    }
+
+    /**
+     * Finds the offered WebSocket subprotocol that carries the presence ticket.
+     *
+     * @param subprotocolHeader the raw {@code Sec-WebSocket-Protocol} header value
+     * @return the full matched subprotocol token (e.g. {@code s5ticket.eyJ...}), or
+     *         {@code null} when the header is absent or carries no ticket subprotocol
+     */
+    static String ticketSubprotocol(final String subprotocolHeader) {
+        if (subprotocolHeader == null) return null;
+        for (final String candidate : subprotocolHeader.split(",")) {
+            final String value = candidate.trim();
+            if (value.startsWith(TICKET_SUBPROTOCOL_PREFIX) && value.length() > TICKET_SUBPROTOCOL_PREFIX.length()) {
+                return value;
+            }
+        }
+        return null;
     }
 }

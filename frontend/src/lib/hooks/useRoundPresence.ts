@@ -159,11 +159,14 @@ export function useRoundPresence(scopeKey: string | null): PresenceSnapshot & {
             closeSocket();
 
             const wsOrigin = toWsOrigin(BACKEND_ORIGIN);
-            const url = `${wsOrigin}/ws/presence?scopeKey=${encodeURIComponent(scopeKey)}&ticket=${encodeURIComponent(ticket ?? "")}`;
+            const url = `${wsOrigin}/ws/presence?scopeKey=${encodeURIComponent(scopeKey)}`;
+            // Pass the ticket as a WebSocket subprotocol instead of a URL query
+            // parameter so it does not land in access logs or proxy log pipelines.
+            const subprotocols = ticket ? [`s5ticket.${ticket}`] : undefined;
 
             let ws: WebSocket;
             try {
-                ws = new WebSocket(url);
+                ws = new WebSocket(url, subprotocols);
             } catch (e) {
                 console.warn("[useRoundPresence] failed to open socket", e);
                 scheduleReconnect();

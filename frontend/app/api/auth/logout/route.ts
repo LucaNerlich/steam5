@@ -1,7 +1,7 @@
 import {revalidatePath, revalidateTag} from 'next/cache';
 import {NextRequest, NextResponse} from 'next/server';
 
-export async function GET(req: NextRequest) {
+export async function POST(req: NextRequest) {
     const xfHost = req.headers.get('x-forwarded-host');
     const xfProto = req.headers.get('x-forwarded-proto') || 'https';
     const base = (xfHost ? `${xfProto}://${xfHost}` : new URL(req.url).origin);

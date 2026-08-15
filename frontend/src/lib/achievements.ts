@@ -62,8 +62,14 @@ export function formatDuration(seconds: number): string {
 
 export function formatTimeOfDay(minutesSinceMidnightServer: number, serverOffsetMinutes = 0): string {
     const utcMinutesSinceMidnight = minutesSinceMidnightServer - serverOffsetMinutes;
-    const hours = (Math.floor(utcMinutesSinceMidnight / 60) % 24 + 24) % 24;
-    const minutes = Math.round(utcMinutesSinceMidnight % 60);
+    // Round the total first, then normalize into [0, 1440) — early-morning times in
+    // positive-offset timezones produce negative totals, and fractional averages can
+    // round to 60 minutes; both must carry into the hour instead of rendering
+    // "10:-30 PM" / "4:60 PM".
+    const total = Math.round(utcMinutesSinceMidnight);
+    const normalized = ((total % 1440) + 1440) % 1440;
+    const hours = Math.floor(normalized / 60);
+    const minutes = normalized % 60;
     const period = hours >= 12 ? 'PM' : 'AM';
     const displayHours = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
     return `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}`;

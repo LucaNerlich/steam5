@@ -4,15 +4,22 @@ import {MetadataRoute} from 'next';
 export default function sitemap(): MetadataRoute.Sitemap {
     const baseUrl = (process.env.NEXT_PUBLIC_DOMAIN || 'https://steam5.org').replace(/\/$/, '');
 
-    const routes = Object.values(Routes).filter((route): route is string => typeof route === 'string');
+    // These routes redirect (308/307) and must not appear in the sitemap —
+    // search engines would waste crawl budget on the redirect hops.
+    const redirectingRoutes = new Set(['/', '/review-guesser', '/review-guesser/random']);
+    const routes = Object.values(Routes).filter(
+        (route): route is string => typeof route === 'string' && !redirectingRoutes.has(route)
+    );
     const now = new Date();
     const staticPageFrequency = 'weekly' as const;
 
-    // Build list of archive dates from 2025-08-14 (inclusive) until today (UTC)
+    // Build list of archive dates from 2025-08-14 (inclusive) until yesterday (UTC).
+    // Today's challenge is served by /review-guesser/*; its archive copy duplicates
+    // the live game and is excluded.
     const startDate = new Date(Date.UTC(2025, 7, 14)); // Aug is 7 (0-based)
-    const todayUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    const yesterdayUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 1));
     const reviewGuesserArchive: string[] = [];
-    for (let d = new Date(startDate); d <= todayUtc; d = new Date(d.getTime() + 24 * 60 * 60 * 1000)) {
+    for (let d = new Date(startDate); d <= yesterdayUtc; d = new Date(d.getTime() + 24 * 60 * 60 * 1000)) {
         reviewGuesserArchive.push(d.toISOString().slice(0, 10)); // yyyy-mm-dd
     }
 
@@ -22,7 +29,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
             url: `${baseUrl}${route}`,
             lastModified: now,
             changeFrequency: staticPageFrequency,
-            priority: route === '/' ? 1 : 0.8,
+            priority: route === '/review-guesser/1' ? 1 : 0.8,
             alternates: {
                 languages: {
                     en: `${baseUrl}${route}`,
