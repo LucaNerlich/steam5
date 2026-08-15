@@ -40,6 +40,11 @@ describe('formatDate', () => {
     it('accepts a Date instance', () => {
         expect(formatDate(new Date('2024-12-31T00:00:00Z'), 'en-US')).toBe('Dec 31, 2024');
     });
+
+    it('returns an empty string for an unparseable date', () => {
+        expect(formatDate('not-a-date', 'en-US')).toBe('');
+        expect(formatDate('2024-02-31', 'en-US')).toBe('');
+    });
 });
 
 describe('formatRelativeTime', () => {

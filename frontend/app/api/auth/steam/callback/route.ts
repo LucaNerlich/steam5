@@ -4,11 +4,13 @@ import {forwardedForHeaders} from "@/lib/backend";
 
 const BACKEND_ORIGIN = process.env.NEXT_PUBLIC_API_DOMAIN || "http://localhost:8080";
 
-/** Derive the redirect base from forwarded headers (CDN/proxy) or the request origin. */
+/** Trusted public origin of this site; never derived from client-supplied headers. */
+const SITE_ORIGIN = (process.env.NEXT_PUBLIC_DOMAIN || "").replace(/\/$/, "");
+
+/** Resolve the redirect base from configuration only, falling back to the request origin. */
 function resolveBase(req: NextRequest): string {
-    const xfHost = req.headers.get('x-forwarded-host');
-    const xfProto = req.headers.get('x-forwarded-proto') || 'https';
-    return xfHost ? `${xfProto}://${xfHost}` : new URL(req.url).origin;
+    if (SITE_ORIGIN) return SITE_ORIGIN;
+    return new URL(req.url).origin;
 }
 
 /** Clear the CSRF state cookie — called on every code path so it never lingers. */

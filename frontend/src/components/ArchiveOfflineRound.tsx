@@ -1,6 +1,6 @@
 "use client";
 
-import React, {useCallback, useMemo, useState} from "react";
+import React, {useCallback, useEffect, useMemo, useState} from "react";
 import Link from "next/link";
 import RoundResultDialog from "@/components/RoundResultDialog";
 import RoundResultActions from "@/components/RoundResultActions";
@@ -26,15 +26,22 @@ type Props = {
 export default function ArchiveOfflineRound(props: Readonly<Props>): React.ReactElement {
     const {appId, buckets, bucketTitles, roundIndex, totalRounds, pickName, gameDate, offlineAnswer} = props;
 
-    const [selectedLabel, setSelectedLabel] = useState<string | null>(() => {
+    // Initialize state empty so the server render and the first client render match;
+    // persisted local progress is loaded after mount to avoid a hydration mismatch.
+    const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
+    const [submitted, setSubmitted] = useState<boolean>(false);
+    const [stored, setStored] = useState<StoredDay | null>(null);
+
+    useEffect(() => {
         const d = loadDay(gameDate);
-        return d?.results?.[roundIndex]?.selectedLabel ?? null;
-    });
-    const [submitted, setSubmitted] = useState<boolean>(() => {
-        const d = loadDay(gameDate);
-        return Boolean(d?.results?.[roundIndex]?.selectedLabel);
-    });
-    const [stored, setStored] = useState<StoredDay | null>(() => loadDay(gameDate));
+        if (!d) return;
+        setStored(d);
+        const existing = d.results?.[roundIndex];
+        if (existing?.selectedLabel) {
+            setSelectedLabel(existing.selectedLabel);
+            setSubmitted(true);
+        }
+    }, [gameDate, roundIndex]);
 
     const prevHref = roundIndex > 1 ? `#round-${roundIndex - 1}` : null;
     const nextHref = roundIndex < totalRounds ? `#round-${roundIndex + 1}` : null;

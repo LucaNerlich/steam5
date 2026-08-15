@@ -5,7 +5,7 @@ import ArchiveOfflineRound from "@/components/ArchiveOfflineRound";
 import ArchiveResetForDay from "@/components/ArchiveResetForDay";
 import ArchiveSummary from "@/components/ArchiveSummary";
 import DayComments from "@/components/DayComments";
-import Link from "next/link";
+import {notFound} from "next/navigation";
 import {formatDate} from "@/lib/format";
 import {buildBreadcrumbJsonLd} from "@/lib/seo";
 import "@/styles/components/archive.css";
@@ -64,13 +64,7 @@ export default async function ArchivePage({params}: { params: Promise<{ date: st
         {name: formatDate(date), url: `${Routes.archive}/${encodeURIComponent(date)}`},
     ]);
     if (!data || !data.picks || data.picks.length === 0) {
-        return (
-            <section className="container">
-                <h1>Archive</h1>
-                <p>No challenge found for {date}.</p>
-                <Link href="/review-guesser/1">Go to today’s game</Link>
-            </section>
-        );
+        notFound();
     }
 
     const appIds = data.picks.map(p => p.appId);

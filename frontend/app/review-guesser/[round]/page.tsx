@@ -1,6 +1,5 @@
 import type {Metadata} from "next";
 import type {ReviewGameState} from "@/types/review-game";
-import Link from "next/link";
 import ReviewGuesserHero from "@/components/ReviewGuesserHero";
 import GameInfoSection from "@/components/GameInfoSection";
 import NewsBox from "@/components/NewsBox";
@@ -8,6 +7,7 @@ import PlayerSpotlight from "@/components/PlayerSpotlight";
 import ReviewGuesserRound from "@/components/ReviewGuesserRound";
 import {Suspense} from "react";
 import {cookies} from "next/headers";
+import {notFound} from "next/navigation";
 import {BACKEND_ORIGIN as backend} from "@/lib/backend";
 
 export const revalidate = 60;
@@ -49,19 +49,18 @@ async function loadMyGuesses(): Promise<ServerGuess[]> {
 
 export default async function ReviewGuesserRoundPage({params}: { params: Promise<{ round: string }> }) {
     const {round} = await params;
-    const roundIndex = Math.max(1, Number.parseInt(round || '1', 10));
+    const parsedRound = Number.parseInt(round || '1', 10);
+    if (!Number.isInteger(parsedRound) || parsedRound < 1) {
+        notFound();
+    }
+    const roundIndex = parsedRound;
     const today = await loadToday();
 
     const totalRounds = today.picks.length;
     const pick = today.picks[roundIndex - 1];
 
     if (!pick) {
-        return (
-            <section className="container">
-                <p>No pick for this round. You may have finished all rounds.</p>
-                <Link href="/review-guesser/1">Go to first round</Link>
-            </section>
-        );
+        notFound();
     }
 
     // Preload existing guesses to avoid client-side flicker for authenticated users.
@@ -120,51 +119,17 @@ export default async function ReviewGuesserRoundPage({params}: { params: Promise
 
 export async function generateMetadata({params}: { params: Promise<{ round: string }> }): Promise<Metadata> {
     const {round} = await params;
+    const parsedRound = Number.parseInt(round || '1', 10);
+    if (!Number.isInteger(parsedRound) || parsedRound < 1) {
+        notFound();
+    }
+    const roundIndex = parsedRound;
+    let today: ReviewGameState;
     try {
-        const today: ReviewGameState = await fetch(`${backend}/api/review-game/today`, {
+        today = await fetch(`${backend}/api/review-game/today`, {
             headers: {"accept": "application/json"},
             next: {revalidate: 60, tags: ['round-today']}
         }).then(r => r.json());
-        const roundIndex = Math.max(1, Number.parseInt(round || '1', 10));
-        const pick = today.picks[roundIndex - 1];
-        const title = pick ? `Review Guesser — Round ${roundIndex} of ${today.picks.length}` : `Review Guesser`;
-        const description = pick ? `${pick.name} — Can you guess how many Steam reviews it has?` : `Play today's Steam Review guessing game.`;
-        const base = (process.env.NEXT_PUBLIC_DOMAIN || 'https://steam5.org').replace(/\/$/, '');
-        const firstShot = pick?.screenshots?.[0];
-        const rawImg = firstShot?.pathFull || firstShot?.pathThumbnail || '/opengraph-image';
-        let imageUrl: string;
-        try {
-            imageUrl = new URL(rawImg).toString();
-        } catch {
-            imageUrl = new URL(rawImg.startsWith('/') ? rawImg : `/${rawImg}`, base).toString();
-        }
-        return {
-            title,
-            description,
-            keywords: [
-                'Steam',
-                'Steam reviews',
-                'review guessing game',
-                'daily challenge',
-                `round ${roundIndex}`,
-                ...(pick?.name ? [pick.name] : [])
-            ],
-            alternates: {
-                canonical: `/review-guesser/${roundIndex}`,
-            },
-            openGraph: {
-                title,
-                description,
-                url: `/review-guesser/${roundIndex}`,
-                images: [imageUrl],
-            },
-            twitter: {
-                card: 'summary_large_image',
-                title,
-                description,
-                images: [imageUrl],
-            },
-        };
     } catch (error) {
         console.error('Failed to load today', error);
 
@@ -182,12 +147,12 @@ export async function generateMetadata({params}: { params: Promise<{ round: stri
                 'daily challenge'
             ],
             alternates: {
-                canonical: `/review-guesser/${round || '1'}`,
+                canonical: `/review-guesser/${round}`,
             },
             openGraph: {
                 title,
                 description,
-                url: `/review-guesser/${round || '1'}`,
+                url: `/review-guesser/${round}`,
                 images: [ogUrl.toString()],
             },
             twitter: {
@@ -198,6 +163,49 @@ export async function generateMetadata({params}: { params: Promise<{ round: stri
             },
         };
     }
+
+    const pick = today.picks[roundIndex - 1];
+    if (!pick) {
+        notFound();
+    }
+    const title = `Review Guesser — Round ${roundIndex} of ${today.picks.length}`;
+    const description = `${pick.name} — Can you guess how many Steam reviews it has?`;
+    const base = (process.env.NEXT_PUBLIC_DOMAIN || 'https://steam5.org').replace(/\/$/, '');
+    const firstShot = pick.screenshots?.[0];
+    const rawImg = firstShot?.pathFull || firstShot?.pathThumbnail || '/opengraph-image';
+    let imageUrl: string;
+    try {
+        imageUrl = new URL(rawImg).toString();
+    } catch {
+        imageUrl = new URL(rawImg.startsWith('/') ? rawImg : `/${rawImg}`, base).toString();
+    }
+    return {
+        title,
+        description,
+        keywords: [
+            'Steam',
+            'Steam reviews',
+            'review guessing game',
+            'daily challenge',
+            `round ${roundIndex}`,
+            pick.name
+        ],
+        alternates: {
+            canonical: `/review-guesser/${roundIndex}`,
+        },
+        openGraph: {
+            title,
+            description,
+            url: `/review-guesser/${roundIndex}`,
+            images: [imageUrl],
+        },
+        twitter: {
+            card: 'summary_large_image',
+            title,
+            description,
+            images: [imageUrl],
+        },
+    };
 }
 
 

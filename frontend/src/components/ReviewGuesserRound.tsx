@@ -260,8 +260,10 @@ export default function ReviewGuesserRound({
             correct: effectiveResponse ? effectiveResponse.correct : (storedThisRound?.correct ?? false),
         };
 
-    // Submitted flag: either current state submitted, or restored from storage, or authenticated prefilled for this round
-    const submittedFlag = Boolean(state && (state.ok || state.error)) || Boolean(storedThisRound) || Boolean(prefilled);
+    // Submitted flag: either current state submitted, or restored from storage, or authenticated prefilled for this round.
+    // Note: state.error alone does not mark the round as submitted — a failed submission
+    // must keep the guess buttons enabled so the player can retry without a page reload.
+    const submittedFlag = Boolean(state?.ok) || Boolean(storedThisRound) || Boolean(prefilled);
 
     // Single source of truth: when to show ShareControls
     const hasServerResults = Object.keys(serverResults).length > 0;
