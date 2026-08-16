@@ -13,7 +13,9 @@ import org.steam5.repository.details.ScreenshotRepository;
 import org.steam5.service.BlurhashService;
 import org.steam5.service.DomainCacheEvictor;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Component
 @Slf4j
@@ -92,6 +94,7 @@ public class BlurhashScreenshotsJob implements Job {
         // Fallback 'full-run' job, which encodes screenshots up to the configured batch limit.
         long start = System.nanoTime();
         int scanned = 0, encoded = 0, failed = 0;
+        final Set<Long> processedAppIds = new HashSet<>();
         final int batchLimit = Math.max(1, jobsConfig.getBlurhash().getBatchLimit());
         try {
             final int pageSize = 10; // small batch to limit memory
@@ -106,6 +109,9 @@ public class BlurhashScreenshotsJob implements Job {
                     }
                     scanned++;
                     cursorId = screenshot.getId(); // advance cursor to last scanned screenshot
+                    if (screenshot.getAppId() != null) {
+                        processedAppIds.add(screenshot.getAppId().getAppId());
+                    }
                     final Counters c = handleScreenshot(screenshot);
                     encoded += c.encoded;
                     failed += c.failed;
@@ -128,6 +134,12 @@ public class BlurhashScreenshotsJob implements Job {
                 final Cache cache = cacheManager.getCache("review-game");
                 if (cache != null) {
                     cache.clear();
+                }
+                // Also evict each processed app's one-day detail cache entry so the freshly
+                // encoded screenshot blur data appears in cached app detail responses
+                // immediately instead of up to the 24h TTL (mirrors the targeted path).
+                for (final Long appId : processedAppIds) {
+                    cacheEvictor.evictAppDetailEntry(appId);
                 }
             }
         }

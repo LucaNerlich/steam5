@@ -36,25 +36,25 @@ public interface LeaderboardMvRepository extends Repository<Guess, Long> {
     @Query(value = "SELECT steam_id AS steamId, total_points AS totalPoints, rounds, hits, flops, " +
             "too_high AS tooHigh, too_low AS tooLow, avg_points AS avgPoints, persona_name AS personaName, " +
             "avatar_full AS avatarFull, blurdata_avatar_full AS blurdataAvatarFull, profile_url AS profileUrl " +
-            "FROM mv_leaderboard_all_time ORDER BY total_points DESC", nativeQuery = true)
+            "FROM mv_leaderboard_all_time ORDER BY total_points DESC, steam_id ASC", nativeQuery = true)
     List<LeaderboardMvRow> findAllTime();
 
     @Query(value = "SELECT steam_id AS steamId, total_points AS totalPoints, rounds, hits, flops, " +
             "too_high AS tooHigh, too_low AS tooLow, avg_points AS avgPoints, persona_name AS personaName, " +
             "avatar_full AS avatarFull, blurdata_avatar_full AS blurdataAvatarFull, profile_url AS profileUrl " +
-            "FROM mv_leaderboard_monthly ORDER BY total_points DESC", nativeQuery = true)
+            "FROM mv_leaderboard_monthly ORDER BY total_points DESC, steam_id ASC", nativeQuery = true)
     List<LeaderboardMvRow> findMonthly();
 
     @Query(value = "SELECT steam_id AS steamId, total_points AS totalPoints, rounds, hits, flops, " +
             "too_high AS tooHigh, too_low AS tooLow, avg_points AS avgPoints, persona_name AS personaName, " +
             "avatar_full AS avatarFull, blurdata_avatar_full AS blurdataAvatarFull, profile_url AS profileUrl " +
-            "FROM mv_leaderboard_weekly ORDER BY total_points DESC", nativeQuery = true)
+            "FROM mv_leaderboard_weekly ORDER BY total_points DESC, steam_id ASC", nativeQuery = true)
     List<LeaderboardMvRow> findWeekly();
 
     @Query(value = "SELECT steam_id AS steamId, total_points AS totalPoints, rounds, hits, flops, " +
             "too_high AS tooHigh, too_low AS tooLow, avg_points AS avgPoints, persona_name AS personaName, " +
             "avatar_full AS avatarFull, blurdata_avatar_full AS blurdataAvatarFull, profile_url AS profileUrl " +
-            "FROM mv_leaderboard_season ORDER BY total_points DESC", nativeQuery = true)
+            "FROM mv_leaderboard_season ORDER BY total_points DESC, steam_id ASC", nativeQuery = true)
     List<LeaderboardMvRow> findSeason();
 
     interface HardestGameMvRow {

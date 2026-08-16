@@ -64,4 +64,16 @@ class UserSearchControllerWebTest {
                 .andExpect(status().isOk())
                 .andExpect(content().json("[]"));
     }
+
+    @Test
+    void search_escapesLikeWildcardsInQuery() throws Exception {
+        // q="100%_\" must reach the repository as "100\%\_\\" so %, _ and \ are
+        // matched literally rather than acting as LIKE wildcards.
+        when(userRepository.findTop10ByPersonaNameContainingIgnoreCaseAndPersonaNameNotNullOrderByPersonaNameAsc(
+                "100\\%\\_\\\\"))
+                .thenReturn(java.util.List.of());
+
+        mockMvc.perform(get("/api/users/search").param("q", "100%_\\"))
+                .andExpect(status().isOk());
+    }
 }
