@@ -467,7 +467,7 @@ public class PlayerSpotlightService {
             if (yesterdayTotal == null) continue;
 
             final List<Integer> priorTotals = dailyTotals.entrySet().stream()
-                    .filter(e -> !e.getKey().equals(yesterday))
+                    .filter(e -> e.getKey().isBefore(yesterday))
                     .map(Map.Entry::getValue)
                     .toList();
             if (priorTotals.size() < MIN_PRIOR_DAYS_FOR_BEST_DAY_EVER) continue;

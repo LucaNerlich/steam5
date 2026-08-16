@@ -171,13 +171,13 @@ public interface GuessRepository extends JpaRepository<Guess, Long> {
     }
 
     @Query(value = "SELECT steam_id AS steamId, COUNT(*) AS rounds, " +
-            "AVG(EXTRACT(HOUR FROM created_at) * 60 + EXTRACT(MINUTE FROM created_at)) AS avgMinutes " +
+            "AVG(EXTRACT(HOUR FROM (created_at AT TIME ZONE 'UTC')) * 60 + EXTRACT(MINUTE FROM (created_at AT TIME ZONE 'UTC'))) AS avgMinutes " +
             "FROM guesses GROUP BY steam_id HAVING COUNT(*) >= :minRounds " +
             "ORDER BY avgMinutes ASC", nativeQuery = true)
     List<AvgTimeRow> findUsersByAvgSubmissionTimeAsc(@Param("minRounds") int minRounds);
 
     @Query(value = "SELECT steam_id AS steamId, COUNT(*) AS rounds, " +
-            "AVG(EXTRACT(HOUR FROM created_at) * 60 + EXTRACT(MINUTE FROM created_at)) AS avgMinutes " +
+            "AVG(EXTRACT(HOUR FROM (created_at AT TIME ZONE 'UTC')) * 60 + EXTRACT(MINUTE FROM (created_at AT TIME ZONE 'UTC'))) AS avgMinutes " +
             "FROM guesses WHERE game_date BETWEEN :startDate AND :endDate " +
             "GROUP BY steam_id HAVING COUNT(*) >= :minRounds " +
             "ORDER BY avgMinutes ASC", nativeQuery = true)
@@ -186,13 +186,13 @@ public interface GuessRepository extends JpaRepository<Guess, Long> {
                                                              @Param("minRounds") int minRounds);
 
     @Query(value = "SELECT steam_id AS steamId, COUNT(*) AS rounds, " +
-            "AVG(EXTRACT(HOUR FROM created_at) * 60 + EXTRACT(MINUTE FROM created_at)) AS avgMinutes " +
+            "AVG(EXTRACT(HOUR FROM (created_at AT TIME ZONE 'UTC')) * 60 + EXTRACT(MINUTE FROM (created_at AT TIME ZONE 'UTC'))) AS avgMinutes " +
             "FROM guesses GROUP BY steam_id HAVING COUNT(*) >= :minRounds " +
             "ORDER BY avgMinutes DESC", nativeQuery = true)
     List<AvgTimeRow> findUsersByAvgSubmissionTimeDesc(@Param("minRounds") int minRounds);
 
     @Query(value = "SELECT steam_id AS steamId, COUNT(*) AS rounds, " +
-            "AVG(EXTRACT(HOUR FROM created_at) * 60 + EXTRACT(MINUTE FROM created_at)) AS avgMinutes " +
+            "AVG(EXTRACT(HOUR FROM (created_at AT TIME ZONE 'UTC')) * 60 + EXTRACT(MINUTE FROM (created_at AT TIME ZONE 'UTC'))) AS avgMinutes " +
             "FROM guesses WHERE game_date BETWEEN :startDate AND :endDate " +
             "GROUP BY steam_id HAVING COUNT(*) >= :minRounds " +
             "ORDER BY avgMinutes DESC", nativeQuery = true)

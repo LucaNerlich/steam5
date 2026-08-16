@@ -42,11 +42,22 @@ public class UserSearchController {
             return Collections.emptyList();
         }
         final List<User> matches =
-                userRepository.findTop10ByPersonaNameContainingIgnoreCaseAndPersonaNameNotNullOrderByPersonaNameAsc(query);
+                userRepository.findTop10ByPersonaNameContainingIgnoreCaseAndPersonaNameNotNullOrderByPersonaNameAsc(
+                        escapeLikeWildcards(query));
         return matches.stream()
                 .filter(user -> steamId == null || !steamId.equals(user.getSteamId()))
                 .map(user -> new UserSearchDto(user.getSteamId(), user.getPersonaName(), user.getAvatar()))
                 .toList();
+    }
+
+    /**
+     * Escapes the LIKE wildcard characters ({@code %}, {@code _}) and the escape character
+     * ({@code \}) so a raw search term is matched literally. Without this, {@code q=%%}
+     * matches every user and {@code q=a_b} matches any three-character name, defeating the
+     * enumeration-guard intent of the endpoint. PostgreSQL's default LIKE escape is backslash.
+     */
+    private static String escapeLikeWildcards(final String value) {
+        return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
     }
 
     public record UserSearchDto(String steamId, String personaName, String avatar) {

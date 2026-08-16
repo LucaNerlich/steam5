@@ -51,6 +51,20 @@ public class DomainCacheEvictor {
     }
 
     /**
+     * Drop only the per-app {@code one-day} cache entry for a single app, without clearing
+     * the shared {@code review-game} cache. Used by bulk loops (e.g. the full-run blurhash
+     * job) that clear {@code review-game} once up front but still need each processed app's
+     * cached detail response invalidated so freshly encoded screenshot blur data is served
+     * immediately rather than up to 24h later.
+     */
+    public void evictAppDetailEntry(final Long appId) {
+        final org.springframework.cache.Cache oneDay = cacheManager.getCache(ONE_DAY);
+        if (oneDay != null) {
+            oneDay.evict(appId);
+        }
+    }
+
+    /**
      * Drop cached leaderboard responses (all-time, monthly, weekly-floating, season). Call
      * after a leaderboard materialized view refresh, since the cached entries would otherwise
      * keep serving pre-refresh data for up to the cache's 10-minute TTL.

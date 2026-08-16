@@ -29,9 +29,14 @@ public class SeasonAdminController {
         BackfillRequest effective = request == null ? new BackfillRequest(null, null, false) : request;
         List<Season> created;
         if (effective.startDate() != null && effective.endDate() != null) {
+            if (effective.startDate().isAfter(effective.endDate())) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "startDate must be on or before endDate");
+            }
             created = seasonService.backfillRange(effective.startDate(), effective.endDate());
-        } else {
+        } else if (effective.startDate() == null && effective.endDate() == null) {
             created = seasonService.backfillHistoricalSeasons();
+        } else {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "startDate and endDate must be provided together");
         }
 
         int finalized = 0;

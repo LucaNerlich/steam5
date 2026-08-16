@@ -11,6 +11,7 @@ import org.steam5.repository.LeaderboardMvRepository;
 import org.steam5.repository.UserRepository;
 
 import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -45,7 +46,8 @@ public class LeaderboardService {
 
         return byUser.entrySet().stream()
                 .map(entry -> buildEntry(entry, usersById, streakDatesById, asOfDate))
-                .sorted((a, b) -> Long.compare(b.totalPoints(), a.totalPoints()))
+                .sorted(Comparator.comparingLong(LeaderEntry::totalPoints).reversed()
+                        .thenComparing(LeaderEntry::steamId))
                 .toList();
     }
 

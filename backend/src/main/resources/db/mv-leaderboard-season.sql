@@ -50,7 +50,7 @@ LEFT JOIN users u ON u.steam_id = g.steam_id
 -- avoids a catalog dependency on users_pkey that would otherwise block DROP CONSTRAINT
 -- operations, e.g. from pg_restore --clean).
 GROUP BY g.steam_id, u.steam_id, u.persona_name, u.avatar_full, u.blurdata_avatar_full, u.profile_url
-ORDER BY SUM(g.points) DESC
+ORDER BY SUM(g.points) DESC, g.steam_id ASC
 WITH NO DATA;
 
 -- Required for REFRESH MATERIALIZED VIEW CONCURRENTLY. CREATE INDEX CONCURRENTLY cannot run

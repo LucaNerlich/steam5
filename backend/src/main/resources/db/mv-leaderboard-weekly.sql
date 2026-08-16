@@ -40,7 +40,7 @@ WHERE g.game_date BETWEEN (now() AT TIME ZONE 'UTC')::date - 6 AND (now() AT TIM
 -- avoids a catalog dependency on users_pkey that would otherwise block DROP CONSTRAINT
 -- operations, e.g. from pg_restore --clean).
 GROUP BY g.steam_id, u.steam_id, u.persona_name, u.avatar_full, u.blurdata_avatar_full, u.profile_url
-ORDER BY SUM(g.points) DESC
+ORDER BY SUM(g.points) DESC, g.steam_id ASC
 WITH NO DATA;
 
 -- Required for REFRESH MATERIALIZED VIEW CONCURRENTLY. CREATE INDEX CONCURRENTLY cannot run
