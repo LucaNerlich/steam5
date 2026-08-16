@@ -108,4 +108,15 @@ describe('submitGuessAction without a session cookie (anonymous)', () => {
 
         expect(res).toEqual({ok: false, error: 'Upstream error 500'});
     });
+
+    it('does not leak fetch error details to the client', async () => {
+        const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+        fetchMock.mockRejectedValue(new Error('connect ECONNREFUSED 127.0.0.1:8080'));
+
+        const res = await submitGuessAction(undefined, form(10, 'Positive'));
+
+        expect(res).toEqual({ok: false, error: 'Could not reach the game server — try again'});
+        expect(JSON.stringify(res)).not.toContain('127.0.0.1');
+        consoleError.mockRestore();
+    });
 });

@@ -26,23 +26,22 @@ export async function GET(req: NextRequest) {
     const url = new URL(req.url);
     const base = resolveBase(req);
 
-    // Fix #6: verify the CSRF state token if the browser sent one.
-    // SteamLoginButton stores a random UUID in s5_state (max-age 300s) and appends
-    // it to the login URL.  The backend embeds it in openid.return_to; Steam carries
-    // it back here as a plain query param.  If the cookie is present, it MUST match
-    // the URL param — a mismatch indicates a login-CSRF attempt.
+    // Fix #6: verify the CSRF state token. SteamLoginButton stores a random UUID in
+    // s5_state (max-age 300s) and appends it to the login URL. The backend embeds it
+    // in openid.return_to; Steam carries it back here as a plain query param. Both the
+    // cookie and the URL param MUST be present and match — a missing cookie (expired
+    // mid-flow or cleared) is treated as a mismatch, otherwise the check would be
+    // silently skipped exactly when it matters (login-CSRF protection).
     const stateFromUrl = url.searchParams.get('state');
     const stateFromCookie = req.cookies.get('s5_state')?.value;
-    if (stateFromCookie) {
-        if (!stateFromUrl || stateFromUrl !== stateFromCookie) {
-            console.error('[steam5] CSRF state mismatch — possible login-CSRF attack', {
-                hasUrlState: Boolean(stateFromUrl),
-                hasCookieState: Boolean(stateFromCookie),
-            });
-            const resp = NextResponse.redirect(new URL('/review-guesser/1?auth=csrf_error', base));
-            clearStateCookie(resp, base);
-            return resp;
-        }
+    if (!stateFromCookie || !stateFromUrl || stateFromUrl !== stateFromCookie) {
+        console.error('[steam5] CSRF state mismatch — possible login-CSRF attack', {
+            hasUrlState: Boolean(stateFromUrl),
+            hasCookieState: Boolean(stateFromCookie),
+        });
+        const resp = NextResponse.redirect(new URL('/review-guesser/1?auth=csrf_error', base));
+        clearStateCookie(resp, base);
+        return resp;
     }
 
     const qs = url.searchParams.toString();

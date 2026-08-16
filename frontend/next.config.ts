@@ -45,12 +45,12 @@ const nextConfig: NextConfig = {
         return [
             {
                 source: '/',
-                destination: '/review-guesser',
+                destination: '/review-guesser/1',
                 permanent: true,
             },
             {
                 source: '/rg',
-                destination: '/review-guesser',
+                destination: '/review-guesser/1',
                 permanent: true,
             },
             {

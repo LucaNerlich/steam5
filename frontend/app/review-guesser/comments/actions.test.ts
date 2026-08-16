@@ -123,6 +123,17 @@ describe('postCommentAction happy path and upstream errors', () => {
         consoleError.mockRestore();
     });
 
+    it('treats gateway timeouts (502/503/504) as outcome-unknown instead of a definitive failure', async () => {
+        fetchMock.mockResolvedValue(mockResponse(502, {}));
+
+        const res = await postCommentAction(undefined, form('2026-07-31', 'hello'));
+
+        expect(res.ok).toBe(false);
+        expect(res.outcomeUnknown).toBe(true);
+        expect(res.error).toMatch(/could not confirm/i);
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
     it('maps day_not_complete from ApiError.message to a friendly error', async () => {
         fetchMock.mockResolvedValue(mockResponse(400, {
             error: 'Bad Request',
