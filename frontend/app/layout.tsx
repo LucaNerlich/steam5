@@ -7,7 +7,6 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { AuthProvider } from "@/contexts/AuthContext";
 import localFont from "next/font/local";
-import Head from "next/head";
 
 const krypton = localFont({
     src: [
@@ -234,20 +233,18 @@ export default async function RootLayout({
             suppressHydrationWarning
             {...(serverTheme === 'dark' ? { 'data-theme': 'dark' } : {})}
         >
-        <Head>
-            <Script src="/theme-init.js" strategy="beforeInteractive"/>
-            <link rel="preconnect" href={origin}/>
-            <link rel="dns-prefetch" href={origin}/>
-            <script
-                type="application/ld+json"
-                dangerouslySetInnerHTML={{__html: JSON.stringify(websiteSchema)}}
-            />
-            <script
-                type="application/ld+json"
-                dangerouslySetInnerHTML={{__html: JSON.stringify(organizationSchema)}}
-            />
-        </Head>
         <body>
+        <Script src="/theme-init.js" strategy="beforeInteractive"/>
+        <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{__html: JSON.stringify(websiteSchema)}}
+        />
+        <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{__html: JSON.stringify(organizationSchema)}}
+        />
+        <link rel="preconnect" href={origin}/>
+        <link rel="dns-prefetch" href={origin}/>
         <AuthProvider initialAuth={authState}>
             <Header/>
             <main>
