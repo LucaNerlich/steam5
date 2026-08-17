@@ -496,6 +496,26 @@ class SeasonServiceTest {
         assertEquals(2.0d, highlights.busiest().avgScore());
     }
 
+    @Test
+    void backfillRange_createsSeasonsBeforeTheEarliestExistingSeason() {
+        // Season #1 was seeded at "today" by an on-demand request; historical
+        // guesses from early January must still be covered.
+        final LocalDate earliestGuess = LocalDate.of(2026, 1, 1);
+        final LocalDate latest = LocalDate.of(2026, 1, 31);
+        Season existing = seasonWith(1, LocalDate.of(2026, 2, 1), LocalDate.of(2026, 3, 2), SeasonStatus.ACTIVE);
+        when(seasonRepository.findFirstByOrderBySeasonNumberAsc()).thenReturn(Optional.of(existing));
+        when(seasonRepository.findTopByOrderBySeasonNumberDesc()).thenReturn(Optional.of(existing));
+        when(seasonRepository.save(any(Season.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        List<Season> created = service.backfillRange(earliestGuess, latest);
+
+        // Backward fill creates season(s) covering January before season #1 (now #2).
+        assertFalse(created.isEmpty());
+        assertTrue(created.stream().anyMatch(season -> !season.getStartDate().isAfter(earliestGuess)));
+        verify(seasonRepository, times(1)).shiftSeasonNumbersUpBy(1_000_000);
+        verify(seasonRepository, times(1)).shiftSeasonNumbersUpBy(-1_000_000 + created.size());
+    }
+
     // finalizeSeason ----------------------------------------------------------------------------
 
     @Test
@@ -509,6 +529,7 @@ class SeasonServiceTest {
         GuessRepository.SeasonStatRow rowB = statRow("playerB", 50L, 5L, 1L, 18L, 10L);
 
         when(seasonRepository.findById(20L)).thenReturn(Optional.of(season));
+        when(seasonRepository.claimForFinalization(20L)).thenReturn(1);
         when(guessRepository.findSeasonStats(season.getStartDate(), season.getEndDate()))
                 .thenReturn(List.of(rowA, rowB));
         when(guessRepository.findSeasonDates(season.getStartDate(), season.getEndDate()))
@@ -544,6 +565,7 @@ class SeasonServiceTest {
         GuessRepository.SeasonStatRow tooFewRounds = statRow("tooFewRounds", 999L, 5L, 0L, 5L, 5L);
 
         when(seasonRepository.findById(21L)).thenReturn(Optional.of(season));
+        when(seasonRepository.claimForFinalization(21L)).thenReturn(1);
         when(guessRepository.findSeasonStats(season.getStartDate(), season.getEndDate()))
                 .thenReturn(List.of(qualifies, tooFewRounds));
         when(guessRepository.findSeasonDates(season.getStartDate(), season.getEndDate()))
@@ -566,6 +588,7 @@ class SeasonServiceTest {
         Season season = seasonWith(22, LocalDate.of(2026, 3, 1), LocalDate.of(2026, 3, 30), SeasonStatus.ACTIVE);
 
         when(seasonRepository.findById(22L)).thenReturn(Optional.of(season));
+        when(seasonRepository.claimForFinalization(22L)).thenReturn(1);
         when(guessRepository.findSeasonStats(season.getStartDate(), season.getEndDate()))
                 .thenReturn(List.of());
         when(guessRepository.findSeasonDates(season.getStartDate(), season.getEndDate()))
@@ -576,6 +599,31 @@ class SeasonServiceTest {
 
         assertEquals(SeasonStatus.FINALIZED, result.getStatus());
         verify(awardResultRepository, times(1)).saveAll(List.of());
+    }
+
+    @Test
+    void finalizeSeason_rejectsSeasonsThatHaveNotEndedYet() {
+        Season season = seasonWith(30, LocalDate.of(2099, 1, 1), LocalDate.of(2099, 1, 30), SeasonStatus.ACTIVE);
+        when(seasonRepository.findById(30L)).thenReturn(Optional.of(season));
+
+        final org.springframework.web.server.ResponseStatusException ex = assertThrows(
+                org.springframework.web.server.ResponseStatusException.class,
+                () -> service.finalizeSeason(season));
+        assertEquals(409, ex.getStatusCode().value());
+        verify(guessRepository, never()).findSeasonStats(any(), any());
+    }
+
+    @Test
+    void finalizeSeason_skipsWhenClaimedConcurrently() {
+        Season season = seasonWith(31, LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 10), SeasonStatus.ACTIVE);
+        when(seasonRepository.findById(31L)).thenReturn(Optional.of(season));
+        when(seasonRepository.claimForFinalization(31L)).thenReturn(0);
+
+        Season result = service.finalizeSeason(season);
+
+        assertEquals(season, result);
+        verify(guessRepository, never()).findSeasonStats(any(), any());
+        verify(awardResultRepository, never()).deleteAllBySeasonId(any());
     }
 
     // backfillRange -------------------------------------------------------------------------

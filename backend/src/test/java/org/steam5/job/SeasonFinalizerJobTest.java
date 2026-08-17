@@ -13,7 +13,7 @@ import org.steam5.service.SeasonService;
 import java.time.LocalDate;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
@@ -81,13 +81,12 @@ class SeasonFinalizerJobTest {
     }
 
     @Test
-    void execute_refreshFails_isCaughtAndDoesNotPropagateButStillEvicts() {
+    void execute_refreshFails_isRethrownAsJobExecutionExceptionButStillEvicts() {
         doThrow(new RuntimeException("boom")).when(leaderboardRefreshService).refreshSeason();
 
-        // Matches this job's existing behavior for a SeasonService failure: caught and
-        // logged, never rethrown as JobExecutionException. Eviction still runs in the
-        // finally block regardless of the failure.
-        assertDoesNotThrow(() -> job.execute(mock(JobExecutionContext.class)));
+        // A failed finalization must surface as a failed Quartz execution so metrics
+        // and alerting see it; eviction still runs in the finally block.
+        assertThrows(JobExecutionException.class, () -> job.execute(mock(JobExecutionContext.class)));
 
         verify(cacheEvictor).evictLeaderboardStatic();
     }

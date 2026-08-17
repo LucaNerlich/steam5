@@ -27,6 +27,8 @@ public class PlayerSpotlightJob implements Job {
             playerSpotlightService.computeAndPersistForToday();
         } catch (Exception ex) {
             log.error("PlayerSpotlight computation failed", ex);
+            // Rethrow so Quartz records the failure instead of reporting success.
+            throw new JobExecutionException(ex, false);
         } finally {
             long durationMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
             log.info("PlayerSpotlightJob completed in {}ms; next fire {}",

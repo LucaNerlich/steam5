@@ -58,11 +58,16 @@ public class SeasonController {
     }
 
     @GetMapping
-    @Cacheable(value = "season-list-response", key = "'limit:' + #limit + ':include:' + #includeCurrent", unless = "#result == null || #result.body == null")
     public ResponseEntity<List<SeasonView>> seasons(
             @RequestParam(name = "limit", defaultValue = "5") int limit,
             @RequestParam(name = "includeCurrent", defaultValue = "false") boolean includeCurrent) {
-        final int normalizedLimit = Math.max(1, Math.min(limit, 25));
+        // Clamp BEFORE the cacheable call so arbitrarily many distinct limit
+        // values cannot create distinct cache entries (cache churn).
+        return seasonsNormalized(Math.max(1, Math.min(limit, 25)), includeCurrent);
+    }
+
+    @Cacheable(value = "season-list-response", key = "'limit:' + #normalizedLimit + ':include:' + #includeCurrent", unless = "#result == null || #result.body == null")
+    public ResponseEntity<List<SeasonView>> seasonsNormalized(int normalizedLimit, boolean includeCurrent) {
         List<Season> seasons = seasonService.listSeasonsDescending();
         List<SeasonView> response = new ArrayList<>();
         for (Season season : seasons) {

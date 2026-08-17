@@ -16,6 +16,8 @@ import org.steam5.domain.StreakCalculator;
 import org.steam5.repository.GuessRepository;
 import org.steam5.repository.SeasonAwardResultRepository;
 import org.steam5.repository.SeasonRepository;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -183,10 +185,32 @@ public class SeasonService {
         }
 
         final List<Season> created = new ArrayList<>();
+
+        // Backward fill: when the earliest season starts AFTER the earliest guess
+        // date (typically because an on-demand ensureSeasonForDate seeded season #1
+        // at "today"), all historical guesses before it would stay outside any
+        // season forever. Shift the existing seasons up to make room, then create
+        // the missing early seasons so season #1 starts at the earliest data.
+        final Optional<Season> earliest = seasonRepository.findFirstByOrderBySeasonNumberAsc();
+        if (earliest.isPresent() && earliest.get().getStartDate().isAfter(startInclusive)) {
+            final int missing = missingSeasonCount(startInclusive, earliest.get().getStartDate());
+            if (missing > 0) {
+                // Two-step shift avoids unique-index collisions while renumbering:
+                // first move everything far out of the way, then to its final slot.
+                seasonRepository.shiftSeasonNumbersUpBy(1_000_000);
+                seasonRepository.shiftSeasonNumbersUpBy(missing - 1_000_000);
+                for (int number = missing; number >= 1; number--) {
+                    final LocalDate start = earliest.get().getStartDate().minusDays((long) number * seasonLengthDays());
+                    created.add(seasonRepository.save(buildSeason(number, start, SeasonStatus.ACTIVE)));
+                }
+            }
+        }
+
         Season last = seasonRepository.findTopByOrderBySeasonNumberDesc().orElse(null);
         int nextNumber;
 
         if (last == null) {
+            // Empty table: seed season #1 at the earliest guess date.
             last = seasonRepository.save(buildSeason(1, startInclusive, SeasonStatus.ACTIVE));
             created.add(last);
             nextNumber = 2;
@@ -203,11 +227,37 @@ public class SeasonService {
         return created;
     }
 
+    /** Number of full season windows needed to cover {@code [startInclusive, earliestStart)}. */
+    private int missingSeasonCount(LocalDate startInclusive, LocalDate earliestStart) {
+        final long days = ChronoUnit.DAYS.between(startInclusive, earliestStart);
+        if (days <= 0) return 0;
+        final int length = seasonLengthDays();
+        return (int) ((days + length - 1) / length);
+    }
+
     @Transactional
     @CacheEvict(value = {"season-current-response", "season-list-response", "season-awards-response", "season-awards", "player-awards", "season-detail-response"}, allEntries = true)
     public Season finalizeSeason(Season season) {
         Objects.requireNonNull(season, "season");
         Season managed = seasonRepository.findById(season.getId()).orElse(season);
+
+        // Guard: only seasons that have fully ended may be finalized — freezing
+        // awards computed from partial mid-season data would corrupt published
+        // results permanently.
+        if (!managed.getEndDate().isBefore(todayUtc())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Season #" + managed.getSeasonNumber() + " has not ended yet and cannot be finalized");
+        }
+
+        // Atomic claim: flips ACTIVE → FINALIZED up front, so two concurrent
+        // finalizers (multi-instance cron) cannot both delete/re-insert award
+        // sets; the loser skips the duplicate work entirely.
+        final int claimed = seasonRepository.claimForFinalization(managed.getId());
+        if (claimed == 0) {
+            log.info("Season #{} finalization was claimed by another instance; skipping duplicate work.", managed.getSeasonNumber());
+            return managed;
+        }
+
         log.info("Finalizing season #{} ({} - {})", managed.getSeasonNumber(), managed.getStartDate(), managed.getEndDate());
 
         List<GuessRepository.SeasonStatRow> rows = guessRepository.findSeasonStats(managed.getStartDate(), managed.getEndDate());
