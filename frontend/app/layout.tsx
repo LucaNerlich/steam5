@@ -196,6 +196,7 @@ async function resolveAuth() {
             {
                 headers: { 'accept': 'application/json', 'authorization': `Bearer ${token}` },
                 cache: 'no-store',
+                signal: AbortSignal.timeout(3000),
             }
         );
 

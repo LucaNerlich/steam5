@@ -15,6 +15,9 @@ export async function GET(req: NextRequest) {
         const res = await fetch(`${BACKEND_ORIGIN}/api/auth/validate`, {
             headers: {authorization: `Bearer ${token}`, ...forwardedForHeaders(req)},
             cache: 'no-store',
+            // A hung backend must not stall the route handler indefinitely (same
+            // pattern as resolveAuth in the root layout).
+            signal: AbortSignal.timeout(3000),
         });
         if (!res.ok) return NextResponse.json({signedIn: false}, {status: 200, headers: NO_STORE});
         const data = await res.json();

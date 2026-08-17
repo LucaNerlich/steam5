@@ -25,7 +25,23 @@ export function placementTier(level: number): 'gold' | 'silver' | 'bronze' | 'ne
 }
 
 export function formatDate(date: string | Date, locale?: string): string {
-    const d = typeof date === 'string' ? new Date(date) : date;
+    let d: Date;
+    if (typeof date === 'string') {
+        // Date-only game-day identifiers (YYYY-MM-DD) are parsed as UTC midnight by the
+        // spec; render them pinned to UTC so they never shift a day in negative-offset
+        // timezones. Full timestamps keep rendering in the visitor's local timezone.
+        if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+            d = new Date(date);
+            // Some engines leniently roll over impossible calendar dates
+            // (e.g. 2024-02-31 -> Mar 2); only accept a real calendar day.
+            if (Number.isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== date) return '';
+            return d.toLocaleDateString(locale, {year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC'});
+        }
+        d = new Date(date);
+    } else {
+        d = date;
+    }
+    if (Number.isNaN(d.getTime())) return '';
     return d.toLocaleDateString(locale, {year: 'numeric', month: 'short', day: 'numeric'});
 }
 

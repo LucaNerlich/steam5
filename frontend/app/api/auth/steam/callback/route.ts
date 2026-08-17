@@ -4,11 +4,13 @@ import {forwardedForHeaders} from "@/lib/backend";
 
 const BACKEND_ORIGIN = process.env.NEXT_PUBLIC_API_DOMAIN || "http://localhost:8080";
 
-/** Derive the redirect base from forwarded headers (CDN/proxy) or the request origin. */
+/** Trusted public origin of this site; never derived from client-supplied headers. */
+const SITE_ORIGIN = (process.env.NEXT_PUBLIC_DOMAIN || "").replace(/\/$/, "");
+
+/** Resolve the redirect base from configuration only, falling back to the request origin. */
 function resolveBase(req: NextRequest): string {
-    const xfHost = req.headers.get('x-forwarded-host');
-    const xfProto = req.headers.get('x-forwarded-proto') || 'https';
-    return xfHost ? `${xfProto}://${xfHost}` : new URL(req.url).origin;
+    if (SITE_ORIGIN) return SITE_ORIGIN;
+    return new URL(req.url).origin;
 }
 
 /** Clear the CSRF state cookie — called on every code path so it never lingers. */
@@ -48,7 +50,11 @@ export async function GET(req: NextRequest) {
     const verifyUrl = `${BACKEND_ORIGIN}/api/auth/steam/callback${qs ? `?${qs}` : ''}`;
 
     try {
-        const res = await fetch(verifyUrl, {headers: {accept: 'application/json', ...forwardedForHeaders(req)}});
+        // The backend verifies the OpenID ticket against Steam's API, so this is
+        // an upstream HTTP roundtrip; bound it with a generous timeout so a hung
+        // backend or Steam outage degrades to the auth=error redirect instead of
+        // stalling the route handler indefinitely.
+        const res = await fetch(verifyUrl, {headers: {accept: 'application/json', ...forwardedForHeaders(req)}, signal: AbortSignal.timeout(10000)});
         if (!res.ok) {
             console.log('[steam5] callback verify failed', {base, status: res.status});
             const resp = NextResponse.redirect(new URL('/review-guesser/1?auth=failed', base));

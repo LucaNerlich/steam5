@@ -1,10 +1,13 @@
 import {revalidatePath, revalidateTag} from 'next/cache';
 import {NextRequest, NextResponse} from 'next/server';
 
+/** Trusted public origin of this site; never derived from client-supplied headers. */
+const SITE_ORIGIN = (process.env.NEXT_PUBLIC_DOMAIN || "").replace(/\/$/, "");
+
+// POST (not GET): SameSite=Lax cookies are not sent on cross-site POSTs, so a
+// third-party page cannot force-logout the user via an <img>/GET request.
 export async function POST(req: NextRequest) {
-    const xfHost = req.headers.get('x-forwarded-host');
-    const xfProto = req.headers.get('x-forwarded-proto') || 'https';
-    const base = (xfHost ? `${xfProto}://${xfHost}` : new URL(req.url).origin);
+    const base = SITE_ORIGIN || new URL(req.url).origin;
     const resp = NextResponse.redirect(new URL('/review-guesser/1', base));
 
     // Clear-Site-Data instructs the browser to sweep all cookies for this origin in

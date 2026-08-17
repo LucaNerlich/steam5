@@ -37,8 +37,27 @@ describe('formatDate', () => {
         expect(formatDate('2024-01-15', 'en-US')).toBe('Jan 15, 2024');
     });
 
+    it('keeps date-only strings on their calendar day in a negative-offset timezone', () => {
+        // Regression guard for the off-by-one in western timezones: a date-only
+        // string parsed as UTC midnight must render as the same calendar day,
+        // regardless of the process timezone (e.g. America/Los_Angeles = UTC-8).
+        const previousTz = process.env.TZ;
+        process.env.TZ = 'America/Los_Angeles';
+        try {
+            expect(formatDate('2024-01-15', 'en-US')).toBe('Jan 15, 2024');
+        } finally {
+            if (previousTz === undefined) delete process.env.TZ;
+            else process.env.TZ = previousTz;
+        }
+    });
+
     it('accepts a Date instance', () => {
         expect(formatDate(new Date('2024-12-31T00:00:00Z'), 'en-US')).toBe('Dec 31, 2024');
+    });
+
+    it('returns an empty string for an unparseable date', () => {
+        expect(formatDate('not-a-date', 'en-US')).toBe('');
+        expect(formatDate('2024-02-31', 'en-US')).toBe('');
     });
 });
 

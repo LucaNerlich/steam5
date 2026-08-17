@@ -49,7 +49,16 @@ spring:
       include-message: always
 server:
   port: ${SERVER_PORT:8080}
-  forward-headers-strategy: framework
+  forward-headers-strategy: native
+  tomcat:
+    remoteip:
+      # Trust X-Forwarded-* headers only when the immediate socket peer is an
+      # internal one (Traefik/Coolify, the Next.js server, other containers on
+      # private/CGNAT/ULA networks — Spring Boot's canonical safe set, in CIDR
+      # form, which also covers IPv6-enabled Docker networks). Forged headers
+      # from external clients are ignored and rate limiting falls back to the
+      # real socket address.
+      internal-proxies: "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,169.254.0.0/16,127.0.0.0/8,100.64.0.0/10,fc00::/7,fe80::/10,::1/128"
   compression:
     enabled: true
     mime-types: application/json, text/html, text/plain

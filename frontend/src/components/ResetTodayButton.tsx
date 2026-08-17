@@ -26,12 +26,6 @@ export default function ResetTodayButton() {
                 `${prefix}${utcToday}`,
                 `${prefix}${localToday}`,
             ]);
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                if (key && key.startsWith(prefix)) {
-                    candidates.add(key);
-                }
-            }
             candidates.forEach((k) => localStorage.removeItem(k));
         } catch {
             // ignore

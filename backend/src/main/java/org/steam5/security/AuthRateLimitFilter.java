@@ -60,8 +60,9 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain chain) throws ServletException, IOException {
-        // server.forward-headers-strategy=framework ensures getRemoteAddr() returns
-        // the real client IP after X-Forwarded-For processing.
+        // server.forward-headers-strategy=native (Tomcat RemoteIpValve) rewrites
+        // getRemoteAddr() from X-Forwarded-For only when the socket peer is a
+        // trusted internal proxy (server.tomcat.remoteip.internal-proxies).
         final String ip = request.getRemoteAddr();
         final AtomicInteger count = requestCounts.get(ip, k -> new AtomicInteger(0));
 

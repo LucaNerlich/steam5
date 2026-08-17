@@ -1,6 +1,5 @@
 import type {Metadata} from "next";
 import type {ReviewGameState} from "@/types/review-game";
-import Link from "next/link";
 import ReviewGuesserHero from "@/components/ReviewGuesserHero";
 import GameInfoSection from "@/components/GameInfoSection";
 import NewsBox from "@/components/NewsBox";
@@ -8,9 +7,21 @@ import PlayerSpotlight from "@/components/PlayerSpotlight";
 import ReviewGuesserRound from "@/components/ReviewGuesserRound";
 import {Suspense} from "react";
 import {cookies} from "next/headers";
+import {notFound} from "next/navigation";
 import {BACKEND_ORIGIN as backend} from "@/lib/backend";
 
 export const revalidate = 60;
+
+/**
+ * Parses a round path segment. The complete string must be a positive safe
+ * integer — partial matches like "1abc", "1.5", or "1e2" are rejected so
+ * malformed URLs consistently 404 instead of silently becoming round 1.
+ */
+function parseRoundIndex(round: string | undefined): number | null {
+    if (typeof round !== 'string' || !/^\d+$/.test(round)) return null;
+    const n = Number(round);
+    return Number.isSafeInteger(n) && n >= 1 ? n : null;
+}
 
 async function loadToday(): Promise<ReviewGameState> {
     const res = await fetch(`${backend}/api/review-game/today`, {
@@ -49,19 +60,17 @@ async function loadMyGuesses(): Promise<ServerGuess[]> {
 
 export default async function ReviewGuesserRoundPage({params}: { params: Promise<{ round: string }> }) {
     const {round} = await params;
-    const roundIndex = Math.max(1, Number.parseInt(round || '1', 10));
+    const roundIndex = parseRoundIndex(round);
+    if (roundIndex === null) {
+        notFound();
+    }
     const today = await loadToday();
 
     const totalRounds = today.picks.length;
     const pick = today.picks[roundIndex - 1];
 
     if (!pick) {
-        return (
-            <section className="container">
-                <p>No pick for this round. You may have finished all rounds.</p>
-                <Link href="/review-guesser/1">Go to first round</Link>
-            </section>
-        );
+        notFound();
     }
 
     // Preload existing guesses to avoid client-side flicker for authenticated users.
@@ -120,51 +129,17 @@ export default async function ReviewGuesserRoundPage({params}: { params: Promise
 
 export async function generateMetadata({params}: { params: Promise<{ round: string }> }): Promise<Metadata> {
     const {round} = await params;
+    const roundIndex = parseRoundIndex(round);
+    if (roundIndex === null) {
+        notFound();
+    }
+    let today: ReviewGameState;
     try {
-        const today: ReviewGameState = await fetch(`${backend}/api/review-game/today`, {
-            headers: {"accept": "application/json"},
-            next: {revalidate: 60, tags: ['round-today']}
-        }).then(r => r.json());
-        const roundIndex = Math.max(1, Number.parseInt(round || '1', 10));
-        const pick = today.picks[roundIndex - 1];
-        const title = pick ? `Review Guesser — Round ${roundIndex} of ${today.picks.length}` : `Review Guesser`;
-        const description = pick ? `${pick.name} — Can you guess how many Steam reviews it has?` : `Play today's Steam Review guessing game.`;
-        const base = (process.env.NEXT_PUBLIC_DOMAIN || 'https://steam5.org').replace(/\/$/, '');
-        const firstShot = pick?.screenshots?.[0];
-        const rawImg = firstShot?.pathFull || firstShot?.pathThumbnail || '/opengraph-image';
-        let imageUrl: string;
-        try {
-            imageUrl = new URL(rawImg).toString();
-        } catch {
-            imageUrl = new URL(rawImg.startsWith('/') ? rawImg : `/${rawImg}`, base).toString();
-        }
-        return {
-            title,
-            description,
-            keywords: [
-                'Steam',
-                'Steam reviews',
-                'review guessing game',
-                'daily challenge',
-                `round ${roundIndex}`,
-                ...(pick?.name ? [pick.name] : [])
-            ],
-            alternates: {
-                canonical: `/review-guesser/${roundIndex}`,
-            },
-            openGraph: {
-                title,
-                description,
-                url: `/review-guesser/${roundIndex}`,
-                images: [imageUrl],
-            },
-            twitter: {
-                card: 'summary_large_image',
-                title,
-                description,
-                images: [imageUrl],
-            },
-        };
+        // Reuse loadToday() so non-2xx responses (or unparseable bodies) are
+        // treated as failures and fall back to the generic metadata below —
+        // parsing the body of a 400/500 would leave today.picks undefined and
+        // throw outside this try block.
+        today = await loadToday();
     } catch (error) {
         console.error('Failed to load today', error);
 
@@ -182,12 +157,12 @@ export async function generateMetadata({params}: { params: Promise<{ round: stri
                 'daily challenge'
             ],
             alternates: {
-                canonical: `/review-guesser/${round || '1'}`,
+                canonical: `/review-guesser/${round}`,
             },
             openGraph: {
                 title,
                 description,
-                url: `/review-guesser/${round || '1'}`,
+                url: `/review-guesser/${round}`,
                 images: [ogUrl.toString()],
             },
             twitter: {
@@ -198,6 +173,49 @@ export async function generateMetadata({params}: { params: Promise<{ round: stri
             },
         };
     }
+
+    const pick = today.picks[roundIndex - 1];
+    if (!pick) {
+        notFound();
+    }
+    const title = `Review Guesser — Round ${roundIndex} of ${today.picks.length}`;
+    const description = `${pick.name} — Can you guess how many Steam reviews it has?`;
+    const base = (process.env.NEXT_PUBLIC_DOMAIN || 'https://steam5.org').replace(/\/$/, '');
+    const firstShot = pick.screenshots?.[0];
+    const rawImg = firstShot?.pathFull || firstShot?.pathThumbnail || '/opengraph-image';
+    let imageUrl: string;
+    try {
+        imageUrl = new URL(rawImg).toString();
+    } catch {
+        imageUrl = new URL(rawImg.startsWith('/') ? rawImg : `/${rawImg}`, base).toString();
+    }
+    return {
+        title,
+        description,
+        keywords: [
+            'Steam',
+            'Steam reviews',
+            'review guessing game',
+            'daily challenge',
+            `round ${roundIndex}`,
+            pick.name
+        ],
+        alternates: {
+            canonical: `/review-guesser/${roundIndex}`,
+        },
+        openGraph: {
+            title,
+            description,
+            url: `/review-guesser/${roundIndex}`,
+            images: [imageUrl],
+        },
+        twitter: {
+            card: 'summary_large_image',
+            title,
+            description,
+            images: [imageUrl],
+        },
+    };
 }
 
 
