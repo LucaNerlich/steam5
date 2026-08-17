@@ -79,7 +79,9 @@ export async function submitGuessAction(_prev: GuessActionState | undefined, for
         // sent to the anonymous endpoint (no cookie) is not saved to the leaderboard.
         return {ok: true, response: json, persisted: Boolean(token)};
     } catch (e) {
-        return {ok: false, error: e instanceof Error ? e.message : 'Unknown error'};
+        console.error('submitGuessAction failed', e);
+        // Do not surface fetch internals (hosts, ports, connection errors) to the client.
+        return {ok: false, error: 'Could not reach the game server — try again'};
     }
 }
 

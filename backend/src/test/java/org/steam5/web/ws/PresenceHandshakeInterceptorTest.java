@@ -30,6 +30,28 @@ class PresenceHandshakeInterceptorTest {
     }
 
     @Test
+    void ticketSubprotocolExtractsPrefixedToken() {
+        assertEquals("s5ticket.jwt.value",
+                PresenceHandshakeInterceptor.ticketSubprotocol("s5ticket.jwt.value"));
+    }
+
+    @Test
+    void ticketSubprotocolHandlesMultipleOfferedProtocols() {
+        assertEquals("s5ticket.jwt.value",
+                PresenceHandshakeInterceptor.ticketSubprotocol("chat, s5ticket.jwt.value"));
+        assertEquals("s5ticket.jwt.value",
+                PresenceHandshakeInterceptor.ticketSubprotocol("s5ticket.jwt.value, chat"));
+    }
+
+    @Test
+    void ticketSubprotocolReturnsNullWhenAbsentOrEmpty() {
+        assertNull(PresenceHandshakeInterceptor.ticketSubprotocol(null));
+        assertNull(PresenceHandshakeInterceptor.ticketSubprotocol("chat"));
+        assertNull(PresenceHandshakeInterceptor.ticketSubprotocol("s5ticket."));
+        assertNull(PresenceHandshakeInterceptor.ticketSubprotocol(""));
+    }
+
+    @Test
     void loggableClientRefHashesIpWithoutEchoingRawValue() {
         final String hashed = PresenceHandshakeInterceptor.loggableClientRef("203.0.113.10");
 

@@ -7,7 +7,6 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { AuthProvider } from "@/contexts/AuthContext";
 import localFont from "next/font/local";
-import Head from "next/head";
 
 const krypton = localFont({
     src: [
@@ -105,6 +104,16 @@ const organizationSchema = {
     email: 'luca.nerlich@gmail.com'
 };
 
+const metadataBase = (() => {
+    try {
+        return new URL(origin);
+    } catch {
+        // Invalid NEXT_PUBLIC_DOMAIN (e.g. missing protocol) — omit metadataBase
+        // instead of crashing every page at build/SSR time.
+        return undefined;
+    }
+})();
+
 export const metadata: Metadata = {
     title: {
         default: 'Steam5',
@@ -131,7 +140,7 @@ export const metadata: Metadata = {
     alternates: {
         canonical: `/`,
     },
-    metadataBase: new URL((process.env.NEXT_PUBLIC_DOMAIN || 'https://steam5.org').replace(/\/$/, '')),
+    metadataBase,
     openGraph: {
         emails: 'luca.nerlich@gmail.com',
         title: 'Steam5',
@@ -235,20 +244,18 @@ export default async function RootLayout({
             suppressHydrationWarning
             {...(serverTheme === 'dark' ? { 'data-theme': 'dark' } : {})}
         >
-        <Head>
-            <Script src="/theme-init.js" strategy="beforeInteractive"/>
-            <link rel="preconnect" href={origin}/>
-            <link rel="dns-prefetch" href={origin}/>
-            <script
-                type="application/ld+json"
-                dangerouslySetInnerHTML={{__html: JSON.stringify(websiteSchema)}}
-            />
-            <script
-                type="application/ld+json"
-                dangerouslySetInnerHTML={{__html: JSON.stringify(organizationSchema)}}
-            />
-        </Head>
         <body>
+        <Script src="/theme-init.js" strategy="beforeInteractive"/>
+        <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{__html: JSON.stringify(websiteSchema)}}
+        />
+        <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{__html: JSON.stringify(organizationSchema)}}
+        />
+        <link rel="preconnect" href={origin}/>
+        <link rel="dns-prefetch" href={origin}/>
         <AuthProvider initialAuth={authState}>
             <Header/>
             <main>

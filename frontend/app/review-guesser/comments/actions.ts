@@ -76,6 +76,15 @@ export async function postCommentAction(
         if (res.status === 401) {
             return {ok: false, unauthorized: true, error: 'Sign in with Steam to post a comment.'};
         }
+        if (res.status === 502 || res.status === 503 || res.status === 504) {
+            // Gateway-level failure after the backend may have committed the comment:
+            // treat it like a network failure so the UI does not invite a duplicate post.
+            return {
+                ok: false,
+                outcomeUnknown: true,
+                error: 'We could not confirm whether your comment was posted. Check the list before posting again.',
+            };
+        }
         if (!res.ok) {
             const err = await res.json().catch(() => ({})) as {error?: string; message?: string};
             const code = upstreamErrorCode(err);

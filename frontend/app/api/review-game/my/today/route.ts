@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
         return NextResponse.json(data, {status: res.status, headers: {"Cache-Control": "private, no-store"}});
     } catch (e) {
         console.error(e);
-        return NextResponse.json([], {status: 200, headers: {"Cache-Control": "private, no-store"}});
+        return NextResponse.json({error: "Failed to load today's guesses"}, {status: 502, headers: {"Cache-Control": "private, no-store"}});
     }
 }
 

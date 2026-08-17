@@ -5,6 +5,7 @@ import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
+import org.steam5.domain.GameDate;
 import org.steam5.domain.ReviewGamePick;
 import org.steam5.domain.Season;
 import org.steam5.repository.GuessRepository;
@@ -156,7 +157,7 @@ public class StatisticsService {
         final Set<String> alreadyAwarded = new HashSet<>();
 
         // Calculate date range for timeframe
-        final LocalDate today = LocalDate.now();
+        final LocalDate today = GameDate.todayUtc();
         final LocalDate startDate;
         final LocalDate endDate;
 

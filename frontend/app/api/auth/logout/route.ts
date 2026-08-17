@@ -4,7 +4,9 @@ import {NextRequest, NextResponse} from 'next/server';
 /** Trusted public origin of this site; never derived from client-supplied headers. */
 const SITE_ORIGIN = (process.env.NEXT_PUBLIC_DOMAIN || "").replace(/\/$/, "");
 
-export async function GET(req: NextRequest) {
+// POST (not GET): SameSite=Lax cookies are not sent on cross-site POSTs, so a
+// third-party page cannot force-logout the user via an <img>/GET request.
+export async function POST(req: NextRequest) {
     const base = SITE_ORIGIN || new URL(req.url).origin;
     const resp = NextResponse.redirect(new URL('/review-guesser/1', base));
 

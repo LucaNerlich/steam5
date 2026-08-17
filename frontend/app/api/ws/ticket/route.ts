@@ -4,6 +4,12 @@ import {forwardedForHeaders} from '@/lib/backend';
 
 const BACKEND_ORIGIN = process.env.API_DOMAIN || process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
 const isDevelopment = process.env.NODE_ENV === 'development';
+// Explicitly trusted internal backend origins (e.g. 'http://backend:8080' in
+// docker/k8s deployments) that may serve tickets over plain HTTP in production.
+const ALLOWED_BACKEND_ORIGINS = (process.env.ALLOWED_BACKEND_ORIGINS || '')
+    .split(',')
+    .map(s => s.trim())
+    .filter(s => s.length > 0);
 
 // Per-user, short-lived — must never be cached by Next, a CDN, or a proxy.
 const NO_STORE = {"Cache-Control": "private, no-store"} as const;
@@ -50,9 +56,14 @@ export async function GET(request: NextRequest) {
     if (!token) return NextResponse.json({ticket: null}, {status: 200, headers: NO_STORE});
 
     // Bearer tokens must not cross the network in plaintext — but a loopback
-    // backend never leaves the host, so it's exempt from the HTTPS requirement.
-    if (!isDevelopment && !isLoopbackOrigin(BACKEND_ORIGIN) && !BACKEND_ORIGIN.startsWith('https://')) {
-        console.error('[ws-ticket] Backend origin must use HTTPS in production:', BACKEND_ORIGIN);
+    // backend never leaves the host, and explicitly allow-listed internal
+    // origins (ALLOWED_BACKEND_ORIGINS) are trusted, so both are exempt from
+    // the HTTPS requirement.
+    if (!isDevelopment
+        && !isLoopbackOrigin(BACKEND_ORIGIN)
+        && !BACKEND_ORIGIN.startsWith('https://')
+        && !ALLOWED_BACKEND_ORIGINS.includes(BACKEND_ORIGIN)) {
+        console.error('[ws-ticket] Backend origin must use HTTPS in production (or be listed in ALLOWED_BACKEND_ORIGINS):', BACKEND_ORIGIN);
         return NextResponse.json({ticket: null}, {status: 200, headers: NO_STORE});
     }
     try {

@@ -78,6 +78,32 @@ class LeaderboardServiceTest {
     }
 
     @Test
+    void buildLeaderboard_tieBreaksByAscendingSteamId() {
+        LocalDate asOfDate = LocalDate.now();
+        // Both users will have totalPoints = 5
+        Guess g1 = new Guess(1L, "u2", asOfDate, 1, 100L, "1-100", "1-100", 5, OffsetDateTime.now());
+        Guess g2 = new Guess(2L, "u1", asOfDate, 1, 100L, "1-100", "1-100", 5, OffsetDateTime.now());
+        List<Guess> guesses = List.of(g1, g2);
+
+        User user1 = new User();
+        user1.setSteamId("u1");
+        user1.setPersonaName("User One");
+        User user2 = new User();
+        user2.setSteamId("u2");
+        user2.setPersonaName("User Two");
+        when(userRepository.findAllById(any())).thenReturn(List.of(user1, user2));
+
+        List<LeaderboardService.LeaderEntry> result = service.buildLeaderboard(guesses, asOfDate);
+
+        assertEquals(2, result.size());
+        // With equal totalPoints (5), tie-breaker is ascending steamId
+        assertEquals("u1", result.get(0).steamId());
+        assertEquals(5L, result.get(0).totalPoints());
+        assertEquals("u2", result.get(1).steamId());
+        assertEquals(5L, result.get(1).totalPoints());
+    }
+
+    @Test
     void buildAllTimeLeaderboard_returnsAggregatedLeaders() {
         // all-time aggregates come from mv_leaderboard_all_time, pre-ordered by total points
         // descending (see mv-leaderboard-all-time.sql) — not walked from raw Guess rows.

@@ -10,15 +10,21 @@ const WIDTH = 600;
 const PADDING = 24;
 const BAR_W = WIDTH - PADDING * 2 - 60;
 
-function Row({y, label, pct, color}: { y: number; label: string; pct: number; color: string }) {
+function Row({y, label, pct, color}: { y: number; label: string; pct: number | null; color: string }) {
     return (
         <g>
             <text x={PADDING} y={y - 2} fontSize="16" fill="var(--color-muted)" textAnchor="start">{label}</text>
             <rect x={PADDING} y={y} width={BAR_W} height={16} fill="var(--color-border)"/>
-            <rect x={PADDING} y={y} width={Math.max(0, Math.min(1, pct / 100)) * BAR_W} height={14} fill={color}/>
-            <text x={PADDING + BAR_W + 4} y={y + 12} fontSize="14" fill="var(--color-muted)"
-                  textAnchor="start">{Math.round(pct)}%
-            </text>
+            {pct === null ? (
+                <text x={PADDING} y={y + 12} fontSize="14" fill="var(--color-muted)" textAnchor="start">No data</text>
+            ) : (
+                <>
+                    <rect x={PADDING} y={y} width={Math.max(0, Math.min(1, pct / 100)) * BAR_W} height={14} fill={color}/>
+                    <text x={PADDING + BAR_W + 4} y={y + 12} fontSize="14" fill="var(--color-muted)"
+                          textAnchor="start">{Math.round(pct)}%
+                    </text>
+                </>
+            )}
         </g>
     );
 }
@@ -63,7 +69,7 @@ export default function HitRateVsAverageCard({rounds}: { rounds: Round[] }): Rea
                  aria-label="Your hit rate vs global average">
                 <Row y={22} label={`You (last ${DAYS_WINDOW} days)`} pct={myHitRate}
                      color={'var(--color-primary, #6366f1)'}/>
-                <Row y={52} label={'All players (all‑time)'} pct={globalAvg ?? myHitRate} color={'var(--color-success, #16a34a)'}/>
+                <Row y={52} label={'All players (all‑time)'} pct={globalAvg} color={'var(--color-success, #16a34a)'}/>
             </svg>
         </div>
     );

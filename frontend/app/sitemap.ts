@@ -22,16 +22,23 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const baseUrl = (process.env.NEXT_PUBLIC_DOMAIN || 'https://steam5.org').replace(/\/$/, '');
     const existingDates = await loadExistingArchiveDates();
 
-    const routes = Object.values(Routes).filter((route): route is string => typeof route === 'string');
+    // These routes redirect (308/307) and must not appear in the sitemap —
+    // search engines would waste crawl budget on the redirect hops.
+    const redirectingRoutes = new Set(['/', '/review-guesser', '/review-guesser/random']);
+    const routes = Object.values(Routes).filter(
+        (route): route is string => typeof route === 'string' && !redirectingRoutes.has(route)
+    );
     const now = new Date();
     const staticPageFrequency = 'weekly' as const;
 
-    // Build list of archive dates from 2025-08-14 (inclusive) until today (UTC),
-    // limited to dates the backend actually has a challenge for.
+    // Build list of archive dates from 2025-08-14 (inclusive) until yesterday (UTC),
+    // limited to dates the backend actually has a challenge for. Today's challenge
+    // is served by /review-guesser/*; its archive copy duplicates the live game
+    // and is excluded.
     const startDate = new Date(Date.UTC(2025, 7, 14)); // Aug is 7 (0-based)
-    const todayUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    const yesterdayUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 1));
     const reviewGuesserArchive: string[] = [];
-    for (let d = new Date(startDate); d <= todayUtc; d = new Date(d.getTime() + 24 * 60 * 60 * 1000)) {
+    for (let d = new Date(startDate); d <= yesterdayUtc; d = new Date(d.getTime() + 24 * 60 * 60 * 1000)) {
         const date = d.toISOString().slice(0, 10); // yyyy-mm-dd
         if (existingDates.has(date)) {
             reviewGuesserArchive.push(date);
@@ -44,7 +51,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
             url: `${baseUrl}${route}`,
             lastModified: now,
             changeFrequency: staticPageFrequency,
-            priority: route === '/' ? 1 : 0.8,
+            priority: route === '/review-guesser/1' ? 1 : 0.8,
             alternates: {
                 languages: {
                     en: `${baseUrl}${route}`,
