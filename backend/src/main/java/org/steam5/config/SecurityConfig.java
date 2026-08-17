@@ -23,6 +23,7 @@ import org.springframework.security.web.authentication.www.BasicAuthenticationFi
 import org.steam5.security.AdminTokenFilter;
 import org.steam5.security.AuthRateLimitFilter;
 import org.steam5.security.PresenceRateLimitFilter;
+import org.steam5.security.ProfileRateLimitFilter;
 import org.steam5.security.UserSearchRateLimitFilter;
 
 import java.util.Arrays;
@@ -85,7 +86,8 @@ public class SecurityConfig {
                                                    AdminTokenFilter adminTokenFilter,
                                                    AuthRateLimitFilter authRateLimitFilter,
                                                    PresenceRateLimitFilter presenceRateLimitFilter,
-                                                   UserSearchRateLimitFilter userSearchRateLimitFilter) throws Exception {
+                                                   UserSearchRateLimitFilter userSearchRateLimitFilter,
+                                                   ProfileRateLimitFilter profileRateLimitFilter) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
@@ -112,6 +114,7 @@ public class SecurityConfig {
                 .addFilterBefore(authRateLimitFilter, BasicAuthenticationFilter.class)
                 .addFilterBefore(presenceRateLimitFilter, BasicAuthenticationFilter.class)
                 .addFilterBefore(userSearchRateLimitFilter, BasicAuthenticationFilter.class)
+                .addFilterBefore(profileRateLimitFilter, BasicAuthenticationFilter.class)
                 .addFilterBefore(adminTokenFilter, BasicAuthenticationFilter.class)
                 .httpBasic(basic -> {
                 })

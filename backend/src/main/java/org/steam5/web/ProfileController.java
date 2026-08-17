@@ -127,7 +127,9 @@ public class ProfileController {
                 ))
                 .toList());
 
-        return ResponseEntity.ok(out);
+        return ResponseEntity.ok()
+                .header("Cache-Control", "public, s-maxage=300, max-age=60")
+                .body(out);
     }
 
 }
