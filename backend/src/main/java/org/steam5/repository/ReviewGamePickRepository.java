@@ -16,10 +16,12 @@ import java.util.Optional;
 public interface ReviewGamePickRepository extends JpaRepository<ReviewGamePick, Long> {
 
     /**
-     * Returns all picks for one challenge day.
+     * Returns all picks for one challenge day, ordered by the player-visible
+     * round index (legacy rows without a round index fall back to id order).
      * Uses the index on review_game_pick.pick_date (idx_pick_date / equivalent).
      */
-    List<ReviewGamePick> findByPickDate(LocalDate pickDate);
+    @Query("SELECT p FROM ReviewGamePick p WHERE p.pickDate = :pickDate ORDER BY p.roundIndex ASC NULLS LAST, p.id ASC")
+    List<ReviewGamePick> findByPickDate(@Param("pickDate") LocalDate pickDate);
 
     /**
      * Batch day lookup used to avoid N+1 fetches when multiple dates are processed together.

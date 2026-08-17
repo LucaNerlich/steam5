@@ -82,13 +82,39 @@ public class BlurhashService {
         if (IMAGE_SIZES.get(type) == null) {
             throw new IllegalArgumentException("Invalid type=" + type);
         }
+        if (url == null || url.isBlank()) {
+            return null;
+        }
 
-        try (InputStream in = URI.create(url).toURL().openStream()) {
-            final BufferedImage img = ImageIO.read(in);
-            if (img == null) return null;
-            final String hash = BlurHash.encode(img, 4, 4);
-            final String data = toPngDataUrl(img, IMAGE_SIZES.get(type).width, IMAGE_SIZES.get(type).height);
-            return new Encoded(hash, data);
+        try {
+            final URI uri = URI.create(url);
+            final String scheme = uri.getScheme();
+            if (scheme == null || !("http".equalsIgnoreCase(scheme) || "https".equalsIgnoreCase(scheme))) {
+                // Never fetch non-HTTP sources (file:, ftp:, …) from DB-driven URLs.
+                log.warn("Refusing to fetch blurhash source with unsupported scheme '{}'", scheme);
+                return null;
+            }
+
+            // Prefer HTTPS for plain-http Steam CDN URLs.
+            final URI target = "http".equalsIgnoreCase(scheme)
+                    ? URI.create("https://" + uri.toString().substring("http://".length()))
+                    : uri;
+            final java.net.HttpURLConnection conn = (java.net.HttpURLConnection) target.toURL().openConnection();
+            try {
+                // Explicit timeouts: a stalled Steam CDN connection must not hang a
+                // Quartz worker indefinitely (the scheduler only has 5 threads).
+                conn.setConnectTimeout(15_000);
+                conn.setReadTimeout(30_000);
+                try (InputStream in = conn.getInputStream()) {
+                    final BufferedImage img = ImageIO.read(in);
+                    if (img == null) return null;
+                    final String hash = BlurHash.encode(img, 4, 4);
+                    final String data = toPngDataUrl(img, IMAGE_SIZES.get(type).width, IMAGE_SIZES.get(type).height);
+                    return new Encoded(hash, data);
+                }
+            } finally {
+                conn.disconnect();
+            }
         } catch (Exception e) {
             log.error("Error encoding image from url={}", url, e);
             return null;

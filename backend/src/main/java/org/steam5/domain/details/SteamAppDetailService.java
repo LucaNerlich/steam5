@@ -55,7 +55,10 @@ public class SteamAppDetailService {
         if (trimmed.isEmpty()) return null;
         if (trimmed.startsWith("//")) return "https:" + trimmed;
         if (trimmed.startsWith("http://")) return "https://" + trimmed.substring(7);
-        return trimmed;
+        if (trimmed.startsWith("https://")) return trimmed;
+        // Only http(s) sources are allowed; drop anything else (file:, ftp:, …)
+        // so a non-HTTP URL can never reach the blurhash fetch pipeline.
+        return null;
     }
 
     private static String joinDlcIds(JsonNode dlcArray) {
@@ -121,10 +124,14 @@ public class SteamAppDetailService {
         detail.getDevelopers().clear();
         detail.getPublisher().clear();
         detail.getGenres().clear();
+        detail.getCategories().clear();
         detail.getScreenshots().clear();
         detail.getMovies().clear();
 
-        // Developers (lookup-or-create by name)
+        // Developers (atomic lookup-or-create by name: INSERT ... ON CONFLICT
+        // DO NOTHING + select — a plain check-then-insert would race concurrent
+        // upserts, the loser would violate the unique constraint and roll back
+        // the whole upsert, permanently excluding an otherwise-fine app)
         Set<String> seenDevelopers = new HashSet<>();
         for (JsonNode devNode : safeArray(data.path("developers"))) {
             final String rawName = devNode.asText(null);
@@ -132,13 +139,15 @@ public class SteamAppDetailService {
             if (StringUtils.isBlank(trimmedName)) continue;
             final String normalizedKey = trimmedName.toLowerCase();
             if (!seenDevelopers.add(normalizedKey)) continue;
-            final Developer dev = developerRepository
-                    .findByNameIgnoreCase(trimmedName)
-                    .orElseGet(() -> developerRepository.save(new Developer(null, trimmedName)));
+            final Developer dev = developerRepository.findByNameIgnoreCase(trimmedName)
+                    .orElseGet(() -> {
+                        developerRepository.insertIfAbsent(trimmedName);
+                        return developerRepository.findByNameIgnoreCase(trimmedName).orElseThrow();
+                    });
             detail.getDevelopers().add(dev);
         }
 
-        // Publishers (lookup-or-create by name)
+        // Publishers (atomic lookup-or-create by name)
         Set<String> seenPublishers = new HashSet<>();
         for (JsonNode pubNode : safeArray(data.path("publishers"))) {
             final String rawName = pubNode.asText(null);
@@ -146,13 +155,15 @@ public class SteamAppDetailService {
             if (StringUtils.isBlank(trimmedName)) continue;
             final String normalizedKey = trimmedName.toLowerCase();
             if (!seenPublishers.add(normalizedKey)) continue;
-            final Publisher pub = publisherRepository
-                    .findByNameIgnoreCase(trimmedName)
-                    .orElseGet(() -> publisherRepository.save(new Publisher(null, trimmedName)));
+            final Publisher pub = publisherRepository.findByNameIgnoreCase(trimmedName)
+                    .orElseGet(() -> {
+                        publisherRepository.insertIfAbsent(trimmedName);
+                        return publisherRepository.findByNameIgnoreCase(trimmedName).orElseThrow();
+                    });
             detail.getPublisher().add(pub);
         }
 
-        // Categories (lookup-or-create by description)
+        // Categories (atomic lookup-or-create by description)
         Set<String> seenCategories = new HashSet<>();
         for (JsonNode genreNode : safeArray(data.path("categories"))) {
             final String rawDesc = genreNode.path("description").asText(null);
@@ -160,13 +171,15 @@ public class SteamAppDetailService {
             if (StringUtils.isBlank(trimmedDesc)) continue;
             final String normalizedKey = trimmedDesc.toLowerCase();
             if (!seenCategories.add(normalizedKey)) continue;
-            final Category g = categoryRepository
-                    .findByDescriptionIgnoreCase(trimmedDesc)
-                    .orElseGet(() -> categoryRepository.save(new Category(null, trimmedDesc)));
+            final Category g = categoryRepository.findByDescriptionIgnoreCase(trimmedDesc)
+                    .orElseGet(() -> {
+                        categoryRepository.insertIfAbsent(trimmedDesc);
+                        return categoryRepository.findByDescriptionIgnoreCase(trimmedDesc).orElseThrow();
+                    });
             detail.getCategories().add(g);
         }
 
-        // Genres (lookup-or-create by description)
+        // Genres (atomic lookup-or-create by description)
         Set<String> seenGenres = new HashSet<>();
         for (JsonNode genreNode : safeArray(data.path("genres"))) {
             final String rawDesc = genreNode.path("description").asText(null);
@@ -174,9 +187,11 @@ public class SteamAppDetailService {
             if (StringUtils.isBlank(trimmedDesc)) continue;
             final String normalizedKey = trimmedDesc.toLowerCase();
             if (!seenGenres.add(normalizedKey)) continue;
-            final Genre g = genreRepository
-                    .findByDescriptionIgnoreCase(trimmedDesc)
-                    .orElseGet(() -> genreRepository.save(new Genre(null, trimmedDesc)));
+            final Genre g = genreRepository.findByDescriptionIgnoreCase(trimmedDesc)
+                    .orElseGet(() -> {
+                        genreRepository.insertIfAbsent(trimmedDesc);
+                        return genreRepository.findByDescriptionIgnoreCase(trimmedDesc).orElseThrow();
+                    });
             detail.getGenres().add(g);
         }
 

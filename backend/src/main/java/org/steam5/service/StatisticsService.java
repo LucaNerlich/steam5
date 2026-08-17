@@ -268,7 +268,11 @@ public class StatisticsService {
                 : reviewGamePickRepository.findByPickDateIn(pickDates).stream()
                 .collect(Collectors.groupingBy(ReviewGamePick::getPickDate));
         picksByDate.values().forEach(picks -> picks.sort(
-                Comparator.comparing(ReviewGamePick::getCreatedAt).thenComparing(ReviewGamePick::getId)
+                // Player-visible round order: the explicit round index persisted at
+                // generation time; legacy rows (null) fall back to createdAt/id.
+                Comparator.comparing(ReviewGamePick::getRoundIndex, Comparator.nullsLast(Comparator.naturalOrder()))
+                        .thenComparing(ReviewGamePick::getCreatedAt)
+                        .thenComparing(ReviewGamePick::getId)
         ));
 
         return rows.stream()

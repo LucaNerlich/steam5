@@ -74,12 +74,23 @@ public class SteamAppReviewsFetcher implements Fetcher {
                 }
                 final Long appId = idx.getAppId();
                 if (appId == null) continue;
-                fetchForAppId(appId);
+                // Bulk path: skip the aggregate cache clear per app (it would
+                // thrash the whole review-game cache up to batchLimit times per
+                // run); the cache is cleared once at the end of the job below.
+                fetchForAppId(appId, false);
                 ingestStateRepository.upsert("steam_app_reviews", appId, OffsetDateTime.now());
                 processed++;
                 cursor = appId;
             }
             more = page.hasNext() && processed < batchLimit;
+        }
+
+        if (processed > 0) {
+            final var reviewGame = cacheManager.getCache("review-game");
+            if (reviewGame != null) {
+                reviewGame.clear();
+                log.info("Cleared review-game cache after bulk reviews ingestion of {} apps", processed);
+            }
         }
 
         log.info("Reviews ingestion finished. processed={} batchLimit={} starting_after={}", processed, batchLimit, lastAppId);
