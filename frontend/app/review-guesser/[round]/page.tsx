@@ -12,6 +12,17 @@ import {BACKEND_ORIGIN as backend} from "@/lib/backend";
 
 export const revalidate = 60;
 
+/**
+ * Parses a round path segment. The complete string must be a positive safe
+ * integer — partial matches like "1abc", "1.5", or "1e2" are rejected so
+ * malformed URLs consistently 404 instead of silently becoming round 1.
+ */
+function parseRoundIndex(round: string | undefined): number | null {
+    if (typeof round !== 'string' || !/^\d+$/.test(round)) return null;
+    const n = Number(round);
+    return Number.isSafeInteger(n) && n >= 1 ? n : null;
+}
+
 async function loadToday(): Promise<ReviewGameState> {
     const res = await fetch(`${backend}/api/review-game/today`, {
         headers: {"accept": "application/json"},
@@ -49,11 +60,10 @@ async function loadMyGuesses(): Promise<ServerGuess[]> {
 
 export default async function ReviewGuesserRoundPage({params}: { params: Promise<{ round: string }> }) {
     const {round} = await params;
-    const parsedRound = Number.parseInt(round || '1', 10);
-    if (!Number.isInteger(parsedRound) || parsedRound < 1) {
+    const roundIndex = parseRoundIndex(round);
+    if (roundIndex === null) {
         notFound();
     }
-    const roundIndex = parsedRound;
     const today = await loadToday();
 
     const totalRounds = today.picks.length;
@@ -119,17 +129,17 @@ export default async function ReviewGuesserRoundPage({params}: { params: Promise
 
 export async function generateMetadata({params}: { params: Promise<{ round: string }> }): Promise<Metadata> {
     const {round} = await params;
-    const parsedRound = Number.parseInt(round || '1', 10);
-    if (!Number.isInteger(parsedRound) || parsedRound < 1) {
+    const roundIndex = parseRoundIndex(round);
+    if (roundIndex === null) {
         notFound();
     }
-    const roundIndex = parsedRound;
     let today: ReviewGameState;
     try {
-        today = await fetch(`${backend}/api/review-game/today`, {
-            headers: {"accept": "application/json"},
-            next: {revalidate: 60, tags: ['round-today']}
-        }).then(r => r.json());
+        // Reuse loadToday() so non-2xx responses (or unparseable bodies) are
+        // treated as failures and fall back to the generic metadata below —
+        // parsing the body of a 400/500 would leave today.picks undefined and
+        // throw outside this try block.
+        today = await loadToday();
     } catch (error) {
         console.error('Failed to load today', error);
 

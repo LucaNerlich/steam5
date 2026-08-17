@@ -37,8 +37,11 @@ export async function submitGuessAction(_prev: GuessActionState | undefined, for
     const appIdRaw = formData.get('appId');
     const bucketGuess = formData.get('bucketGuess');
 
-    const appId = typeof appIdRaw === 'string' ? Number.parseInt(appIdRaw, 10) : NaN;
-    if (!Number.isInteger(appId) || appId <= 0 || typeof bucketGuess !== 'string'
+    // Accept only complete decimal strings — parseInt would silently truncate
+    // prefixes like "10abc", "1.5", or "1e2" to 10/1 — and require a positive
+    // safe integer so oversized values never reach the backend.
+    const appId = typeof appIdRaw === 'string' && /^\d+$/.test(appIdRaw) ? Number(appIdRaw) : NaN;
+    if (!Number.isSafeInteger(appId) || appId <= 0 || typeof bucketGuess !== 'string'
         || bucketGuess.length === 0 || bucketGuess.length > MAX_BUCKET_GUESS_LENGTH) {
         return {ok: false, error: 'Invalid input'};
     }

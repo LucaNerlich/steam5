@@ -61,6 +61,18 @@ describe('submitGuessAction input validation', () => {
         expect(fetchMock).not.toHaveBeenCalled();
     });
 
+    it.each([
+        ['a prefixed string', '10abc'],
+        ['a decimal', '1.5'],
+        ['an exponent form', '1e2'],
+        ['leading/trailing whitespace', ' 10'],
+        ['an unsafe integer', '99999999999999999999'],
+    ])('rejects %s as appId', async (_label, raw) => {
+        const res = await submitGuessAction(undefined, form(raw, 'Positive'));
+        expect(res).toEqual({ok: false, error: 'Invalid input'});
+        expect(fetchMock).not.toHaveBeenCalled();
+    });
+
     it('rejects a missing bucketGuess', async () => {
         const res = await submitGuessAction(undefined, form(10, undefined));
         expect(res).toEqual({ok: false, error: 'Invalid input'});

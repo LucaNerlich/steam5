@@ -50,7 +50,11 @@ export async function GET(req: NextRequest) {
     const verifyUrl = `${BACKEND_ORIGIN}/api/auth/steam/callback${qs ? `?${qs}` : ''}`;
 
     try {
-        const res = await fetch(verifyUrl, {headers: {accept: 'application/json', ...forwardedForHeaders(req)}});
+        // The backend verifies the OpenID ticket against Steam's API, so this is
+        // an upstream HTTP roundtrip; bound it with a generous timeout so a hung
+        // backend or Steam outage degrades to the auth=error redirect instead of
+        // stalling the route handler indefinitely.
+        const res = await fetch(verifyUrl, {headers: {accept: 'application/json', ...forwardedForHeaders(req)}, signal: AbortSignal.timeout(10000)});
         if (!res.ok) {
             console.log('[steam5] callback verify failed', {base, status: res.status});
             const resp = NextResponse.redirect(new URL('/review-guesser/1?auth=failed', base));

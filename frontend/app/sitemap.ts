@@ -1,10 +1,30 @@
 import {Routes} from './routes';
 import {MetadataRoute} from 'next';
 
+/**
+ * Resolves the backend origin for the sitemap fetch. In production the configured
+ * origin must use HTTPS — absent or plaintext configuration fails closed (null)
+ * rather than falling back to plaintext localhost HTTP. Local dev may keep using
+ * the localhost backend.
+ */
+function resolveBackendOrigin(): string | null {
+    const configured = process.env.NEXT_PUBLIC_API_DOMAIN?.trim();
+    if (configured) {
+        try {
+            const url = new URL(configured);
+            return url.protocol === 'https:' ? url.origin : null;
+        } catch {
+            return null;
+        }
+    }
+    return process.env.NODE_ENV === 'production' ? null : 'http://localhost:8080';
+}
+
 /** Loads the set of dates that actually have an archived challenge; empty on failure. */
 async function loadExistingArchiveDates(): Promise<Set<string>> {
+    const backend = resolveBackendOrigin();
+    if (!backend) return new Set();
     try {
-        const backend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
         const res = await fetch(`${backend}/api/review-game/days?limit=5000`, {
             headers: {accept: 'application/json'},
             signal: AbortSignal.timeout(5000),
