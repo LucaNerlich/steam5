@@ -11,6 +11,7 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.steam5.config.ReviewGameConfig;
 import org.steam5.domain.GameDate;
+import org.steam5.domain.DailyPickLock;
 import org.steam5.domain.ReviewGamePick;
 import org.steam5.domain.SteamAppReviews;
 import org.steam5.http.SteamApiException;
@@ -41,9 +42,12 @@ public class ReviewGameStateService {
             return existing;
         }
 
-        // Try to acquire a per-day lock to prevent concurrent generation (job vs endpoint)
-        final int acquired = pickLockRepository.tryAcquire(today);
-        if (acquired == 0) {
+        // Try to acquire a per-day lock to prevent concurrent generation (job vs
+        // endpoint). This is a NON-BLOCKING advisory lock — concurrent callers
+        // return immediately instead of blocking on the daily_pick_lock unique
+        // index for the winner's whole (potentially slow) transaction.
+        final boolean acquired = pickLockRepository.tryAcquire(today.toString());
+        if (!acquired) {
             // Another generator is running/just ran; wait briefly for it to finish then return existing
             for (int i = 0; i < 20; i++) { // ~2s total
                 final List<ReviewGamePick> concurrent = pickRepository.findByPickDate(today);
@@ -113,19 +117,57 @@ public class ReviewGameStateService {
             round++;
         }
 
-        // Shuffle picks to avoid deterministic bucket order per round
+        if (picks.isEmpty()) {
+            // A full generation pass produced no picks (e.g. Steam API outage). Do
+            // NOT record the daily lock row — the advisory lock is released at
+            // commit, so later requests can retry generation for the same day.
+            log.warn("Pick generation produced no picks for {}; day remains unlocked for later retry", today);
+            return List.of();
+        }
+
+        // Shuffle picks to avoid deterministic bucket order per round, then assign
+        // the player-visible round index (1..n) AFTER the shuffle so statistics
+        // round labels match the order actually served to players.
         Collections.shuffle(picks);
+        for (int i = 0; i < picks.size(); i++) {
+            picks.get(i).setRoundIndex(i + 1);
+        }
         final List<ReviewGamePick> saved = pickRepository.saveAll(picks);
+        pickLockRepository.save(new DailyPickLock(today, OffsetDateTime.now()));
         log.info("Generated {} review-game picks for {}", saved.size(), today);
 
-        // Enrich picked apps and invalidate caches only when new picks were created
-        if (!saved.isEmpty()) {
-            for (ReviewGamePick p : saved) {
-                enrichPickedApp(p);
-            }
-            evictReviewGameStateAfterCommit();
+        // Blurhash events are @TransactionalEventListener(AFTER_COMMIT): they
+        // MUST be published inside this transaction or they are dropped.
+        for (ReviewGamePick p : saved) {
+            eventPublisher.publishEvent(new BlurhashEncodeRequested(p.getAppId(), null, BlurhashEnqueueListener.Type.SCREENSHOT));
         }
+
+        // Slow Steam enrichment runs AFTER the transaction commits so the lock
+        // and picks are durably visible before the API calls start.
+        enrichPickedAppsAfterCommit(saved);
+        evictReviewGameStateAfterCommit();
         return saved;
+    }
+
+    /**
+     * Runs {@link #enrichPickedApp} for each pick after the generation
+     * transaction commits. Enriching inline (this method is
+     * {@code @Transactional}) would hold the advisory lock and the picks'
+     * transaction open across slow Steam API calls, keeping concurrent
+     * day-rollover requests waiting. With no active transaction (plain unit
+     * test) enrichment runs immediately.
+     */
+    private void enrichPickedAppsAfterCommit(final List<ReviewGamePick> saved) {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    saved.forEach(ReviewGameStateService.this::enrichPickedApp);
+                }
+            });
+        } else {
+            saved.forEach(this::enrichPickedApp);
+        }
     }
 
     /**
@@ -182,9 +224,12 @@ public class ReviewGameStateService {
 
     /**
      * Validates an appId by fetching its details. Returns {@code true} if usable.
-     * On a non-usable or errored app, records an exclusion and returns {@code false}.
      * A Steam API 429 (rate limit) is never treated as an exclusion — it aborts
-     * generation by propagating, so we respect the API rather than poisoning the pool.
+     * generation by propagating, so we respect the API rather than poisoning the
+     * pool. Transient failures (5xx, network 599, or any non-Steam exception)
+     * skip the app WITHOUT exclusion so an API outage window cannot permanently
+     * shrink the candidate pool. Only definitive rejections are excluded: Steam
+     * answering {@code success=false} (app gone/unavailable) or a 4xx response.
      */
     private boolean validateAppOrExclude(final Long appId) {
         try {
@@ -198,18 +243,27 @@ public class ReviewGameStateService {
                 log.warn("Steam API rate limited (429) while validating appId {}. Aborting pick generation without exclusion.", appId);
                 throw new RuntimeException(sae); // propagate to stop execution per policy
             }
+            if (sae.getStatusCode() >= 500 || sae.getStatusCode() == 599) {
+                // Transient upstream/network failure — never permanently exclude.
+                log.warn("Transient Steam API failure (HTTP {}) while validating appId {}; skipping without exclusion", sae.getStatusCode(), appId);
+                return false;
+            }
             excludedAppRepository.save(new org.steam5.domain.ExcludedApp(appId, "details fetch error: HTTP " + sae.getStatusCode(), OffsetDateTime.now()));
             return false;
         } catch (Exception e) {
-            excludedAppRepository.save(new org.steam5.domain.ExcludedApp(appId, "details fetch error: " + e.getMessage(), OffsetDateTime.now()));
+            // Unknown failures (parsing, persistence) are treated as transient: a
+            // permanent exclusion here could poison the pool and, during an
+            // outage, lock a day to zero picks.
+            log.warn("Non-Steam failure while validating appId {}; skipping without exclusion", appId, e);
             return false;
         }
     }
 
     /**
      * Refreshes a freshly picked app's data: conditionally re-fetches reviews when
-     * they are stale beyond the configured freshness window, re-fetches details, and
-     * publishes a blurhash-encode request for its screenshots. Failures are logged
+     * they are stale beyond the configured freshness window and re-fetches details.
+     * (Blurhash events are published separately inside the generation transaction.)
+     * Failures are logged
      * and swallowed so one bad app cannot abort the rest of the day's enrichment.
      */
     private void enrichPickedApp(final ReviewGamePick p) {
@@ -236,9 +290,6 @@ public class ReviewGameStateService {
         } catch (Exception e) {
             log.warn("Failed to refresh details for picked appId {}", p.getAppId(), e);
         }
-
-        // Publish an event to enqueue BlurhashScreenshotsJob asynchronously for this appId
-        eventPublisher.publishEvent(new BlurhashEncodeRequested(p.getAppId(), null, BlurhashEnqueueListener.Type.SCREENSHOT));
     }
 
     private final SteamAppReviewsRepository reviewsRepository;

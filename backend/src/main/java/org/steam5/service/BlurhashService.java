@@ -5,14 +5,16 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.steam5.job.blurhash.BlurHash;
 
+import org.steam5.http.PublicHttpUrl;
+
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
-import java.net.URI;
 import java.util.Base64;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 @Slf4j
@@ -82,13 +84,38 @@ public class BlurhashService {
         if (IMAGE_SIZES.get(type) == null) {
             throw new IllegalArgumentException("Invalid type=" + type);
         }
+        if (url == null || url.isBlank()) {
+            return null;
+        }
 
-        try (InputStream in = URI.create(url).toURL().openStream()) {
-            final BufferedImage img = ImageIO.read(in);
-            if (img == null) return null;
-            final String hash = BlurHash.encode(img, 4, 4);
-            final String data = toPngDataUrl(img, IMAGE_SIZES.get(type).width, IMAGE_SIZES.get(type).height);
-            return new Encoded(hash, data);
+        try {
+            final Optional<java.net.HttpURLConnection> connection = PublicHttpUrl.openHttpsConnection(url);
+            if (connection.isEmpty()) {
+                log.warn("Refusing to fetch blurhash source: scheme, port, or resolved address is not a public https URL");
+                return null;
+            }
+            final java.net.HttpURLConnection conn = connection.get();
+            try {
+                // Explicit timeouts: a stalled Steam CDN connection must not hang a
+                // Quartz worker indefinitely (the scheduler only has 5 threads).
+                conn.setConnectTimeout(15_000);
+                conn.setReadTimeout(30_000);
+                // Do not follow redirects: a 302 to loopback/link-local would bypass
+                // the pre-connect PublicHttpUrl host check.
+                conn.setInstanceFollowRedirects(false);
+                if (conn.getResponseCode() / 100 != 2) {
+                    return null;
+                }
+                try (InputStream in = conn.getInputStream()) {
+                    final BufferedImage img = ImageIO.read(in);
+                    if (img == null) return null;
+                    final String hash = BlurHash.encode(img, 4, 4);
+                    final String data = toPngDataUrl(img, IMAGE_SIZES.get(type).width, IMAGE_SIZES.get(type).height);
+                    return new Encoded(hash, data);
+                }
+            } finally {
+                conn.disconnect();
+            }
         } catch (Exception e) {
             log.error("Error encoding image from url={}", url, e);
             return null;

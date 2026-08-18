@@ -1,7 +1,6 @@
 package org.steam5.domain;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -14,7 +13,6 @@ import java.time.OffsetDateTime;
         @UniqueConstraint(name = "uq_review_pick_date_app", columnNames = {"pick_date", "app_id"})
 })
 @NoArgsConstructor
-@AllArgsConstructor
 public class ReviewGamePick {
 
     @Id
@@ -30,6 +28,28 @@ public class ReviewGamePick {
 
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
+
+    /**
+     * Player-visible round order for the day (1..n), assigned after the shuffle
+     * so statistics round labels match the order actually served to players.
+     * Null for legacy rows, which fall back to createdAt/id ordering.
+     */
+    @Column(name = "round_index")
+    private Integer roundIndex;
+
+    public ReviewGamePick(Long id, LocalDate pickDate, Long appId, OffsetDateTime createdAt) {
+        this(id, pickDate, appId, createdAt, null);
+    }
+
+    public ReviewGamePick(Long id, LocalDate pickDate, Long appId, OffsetDateTime createdAt, Integer roundIndex) {
+        this.id = id;
+        this.pickDate = pickDate;
+        this.appId = appId;
+        this.createdAt = createdAt;
+        this.roundIndex = roundIndex;
+    }
+
+    public void setRoundIndex(Integer roundIndex) {
+        this.roundIndex = roundIndex;
+    }
 }
-
-

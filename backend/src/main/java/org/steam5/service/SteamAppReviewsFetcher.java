@@ -57,10 +57,24 @@ public class SteamAppReviewsFetcher implements Fetcher {
 
         final long lastAppId = ingestStateRepository.findById("steam_app_reviews").map(IngestState::getLastAppId).orElse(0L);
         final int batchLimit = Math.max(1, jobsConfig.getSteamAppReviews().getBatchLimit());
-        log.info("Starting reviews ingestion from appId > {} (batchLimit={})", lastAppId, batchLimit);
+
+        // Same cursor reset as details ingest: once the pointer is past the last
+        // indexed app every run would be a permanent no-op, leaving review counts
+        // stale forever. Reset to 0 so the next run re-walks as a refresh pass.
+        long effectiveLastAppId = lastAppId;
+        if (effectiveLastAppId > 0) {
+            final Page<SteamAppIndex> ahead = appIndexRepository.findByAppIdGreaterThan(effectiveLastAppId, PageRequest.of(0, 1, Sort.by("appId").ascending()));
+            if (ahead.isEmpty()) {
+                log.info("Reviews ingest cursor {} is at/after the last indexed appId; resetting to 0 for the next refresh pass", effectiveLastAppId);
+                ingestStateRepository.upsert("steam_app_reviews", 0L, OffsetDateTime.now());
+                effectiveLastAppId = 0L;
+            }
+        }
+
+        log.info("Starting reviews ingestion from appId > {} (batchLimit={})", effectiveLastAppId, batchLimit);
 
         long processed = 0L;
-        Long cursor = lastAppId;
+        Long cursor = effectiveLastAppId;
         final int pageSize = 1000; // large batches; single HTTP call per app
         boolean more = true;
         while (more && processed < batchLimit) {
@@ -74,7 +88,10 @@ public class SteamAppReviewsFetcher implements Fetcher {
                 }
                 final Long appId = idx.getAppId();
                 if (appId == null) continue;
-                fetchForAppId(appId);
+                // Bulk path: skip the aggregate cache clear per app (it would
+                // thrash the whole review-game cache up to batchLimit times per
+                // run); the cache is cleared once at the end of the job below.
+                fetchForAppId(appId, false);
                 ingestStateRepository.upsert("steam_app_reviews", appId, OffsetDateTime.now());
                 processed++;
                 cursor = appId;
@@ -82,7 +99,15 @@ public class SteamAppReviewsFetcher implements Fetcher {
             more = page.hasNext() && processed < batchLimit;
         }
 
-        log.info("Reviews ingestion finished. processed={} batchLimit={} starting_after={}", processed, batchLimit, lastAppId);
+        if (processed > 0) {
+            final var reviewGame = cacheManager.getCache("review-game");
+            if (reviewGame != null) {
+                reviewGame.clear();
+                log.info("Cleared review-game cache after bulk reviews ingestion of {} apps", processed);
+            }
+        }
+
+        log.info("Reviews ingestion finished. processed={} batchLimit={} starting_after={}", processed, batchLimit, effectiveLastAppId);
     }
 
     public boolean fetchForAppId(Long appId) throws IOException {

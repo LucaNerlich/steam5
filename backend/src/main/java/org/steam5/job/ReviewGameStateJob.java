@@ -50,13 +50,25 @@ public class ReviewGameStateJob implements Job {
                 context.getJobDetail().getKey(), context.getFireTime(), context.getScheduledFireTime(), context.getRefireCount());
         try {
             final var picks = service.generateDailyPicks();
-            lastSuccessEpochSeconds.set(System.currentTimeMillis() / 1000L);
-            lastSuccessSize.set(picks == null ? 0L : picks.size());
-            Counter.builder("steam5.daily.picks.generated")
-                    .description("Daily-picks generation runs by outcome")
-                    .tag("outcome", "success")
-                    .register(meterRegistry)
-                    .increment();
+            if (picks != null && !picks.isEmpty()) {
+                lastSuccessEpochSeconds.set(System.currentTimeMillis() / 1000L);
+                lastSuccessSize.set(picks.size());
+                Counter.builder("steam5.daily.picks.generated")
+                        .description("Daily-picks generation runs by outcome")
+                        .tag("outcome", "success")
+                        .register(meterRegistry)
+                        .increment();
+            } else {
+                // An empty result means generation produced no picks (e.g. Steam
+                // outage). Recording it as success would silence the
+                // Steam5DailyPicksMissing alert for a day without a game.
+                log.warn("ReviewGameState generation produced no picks; recording failure outcome");
+                Counter.builder("steam5.daily.picks.generated")
+                        .description("Daily-picks generation runs by outcome")
+                        .tag("outcome", "failure")
+                        .register(meterRegistry)
+                        .increment();
+            }
         } catch (Exception e) {
             log.error("ReviewGameState generation failed", e);
             Counter.builder("steam5.daily.picks.generated")

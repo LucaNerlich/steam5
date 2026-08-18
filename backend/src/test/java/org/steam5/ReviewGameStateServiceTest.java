@@ -7,6 +7,7 @@ import org.springframework.data.domain.PageRequest;
 import org.steam5.config.ReviewGameConfig;
 import org.steam5.domain.GameDate;
 import org.steam5.domain.ReviewGamePick;
+import org.steam5.http.SteamApiException;
 import org.steam5.job.events.BlurhashEncodeRequested;
 import org.steam5.repository.DailyPickLockRepository;
 import org.steam5.repository.ExcludedAppRepository;
@@ -70,7 +71,7 @@ public class ReviewGameStateServiceTest {
         config.setMinReviewsFreshDays(0);
 
         // Lock acquired
-        when(pickLockRepository.tryAcquire(any())).thenReturn(1);
+        when(pickLockRepository.tryAcquire(any())).thenReturn(true);
 
         // No existing picks
         when(pickRepository.findByPickDate(any(LocalDate.class))).thenReturn(List.of());
@@ -136,6 +137,31 @@ public class ReviewGameStateServiceTest {
         }
         // Ensure event published for each
         verify(eventPublisher, atLeast(5)).publishEvent(any(BlurhashEncodeRequested.class));
+    }
+
+    @Test
+    void generateDailyPicks_assignsPlayerVisibleRoundIndexes() {
+        // Round numbers must match the order players actually see (post-shuffle
+        // order), so statistics round labels can rely on them.
+        final List<ReviewGamePick> picks = service.generateDailyPicks();
+        assertEquals(5, picks.size());
+        final List<Integer> indexes = picks.stream().map(ReviewGamePick::getRoundIndex).toList();
+        assertEquals(List.of(1, 2, 3, 4, 5), indexes);
+    }
+
+    @Test
+    void generateDailyPicks_transientSteamFailure_producesNoPicksNoLockNoExclusions() throws Exception {
+        // A Steam API outage during generation must not permanently exclude
+        // candidates nor lock the day to zero picks.
+        doThrow(new SteamApiException(599, "https://store.steampowered.com/api/appdetails?appids=1&key=abc", "Network error"))
+                .when(detailsFetcher).fetchForAppId(anyLong());
+
+        final List<ReviewGamePick> picks = service.generateDailyPicks();
+
+        assertTrue(picks.isEmpty());
+        verify(pickLockRepository, never()).save(any());
+        verify(excludedAppRepository, never()).save(any());
+        verify(pickRepository, never()).saveAll(anyList());
     }
 
     private ReviewGameStateService stubbedServiceFor(ReviewGameStateService.BUCKET_STRATEGY strategy) {

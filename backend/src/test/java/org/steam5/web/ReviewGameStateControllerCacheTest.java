@@ -10,6 +10,7 @@ import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.steam5.domain.GameDate;
 import org.steam5.domain.Guess;
 import org.steam5.domain.ReviewGamePick;
@@ -69,7 +70,8 @@ public class ReviewGameStateControllerCacheTest {
         scheduler = mock(Scheduler.class);
         meterRegistry = mock(MeterRegistry.class);
         controller = new ReviewGameStateController(service, detailRepository, guessRepository,
-                reviewsRepository, userRepository, pickRepository, scheduler, meterRegistry);
+                reviewsRepository, userRepository, pickRepository, scheduler, meterRegistry,
+                mock(PlatformTransactionManager.class));
     }
 
     // --- Finding 2: per-user data must never be publicly cacheable ---

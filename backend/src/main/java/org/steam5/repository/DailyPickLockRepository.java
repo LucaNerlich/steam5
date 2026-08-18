@@ -1,7 +1,6 @@
 package org.steam5.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.transaction.annotation.Transactional;
@@ -11,10 +10,20 @@ import java.time.LocalDate;
 
 public interface DailyPickLockRepository extends JpaRepository<DailyPickLock, LocalDate> {
 
+    /**
+     * Non-blocking per-day generation lock. The previous {@code INSERT ... ON
+     * CONFLICT DO NOTHING} blocked on the unique index for the whole duration of
+     * the winner's transaction (which used to span slow Steam enrichment); with
+     * the production {@code statement_timeout} that turned concurrent day-rollover
+     * requests into 500s. {@code pg_try_advisory_xact_lock} returns immediately
+     * and is released automatically when the transaction ends.
+     *
+     * <p>Two-key form namespaces this lock class ({@code daily-pick-lock}) so a
+     * 32-bit {@code hashtext(date)} collision cannot block an unrelated advisory
+     * lock, and two dates hashing to the same int still contend only within
+     * this namespace.</p>
+     */
     @Transactional
-    @Modifying(clearAutomatically = false, flushAutomatically = false)
-    @Query(value = "INSERT INTO daily_pick_lock(pick_date, created_at) VALUES (:date, now()) ON CONFLICT DO NOTHING", nativeQuery = true)
-    int tryAcquire(@Param("date") LocalDate date);
+    @Query(value = "SELECT pg_try_advisory_xact_lock(hashtext('daily-pick-lock'), hashtext(:date))", nativeQuery = true)
+    boolean tryAcquire(@Param("date") String date);
 }
-
-

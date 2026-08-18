@@ -47,10 +47,25 @@ public class SteamAppDetailsFetcher implements Fetcher {
 
         final long lastAppId = ingestStateRepository.findById("steam_app_details").map(IngestState::getLastAppId).orElse(0L);
         final int batchLimit = Math.max(1, jobsConfig.getSteamAppDetails().getBatchLimit());
-        log.info("Starting details ingestion from appId > {} (batchLimit={})", lastAppId, batchLimit);
+
+        // The cursor is monotonic per pass; once it points past the last app in
+        // the index every run would be a permanent no-op, leaving prices,
+        // screenshots, and descriptions stale forever. Reset it to 0 so the next
+        // run re-walks the index as a refresh pass.
+        long effectiveLastAppId = lastAppId;
+        if (effectiveLastAppId > 0) {
+            final Page<SteamAppIndex> ahead = appIndexRepository.findByAppIdGreaterThan(effectiveLastAppId, PageRequest.of(0, 1, Sort.by("appId").ascending()));
+            if (ahead.isEmpty()) {
+                log.info("Details ingest cursor {} is at/after the last indexed appId; resetting to 0 for the next refresh pass", effectiveLastAppId);
+                ingestStateRepository.upsert("steam_app_details", 0L, OffsetDateTime.now());
+                effectiveLastAppId = 0L;
+            }
+        }
+
+        log.info("Starting details ingestion from appId > {} (batchLimit={})", effectiveLastAppId, batchLimit);
 
         long processed = 0L;
-        Long cursor = lastAppId;
+        Long cursor = effectiveLastAppId;
         final int pageSize = 500; // single HTTP call per app, moderate batch size
         boolean more = true;
         while (more && processed < batchLimit) {
@@ -67,19 +82,20 @@ public class SteamAppDetailsFetcher implements Fetcher {
                 try {
                     fetchForAppId(appId);
                 } catch (Exception e) {
-                    // bail immediately on any HTTP error such as 429
+                    // bail immediately on any HTTP error such as 429. The cursor is
+                    // deliberately NOT advanced: the failed app must be retried on
+                    // the next run instead of being skipped forever.
                     throw e;
-                } finally {
-                    // advance cursor regardless of outcome to avoid getting stuck
-                    ingestStateRepository.upsert("steam_app_details", appId, OffsetDateTime.now());
                 }
+                // advance cursor only on success so transient failures are retried
+                ingestStateRepository.upsert("steam_app_details", appId, OffsetDateTime.now());
                 processed++;
                 cursor = appId;
             }
             more = page.hasNext() && processed < batchLimit;
         }
 
-        log.info("Details ingestion finished. processed={} batchLimit={} starting_after={}", processed, batchLimit, lastAppId);
+        log.info("Details ingestion finished. processed={} batchLimit={} starting_after={}", processed, batchLimit, effectiveLastAppId);
     }
 
     public boolean fetchForAppId(final Long appId) throws IOException {

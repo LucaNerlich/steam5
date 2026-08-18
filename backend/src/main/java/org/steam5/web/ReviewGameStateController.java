@@ -27,6 +27,9 @@ import org.steam5.service.ReviewGameStateService;
 import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
 import org.quartz.TriggerKey;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -61,6 +64,7 @@ public class ReviewGameStateController {
     private final org.steam5.repository.ReviewGamePickRepository pickRepository;
     private final Scheduler scheduler;
     private final MeterRegistry meterRegistry;
+    private final PlatformTransactionManager transactionManager;
 
     // Live daily data — rounds regenerate at ~00:01 UTC; 30 min CDN window absorbs
     // traffic spikes while keeping staleness bounded. must-revalidate forbids any
@@ -499,13 +503,27 @@ public class ReviewGameStateController {
                     .register(meterRegistry)
                     .increment();
         } catch (DataIntegrityViolationException ignored) {
-            // another request saved the same guess concurrently; return the persisted one
-            final var existing = guessRepository.findBySteamIdAndGameDateAndRoundIndex(steamId, date, roundIndex);
-            if (existing.isPresent()) {
+            // Another request saved the same guess concurrently. The current
+            // transaction is aborted (Postgres 25P02), so any re-read here would
+            // fail too — re-read OUTSIDE it in a fresh read-only transaction and
+            // return the persisted guess to keep concurrent double-submits
+            // idempotent.
+            final TransactionTemplate readOnly = new TransactionTemplate(transactionManager);
+            readOnly.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+            readOnly.setReadOnly(true);
+            final var existing = readOnly.execute(status ->
+                    guessRepository.findBySteamIdAndGameDateAndRoundIndex(steamId, date, roundIndex));
+            if (existing != null && existing.isPresent()) {
                 final var g = existing.get();
                 final boolean alreadyOk = g.getActualBucket() != null && g.getActualBucket().equals(g.getSelectedBucket());
                 return ResponseEntity.ok(new GuessResponse(g.getAppId(), total, g.getActualBucket(), alreadyOk));
             }
+            // Conflict with no persisted row: never fall through to a success
+            // response for a guess that was not saved.
+            log.error("Duplicate-guess conflict resolved without a persisted row: steamId={} date={} roundIndex={}", steamId, date, roundIndex);
+            // Empty 409: do not return totalReviews/actualBucket for a guess that
+            // was not saved (that would leak today's answer for a retry).
+            return ResponseEntity.status(409).build();
         }
         final boolean ok = isCorrectForLabel(req.bucketGuess, total);
         return ResponseEntity.ok(new GuessResponse(req.appId, total, computedActual, ok));
@@ -655,8 +673,17 @@ public class ReviewGameStateController {
     public ResponseEntity<HistoricalAlwaysPickResponse> alwaysPickHistory(
             @RequestParam(value = "from", required = false) String from,
             @RequestParam(value = "to", required = false) String to) {
-        final java.time.LocalDate start = from == null || from.isBlank() ? java.time.LocalDate.of(1970, 1, 1) : java.time.LocalDate.parse(from);
-        final java.time.LocalDate end = to == null || to.isBlank() ? GameDate.todayUtc() : java.time.LocalDate.parse(to);
+        // Malformed dates must 400, not 500. (Unbounded ranges are safe: the
+        // computation iterates only pick dates that actually exist in range,
+        // not every calendar day between from and to.)
+        final java.time.LocalDate start;
+        final java.time.LocalDate end;
+        try {
+            start = from == null || from.isBlank() ? java.time.LocalDate.of(1970, 1, 1) : java.time.LocalDate.parse(from);
+            end = to == null || to.isBlank() ? GameDate.todayUtc() : java.time.LocalDate.parse(to);
+        } catch (java.time.format.DateTimeParseException e) {
+            return ResponseEntity.badRequest().build();
+        }
         if (end.isBefore(start)) return ResponseEntity.badRequest().build();
         final var result = computeAlwaysPickForRange(start, end);
         return ResponseEntity.ok()
@@ -687,16 +714,20 @@ public class ReviewGameStateController {
             picksByDate.computeIfAbsent(pick.getPickDate(), ignored -> new ArrayList<>()).add(pick);
         }
         picksByDate.values().forEach(picks -> picks.sort(
-                Comparator.comparing(ReviewGamePick::getCreatedAt).thenComparing(ReviewGamePick::getId)
+                // Match the player-visible round order (explicit round index,
+                // legacy rows fall back to createdAt/id).
+                Comparator.comparing(org.steam5.domain.ReviewGamePick::getRoundIndex, Comparator.nullsLast(Comparator.naturalOrder()))
+                        .thenComparing(org.steam5.domain.ReviewGamePick::getCreatedAt)
+                        .thenComparing(org.steam5.domain.ReviewGamePick::getId)
         ));
 
-        java.time.LocalDate d = start;
-        while (!d.isAfter(end)) {
-            final List<org.steam5.domain.ReviewGamePick> picks = picksByDate.getOrDefault(d, List.of());
-            if (!picks.isEmpty()) {
-                for (org.steam5.domain.ReviewGamePick p : picks) appIds.add(p.getAppId());
-            }
-            d = d.plusDays(1);
+        // Iterate only the pick dates that actually exist in range, in
+        // chronological order. Iterating every calendar day between start and
+        // end (potentially millions of empty days for to=9999-12-31) was an
+        // anonymous CPU DoS; days without picks contribute nothing.
+        for (LocalDate d : picksByDate.keySet().stream().sorted().toList()) {
+            final List<org.steam5.domain.ReviewGamePick> picks = picksByDate.get(d);
+            for (org.steam5.domain.ReviewGamePick p : picks) appIds.add(p.getAppId());
         }
         final List<String> actualBuckets = appIds.stream()
                 .map(id -> service.inferBucket(service.getTotalReviewCountForApp(id)))
