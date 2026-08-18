@@ -110,15 +110,16 @@ public class StatisticsController {
     }
 
     @GetMapping(value = "/game", produces = MediaType.APPLICATION_JSON_VALUE)
+    @Cacheable(value = "stats-hourly",
+            key = "'game-statistics-' + T(Math).max(1, T(Math).min(#topGamesLimit, 50))",
+            unless = "#result == null || #result.body == null")
     public ResponseEntity<StatisticsService.GameStatistics> gameStatistics(
             @RequestParam(name = "topGamesLimit", defaultValue = "10") int topGamesLimit) {
-        // Clamp BEFORE the cacheable call so arbitrarily many distinct limits
-        // cannot create distinct cache entries (cache churn).
-        return gameStatisticsNormalized(Math.max(1, Math.min(topGamesLimit, 50)));
-    }
-
-    @Cacheable(value = "stats-hourly", key = "'game-statistics-' + #normalizedTopGamesLimit", unless = "#result == null || #result.body == null")
-    public ResponseEntity<StatisticsService.GameStatistics> gameStatisticsNormalized(int normalizedTopGamesLimit) {
+        // Clamp in both the SpEL cache key (above) and the handler body so
+        // arbitrarily many distinct limits cannot churn the cache.
+        // @Cacheable must stay on this mapped method: a same-class helper
+        // would be a self-invocation and skip the Spring cache proxy.
+        final int normalizedTopGamesLimit = Math.max(1, Math.min(topGamesLimit, 50));
         final List<StatisticsService.TopGameByReviews> topGames = statisticsService.getTopGamesByReviewCount(normalizedTopGamesLimit);
         final StatisticsService.DailyAvgScoreStats dailyStats = statisticsService.getDailyAvgScoreStats();
         final StatisticsService.GameStatistics stats = new StatisticsService.GameStatistics(topGames, dailyStats);

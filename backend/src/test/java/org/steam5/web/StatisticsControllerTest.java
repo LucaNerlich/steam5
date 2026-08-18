@@ -114,4 +114,14 @@ class StatisticsControllerTest {
 
         org.mockito.Mockito.verify(statisticsService).getPerfectDays();
     }
+
+    @Test
+    void gameStatistics_clampsTopGamesLimitBeforeCallingService() {
+        when(statisticsService.getTopGamesByReviewCount(50)).thenReturn(List.of());
+        when(statisticsService.getDailyAvgScoreStats()).thenReturn(null);
+
+        controller.gameStatistics(999);
+
+        org.mockito.Mockito.verify(statisticsService).getTopGamesByReviewCount(eq(50));
+    }
 }

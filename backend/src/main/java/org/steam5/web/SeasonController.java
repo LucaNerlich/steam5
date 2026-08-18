@@ -58,16 +58,17 @@ public class SeasonController {
     }
 
     @GetMapping
+    @Cacheable(value = "season-list-response",
+            key = "'limit:' + T(Math).max(1, T(Math).min(#limit, 25)) + ':include:' + #includeCurrent",
+            unless = "#result == null || #result.body == null")
     public ResponseEntity<List<SeasonView>> seasons(
             @RequestParam(name = "limit", defaultValue = "5") int limit,
             @RequestParam(name = "includeCurrent", defaultValue = "false") boolean includeCurrent) {
-        // Clamp BEFORE the cacheable call so arbitrarily many distinct limit
-        // values cannot create distinct cache entries (cache churn).
-        return seasonsNormalized(Math.max(1, Math.min(limit, 25)), includeCurrent);
-    }
-
-    @Cacheable(value = "season-list-response", key = "'limit:' + #normalizedLimit + ':include:' + #includeCurrent", unless = "#result == null || #result.body == null")
-    public ResponseEntity<List<SeasonView>> seasonsNormalized(int normalizedLimit, boolean includeCurrent) {
+        // Clamp in both the SpEL cache key (above) and the handler body so
+        // arbitrarily many distinct limit values cannot churn the cache.
+        // @Cacheable must stay on this mapped method: a same-class helper
+        // would be a self-invocation and skip the Spring cache proxy.
+        final int normalizedLimit = Math.max(1, Math.min(limit, 25));
         List<Season> seasons = seasonService.listSeasonsDescending();
         List<SeasonView> response = new ArrayList<>();
         for (Season season : seasons) {
