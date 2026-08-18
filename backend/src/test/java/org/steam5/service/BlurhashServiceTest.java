@@ -13,6 +13,7 @@ class BlurhashServiceTest {
         assertNull(service.readAndEncode("file:///etc/passwd", BlurhashService.Type.THUMBNAIL));
         assertNull(service.readAndEncode("ftp://example.com/a.png", BlurhashService.Type.THUMBNAIL));
         assertNull(service.readAndEncode("https://127.0.0.1/img.png", BlurhashService.Type.THUMBNAIL));
+        assertNull(service.readAndEncode("https://[::ffff:127.0.0.1]/img.png", BlurhashService.Type.THUMBNAIL));
         assertNull(service.readAndEncode("http://169.254.169.254/latest/meta-data", BlurhashService.Type.THUMBNAIL));
         assertNull(service.readAndEncode("https://example.com:8443/img.png", BlurhashService.Type.THUMBNAIL));
     }

@@ -12,7 +12,6 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
-import java.net.URI;
 import java.util.Base64;
 import java.util.Map;
 import java.util.Optional;
@@ -89,14 +88,13 @@ public class BlurhashService {
             return null;
         }
 
-        final Optional<URI> safeTarget = PublicHttpUrl.httpsTarget(url);
-        if (safeTarget.isEmpty()) {
-            log.warn("Refusing to fetch blurhash source: scheme, port, or resolved address is not a public https URL");
-            return null;
-        }
-
         try {
-            final java.net.HttpURLConnection conn = (java.net.HttpURLConnection) safeTarget.get().toURL().openConnection();
+            final Optional<java.net.HttpURLConnection> connection = PublicHttpUrl.openHttpsConnection(url);
+            if (connection.isEmpty()) {
+                log.warn("Refusing to fetch blurhash source: scheme, port, or resolved address is not a public https URL");
+                return null;
+            }
+            final java.net.HttpURLConnection conn = connection.get();
             try {
                 // Explicit timeouts: a stalled Steam CDN connection must not hang a
                 // Quartz worker indefinitely (the scheduler only has 5 threads).

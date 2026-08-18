@@ -2,6 +2,7 @@ package org.steam5.http;
 
 import org.junit.jupiter.api.Test;
 
+import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
@@ -29,6 +30,9 @@ class PublicHttpUrlTest {
         assertTrue(PublicHttpUrl.httpsTarget("https://100.64.0.1/img.png").isEmpty());
         assertTrue(PublicHttpUrl.httpsTarget("https://[::1]/img.png").isEmpty());
         assertTrue(PublicHttpUrl.httpsTarget("https://[fc00::1]/img.png").isEmpty());
+        assertTrue(PublicHttpUrl.httpsTarget("https://[::ffff:127.0.0.1]/img.png").isEmpty());
+        assertTrue(PublicHttpUrl.httpsTarget("https://[::ffff:7f00:1]/img.png").isEmpty());
+        assertTrue(PublicHttpUrl.httpsTarget("https://[::ffff:10.0.0.1]/img.png").isEmpty());
     }
 
     @Test
@@ -47,6 +51,12 @@ class PublicHttpUrlTest {
         assertTrue(PublicHttpUrl.isDisallowedAddress(InetAddress.getByName("100.64.1.1")));
         assertTrue(PublicHttpUrl.isDisallowedAddress(InetAddress.getByName("::1")));
         assertTrue(PublicHttpUrl.isDisallowedAddress(InetAddress.getByName("fc00::1")));
+        assertTrue(PublicHttpUrl.isDisallowedAddress(InetAddress.getByName("::ffff:127.0.0.1")));
+        assertTrue(PublicHttpUrl.isDisallowedAddress(InetAddress.getByName("::ffff:10.0.0.1")));
+        final InetAddress mappedPublic = InetAddress.getByName("::ffff:8.8.8.8");
+        if (mappedPublic instanceof Inet6Address inet6Address) {
+            assertTrue(PublicHttpUrl.isIpv4MappedAddress(inet6Address));
+        }
         assertFalse(PublicHttpUrl.isDisallowedAddress(InetAddress.getByName("8.8.8.8")));
         assertFalse(PublicHttpUrl.isDisallowedAddress(InetAddress.getByName("1.1.1.1")));
     }

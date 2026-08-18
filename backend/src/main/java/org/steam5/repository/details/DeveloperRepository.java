@@ -13,9 +13,17 @@ import java.util.Optional;
 public interface DeveloperRepository extends JpaRepository<Developer, Long> {
     Optional<Developer> findByNameIgnoreCase(String name);
 
+    /** Serializes lookup-or-create for the same name across case variants. */
+    @Query(value = "SELECT pg_advisory_xact_lock(hashtext('developer-name'), hashtext(lower(:name)))", nativeQuery = true)
+    void lockByNameIgnoreCase(@Param("name") String name);
+
     /** Atomic insert-or-ignore used by the lookup-or-create path to avoid check-then-insert races. */
     @Modifying(clearAutomatically = false, flushAutomatically = false)
-    @Query(value = "INSERT INTO developer(name) VALUES (:name) ON CONFLICT DO NOTHING", nativeQuery = true)
+    @Query(value = """
+            INSERT INTO developer(name)
+            SELECT :name
+            WHERE NOT EXISTS (SELECT 1 FROM developer d WHERE lower(d.name) = lower(:name))
+            """, nativeQuery = true)
     int insertIfAbsent(@Param("name") String name);
 }
 

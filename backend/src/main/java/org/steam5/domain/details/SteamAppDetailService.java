@@ -141,6 +141,7 @@ public class SteamAppDetailService {
             if (!seenDevelopers.add(normalizedKey)) continue;
             final Developer dev = developerRepository.findByNameIgnoreCase(trimmedName)
                     .orElseGet(() -> {
+                        developerRepository.lockByNameIgnoreCase(trimmedName);
                         developerRepository.insertIfAbsent(trimmedName);
                         return developerRepository.findByNameIgnoreCase(trimmedName).orElseThrow();
                     });
@@ -157,6 +158,7 @@ public class SteamAppDetailService {
             if (!seenPublishers.add(normalizedKey)) continue;
             final Publisher pub = publisherRepository.findByNameIgnoreCase(trimmedName)
                     .orElseGet(() -> {
+                        publisherRepository.lockByNameIgnoreCase(trimmedName);
                         publisherRepository.insertIfAbsent(trimmedName);
                         return publisherRepository.findByNameIgnoreCase(trimmedName).orElseThrow();
                     });
@@ -173,6 +175,7 @@ public class SteamAppDetailService {
             if (!seenCategories.add(normalizedKey)) continue;
             final Category g = categoryRepository.findByDescriptionIgnoreCase(trimmedDesc)
                     .orElseGet(() -> {
+                        categoryRepository.lockByDescriptionIgnoreCase(trimmedDesc);
                         categoryRepository.insertIfAbsent(trimmedDesc);
                         return categoryRepository.findByDescriptionIgnoreCase(trimmedDesc).orElseThrow();
                     });
@@ -189,6 +192,7 @@ public class SteamAppDetailService {
             if (!seenGenres.add(normalizedKey)) continue;
             final Genre g = genreRepository.findByDescriptionIgnoreCase(trimmedDesc)
                     .orElseGet(() -> {
+                        genreRepository.lockByDescriptionIgnoreCase(trimmedDesc);
                         genreRepository.insertIfAbsent(trimmedDesc);
                         return genreRepository.findByDescriptionIgnoreCase(trimmedDesc).orElseThrow();
                     });
