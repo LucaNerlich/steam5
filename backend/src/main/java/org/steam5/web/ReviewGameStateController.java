@@ -521,7 +521,9 @@ public class ReviewGameStateController {
             // Conflict with no persisted row: never fall through to a success
             // response for a guess that was not saved.
             log.error("Duplicate-guess conflict resolved without a persisted row: steamId={} date={} roundIndex={}", steamId, date, roundIndex);
-            return ResponseEntity.status(409).body(new GuessResponse(req.appId, total, computedActual, false));
+            // Empty 409: do not return totalReviews/actualBucket for a guess that
+            // was not saved (that would leak today's answer for a retry).
+            return ResponseEntity.status(409).build();
         }
         final boolean ok = isCorrectForLabel(req.bucketGuess, total);
         return ResponseEntity.ok(new GuessResponse(req.appId, total, computedActual, ok));

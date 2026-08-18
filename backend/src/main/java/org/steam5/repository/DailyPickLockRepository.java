@@ -17,8 +17,13 @@ public interface DailyPickLockRepository extends JpaRepository<DailyPickLock, Lo
      * the production {@code statement_timeout} that turned concurrent day-rollover
      * requests into 500s. {@code pg_try_advisory_xact_lock} returns immediately
      * and is released automatically when the transaction ends.
+     *
+     * <p>Two-key form namespaces this lock class ({@code daily-pick-lock}) so a
+     * 32-bit {@code hashtext(date)} collision cannot block an unrelated advisory
+     * lock, and two dates hashing to the same int still contend only within
+     * this namespace.</p>
      */
     @Transactional
-    @Query(value = "SELECT pg_try_advisory_xact_lock(hashtext(:date))", nativeQuery = true)
+    @Query(value = "SELECT pg_try_advisory_xact_lock(hashtext('daily-pick-lock'), hashtext(:date))", nativeQuery = true)
     boolean tryAcquire(@Param("date") String date);
 }
