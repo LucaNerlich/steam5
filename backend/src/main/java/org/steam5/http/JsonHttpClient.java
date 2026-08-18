@@ -20,7 +20,9 @@ public class JsonHttpClient {
     public JsonNode getJson(String url) throws IOException {
         final String body = httpClient.get(url);
         if (body == null || body.isBlank()) {
-            throw new IOException("Empty response body for url=" + url);
+            // Never embed the raw URL — it contains key=<apiKey> and this
+            // message is logged by every caller.
+            throw new IOException("Empty response body for url=" + SteamHttpClient.sanitizeUrl(url));
         }
         return objectMapper.readTree(body);
     }
