@@ -8,7 +8,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -38,12 +37,8 @@ public class ProfileRateLimitFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(final HttpServletRequest request) {
-        String path = request.getRequestURI();
-        final String contextPath = request.getContextPath();
-        if (StringUtils.hasText(contextPath) && path.startsWith(contextPath)) {
-            path = path.substring(contextPath.length());
-        }
-        return "OPTIONS".equalsIgnoreCase(request.getMethod()) || !path.startsWith(PROFILE_PATH_PREFIX);
+        return "OPTIONS".equalsIgnoreCase(request.getMethod())
+                || !RequestPathNormalizer.normalizedPath(request).startsWith(PROFILE_PATH_PREFIX);
     }
 
     @Override

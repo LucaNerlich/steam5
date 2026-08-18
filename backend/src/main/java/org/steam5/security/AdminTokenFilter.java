@@ -43,7 +43,7 @@ public class AdminTokenFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        final String path = normalizedPath(request);
+        final String path = RequestPathNormalizer.normalizedPath(request);
         if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
             return true;
         }
@@ -51,34 +51,6 @@ public class AdminTokenFilter extends OncePerRequestFilter {
                 || path.startsWith(CACHE_PATH_PREFIX)
                 || (path.startsWith(METRICS_PATH_PREFIX) && !PUBLIC_METRICS_PATH.equals(path));
         return !gated;
-    }
-
-    /**
-     * Returns the request path with the context path removed and semicolon
-     * path parameters stripped per segment, mirroring how Spring MVC and
-     * Spring Security's {@code MvcRequestMatcher} normalize URIs before
-     * matching. Without this, {@code /api/admin;/seasons/backfill} would
-     * route to the admin controller while skipping this filter's raw
-     * {@code getRequestURI()} check.
-     */
-    private static String normalizedPath(HttpServletRequest request) {
-        String path = request.getRequestURI();
-        final String contextPath = request.getContextPath();
-        if (StringUtils.hasText(contextPath) && path.startsWith(contextPath)) {
-            path = path.substring(contextPath.length());
-        }
-        final StringBuilder normalized = new StringBuilder(path.length());
-        final String[] segments = path.split("/", -1);
-        for (int i = 0; i < segments.length; i++) {
-            String segment = segments[i];
-            final int semi = segment.indexOf(';');
-            if (semi >= 0) {
-                segment = segment.substring(0, semi);
-            }
-            normalized.append(segment);
-            if (i < segments.length - 1) normalized.append('/');
-        }
-        return normalized.toString();
     }
 
     @Override
