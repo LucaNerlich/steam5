@@ -8,7 +8,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -47,13 +46,8 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        String path = request.getRequestURI();
-        final String contextPath = request.getContextPath();
-        if (StringUtils.hasText(contextPath) && path.startsWith(contextPath)) {
-            path = path.substring(contextPath.length());
-        }
-        // Skip OPTIONS (CORS preflight) and any path outside /api/auth/
-        return "OPTIONS".equalsIgnoreCase(request.getMethod()) || !path.startsWith(AUTH_PATH_PREFIX);
+        return "OPTIONS".equalsIgnoreCase(request.getMethod())
+                || !RequestPathNormalizer.normalizedPath(request).startsWith(AUTH_PATH_PREFIX);
     }
 
     @Override

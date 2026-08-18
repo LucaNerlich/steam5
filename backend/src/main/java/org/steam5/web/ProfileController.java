@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.steam5.domain.BucketLabel;
+import org.steam5.domain.GameDate;
 import org.steam5.domain.Guess;
 import org.steam5.domain.GuessStats;
 import org.steam5.domain.SeasonAwardResult;
@@ -20,6 +20,7 @@ import org.steam5.service.SeasonService;
 
 import java.time.LocalDate;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -83,20 +84,30 @@ public class ProfileController {
                 "tooLow", stats.tooLow(),
                 "avgPoints", stats.avgPoints()
         ));
+        final LocalDate todayUtc = GameDate.todayUtc();
         out.put("days", byDay.entrySet().stream()
                         .sorted(Map.Entry.<LocalDate, List<Guess>>comparingByKey().reversed())
                         .limit(365)
-                        .map(e -> Map.of(
+                        .map(e -> {
+                            final boolean hideTodayAnswers = todayUtc.equals(e.getKey());
+                            return Map.of(
                                 "date", e.getKey().toString(),
-                                "rounds", e.getValue().stream().sorted(Comparator.comparingInt(Guess::getRoundIndex)).map(g -> Map.of(
-                                        "roundIndex", g.getRoundIndex(),
-                                        "appId", g.getAppId(),
-                                        "appName", appNames.getOrDefault(g.getAppId(), String.valueOf(g.getAppId())),
-                                        "selectedBucket", g.getSelectedBucket(),
-                                        "actualBucket", g.getActualBucket(),
-                                        "points", g.getPoints()
-                                )).toList()
-                        ))
+                                "rounds", e.getValue().stream().sorted(Comparator.comparingInt(Guess::getRoundIndex)).map(g -> {
+                                    final Map<String, Object> round = new LinkedHashMap<>();
+                                    round.put("roundIndex", g.getRoundIndex());
+                                    round.put("appId", g.getAppId());
+                                    round.put("appName", appNames.getOrDefault(g.getAppId(), String.valueOf(g.getAppId())));
+                                    round.put("selectedBucket", g.getSelectedBucket());
+                                    // Today's actualBucket/points are the live answers; omit them
+                                    // so a public CDN cache of this profile cannot leak the day.
+                                    if (!hideTodayAnswers) {
+                                        round.put("actualBucket", g.getActualBucket());
+                                        round.put("points", g.getPoints());
+                                    }
+                                    return round;
+                                }).toList()
+                            );
+                        })
                         .toList());
 
         final List<SeasonAwardResult> awards = seasonService.listAwardsForPlayer(steamId);
@@ -127,7 +138,9 @@ public class ProfileController {
                 ))
                 .toList());
 
-        return ResponseEntity.ok(out);
+        return ResponseEntity.ok()
+                .header("Cache-Control", "public, s-maxage=300, max-age=60")
+                .body(out);
     }
 
 }

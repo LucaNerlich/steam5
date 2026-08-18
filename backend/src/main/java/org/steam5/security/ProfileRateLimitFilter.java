@@ -15,18 +15,20 @@ import java.time.Duration;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Per-IP rate limiter for {@code GET /api/users/search}.
+ * Per-IP rate limiter for {@code GET /api/profile/**}.
  *
- * <p>This endpoint is public and searches users by persona name, which enables enumeration.
- * A fixed-window Caffeine counter (same approach as {@link AuthRateLimitFilter}) caps how many
- * lookups a single IP can perform per minute without affecting normal debounced-typing usage.</p>
+ * <p>Profile reads load a user's complete guess history plus per-request app-name,
+ * awards, and spotlight queries, and are public — hammering arbitrary steamIds
+ * forces repeated full-history loads. A generous fixed-window cap (same Caffeine
+ * approach as {@link UserSearchRateLimitFilter}) blocks abuse without affecting
+ * normal browsing.</p>
  */
 @Component
 @Slf4j
-public class UserSearchRateLimitFilter extends OncePerRequestFilter {
+public class ProfileRateLimitFilter extends OncePerRequestFilter {
 
-    private static final String SEARCH_PATH = "/api/users/search";
-    private static final int MAX_REQUESTS_PER_MINUTE = 30;
+    private static final String PROFILE_PATH_PREFIX = "/api/profile/";
+    private static final int MAX_REQUESTS_PER_MINUTE = 60;
 
     private final Cache<String, AtomicInteger> requestCounts = Caffeine.newBuilder()
             .expireAfterWrite(Duration.ofMinutes(1))
@@ -36,7 +38,7 @@ public class UserSearchRateLimitFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(final HttpServletRequest request) {
         return "OPTIONS".equalsIgnoreCase(request.getMethod())
-                || !SEARCH_PATH.equals(RequestPathNormalizer.normalizedPath(request));
+                || !RequestPathNormalizer.normalizedPath(request).startsWith(PROFILE_PATH_PREFIX);
     }
 
     @Override
@@ -47,7 +49,7 @@ public class UserSearchRateLimitFilter extends OncePerRequestFilter {
         final AtomicInteger count = requestCounts.get(ip, k -> new AtomicInteger(0));
 
         if (count.incrementAndGet() > MAX_REQUESTS_PER_MINUTE) {
-            log.warn("User search rate limit exceeded");
+            log.warn("Profile rate limit exceeded");
             response.setStatus(429);
             response.setContentType("application/json");
             response.getWriter().write("{\"error\":\"rate_limit_exceeded\"}");

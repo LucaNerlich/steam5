@@ -3,10 +3,15 @@ package org.steam5.web;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.steam5.http.ReviewGameException;
 
 @Slf4j
@@ -44,6 +49,55 @@ public class GlobalExceptionHandler {
         log.warn("ResponseStatusException: status={}", ex.getStatusCode().value(), ex);
         return ResponseEntity.status(ex.getStatusCode()).body(
             ApiError.of(ex.getStatusCode().value(), ex.getReason(), request.getRequestURI())
+        );
+    }
+
+    // Client-input binding errors must be 400s logged without stack spam — the
+    // generic Exception handler below would turn every one of them into a 500
+    // with a full stack trace, letting anonymous callers amplify log volume.
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiError> handleTypeMismatch(MethodArgumentTypeMismatchException ex,
+                                                       HttpServletRequest request) {
+        log.warn("Type mismatch on {}={}: {}", ex.getName(), ex.getValue(), ex.getMessage());
+        return ResponseEntity.status(400).body(
+            ApiError.of(400, "Invalid request parameter: " + ex.getName(), request.getRequestURI())
+        );
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ApiError> handleMissingParameter(MissingServletRequestParameterException ex,
+                                                           HttpServletRequest request) {
+        log.warn("Missing required parameter '{}'", ex.getParameterName());
+        return ResponseEntity.status(400).body(
+            ApiError.of(400, "Missing required parameter: " + ex.getParameterName(), request.getRequestURI())
+        );
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiError> handleUnreadableBody(HttpMessageNotReadableException ex,
+                                                         HttpServletRequest request) {
+        log.warn("Malformed request body: {}", ex.getMessage());
+        return ResponseEntity.status(400).body(
+            ApiError.of(400, "Malformed request body", request.getRequestURI())
+        );
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ApiError> handleMethodNotSupported(HttpRequestMethodNotSupportedException ex,
+                                                             HttpServletRequest request) {
+        log.warn("Method {} not supported for {}", ex.getMethod(), request.getRequestURI());
+        return ResponseEntity.status(405).body(
+            ApiError.of(405, "Method not allowed", request.getRequestURI())
+        );
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ApiError> handleNoResource(NoResourceFoundException ex,
+                                                     HttpServletRequest request) {
+        log.warn("No resource found: {}", request.getRequestURI());
+        return ResponseEntity.status(404).body(
+            ApiError.of(404, "Not found", request.getRequestURI())
         );
     }
 
