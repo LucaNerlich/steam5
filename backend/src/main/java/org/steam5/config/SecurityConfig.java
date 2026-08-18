@@ -34,7 +34,6 @@ public class SecurityConfig {
     private static final Logger log = LoggerFactory.getLogger(SecurityConfig.class);
 
     private static final String DEFAULT_METRICS_CRED = "metrics";
-    private static final String COOLIFY_PROFILE = "coolify";
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -47,10 +46,18 @@ public class SecurityConfig {
             @Value("${metrics.password:metrics}") String password,
             PasswordEncoder passwordEncoder,
             Environment environment) {
-        if (Arrays.asList(environment.getActiveProfiles()).contains(COOLIFY_PROFILE)
-                && DEFAULT_METRICS_CRED.equals(username)
-                && DEFAULT_METRICS_CRED.equals(password)) {
-            log.warn("Coolify profile is active but METRICS_USERNAME / METRICS_PASSWORD are still the defaults — "
+        if (DEFAULT_METRICS_CRED.equals(username) && DEFAULT_METRICS_CRED.equals(password)) {
+            final String[] activeProfiles = environment.getActiveProfiles();
+            final boolean isDevProfile = Arrays.asList(activeProfiles).contains("dev");
+            if (!isDevProfile) {
+                // Default credentials in a non-dev profile let anyone scrape
+                // /actuator/prometheus and satisfy basic auth on shared chains.
+                throw new IllegalStateException(
+                        "METRICS_USERNAME / METRICS_PASSWORD are still the defaults (metrics/metrics) — refusing to start. " +
+                        "Override them via environment variables before exposing the actuator endpoints. " +
+                        "(active profiles: " + Arrays.toString(activeProfiles) + ")");
+            }
+            log.warn("Dev profile active but METRICS_USERNAME / METRICS_PASSWORD are still the defaults — "
                     + "set them via environment variables before exposing /actuator/prometheus to the public.");
         }
         UserDetails metricsUser = User.withUsername(username)
@@ -94,12 +101,18 @@ public class SecurityConfig {
                         .requestMatchers("/api/review-game/comments/**").permitAll()
                         .requestMatchers("/api/review-game/**").permitAll()
                         .requestMatchers("/api/details/**").permitAll()
-                        .requestMatchers("/api/metrics/**").permitAll()
-                        .requestMatchers("/api/cache/**").permitAll()
+                        // Operational data is gated behind the admin token (AdminTokenFilter);
+                        // only the pick summary consumed by the public statistics UI stays open.
+                        .requestMatchers("/api/metrics/picks/summary").permitAll()
+                        .requestMatchers("/api/metrics/**").hasRole("ADMIN")
+                        .requestMatchers("/api/cache/**").hasRole("ADMIN")
                         .requestMatchers("/api/leaderboard/**").permitAll()
                         .requestMatchers("/api/profile/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/users/search").permitAll()
-                        .requestMatchers("/api/admin/**").authenticated()
+                        // AdminTokenFilter authenticates with the X-Admin-Token header and
+                        // grants ROLE_ADMIN; plain basic auth (e.g. the metrics user) must not
+                        // be able to reach admin operations.
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/seasons/**").permitAll()
                         .requestMatchers("/api/stats/**").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()

@@ -47,7 +47,8 @@ public class SteamHttpClient {
     }
 
     // Strip API key from URL before logging to prevent exposure in logs
-    private static String sanitizeUrl(String url) {
+    public static String sanitizeUrl(String url) {
+        if (url == null) return null;
         return url.replaceAll("key=[^&]+", "key=***");
     }
 
