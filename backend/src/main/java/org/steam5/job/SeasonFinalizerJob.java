@@ -57,6 +57,10 @@ public class SeasonFinalizerJob implements Job {
             leaderboardRefreshService.refreshSeason();
         } catch (Exception ex) {
             log.error("Season finalization failed", ex);
+            // Rethrow so Quartz records the failure: a failed season rollover
+            // must be visible in metrics/alerts and refired, not silently lost
+            // until the next cron tick (same pattern as ReviewGameStateJob).
+            throw new JobExecutionException(ex, false);
         } finally {
             // Unconditional, matching LeaderboardRefreshJob's pattern: cheap and harmless even
             // if refreshSeason() above failed or wasn't reached, and prevents a request that

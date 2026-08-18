@@ -33,6 +33,8 @@ public class SeasonBackfillJob implements Job {
             }
         } catch (Exception ex) {
             log.error("Season backfill failed", ex);
+            // Rethrow so Quartz records the failure instead of reporting success.
+            throw new JobExecutionException(ex, false);
         } finally {
             long durationMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
             log.info("SeasonBackfillJob completed in {}ms; next fire {}",

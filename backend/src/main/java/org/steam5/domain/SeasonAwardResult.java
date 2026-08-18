@@ -8,7 +8,9 @@ import lombok.NoArgsConstructor;
 import java.time.OffsetDateTime;
 
 @Entity
-@Table(name = "season_award_results", indexes = {
+@Table(name = "season_award_results", uniqueConstraints = {
+        @UniqueConstraint(name = "uq_season_award_result", columnNames = {"season_id", "category", "placement_level"})
+}, indexes = {
         @Index(name = "ix_season_award_category", columnList = "season_id,category"),
         @Index(name = "ix_season_award_player", columnList = "steam_id")
 })
