@@ -13,14 +13,14 @@ public class SteamApiException extends IOException {
     public SteamApiException(int statusCode, String url, String message) {
         super(message);
         this.statusCode = statusCode;
-        this.url = url;
+        // Fix: never retain the raw URL — it carries key=<apiKey> and any
+        // consumer that logs this exception would leak the Steam API key.
+        this.url = SteamHttpClient.sanitizeUrl(url);
     }
 
     public SteamApiException(int statusCode, String url, String message, Throwable cause) {
         super(message, cause);
         this.statusCode = statusCode;
-        this.url = url;
+        this.url = SteamHttpClient.sanitizeUrl(url);
     }
 }
-
-

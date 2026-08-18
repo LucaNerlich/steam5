@@ -4,10 +4,12 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.Date;
 
 @Slf4j
@@ -16,7 +18,8 @@ public class AuthTokenService {
 
     private final SecretKey key;
 
-    public AuthTokenService(@Value("${auth.jwtSecret:change-me-please-change-me-32-bytes-min}") String secret) {
+    public AuthTokenService(@Value("${auth.jwtSecret:change-me-please-change-me-32-bytes-min}") String secret,
+                            Environment environment) {
         // Fix #8: enforce a minimum key length at startup so a misconfigured or
         // default secret causes an immediate, obvious failure rather than silently
         // running with a weak key in production.
@@ -26,6 +29,16 @@ public class AuthTokenService {
                     "Generate a strong secret with: openssl rand -base64 48");
         }
         if (secret.startsWith("change-me")) {
+            final String[] activeProfiles = environment.getActiveProfiles();
+            final boolean isDevProfile = Arrays.asList(activeProfiles).contains("dev");
+            if (!isDevProfile) {
+                // The fallback secret is public knowledge; running with it in any
+                // non-dev profile lets anyone forge tokens for arbitrary steamIds.
+                throw new IllegalStateException(
+                        "auth.jwtSecret is the publicly known default value — refusing to start. " +
+                        "Set a strong random secret via the AUTH_JWT_SECRET environment variable. " +
+                        "(active profiles: " + Arrays.toString(activeProfiles) + ")");
+            }
             log.warn("auth.jwtSecret appears to be the default insecure value. " +
                      "Set a strong random secret in production via the AUTH_JWT_SECRET environment variable.");
         }
