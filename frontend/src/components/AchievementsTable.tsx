@@ -16,7 +16,7 @@ type LeaderEntry = {
 };
 
 /**
- * Renders the achievements leaderboard table.
+ * Renders the achievements leaderboard as a responsive list of cards.
  *
  * @param achievements - Achievement records to display
  * @param serverOffsetMinutes - Server time offset used to calculate achievement metrics and titles
@@ -38,58 +38,40 @@ export default function AchievementsTable({
     return (
         <div className="leaderboard__achievements">
             <h3 className="leaderboard__achievements-title">Achievements</h3>
-            <div className="leaderboard__scroll">
-                <table className="leaderboard__table" aria-label="Achievements">
-                    <thead>
-                        <tr>
-                            <th scope="col">Achievement</th>
-                            <th scope="col">Winner</th>
-                            <th scope="col" className="num">Metric</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {Object.entries(ACHIEVEMENT_LABELS).map(([key, label]) => {
-                            const achievement = achievements.find(a => a.userAchievement === key);
-                            if (!achievement) return null;
-                            const entry = entryBySteamId.get(achievement.steamId);
-                            if (!entry) return null;
+            <ul className="achievements-list" role="list">
+                {Object.entries(ACHIEVEMENT_LABELS).map(([key, label]) => {
+                    const achievement = achievements.find(a => a.userAchievement === key);
+                    if (!achievement) return null;
+                    const entry = entryBySteamId.get(achievement.steamId);
+                    if (!entry) return null;
 
-                            const metricText = achievementMetricText(key, achievement, serverOffsetMinutes);
-                            const icon = ACHIEVEMENT_ICONS[key] ?? '';
-                            const title = getAchievementTitle(key, achievement, serverOffsetMinutes);
+                    const metricText = achievementMetricText(key, achievement, serverOffsetMinutes);
+                    const icon = ACHIEVEMENT_ICONS[key] ?? '';
+                    const title = getAchievementTitle(key, achievement, serverOffsetMinutes);
 
-                            return (
-                                <tr key={key}>
-                                    <td>
-                                        <span className="leaderboard__achievement-label" title={title}>
-                                            <span className="leaderboard__achievement-icon">{icon}</span>
-                                            {label}
-                                        </span>
-                                        <span className="leaderboard__achievement-metric-mobile num">
-                                            {metricText || '—'}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <div className="leaderboard__player">
-                                            <Avatar src={entry.avatar} name={entry.personaName} size={29}/>
-                                            <a
-                                                href={`/profile/${encodeURIComponent(achievement.steamId)}`}
-                                                className="leaderboard__profile-link"
-                                                title={entry.personaName || achievement.steamId}
-                                            >
-                                                {entry.personaName || achievement.steamId}
-                                            </a>
-                                        </div>
-                                    </td>
-                                    <td className="num leaderboard__achievement-metric-desktop">
-                                        {metricText || '—'}
-                                    </td>
-                                </tr>
-                            );
-                        })}
-                    </tbody>
-                </table>
-            </div>
+                    return (
+                        <li key={key} className="achievements-list__item">
+                            <div className="achievements-list__icon" title={title}>{icon}</div>
+                            <div className="achievements-list__content">
+                                <span className="achievements-list__label">{label}</span>
+                                <div className="achievements-list__winner">
+                                    <Avatar src={entry.avatar} name={entry.personaName} size={24}/>
+                                    <a
+                                        href={`/profile/${encodeURIComponent(achievement.steamId)}`}
+                                        className="leaderboard__profile-link"
+                                        title={entry.personaName || achievement.steamId}
+                                    >
+                                        {entry.personaName || achievement.steamId}
+                                    </a>
+                                </div>
+                            </div>
+                            {metricText && (
+                                <span className="achievements-list__metric">{metricText}</span>
+                            )}
+                        </li>
+                    );
+                })}
+            </ul>
         </div>
     );
 }

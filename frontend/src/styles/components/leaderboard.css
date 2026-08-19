@@ -275,39 +275,62 @@ html:has(.leaderboard-layout) {
     font-weight: 600;
 }
 
-.leaderboard__achievement-label {
-    display: inline-flex;
-    align-items: center;
+.achievements-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 0.5rem;
-    font-weight: 500;
 }
 
-.leaderboard__achievement-icon {
-    font-size: 1rem;
+.achievements-list__item {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    background: var(--color-surface);
+    transition: background 100ms ease;
+}
+
+.achievements-list__item:hover {
+    background: color-mix(in srgb, var(--color-primary) 4%, var(--color-surface));
+}
+
+.achievements-list__icon {
+    font-size: 1.25rem;
     line-height: 1;
     flex-shrink: 0;
 }
 
-/* Hide metric column on mobile — shown inline in the achievement cell instead */
-.leaderboard__achievement-metric-mobile {
-    display: none;
+.achievements-list__content {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
 }
 
-.leaderboard__achievement-metric-desktop {
+.achievements-list__label {
+    font-weight: 500;
+    font-size: 0.85rem;
     color: var(--color-muted);
 }
 
-@media (max-width: 640px) {
-    .leaderboard__achievement-metric-desktop {
-        display: none;
-    }
+.achievements-list__winner {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-width: 0;
+}
 
-    .leaderboard__achievement-metric-mobile {
-        display: inline-block;
-        font-size: 0.8rem;
-        color: var(--color-muted);
-        margin-left: 0.5rem;
-    }
+.achievements-list__metric {
+    flex-shrink: 0;
+    font-size: 0.85rem;
+    color: var(--color-muted);
+    font-variant-numeric: tabular-nums;
 }
 
 /* Leaderboard row hover */
