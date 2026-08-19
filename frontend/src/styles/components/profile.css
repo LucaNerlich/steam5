@@ -513,7 +513,7 @@
 .profile__avatar-wrap {
     width: 64px;
     height: 64px;
-    border-radius: 50%;
+    border-radius: 0.5rem;
     overflow: hidden;
     background-size: cover;
     background-position: center;
@@ -523,7 +523,7 @@
     width: 64px;
     height: 64px;
     object-fit: cover;
-    border-radius: 50%;
+    border-radius: 0.5rem;
 }
 
 .profile__title {

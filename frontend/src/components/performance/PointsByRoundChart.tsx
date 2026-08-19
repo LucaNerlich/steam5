@@ -30,7 +30,7 @@ export default function PointsByRoundChart({rounds}: { rounds: Round[] }): React
         const startMs = new Date(cutoffStr + "T00:00:00Z").getTime();
         const endMs = new Date(todayStr + "T00:00:00Z").getTime();
         return {
-            last: rounds.filter(r => r.date && r.date >= cutoffStr),
+            last: rounds.filter(r => r.date && r.date >= cutoffStr && r.points != null),
             windowStartMs: startMs,
             windowEndMs: endMs,
         };

@@ -18,6 +18,7 @@ export default function BucketAccuracyBars({rounds}: { rounds: Round[] }): React
     const stats = useMemo(() => {
         const map = new Map<string, { hits: number; total: number }>();
         for (const r of last) {
+            if (!r.actualBucket || !r.selectedBucket) continue;
             const key = r.actualBucket;
             const entry = map.get(key) || {hits: 0, total: 0};
             entry.total += 1;
