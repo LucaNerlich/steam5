@@ -1,4 +1,5 @@
 :root {
+    --border-radius: 0.5rem;
     --color-background: oklch(0.959 0.0115 84.58);
     --color-text: oklch(0.182 0 0);
     --color-surface: oklch(1 0 0);

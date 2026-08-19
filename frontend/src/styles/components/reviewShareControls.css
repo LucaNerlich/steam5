@@ -54,7 +54,7 @@
     transform: translateX(-50%);
     background: color-mix(in srgb, var(--color-surface) 84%, var(--color-background));
     border: 1px solid color-mix(in srgb, var(--color-text) 16%, var(--color-border));
-    border-radius: 9999px;
+    border-radius: var(--border-radius);
     padding: 0.2rem 0.5rem;
     font-size: 0.76rem;
     font-weight: 600;

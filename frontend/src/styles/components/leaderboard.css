@@ -29,7 +29,7 @@ html:has(.leaderboard-layout) {
     margin: 0.5rem 0 1rem;
     padding: 0.35rem;
     border: 1px solid var(--color-border);
-    border-radius: 10px;
+    border-radius: var(--border-radius);
     background: color-mix(in srgb, var(--color-surface-variant) 70%, var(--color-surface));
 }
 
@@ -40,7 +40,7 @@ html:has(.leaderboard-layout) {
     top: 0;
     z-index: 0;
     border: 1px solid color-mix(in srgb, var(--color-primary) 60%, var(--color-border));
-    border-radius: 0.5rem;
+    border-radius: var(--border-radius);
     background: color-mix(in srgb, var(--color-primary) 12%, var(--color-surface));
     opacity: 0;
     pointer-events: none;
@@ -290,7 +290,7 @@ html:has(.leaderboard-layout) {
     gap: 0.65rem;
     padding: 0.6rem 0.75rem;
     border: 1px solid var(--color-border);
-    border-radius: 8px;
+    border-radius: var(--border-radius);
     background: var(--color-surface);
     transition: background 100ms ease;
 }
@@ -374,7 +374,7 @@ html:has(.leaderboard-layout) {
     );
     background-size: 200% 100%;
     animation: shimmer 1.6s ease infinite;
-    border-radius: 6px;
+    border-radius: var(--border-radius);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -403,7 +403,7 @@ html:has(.leaderboard-layout) {
 .leaderboard-skeleton__tab {
     width: 72px;
     height: 32px;
-    border-radius: 8px;
+    border-radius: var(--border-radius);
 }
 
 .leaderboard-skeleton__subtitle {

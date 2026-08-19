@@ -14,7 +14,7 @@ export default function Loading() {
                         <div key={i} style={{height: 40, background: 'var(--color-border)'}}/>
                     ))}
                 </div>
-                <div style={{height: 160, background: 'var(--color-border)', borderRadius: 8}}/>
+                <div style={{height: 160, background: 'var(--color-border)', borderRadius: 'var(--border-radius)'}}/>
             </section>
         </section>
     );

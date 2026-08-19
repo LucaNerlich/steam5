@@ -6,7 +6,7 @@
     gap: 0.55rem;
     padding: 0.42rem 0.58rem;
     border: 1px solid var(--color-border);
-    border-radius: 10px;
+    border-radius: var(--border-radius);
     background: color-mix(in srgb, var(--color-surface-variant) 65%, var(--color-surface));
 }
 

@@ -10,7 +10,7 @@
 
 .profile__award-card {
     border: 1px solid var(--color-border);
-    border-radius: 0.6rem;
+    border-radius: var(--border-radius);
     padding: 0.85rem;
     background: var(--color-surface);
     box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
@@ -54,7 +54,7 @@
     justify-content: center;
     width: 2rem;
     height: 2rem;
-    border-radius: 999px;
+    border-radius: var(--border-radius);
     font-weight: 700;
     color: #111;
     font-size: 0.85rem;
@@ -169,7 +169,7 @@
 
 .perf-card {
     border: 1px solid var(--color-border);
-    border-radius: 0.5rem;
+    border-radius: var(--border-radius);
     padding: 0.6rem;
     background: var(--color-surface);
     min-width: 0;
@@ -439,7 +439,7 @@
 
 .profile__mobile-card {
     border: 1px solid var(--color-border);
-    border-radius: 0.5rem;
+    border-radius: var(--border-radius);
     padding: 0.6rem 0.7rem;
     background: var(--color-surface);
     margin: 0 0 0.6rem 0;
@@ -473,7 +473,7 @@
 
 .profile__mobile-row.is-correct {
     background: color-mix(in srgb, var(--color-primary) 10%, transparent);
-    border-radius: 0.3rem;
+    border-radius: var(--border-radius);
     padding: 0.25rem 0.35rem;
 }
 
@@ -513,7 +513,7 @@
 .profile__avatar-wrap {
     width: 64px;
     height: 64px;
-    border-radius: 0.5rem;
+    border-radius: var(--border-radius);
     overflow: hidden;
     background-size: cover;
     background-position: center;
@@ -523,7 +523,7 @@
     width: 64px;
     height: 64px;
     object-fit: cover;
-    border-radius: 0.5rem;
+    border-radius: var(--border-radius);
 }
 
 .profile__title {

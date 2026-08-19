@@ -84,7 +84,7 @@ footer .controls .footer__icon-link {
     width: 36px;
     height: 36px;
     padding: 0;
-    border-radius: 999px;
+    border-radius: var(--border-radius);
     border: 1px solid var(--color-border);
     background: var(--color-surface);
     color: var(--color-text);

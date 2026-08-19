@@ -241,7 +241,7 @@ export default function LeaderboardTable(props: {
                                                 style={{
                                                     marginLeft: 8,
                                                     padding: '2px 6px',
-                                                    borderRadius: 999,
+                                                    borderRadius: 'var(--border-radius)',
                                                     backgroundColor: '#eef2ff',
                                                     color: '#1e3a8a',
                                                     fontSize: '0.75rem',

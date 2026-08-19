@@ -2,7 +2,7 @@
     margin-top: 16px;
     border: 1px solid var(--color-border);
     background: var(--color-surface);
-    border-radius: 10px;
+    border-radius: var(--border-radius);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 6px 16px rgba(0, 0, 0, 0.08);
     overflow: hidden;
 }
@@ -57,7 +57,7 @@
     background: var(--color-surface-variant);
     color: var(--color-text);
     border: 1px solid color-mix(in srgb, var(--color-text) 18%, var(--color-border));
-    border-radius: 9999px;
+    border-radius: var(--border-radius);
     padding: 0.45rem 0.85rem;
     font-size: 0.92rem;
     line-height: 1.35;
@@ -118,7 +118,7 @@
     .review-round__button {
         width: 100%;
         min-width: 0;
-        border-radius: 10px;
+        border-radius: var(--border-radius);
         padding: 0.58rem 0.75rem;
         text-align: center;
     }

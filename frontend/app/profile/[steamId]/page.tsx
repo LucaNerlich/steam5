@@ -172,7 +172,7 @@ export default async function ProfilePage({params}: { params: { steamId: string 
                     )}
                 </section>
 
-                <Suspense fallback={<div style={{height: 160, background: 'var(--color-border)', borderRadius: 8}}/>}>
+                <Suspense fallback={<div style={{height: 160, background: 'var(--color-border)', borderRadius: 'var(--border-radius)'}}/>}>
                     {/* PerformanceSection is client and renders quickly; Suspense ensures streaming */}
                     <PerformanceSection rounds={flattenDayRounds(allDays)} />
                 </Suspense>

@@ -1,6 +1,6 @@
 .archive-summary {
     background: var(--color-surface-variant);
-    border-radius: 8px;
+    border-radius: var(--border-radius);
     padding: 1.5rem;
     margin: 1.5rem 0;
     border: 1px solid var(--color-border);

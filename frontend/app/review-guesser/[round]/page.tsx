@@ -104,7 +104,7 @@ export default async function ReviewGuesserRoundPage({params}: { params: Promise
                                pick={pick}
                                roundIndex={roundIndex}/>
 
-            <Suspense fallback={<div style={{height: 220, background: 'var(--color-border)', borderRadius: 8}}/>}>
+            <Suspense fallback={<div style={{height: 220, background: 'var(--color-border)', borderRadius: 'var(--border-radius)'}}/>}>
                 <ReviewGuesserRound
                     appId={pick.appId}
                     buckets={today.buckets}

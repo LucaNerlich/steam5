@@ -1,7 +1,7 @@
 .game-statistics {
     background: var(--color-surface-variant);
     border: 1px solid var(--color-border);
-    border-radius: 8px;
+    border-radius: var(--border-radius);
     margin: 1.5rem 0;
     padding: 1.5rem;
 }

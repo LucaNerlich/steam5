@@ -19,14 +19,14 @@
     height: 28px;
     width: 280px;
     background: var(--color-border);
-    border-radius: 8px;
+    border-radius: var(--border-radius);
 }
 
 .subtitleBar {
     height: 18px;
     width: 100px;
     background: var(--color-border);
-    border-radius: 6px;
+    border-radius: var(--border-radius);
 }
 
 .metaRow {
@@ -38,7 +38,7 @@
     height: 18px;
     width: 70px;
     background: var(--color-border);
-    border-radius: 6px;
+    border-radius: var(--border-radius);
 }
 
 .pillRow {
@@ -62,7 +62,7 @@
 .shot {
     aspect-ratio: 16 / 9;
     background: var(--color-border);
-    border-radius: 8px;
+    border-radius: var(--border-radius);
     width: 100%;
     height: auto;
     max-height: 225px;
@@ -75,14 +75,14 @@
     display: none;
     height: 260px;
     background: var(--color-border);
-    border-radius: 8px;
+    border-radius: var(--border-radius);
 }
 
 .subhead {
     height: 20px;
     width: 160px;
     background: var(--color-border);
-    border-radius: 6px;
+    border-radius: var(--border-radius);
 }
 
 .guessList {
@@ -94,13 +94,13 @@
 .guessItem {
     height: 44px;
     background: var(--color-border);
-    border-radius: 8px;
+    border-radius: var(--border-radius);
 }
 
 .summaryCard {
     height: 190px;
     background: var(--color-border);
-    border-radius: 8px;
+    border-radius: var(--border-radius);
     margin-top: 24px;
 }
 
