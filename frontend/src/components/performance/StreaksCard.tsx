@@ -14,18 +14,15 @@ export default function StreaksCard({rounds}: { rounds: Round[] }): React.ReactE
     const [todayUtc, setTodayUtc] = useState(() => new Date().toISOString().slice(0, 10));
 
     useEffect(() => {
-        const scheduleNextMidnight = () => {
-            const now = Date.now();
-            const tomorrow = new Date(now);
-            tomorrow.setUTCHours(24, 0, 0, 0);
-            const msUntilMidnight = tomorrow.getTime() - now;
-            return setTimeout(() => {
-                setTodayUtc(new Date().toISOString().slice(0, 10));
-                scheduleNextMidnight();
-            }, msUntilMidnight);
-        };
-        const timer = scheduleNextMidnight();
-        return () => clearTimeout(timer);
+        // Re-check the UTC day every minute so the streak rolls over shortly
+        // after each UTC midnight while mounted (setInterval is always
+        // cleared on unmount; a self-rescheduling setTimeout is not
+        // reliably analyzable as cleaned up).
+        const interval = setInterval(() => {
+            const now = new Date().toISOString().slice(0, 10);
+            setTodayUtc((prev) => (prev === now ? prev : now));
+        }, 60_000);
+        return () => clearInterval(interval);
     }, []);
 
     const yesterdayUtc = (() => {

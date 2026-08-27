@@ -1,6 +1,6 @@
 "use client";
 
-import React, {useEffect} from "react";
+import React, {useEffect, useRef} from "react";
 import Image from "next/image";
 import type {Movie as SteamMovie} from "@/types/review-game";
 
@@ -70,12 +70,16 @@ export default function GameInfoVideos({appId, movies}: {
     movies: SteamMovie[];
 }): React.ReactElement | null {
     const hasMovies = movies.length > 0;
+    // Ref instead of a captured `let`: the Compiler can't optimize update
+    // expressions on variables captured within lambdas (the Fancybox handlers
+    // bump this counter). A ref is a plain property write. Declared at the
+    // component top level — hooks cannot live inside the effect body.
+    const playerGenerationRef = useRef(0);
 
     useEffect(() => {
         if (!hasMovies) return;
 
         let disposed = false;
-        let playerGeneration = 0;
         let FancyboxInstance: any = null;
         const dashPlayers: Array<{ reset: () => void }> = [];
         const selector = `[data-fancybox="videos-${appId}"]`;
@@ -111,9 +115,9 @@ export default function GameInfoVideos({appId, movies}: {
                         if (!src.toLowerCase().includes(".mpd")) return;
                         const videoEl = slide.el?.querySelector("video") as HTMLVideoElement | null;
                         if (!videoEl) return;
-                        const generation = ++playerGeneration;
+                        const generation = ++playerGenerationRef.current;
                         void loadDashModule().then((dashjsModule) => {
-                            if (disposed || generation !== playerGeneration) return;
+                            if (disposed || generation !== playerGenerationRef.current) return;
                             if (!dashjsModule) return;
                             const dashLib = dashjsModule.default ?? dashjsModule;
                             if (!dashLib?.MediaPlayer) return;
