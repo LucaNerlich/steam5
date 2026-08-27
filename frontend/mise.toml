@@ -1,0 +1,8 @@
+# Tool versions for local dev, CI, and Coolify/Railpack builds.
+# pnpm uses mise's npm backend (npm:pnpm) instead of the default aqua backend:
+# older mise versions bundled by the build image can't resolve pnpm 11/12's
+# renamed GitHub release assets ("no asset found: pnpm-linux-x64"), while the
+# npm registry path works everywhere.
+[tools]
+node = "22"
+"npm:pnpm" = "12"
