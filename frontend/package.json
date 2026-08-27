@@ -1,6 +1,6 @@
 {
     "name": "steam5",
-    "version": "1.20.0",
+    "version": "1.20.1",
     "private": true,
     "homepage": "https://steam5.org",
     "packageManager": "pnpm@10.15.1",

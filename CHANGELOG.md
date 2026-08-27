@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.20.1] - 2026-08-27
+
+### Fixed
+
+- Fixed API routes serving backend error payloads as if they were successful responses; upstream errors now pass through with their original status and body
+- Fixed server actions being callable without a session by gating them on the server-side Steam session before any privileged work
+- Fixed cached guess results potentially carrying over between accounts by including the signed-in Steam ID in the client cache key and clearing stale entries when the identity changes
+- Fixed WebSocket ticket issuance happening on a GET request; it now uses POST so page loads can't accidentally mint tickets
+- Fixed embedded JSON-LD data being injectable into page scripts; it is now HTML-escaped before serialization
+- Fixed a midnight timer in the streak card that could fire after leaving the page, and video player setup the React Compiler couldn't optimize
+- Fixed unsafe parsing of locally stored round snapshots (now throw-safe with shape validation)
+
+### Changed
+
+- Renamed the "not signed in" warning preference from a cookie to local storage, so it no longer involves client-side cookie writes
+- Converted the sign-in warning, confirmation, and round-result popups to native HTML dialogs, restoring proper focus handling, Escape support, and screen-reader semantics
+- Optimized all images through Next.js image handling, including game description artwork from any Steam CDN host
+- Split the round and game info screens into smaller components and simplified state handling across guessing, comments, and reactions for fewer redundant re-renders
+- Removed unnecessary manual memoization now that the React Compiler handles caching automatically
+- Deleted unused leaderboard components
+
+### Security
+
+- Enabled pnpm supply-chain protections: new package versions must be published for at least 7 days before installation, provenance trust can't weaken between releases, and transitive dependencies can't come from git/tarball sources
+
 ## [1.20.0] - 2026-08-03
 
 ### Added
