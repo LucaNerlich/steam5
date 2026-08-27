@@ -19,7 +19,8 @@ function cutoffDateStr(daysWindow: number): string {
 
 export default function OutcomeMixBar({rounds}: { rounds: Round[] }): React.ReactElement {
     const DAYS_WINDOW = 30;
-    const last = rounds.filter(r => r.date && r.date >= cutoffDateStr(DAYS_WINDOW));
+    const cutoff = cutoffDateStr(DAYS_WINDOW);
+    const last = rounds.filter(r => r.date && r.date >= cutoff);
     const bars = (() => {
         const counts = {hit: 0, high: 0, low: 0};
         for (const r of last) {

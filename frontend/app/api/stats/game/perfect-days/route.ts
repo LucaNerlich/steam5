@@ -28,10 +28,10 @@ export async function GET(req: NextRequest) {
                 const errorBody: unknown = await res.json().catch(() => null);
                 return NextResponse.json(errorBody ?? {
                     type: 'about:blank',
-                    title: 'Bad Gateway',
+                    title: res.statusText || 'Bad Gateway',
                     status: res.status,
                     detail: 'Failed to load perfect days',
-                }, {status: res.status, headers});
+                }, {status: res.status, headers: {...headers, 'content-type': 'application/problem+json'}});
             }
 
             const data = await res.json();

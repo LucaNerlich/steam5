@@ -28,11 +28,13 @@ export default function ConfirmModal({
     onCancel,
 }: Readonly<ConfirmModalProps>): React.ReactElement | null {
     const dialogRef = useRef<HTMLDialogElement | null>(null);
+    const contentRef = useRef<HTMLDivElement | null>(null);
 
     // Clicks on ::backdrop target the <dialog> element itself; attached in the
     // effect so the non-interactive <dialog> keeps no JSX interaction handler.
     const onBackdropClick = useEffectEvent((event: MouseEvent) => {
-        if (event.target === dialogRef.current) {
+        const content = contentRef.current;
+        if (event.target === dialogRef.current || (content && !content.contains(event.target as Node))) {
             onCancel();
         }
     });
@@ -65,6 +67,7 @@ export default function ConfirmModal({
                 onCancel();
             }}
         >
+            <div ref={contentRef}>
             <h2 id="confirm-modal-title">{title}</h2>
             {message && <p className="text-muted">{message}</p>}
             <div className="confirm-modal__actions">
@@ -79,6 +82,7 @@ export default function ConfirmModal({
                 <button type="button" className="btn-ghost" onClick={onCancel} autoFocus>
                     {cancelLabel}
                 </button>
+            </div>
             </div>
         </dialog>
     );

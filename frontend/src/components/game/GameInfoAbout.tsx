@@ -10,13 +10,47 @@ import parse, {
 
 function normalizeToHttps(url: string): string {
     if (!url) return url;
+    if (url.startsWith("https://")) return url;
     if (url.startsWith("//")) return `https:${url}`;
     if (url.startsWith("http://")) return `https://${url.substring(7)}`;
+    // Reject other unsupported schemes
+    if (url.includes("://")) return "";
     return url;
 }
 
 function isElement(n: DOMNode): n is Element {
     return (n as Element).type === "tag";
+}
+
+// Allowlist of safe HTML elements that can be rendered from Steam's about HTML
+const SAFE_ELEMENTS = new Set([
+    "a", "abbr", "address", "article", "aside", "b", "blockquote", "br", "caption",
+    "cite", "code", "col", "colgroup", "dd", "del", "details", "dfn", "div", "dl",
+    "dt", "em", "figcaption", "figure", "footer", "h1", "h2", "h3", "h4", "h5", "h6",
+    "header", "hr", "i", "img", "ins", "kbd", "li", "main", "mark", "nav", "ol", "p",
+    "pre", "q", "s", "samp", "section", "small", "span", "strong", "sub", "summary",
+    "sup", "table", "tbody", "td", "tfoot", "th", "thead", "time", "tr", "u", "ul", "var", "wbr"
+]);
+
+// Allowlist of safe HTML attributes
+const SAFE_ATTRIBUTES = new Set([
+    "alt", "aria-label", "aria-labelledby", "cellpadding", "cellspacing", "colspan",
+    "datetime", "height", "href", "id", "lang", "rowspan", "sizes", "src", "srcset",
+    "target", "title", "width"
+]);
+
+// Safe URL protocols for href/src attributes
+const SAFE_PROTOCOLS = new Set(["http:", "https:"]);
+
+function isSafeUrl(url: string): boolean {
+    if (!url) return false;
+    try {
+        const parsed = new URL(url, "https://example.com");
+        return SAFE_PROTOCOLS.has(parsed.protocol);
+    } catch {
+        // Relative URLs are safe (they resolve to the current origin)
+        return !url.includes(":");
+    }
 }
 
 /**
@@ -68,21 +102,29 @@ function parseAboutHtml(html: string): ReturnType<typeof parse> {
                     />
                 );
             }
-            // For all other elements, strip class/className
+            // For all other elements, validate against allowlist and sanitize attributes
             if (el.type === "tag") {
-                if (el.name === "script" || el.name === "style") {
+                // Reject dangerous elements
+                if (!SAFE_ELEMENTS.has(el.name) || el.name === "script" || el.name === "style" || el.name === "iframe") {
                     return <></>;
                 }
-                const attribs: Record<string, string> = {...(el.attribs || {})};
-                // strip classes and potentially dangerous attributes
-                delete attribs.class;
-                delete attribs.className;
-                delete attribs.style;
-                for (const key of Object.keys(attribs)) {
-                    if (key.toLowerCase().startsWith("on")) {
-                        delete attribs[key];
+
+                // Sanitize attributes
+                const attribs: Record<string, string> = {};
+                for (const [key, value] of Object.entries(el.attribs || {})) {
+                    const lowerKey = key.toLowerCase();
+                    // Skip unsafe attributes
+                    if (!SAFE_ATTRIBUTES.has(lowerKey)) continue;
+                    if (lowerKey.startsWith("on")) continue;
+                    // Validate and normalize URL-bearing attributes
+                    if (lowerKey === "href" || lowerKey === "src" || lowerKey === "srcset") {
+                        if (!isSafeUrl(value)) continue;
+                        attribs[key] = normalizeToHttps(value);
+                    } else {
+                        attribs[key] = value;
                     }
                 }
+
                 const props = attributesToProps(attribs);
                 // Void elements must not receive children
                 const voidElements = new Set([

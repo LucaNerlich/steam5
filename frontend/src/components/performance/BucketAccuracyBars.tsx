@@ -13,7 +13,8 @@ function cutoffDateStr(daysWindow: number): string {
 
 export default function BucketAccuracyBars({rounds}: { rounds: Round[] }): React.ReactElement {
     const DAYS_WINDOW = 30;
-    const last = rounds.filter(r => r.date && r.date >= cutoffDateStr(DAYS_WINDOW));
+    const cutoff = cutoffDateStr(DAYS_WINDOW);
+    const last = rounds.filter(r => r.date && r.date >= cutoff);
 
     const stats = (() => {
         const map = new Map<string, { hits: number; total: number }>();

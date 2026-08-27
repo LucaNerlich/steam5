@@ -42,11 +42,19 @@ function cutoffDateStr(daysWindow: number): string {
 }
 
 export default function HitRateVsAverageCard({rounds}: { rounds: Round[] }): React.ReactElement {
-    const last = rounds.filter(r => r.date && r.date >= cutoffDateStr(DAYS_WINDOW));
+    const cutoff = cutoffDateStr(DAYS_WINDOW);
 
-    const myHitRate = last.length === 0
-        ? 0
-        : (last.filter(r => r.selectedBucket === r.actualBucket).length / last.length) * 100;
+    const myHitRate = (() => {
+        let eligible = 0;
+        let hits = 0;
+        for (const r of rounds) {
+            if (r.date && r.date >= cutoff) {
+                eligible++;
+                if (r.selectedBucket === r.actualBucket) hits++;
+            }
+        }
+        return eligible === 0 ? 0 : (hits / eligible) * 100;
+    })();
 
     const {data: leaders} = useSWR<Array<{
         hits: number;

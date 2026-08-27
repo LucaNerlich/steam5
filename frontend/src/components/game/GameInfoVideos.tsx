@@ -4,11 +4,14 @@ import React, {useEffect} from "react";
 import Image from "next/image";
 import type {Movie as SteamMovie} from "@/types/review-game";
 
-// Helper to ensure URLs are absolute
+// Helper to ensure URLs are absolute and use HTTPS
 function normalizeUrl(url: string | null | undefined): string {
     if (!url) return "";
-    if (url.startsWith("http://") || url.startsWith("https://")) return url;
+    if (url.startsWith("https://")) return url;
     if (url.startsWith("//")) return `https:${url}`;
+    if (url.startsWith("http://")) return `https://${url.substring(7)}`;
+    // Reject other unsupported schemes
+    if (url.includes("://")) return "";
     return url;
 }
 
@@ -71,6 +74,8 @@ export default function GameInfoVideos({appId, movies}: {
     useEffect(() => {
         if (!hasMovies) return;
 
+        let disposed = false;
+        let playerGeneration = 0;
         let FancyboxInstance: any = null;
         const dashPlayers: Array<{ reset: () => void }> = [];
         const selector = `[data-fancybox="videos-${appId}"]`;
@@ -88,7 +93,7 @@ export default function GameInfoVideos({appId, movies}: {
 
         const initFancybox = async () => {
             const Fancybox = await loadFancybox();
-            if (!Fancybox) return;
+            if (disposed || !Fancybox) return;
             FancyboxInstance = Fancybox;
 
             // @ts-ignore Fancybox global binding
@@ -106,7 +111,9 @@ export default function GameInfoVideos({appId, movies}: {
                         if (!src.toLowerCase().includes(".mpd")) return;
                         const videoEl = slide.el?.querySelector("video") as HTMLVideoElement | null;
                         if (!videoEl) return;
+                        const generation = ++playerGeneration;
                         void loadDashModule().then((dashjsModule) => {
+                            if (disposed || generation !== playerGeneration) return;
                             if (!dashjsModule) return;
                             const dashLib = dashjsModule.default ?? dashjsModule;
                             if (!dashLib?.MediaPlayer) return;
@@ -127,6 +134,7 @@ export default function GameInfoVideos({appId, movies}: {
         void initFancybox();
 
         return () => {
+            disposed = true;
             if (FancyboxInstance) {
                 FancyboxInstance.unbind(selector);
                 FancyboxInstance.close();

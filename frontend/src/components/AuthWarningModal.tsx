@@ -21,11 +21,13 @@ export default function AuthWarningModal({
     onIgnore
 }: Readonly<AuthWarningModalProps>): React.ReactElement | null {
     const dialogRef = useRef<HTMLDialogElement | null>(null);
+    const contentRef = useRef<HTMLDivElement | null>(null);
 
     // Clicks on ::backdrop target the <dialog> element itself; attached in the
     // effect so the non-interactive <dialog> keeps no JSX interaction handler.
     const onBackdropClick = useEffectEvent((event: MouseEvent) => {
-        if (event.target === dialogRef.current) {
+        const content = contentRef.current;
+        if (event.target === dialogRef.current || (content && !content.contains(event.target as Node))) {
             onSkip("backdrop");
         }
     });
@@ -58,6 +60,7 @@ export default function AuthWarningModal({
                 onSkip("escape");
             }}
         >
+            <div ref={contentRef}>
             <h2 id="auth-warning-title">Log in to join the leaderboard</h2>
             <p className="text-muted">
                 You can keep guessing, but your round results will not count
@@ -94,6 +97,7 @@ export default function AuthWarningModal({
                 </svg>
                 Ignore this warning
             </button>
+            </div>
         </dialog>
     );
 }

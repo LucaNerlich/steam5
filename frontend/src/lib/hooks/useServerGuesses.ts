@@ -1,6 +1,8 @@
 "use client";
 
-import useSWR from "swr";
+import {useEffect} from "react";
+import useSWR, {useSWRConfig} from "swr";
+import {useAuth} from "@/contexts/AuthContext";
 import type {RoundResult} from "@/lib/storage";
 
 /** Raw per-round guess shape returned by /api/review-game/my/today. */
@@ -28,16 +30,29 @@ export function toRoundResult(g: ServerGuess): RoundResult {
     };
 }
 
+function isValidServerGuess(g: unknown): g is ServerGuess {
+    return typeof g === 'object' && g !== null
+        && typeof (g as any).roundIndex === 'number'
+        && typeof (g as any).appId === 'number'
+        && typeof (g as any).selectedBucket === 'string';
+}
+
 /**
  * Fetch today's server guesses. Never rejects — any failure (network, non-OK
- * status, bad JSON) resolves to null so SWR treats it as "no data" without
- * entering its error/retry path.
+ * status, bad JSON, invalid shape) resolves to null so SWR treats it as "no data"
+ * without entering its error/retry path.
  */
 const myTodayFetcher = async (url: string): Promise<ServerGuess[] | null> => {
     try {
         const res = await fetch(url, {credentials: 'include', cache: 'no-store'});
         if (!res.ok) return null;
-        return await res.json() as ServerGuess[];
+        const body: unknown = await res.json();
+        if (!Array.isArray(body)) return null;
+        // Validate all entries are valid ServerGuess objects
+        for (const item of body) {
+            if (!isValidServerGuess(item)) return null;
+        }
+        return body as ServerGuess[];
     } catch {
         return null;
     }
@@ -47,11 +62,33 @@ export default function useServerGuesses(disabled: boolean = false): {
     guesses: Record<number, RoundResult>;
     loading: boolean;
 } {
+    const {steamId} = useAuth();
+    const {cache} = useSWRConfig();
+
+    // Include steamId in the SWR key so guesses are not shared across accounts
+    const swrKey = disabled ? null : `/api/review-game/my/today?steamId=${steamId ?? 'anon'}`;
+
+    // Clear previous identity's cached entries when identity changes
+    useEffect(() => {
+        // Invalidate all my/today entries when steamId changes
+        const keysToDelete: string[] = [];
+        if (cache instanceof Map) {
+            for (const key of cache.keys()) {
+                if (typeof key === 'string' && key.startsWith('/api/review-game/my/today')) {
+                    keysToDelete.push(key);
+                }
+            }
+        }
+        for (const key of keysToDelete) {
+            cache.delete(key);
+        }
+    }, [steamId, cache]);
+
     // SWR owns the fetch lifecycle (dedup, races, cleanup) instead of a manual
     // effect. A null key disables fetching; keepPreviousData keeps the last map
     // while disabled, matching the previous behavior of leaving state untouched.
     const {data, isLoading} = useSWR<ServerGuess[] | null>(
-        disabled ? null : '/api/review-game/my/today',
+        swrKey,
         myTodayFetcher,
         {revalidateOnFocus: false, dedupingInterval: 0, keepPreviousData: true},
     );

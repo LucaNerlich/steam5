@@ -6,19 +6,23 @@ import {resolveLiveSignedIn, shouldWarnBeforeSubmit} from "@/lib/authGuard";
 import {dismissAuthWarning, hasDismissedAuthWarning} from "./warningPreference";
 
 // Freshly verify the session at submit time. The cached signedIn flag can be
-// stale (the s5_token cookie may have been dropped mid-session), and because that
+// stale (the s5_token cookie may have been mid-session), and because that
 // cookie is HttpOnly the client cannot inspect it directly — only the server can
 // tell us. Errors are treated as "still signed in" so a transient failure never
 // blocks a guess; the post-submit persisted check is the backstop.
 async function fetchSignedIn(): Promise<boolean> {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
     try {
-        const r = await fetch('/api/auth/me', {cache: 'no-store'});
+        const r = await fetch('/api/auth/me', {cache: 'no-store', signal: controller.signal});
         if (r.status === 401) return false;
         if (!r.ok) return true;
         const data = await r.json();
         return Boolean(data?.signedIn);
     } catch {
         return true;
+    } finally {
+        clearTimeout(timeout);
     }
 }
 

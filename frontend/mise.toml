@@ -1,6 +1,6 @@
 # Tool versions for local dev, CI, and Coolify/Railpack builds.
 # NOTE: pnpm is intentionally NOT managed here. The package.json "packageManager"
-# field makes Coolify/Railpack install pnpm 12 via Corepack instead of mise's
+# field makes Coolify/Railpack install pnpm 10.15.1 via Corepack instead of mise's
 # aqua backend, whose older bundled versions can't resolve pnpm 11/12's renamed
 # GitHub release assets ("no asset found: pnpm-linux-x64").
 [tools]

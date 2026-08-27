@@ -183,6 +183,7 @@ class PresenceConnection {
                 // query parameter so it does not land in access logs or proxy log
                 // pipelines.
                 const res = await fetch(`/api/ws/ticket?scopeKey=${encodeURIComponent(this.scopeKey)}`, {
+                    method: "POST",
                     cache: "no-store",
                     credentials: "include",
                     signal: this.ticketController.signal,

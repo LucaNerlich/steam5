@@ -18,7 +18,8 @@ const STORAGE_KEY_PREFIX = "review-guesser:";
 
 const STORED_DAY_EVENT = "s5:stored-day-changed";
 
-let cache: {raw: string | null; value: StoredDay | null} | null = null;
+// Map-based cache keyed by gameDate so multiple dates can have stable snapshots.
+const cache = new Map<string, {raw: string | null; value: StoredDay | null}>();
 
 function readRaw(gameDate: string): string | null {
     try {
@@ -39,14 +40,17 @@ function parseDay(raw: string | null): StoredDay | null {
 
 function readSnapshot(gameDate: string): StoredDay | null {
     const raw = readRaw(gameDate);
-    if (!cache || cache.raw !== raw) {
-        cache = {raw, value: parseDay(raw)};
+    const cached = cache.get(gameDate);
+    if (!cached || cached.raw !== raw) {
+        const entry = {raw, value: parseDay(raw)};
+        cache.set(gameDate, entry);
+        return entry.value;
     }
-    return cache.value;
+    return cached.value;
 }
 
 function notifySubscribers(): void {
-    cache = null;
+    cache.clear();
     for (const onStoreChange of subscribers) onStoreChange();
 }
 
@@ -57,12 +61,20 @@ function subscribe(onStoreChange: () => void): () => void {
     const handleStorage = (event: StorageEvent) => {
         if (event.storageArea === window.localStorage) notifySubscribers();
     };
+    const handleVisibilityChange = () => {
+        if (document.visibilityState === "visible") {
+            cache.clear();
+            for (const cb of subscribers) cb();
+        }
+    };
     window.addEventListener(STORED_DAY_EVENT, notifySubscribers);
     window.addEventListener("storage", handleStorage);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => {
         subscribers.delete(onStoreChange);
         window.removeEventListener(STORED_DAY_EVENT, notifySubscribers);
         window.removeEventListener("storage", handleStorage);
+        document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
 }
 

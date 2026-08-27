@@ -1,6 +1,6 @@
 "use client";
 
-import React, {useState} from "react";
+import React, {useEffect, useState} from "react";
 
 type Round = { date?: string };
 
@@ -10,10 +10,28 @@ function toUTCDate(d: string): number {
 }
 
 export default function StreaksCard({rounds}: { rounds: Round[] }): React.ReactElement {
-    // Captured once per mount via lazy initializers so render stays deterministic
-    // (no impure Date calls in the render body; see react-hooks purity rule).
-    const [todayUtc] = useState(() => new Date().toISOString().slice(0, 10));
-    const [yesterdayUtc] = useState(() => new Date(Date.now() - 86400000).toISOString().slice(0, 10));
+    // UTC "current day" that refreshes at the next UTC midnight while mounted.
+    const [todayUtc, setTodayUtc] = useState(() => new Date().toISOString().slice(0, 10));
+
+    useEffect(() => {
+        const scheduleNextMidnight = () => {
+            const now = Date.now();
+            const tomorrow = new Date(now);
+            tomorrow.setUTCHours(24, 0, 0, 0);
+            const msUntilMidnight = tomorrow.getTime() - now;
+            return setTimeout(() => {
+                setTodayUtc(new Date().toISOString().slice(0, 10));
+                scheduleNextMidnight();
+            }, msUntilMidnight);
+        };
+        const timer = scheduleNextMidnight();
+        return () => clearTimeout(timer);
+    }, []);
+
+    const yesterdayUtc = (() => {
+        const yesterday = new Date(new Date(todayUtc + "T00:00:00Z").getTime() - 86400000);
+        return yesterday.toISOString().slice(0, 10);
+    })();
     const {current, longest} = (() => {
         // Build unique played days from rounds
         const dateSet = new Set<string>();
