@@ -1,6 +1,6 @@
 "use client";
 
-import React, {useMemo, useState} from "react";
+import React, {useState} from "react";
 import useSWR from "swr";
 import "@/styles/components/reviewShareControls.css";
 import {scoreForRound} from "@/lib/scoring";
@@ -40,7 +40,7 @@ export default function ShareControls(props: {
             return r.json();
         }), {revalidateOnFocus: false});
 
-    const appNamesById = useMemo(() => {
+    const appNamesById = (() => {
         const map: Record<number, string> = {};
         if (!namesData) return map;
         if (Array.isArray(namesData)) {
@@ -53,7 +53,7 @@ export default function ShareControls(props: {
             }
         }
         return map;
-    }, [namesData]);
+    })();
 
     let data: StoredDay | null = null;
     if (results && Object.keys(results).length > 0) {
@@ -82,9 +82,9 @@ export default function ShareControls(props: {
             const hasServer = results && Object.keys(results).length > 0;
             if (hasServer) return;
             const backend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
-            for (const i of Array.from(indices)) {
+            await Promise.all(Array.from(indices).map(async (i) => {
                 const r = (i === latestRound ? latest : data!.results[i]);
-                if (!r) continue;
+                if (!r) return;
                 // Fire-and-forget; backend will ignore duplicates
                 await fetch(`${backend}/api/review-game/guess`, {
                     method: 'POST',
@@ -93,7 +93,7 @@ export default function ShareControls(props: {
                     cache: 'no-store'
                 }).catch(() => {
                 });
-            }
+            }));
         } catch {
             // ignore sync errors
         }

@@ -1,6 +1,6 @@
 "use client";
 
-import {useCallback, useEffect, useSyncExternalStore} from "react";
+import {useEffect, useSyncExternalStore} from "react";
 
 type Theme = "light" | "dark";
 
@@ -75,9 +75,9 @@ export default function ThemeToggle() {
         return () => media.removeEventListener("change", handler);
     }, []);
 
-    const toggle = useCallback(() => {
+    const toggle = () => {
         applyTheme(currentTheme === "dark" ? "light" : "dark");
-    }, []);
+    };
 
     return (
         <button

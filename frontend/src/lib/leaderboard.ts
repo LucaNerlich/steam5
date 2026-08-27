@@ -83,6 +83,9 @@ export async function fetchLeaderboardPageData(
   ]);
 }
 
+/** Built once at module scope so formatRefreshedAt doesn't rebuild it per call. */
+const REFRESHED_AT_FORMAT = new Intl.DateTimeFormat("en-US", {dateStyle: 'medium', timeStyle: 'short'});
+
 /**
  * Formats an ISO-8601 timestamp (e.g. from the X-Leaderboard-Refreshed-At response
  * header) as a localized date+time string using the browser's own locale/timezone.
@@ -93,5 +96,5 @@ export function formatRefreshedAt(iso: string | null | undefined): string | null
   if (!iso) return null;
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return null;
-  return new Intl.DateTimeFormat("en-US", {dateStyle: 'medium', timeStyle: 'short'}).format(date);
+  return REFRESHED_AT_FORMAT.format(date);
 }

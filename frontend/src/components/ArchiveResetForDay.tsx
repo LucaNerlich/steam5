@@ -1,6 +1,6 @@
 "use client";
 
-import React, {useCallback, useSyncExternalStore} from "react";
+import React, {useSyncExternalStore} from "react";
 import {clearAll, clearDay, hasAny, hasAnyForDay} from "@/lib/storage";
 
 let revision = 0;
@@ -23,17 +23,25 @@ export default function ArchiveResetForDay({date}: { date: string }): React.Reac
         },
         () => JSON.stringify({day: false, global: false})
     );
-    const {day: hasAnyDay, global: hasAnyGlobal} = JSON.parse(snap) as {day: boolean; global: boolean};
+    let hasAnyDay = false;
+    let hasAnyGlobal = false;
+    try {
+        const parsed = JSON.parse(snap) as { day?: unknown; global?: unknown };
+        hasAnyDay = parsed?.day === true;
+        hasAnyGlobal = parsed?.global === true;
+    } catch {
+        // Malformed snapshot: treat as no stored progress
+    }
 
-    const resetDay = useCallback(() => {
+    const resetDay = () => {
         clearDay(date);
         notifyStorageChange();
-    }, [date]);
+    };
 
-    const resetAll = useCallback(() => {
+    const resetAll = () => {
         clearAll();
         notifyStorageChange();
-    }, []);
+    };
 
     if (!hasAnyDay && !hasAnyGlobal) return null;
 

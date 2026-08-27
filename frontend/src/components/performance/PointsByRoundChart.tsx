@@ -1,6 +1,6 @@
 "use client";
 
-import React, {useMemo} from "react";
+import React from "react";
 
 type Round = {
     roundIndex?: number;
@@ -18,23 +18,24 @@ function fmtDate(dateStr: string): string {
     });
 }
 
+function computeWindow(daysWindow: number) {
+    const now = new Date();
+    const todayStr = now.toISOString().slice(0, 10);
+    const cutoff = new Date(now);
+    cutoff.setDate(cutoff.getDate() - daysWindow);
+    const cutoffStr = cutoff.toISOString().slice(0, 10);
+    return {
+        cutoffStr,
+        startMs: new Date(cutoffStr + "T00:00:00Z").getTime(),
+        endMs: new Date(todayStr + "T00:00:00Z").getTime(),
+    };
+}
+
 export default function PointsByRoundChart({rounds}: { rounds: Round[] }): React.ReactElement {
     const DAYS_WINDOW = 30;
 
-    const {last, windowStartMs, windowEndMs} = useMemo(() => {
-        const now = new Date();
-        const todayStr = now.toISOString().slice(0, 10);
-        const cutoff = new Date(now);
-        cutoff.setDate(cutoff.getDate() - DAYS_WINDOW);
-        const cutoffStr = cutoff.toISOString().slice(0, 10);
-        const startMs = new Date(cutoffStr + "T00:00:00Z").getTime();
-        const endMs = new Date(todayStr + "T00:00:00Z").getTime();
-        return {
-            last: rounds.filter(r => r.date && r.date >= cutoffStr && r.points != null),
-            windowStartMs: startMs,
-            windowEndMs: endMs,
-        };
-    }, [rounds]);
+    const {cutoffStr, startMs: windowStartMs, endMs: windowEndMs} = computeWindow(DAYS_WINDOW);
+    const last = rounds.filter(r => r.date && r.date >= cutoffStr && r.points != null);
 
     const width = 600;
     const height = 200;
@@ -66,7 +67,7 @@ export default function PointsByRoundChart({rounds}: { rounds: Round[] }): React
     };
 
     // Three evenly-spaced date labels across the window
-    const axisLabels = useMemo(() => {
+    const axisLabels = (() => {
         const labels = [];
         for (const frac of [0, 0.5, 1]) {
             const ms = windowStartMs + frac * windowMs;
@@ -74,7 +75,7 @@ export default function PointsByRoundChart({rounds}: { rounds: Round[] }): React
             labels.push({dateStr, frac});
         }
         return labels;
-    }, [windowStartMs, windowMs]);
+    })();
 
     return (
         <div className="perf-card">

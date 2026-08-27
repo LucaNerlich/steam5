@@ -1,6 +1,5 @@
 "use client";
 
-import {useCallback} from "react";
 import {useRouter} from "next/navigation";
 import {Routes} from "../../app/routes";
 import {useAuthSignedIn} from "@/contexts/AuthContext";
@@ -17,7 +16,7 @@ export default function ResetTodayButton() {
     const signedIn = useAuthSignedIn();
     const router = useRouter()
 
-    const onReset = useCallback(() => {
+    const onReset = () => {
         try {
             const prefix = 'review-guesser:';
             const utcToday = new Date().toISOString().slice(0, 10);
@@ -34,7 +33,7 @@ export default function ResetTodayButton() {
             router.push(Routes.reviewGuesser + '/1')
         } catch { /* noop */
         }
-    }, [router]);
+    };
 
     if (signedIn) return null;
 

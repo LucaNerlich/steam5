@@ -1,7 +1,6 @@
 "use client";
 
 import useSWR from "swr";
-import { useMemo } from "react";
 
 const fetcher = (url: string) => fetch(url, {headers: {accept: 'application/json'}}).then(r => {
     if (!r.ok) throw new Error(`Failed to load ${url}: ${r.status}`);
@@ -18,9 +17,9 @@ export default function NextChallengeTime() {
         }
     );
 
-    const nextChallengeTimeLocal = useMemo(() => {
+    const nextChallengeTimeLocal = (() => {
         if (!nextChallengeData?.nextChallengeTime) return null;
-        
+
         try {
             // Parse ISO-8601 datetime string (e.g., "2025-11-12T00:01Z")
             // The 'Z' indicates UTC time, JavaScript Date will automatically convert to local timezone
@@ -37,7 +36,7 @@ export default function NextChallengeTime() {
             console.error('Error parsing next challenge time:', e);
             return null;
         }
-    }, [nextChallengeData]);
+    })();
 
     if (!nextChallengeTimeLocal) return null;
 

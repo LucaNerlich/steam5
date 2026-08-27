@@ -1,6 +1,6 @@
 "use client";
 
-import React, {useMemo} from "react";
+import React from "react";
 
 type Round = { date?: string; points: number };
 
@@ -11,8 +11,45 @@ const DAYS = 7;
 const LEFT = 20; // space for Mon/Wed/Fri labels
 const TOP = 18;  // space for month labels
 
+// Build 53×7 grid starting from Monday of the week 364 days ago
+function buildHeatmapGrid(avgByDay: Map<string, number>) {
+    const today = new Date();
+    // Go back 364 days, then back to Monday
+    const start = new Date(today);
+    start.setUTCDate(start.getUTCDate() - 364);
+    const dowStart = (start.getUTCDay() + 6) % 7; // 0=Mon
+    start.setUTCDate(start.getUTCDate() - dowStart);
+
+    const cells: {dateStr: string; week: number; day: number; avg: number | null}[] = [];
+    const seenMonths = new Set<string>();
+    const monthLabels: {week: number; label: string}[] = [];
+    const cur = new Date(start);
+
+    for (let w = 0; w < WEEKS; w++) {
+        for (let d = 0; d < DAYS; d++) {
+            const dateStr = cur.toISOString().slice(0, 10);
+            const avg = avgByDay.get(dateStr) ?? null;
+            cells.push({dateStr, week: w, day: d, avg});
+
+            // Month label at start of week (day 0) when month changes
+            if (d === 0) {
+                const mo = dateStr.slice(0, 7);
+                if (!seenMonths.has(mo)) {
+                    seenMonths.add(mo);
+                    const lbl = new Date(dateStr + "T00:00:00Z").toLocaleDateString("en-US", {
+                        month: "short", timeZone: "UTC"
+                    });
+                    monthLabels.push({week: w, label: lbl});
+                }
+            }
+            cur.setUTCDate(cur.getUTCDate() + 1);
+        }
+    }
+    return {cells, monthLabels};
+}
+
 export default function CalendarHeatmap({rounds}: { rounds: Round[] }): React.ReactElement {
-    const avgByDay = useMemo(() => {
+    const avgByDay = (() => {
         const map = new Map<string, { total: number; count: number }>();
         for (const r of rounds) {
             if (!r.date) continue;
@@ -24,44 +61,9 @@ export default function CalendarHeatmap({rounds}: { rounds: Round[] }): React.Re
         const result = new Map<string, number>();
         for (const [d, s] of map.entries()) result.set(d, s.total / s.count);
         return result;
-    }, [rounds]);
+    })();
 
-    // Build 53×7 grid starting from Monday of the week 364 days ago
-    const {cells, monthLabels} = useMemo(() => {
-        const today = new Date();
-        // Go back 364 days, then back to Monday
-        const start = new Date(today);
-        start.setUTCDate(start.getUTCDate() - 364);
-        const dowStart = (start.getUTCDay() + 6) % 7; // 0=Mon
-        start.setUTCDate(start.getUTCDate() - dowStart);
-
-        const cells: {dateStr: string; week: number; day: number; avg: number | null}[] = [];
-        const seenMonths = new Set<string>();
-        const monthLabels: {week: number; label: string}[] = [];
-        const cur = new Date(start);
-
-        for (let w = 0; w < WEEKS; w++) {
-            for (let d = 0; d < DAYS; d++) {
-                const dateStr = cur.toISOString().slice(0, 10);
-                const avg = avgByDay.get(dateStr) ?? null;
-                cells.push({dateStr, week: w, day: d, avg});
-
-                // Month label at start of week (day 0) when month changes
-                if (d === 0) {
-                    const mo = dateStr.slice(0, 7);
-                    if (!seenMonths.has(mo)) {
-                        seenMonths.add(mo);
-                        const lbl = new Date(dateStr + "T00:00:00Z").toLocaleDateString("en-US", {
-                            month: "short", timeZone: "UTC"
-                        });
-                        monthLabels.push({week: w, label: lbl});
-                    }
-                }
-                cur.setUTCDate(cur.getUTCDate() + 1);
-            }
-        }
-        return {cells, monthLabels};
-    }, [avgByDay]);
+    const {cells, monthLabels} = buildHeatmapGrid(avgByDay);
 
     const svgW = LEFT + WEEKS * (CELL + GAP) - GAP;
     const svgH = TOP + DAYS * (CELL + GAP) - GAP;

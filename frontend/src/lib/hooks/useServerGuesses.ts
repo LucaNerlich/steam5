@@ -1,6 +1,8 @@
 "use client";
 
-import {useEffect, useState} from "react";
+import {useEffect} from "react";
+import useSWR, {useSWRConfig} from "swr";
+import {useAuth} from "@/contexts/AuthContext";
 import type {RoundResult} from "@/lib/storage";
 
 /** Raw per-round guess shape returned by /api/review-game/my/today. */
@@ -28,42 +30,73 @@ export function toRoundResult(g: ServerGuess): RoundResult {
     };
 }
 
+function isValidServerGuess(g: unknown): g is ServerGuess {
+    return typeof g === 'object' && g !== null
+        && typeof (g as any).roundIndex === 'number'
+        && typeof (g as any).appId === 'number'
+        && typeof (g as any).selectedBucket === 'string';
+}
+
+/**
+ * Fetch today's server guesses. Never rejects — any failure (network, non-OK
+ * status, bad JSON, invalid shape) resolves to null so SWR treats it as "no data"
+ * without entering its error/retry path.
+ */
+const myTodayFetcher = async (url: string): Promise<ServerGuess[] | null> => {
+    try {
+        const res = await fetch(url, {credentials: 'include', cache: 'no-store'});
+        if (!res.ok) return null;
+        const body: unknown = await res.json();
+        if (!Array.isArray(body)) return null;
+        // Validate all entries are valid ServerGuess objects
+        for (const item of body) {
+            if (!isValidServerGuess(item)) return null;
+        }
+        return body as ServerGuess[];
+    } catch {
+        return null;
+    }
+};
+
 export default function useServerGuesses(disabled: boolean = false): {
     guesses: Record<number, RoundResult>;
     loading: boolean;
 } {
-    const [serverGuesses, setServerGuesses] = useState<Record<number, RoundResult>>({});
-    const [loading, setLoading] = useState(false);
+    const {steamId} = useAuth();
+    const {cache} = useSWRConfig();
 
+    // Include steamId in the SWR key so guesses are not shared across accounts
+    const swrKey = disabled ? null : `/api/review-game/my/today?steamId=${steamId ?? 'anon'}`;
+
+    // Clear previous identity's cached entries when identity changes
     useEffect(() => {
-        if (disabled) {
-            setLoading(false);
-            return;
-        }
-        let cancelled = false;
-
-        async function load() {
-            try {
-                setLoading(true);
-                const res = await fetch('/api/review-game/my/today', {credentials: 'include', cache: 'no-store'});
-                if (!res.ok) return;
-                const data = await res.json() as ServerGuess[];
-                if (cancelled) return;
-                const map: Record<number, RoundResult> = {};
-                for (const g of data) map[g.roundIndex] = toRoundResult(g);
-                setServerGuesses(map);
-            } catch {
-                // ignore
-            } finally {
-                if (!cancelled) setLoading(false);
+        // Invalidate all my/today entries when steamId changes
+        const keysToDelete: string[] = [];
+        if (cache instanceof Map) {
+            for (const key of cache.keys()) {
+                if (typeof key === 'string' && key.startsWith('/api/review-game/my/today')) {
+                    keysToDelete.push(key);
+                }
             }
         }
+        for (const key of keysToDelete) {
+            cache.delete(key);
+        }
+    }, [steamId, cache]);
 
-        load();
-        return () => {
-            cancelled = true;
-        };
-    }, [disabled]);
+    // SWR owns the fetch lifecycle (dedup, races, cleanup) instead of a manual
+    // effect. A null key disables fetching; keepPreviousData keeps the last map
+    // while disabled, matching the previous behavior of leaving state untouched.
+    const {data, isLoading} = useSWR<ServerGuess[] | null>(
+        swrKey,
+        myTodayFetcher,
+        {revalidateOnFocus: false, dedupingInterval: 0, keepPreviousData: true},
+    );
 
-    return {guesses: serverGuesses, loading};
+    const guesses: Record<number, RoundResult> = {};
+    if (data) {
+        for (const g of data) guesses[g.roundIndex] = toRoundResult(g);
+    }
+
+    return {guesses, loading: !disabled && isLoading};
 }

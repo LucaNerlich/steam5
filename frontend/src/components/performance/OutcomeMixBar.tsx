@@ -1,6 +1,6 @@
 "use client";
 
-import React, {useMemo} from "react";
+import React from "react";
 
 type Round = { selectedBucket: string; actualBucket: string; date?: string };
 
@@ -10,17 +10,18 @@ function bucketOrder(label: string): number {
     return m ? parseInt(m[1], 10) : -1;
 }
 
+function cutoffDateStr(daysWindow: number): string {
+    const now = new Date();
+    const cutoffDate = new Date(now);
+    cutoffDate.setDate(cutoffDate.getDate() - daysWindow);
+    return cutoffDate.toISOString().slice(0, 10);
+}
+
 export default function OutcomeMixBar({rounds}: { rounds: Round[] }): React.ReactElement {
     const DAYS_WINDOW = 30;
-    const last = useMemo(() => {
-        if (rounds.length === 0) return [];
-        const now = new Date();
-        const cutoffDate = new Date(now);
-        cutoffDate.setDate(cutoffDate.getDate() - DAYS_WINDOW);
-        const cutoffStr = cutoffDate.toISOString().slice(0, 10);
-        return rounds.filter(r => r.date && r.date >= cutoffStr);
-    }, [rounds]);
-    const bars = useMemo(() => {
+    const cutoff = cutoffDateStr(DAYS_WINDOW);
+    const last = rounds.filter(r => r.date && r.date >= cutoff);
+    const bars = (() => {
         const counts = {hit: 0, high: 0, low: 0};
         for (const r of last) {
             if (r.selectedBucket === r.actualBucket) counts.hit++;
@@ -33,7 +34,7 @@ export default function OutcomeMixBar({rounds}: { rounds: Round[] }): React.Reac
             {key: 'Too High', value: counts.high, color: 'var(--color-warning, #f59e0b)', pct: counts.high / total},
             {key: 'Too Low', value: counts.low, color: 'var(--color-danger, #ef4444)', pct: counts.low / total},
         ];
-    }, [last]);
+    })();
 
     return (
         <div className="perf-card">

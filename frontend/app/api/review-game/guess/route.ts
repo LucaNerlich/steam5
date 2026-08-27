@@ -12,6 +12,12 @@ export async function POST(req: NextRequest) {
             headers: {"content-type": "application/json", "accept": "application/json", ...forwardedForHeaders(req)},
             body: JSON.stringify(body)
         });
+        if (!res.ok) {
+            // Backend error: pass the payload through with the upstream status,
+            // falling back to a generic error body when it isn't JSON.
+            const errorBody: unknown = await res.json().catch(() => null);
+            return NextResponse.json(errorBody ?? {error: "Failed to submit guess"}, {status: res.status});
+        }
         const data: GuessResponse = await res.json();
         return NextResponse.json(data, {status: res.status});
     } catch (e) {

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import {usePathname} from "next/navigation";
-import {useCallback, useLayoutEffect, useRef, useState} from "react";
+import {useLayoutEffect, useRef, useState} from "react";
 
 const ROUTES = [
     {href: "/review-guesser/leaderboard/today", label: "Today"},
@@ -38,21 +38,21 @@ export default function LeaderboardToggle() {
 
     const activeIndex = ROUTES.findIndex((route) => isActive(pathname, route.href));
 
-    const updateIndicator = useCallback(() => {
-        const activeLink = activeIndex >= 0 ? linkRefs.current[activeIndex] : null;
-        if (!activeLink) {
-            return;
-        }
-        setIndicator({
-            left: activeLink.offsetLeft,
-            top: activeLink.offsetTop,
-            width: activeLink.offsetWidth,
-            height: activeLink.offsetHeight,
-            ready: true,
-        });
-    }, [activeIndex]);
-
     useLayoutEffect(() => {
+        const updateIndicator = () => {
+            const activeLink = activeIndex >= 0 ? linkRefs.current[activeIndex] : null;
+            if (!activeLink) {
+                return;
+            }
+            setIndicator({
+                left: activeLink.offsetLeft,
+                top: activeLink.offsetTop,
+                width: activeLink.offsetWidth,
+                height: activeLink.offsetHeight,
+                ready: true,
+            });
+        };
+
         updateIndicator();
 
         const nav = navRef.current;
@@ -68,7 +68,7 @@ export default function LeaderboardToggle() {
             observer.disconnect();
             window.removeEventListener("resize", updateIndicator);
         };
-    }, [updateIndicator]);
+    }, [activeIndex]);
 
     return (
         <nav className="leaderboard__toggle" aria-label="Leaderboard view" ref={navRef}>

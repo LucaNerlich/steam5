@@ -81,10 +81,12 @@ function isValidMonth(month: string): boolean {
     return /^\d{4}-(0[1-9]|1[0-2])$/.test(month);
 }
 
+const MONTH_LABEL_FORMAT = new Intl.DateTimeFormat("en-US", {month: "long", year: "numeric", timeZone: "UTC"});
+
 function getMonthLabel(month: string): string {
     const [year, monthNum] = month.split("-");
     const asDate = new Date(Date.UTC(Number(year), Number(monthNum) - 1, 1));
-    return new Intl.DateTimeFormat("en-US", {month: "long", year: "numeric", timeZone: "UTC"}).format(asDate);
+    return MONTH_LABEL_FORMAT.format(asDate);
 }
 
 function getMonthHref(month: string): string {
@@ -102,13 +104,13 @@ export default async function ArchiveIndexPage({searchParams}: ArchivePageProps)
     let days = await loadDays();
     const todayStr = new Date().toISOString().slice(0, 10);
     days = (days || []).filter(date => date !== todayStr);
-    const months = Array.from(
-        new Set(
-            days
-                .map(getMonthKey)
-                .filter(isValidMonth)
-        )
-    ).sort((a, b) => b.localeCompare(a));
+    // Single pass: collect the valid month keys while deduplicating.
+    const monthKeys = new Set<string>();
+    for (const date of days) {
+        const key = getMonthKey(date);
+        if (isValidMonth(key)) monthKeys.add(key);
+    }
+    const months = Array.from(monthKeys).sort((a, b) => b.localeCompare(a));
     const fallbackMonth = months[0] ?? "";
     const selectedMonth = (isValidMonth(requestedMonth) && months.includes(requestedMonth))
         ? requestedMonth
@@ -195,7 +197,7 @@ export default async function ArchiveIndexPage({searchParams}: ArchivePageProps)
                                         {picks.length > 0 && (
                                             <ol>
                                                 {picks.map((pick, i) => (
-                                                    <li key={`${d}-${pick.appId}-${i}`}>
+                                                    <li key={`${d}-${pick.appId}`}>
                                                         <a href={`/review-guesser/archive/${d}#round-${i + 1}`}>{pick.name}</a>
                                                     </li>
                                                 ))}

@@ -40,12 +40,16 @@ function isValidScopeKey(scopeKey: string): boolean {
 }
 
 /**
- * Retrieves a WebSocket ticket for the requested scope.
+ * Issues a WebSocket ticket for the requested scope.
+ *
+ * Ticket issuance performs a server-side mutation (a POST to the backend ticket
+ * endpoint), so it is deliberately exposed as POST rather than GET: GET requests
+ * are issued by prefetchers and crawlers without user intent or CSRF protection.
  *
  * @param request - Request containing the scope key query parameter and authentication cookie
  * @returns A JSON response containing the ticket, or `null` when the scope is invalid, authentication is unavailable, or the backend request fails
  */
-export async function GET(request: NextRequest) {
+export async function POST(request: NextRequest) {
     const scopeKey = request.nextUrl.searchParams.get('scopeKey') ?? '';
     if (!isValidScopeKey(scopeKey)) {
         return NextResponse.json({ticket: null}, {status: 400, headers: NO_STORE});

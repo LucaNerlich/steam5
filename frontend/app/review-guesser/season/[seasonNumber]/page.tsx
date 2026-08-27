@@ -6,15 +6,15 @@ import {notFound} from "next/navigation";
 import {formatDate} from "@/lib/format";
 import {groupAwardsByCategory, formatAwardMetric, rankClassName} from "@/lib/seasons";
 import type {SeasonDetailResponse, DailyHighlight, RoundHighlight} from "@/types/seasons";
-import {buildBreadcrumbJsonLd} from "@/lib/seo";
+import {buildBreadcrumbJsonLd, serializeJsonLd} from "@/lib/seo";
 import "@/styles/components/season-detail.css";
 import "@/styles/components/seasons.css";
 import {Routes} from "../../../routes";
 
 type PageProps = {
-    params: {
+    params: Promise<{
         seasonNumber: string;
-    };
+    }>;
 };
 
 import {BACKEND_ORIGIN as backend} from "@/lib/backend";
@@ -40,8 +40,9 @@ async function fetchSeasonDetail(seasonNumber: string): Promise<SeasonDetailResp
 }
 
 export async function generateMetadata({params}: PageProps): Promise<Metadata> {
-    const data = await fetchSeasonDetail(params.seasonNumber);
-    const seasonLabel = data?.season?.seasonNumber ?? params.seasonNumber;
+    const {seasonNumber} = await params;
+    const data = await fetchSeasonDetail(seasonNumber);
+    const seasonLabel = data?.season?.seasonNumber ?? seasonNumber;
     const title = `Season #${seasonLabel} recap — Steam Review Guesser`;
     const description = data
         ? `Full recap, stats, and award winners from Steam Review Guesser Season #${data.season.seasonNumber}.`
@@ -83,7 +84,8 @@ export async function generateMetadata({params}: PageProps): Promise<Metadata> {
 export const revalidate = 600;
 
 export default async function SeasonDetailPage({params}: PageProps) {
-    const data = await fetchSeasonDetail(params.seasonNumber);
+    const {seasonNumber} = await params;
+    const data = await fetchSeasonDetail(seasonNumber);
     if (!data) {
         notFound();
     }
@@ -106,7 +108,7 @@ export default async function SeasonDetailPage({params}: PageProps) {
     return (
         <section className="container season-detail">
             <script type="application/ld+json" dangerouslySetInnerHTML={{
-                __html: JSON.stringify(breadcrumbJsonLd)
+                __html: serializeJsonLd(breadcrumbJsonLd)
             }} />
             <nav aria-label="Breadcrumb" className="season-detail__breadcrumbs">
                 <Link href={Routes.seasons} className="season-detail__back-link">

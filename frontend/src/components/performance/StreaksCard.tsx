@@ -1,6 +1,6 @@
 "use client";
 
-import React, {useMemo} from "react";
+import React, {useEffect, useState} from "react";
 
 type Round = { date?: string };
 
@@ -10,7 +10,29 @@ function toUTCDate(d: string): number {
 }
 
 export default function StreaksCard({rounds}: { rounds: Round[] }): React.ReactElement {
-    const {current, longest} = useMemo(() => {
+    // UTC "current day" that refreshes at the next UTC midnight while mounted.
+    const [todayUtc, setTodayUtc] = useState(() => new Date().toISOString().slice(0, 10));
+
+    useEffect(() => {
+        const scheduleNextMidnight = () => {
+            const now = Date.now();
+            const tomorrow = new Date(now);
+            tomorrow.setUTCHours(24, 0, 0, 0);
+            const msUntilMidnight = tomorrow.getTime() - now;
+            return setTimeout(() => {
+                setTodayUtc(new Date().toISOString().slice(0, 10));
+                scheduleNextMidnight();
+            }, msUntilMidnight);
+        };
+        const timer = scheduleNextMidnight();
+        return () => clearTimeout(timer);
+    }, []);
+
+    const yesterdayUtc = (() => {
+        const yesterday = new Date(new Date(todayUtc + "T00:00:00Z").getTime() - 86400000);
+        return yesterday.toISOString().slice(0, 10);
+    })();
+    const {current, longest} = (() => {
         // Build unique played days from rounds
         const dateSet = new Set<string>();
         for (const r of rounds) if (r.date) dateSet.add(r.date);
@@ -43,13 +65,11 @@ export default function StreaksCard({rounds}: { rounds: Round[] }): React.ReactE
 
         // A streak is only "current" if the player played today or yesterday.
         // If the last play date is older than that, the streak has already broken.
-        const todayUtc = new Date().toISOString().slice(0, 10);
-        const yesterdayUtc = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
         const lastDate = dates[dates.length - 1];
         const current = lastDate >= yesterdayUtc && lastDate <= todayUtc ? tail : 0;
 
         return {current, longest: best};
-    }, [rounds]);
+    })();
 
     return (
         <div className="perf-card">

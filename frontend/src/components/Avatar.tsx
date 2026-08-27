@@ -1,4 +1,5 @@
 import type {CSSProperties} from "react";
+import Image from "next/image";
 import "@/styles/components/avatar.css";
 
 /**
@@ -32,7 +33,7 @@ export default function Avatar({src, name, size = 32, className}: {
 
     if (src) {
         return (
-            <img
+            <Image
                 className={classes}
                 style={style}
                 src={src}

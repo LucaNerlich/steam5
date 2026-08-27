@@ -1,6 +1,6 @@
 "use client";
 
-import React, {useMemo} from "react";
+import React from "react";
 
 type Round = { date?: string; points: number };
 
@@ -10,7 +10,7 @@ const HEIGHT = 140;
 const PAD = {top: 12, right: 12, bottom: 22, left: 28};
 
 export default function DayOfWeekChart({rounds}: { rounds: Round[] }): React.ReactElement {
-    const bars = useMemo(() => {
+    const bars = (() => {
         const groups: { total: number; count: number }[] = Array.from({length: 7}, () => ({total: 0, count: 0}));
         for (const r of rounds) {
             if (!r.date) continue;
@@ -23,7 +23,7 @@ export default function DayOfWeekChart({rounds}: { rounds: Round[] }): React.Rea
             avg: g.count > 0 ? g.total / g.count : null,
             count: g.count,
         }));
-    }, [rounds]);
+    })();
 
     const plotW = WIDTH - PAD.left - PAD.right;
     const plotH = HEIGHT - PAD.top - PAD.bottom;

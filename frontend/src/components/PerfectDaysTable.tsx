@@ -4,7 +4,6 @@ import "@/styles/components/leaderboard.css";
 import Avatar from "@/components/Avatar";
 import Link from "next/link";
 import useSWR from "swr";
-import {useMemo} from "react";
 import {PerfectDay} from "@/lib/perfectDays";
 import {formatRefreshedAt} from "@/lib/leaderboard";
 import {formatDate} from "@/lib/format";
@@ -49,7 +48,7 @@ export default function PerfectDaysTable(props: {
     const refreshedAt = perfectDaysResult?.refreshedAt ?? null;
     const lastUpdatedText = formatRefreshedAt(refreshedAt);
 
-    const playerCounts = useMemo(() => {
+    const playerCounts = (() => {
         const counts = new Map<string, { steamId: string; name: string; avatar?: string | null; count: number }>();
         for (const entry of data ?? []) {
             const key = entry.steamId;
@@ -61,7 +60,7 @@ export default function PerfectDaysTable(props: {
             }
         }
         return [...counts.values()].sort((a, b) => b.count - a.count);
-    }, [data]);
+    })();
 
     if (error && !data) {
         return <p className="text-muted">Failed to load perfect days. Please try again soon.</p>;

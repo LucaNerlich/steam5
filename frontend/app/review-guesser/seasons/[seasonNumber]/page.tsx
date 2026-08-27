@@ -5,7 +5,7 @@ import {notFound} from "next/navigation";
 import {formatDate} from "@/lib/format";
 import {groupAwardsByCategory, formatAwardMetric, rankClassName} from "@/lib/seasons";
 import type {SeasonDetailResponse, DailyHighlight, RoundHighlight} from "@/types/seasons";
-import {buildBreadcrumbJsonLd} from "@/lib/seo";
+import {buildBreadcrumbJsonLd, serializeJsonLd} from "@/lib/seo";
 import "@/styles/components/season-detail.css";
 import "@/styles/components/seasons.css";
 import {Routes} from "../../../routes";
@@ -128,7 +128,7 @@ export default async function SeasonDetailPage({params}: {params: MaybePromise<P
     return (
         <section className="container season-detail">
             <script type="application/ld+json" dangerouslySetInnerHTML={{
-                __html: JSON.stringify(breadcrumbJsonLd)
+                __html: serializeJsonLd(breadcrumbJsonLd)
             }} />
 
             <header className="season-detail__hero">

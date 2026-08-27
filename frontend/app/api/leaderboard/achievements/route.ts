@@ -20,16 +20,25 @@ export async function GET(request: NextRequest) {
       headers: { accept: "application/json", ...forwardedForHeaders(request) },
       next: { revalidate: cacheTime },
     });
+    if (!res.ok) {
+      // Backend error: pass the payload through with the upstream status,
+      // falling back to a generic error body when it isn't JSON.
+      const errorBody: unknown = await res.json().catch(() => null);
+      return NextResponse.json(
+        errorBody ?? { error: "Failed to load achievements" },
+        { status: res.status },
+      );
+    }
     const data = await res.json();
-    
+
     // Pass through server timezone offset header
     const serverOffsetHeader = res.headers.get('X-Server-Timezone-Offset');
     const headers: HeadersInit = {};
     if (serverOffsetHeader) {
       headers['X-Server-Timezone-Offset'] = serverOffsetHeader;
     }
-    
-    return NextResponse.json(data, { 
+
+    return NextResponse.json(data, {
       status: res.status,
       headers,
     });

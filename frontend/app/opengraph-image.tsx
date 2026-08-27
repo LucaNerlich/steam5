@@ -26,8 +26,12 @@ export default async function Image(req: Request) {
 
     // Fonts (cached)
     const [fontRegular, fontBold] = await Promise.all([
-        fetch("https://og-playground.vercel.app/font/Inter-Regular.ttf", { next: { revalidate: 86400 } }).then(r => r.arrayBuffer()).catch(() => null),
-        fetch("https://og-playground.vercel.app/font/Inter-Bold.ttf", { next: { revalidate: 86400 } }).then(r => r.arrayBuffer()).catch(() => null),
+        fetch("https://og-playground.vercel.app/font/Inter-Regular.ttf", { next: { revalidate: 86400 } })
+            .then(r => (r.ok ? r.arrayBuffer() : null))
+            .catch(() => null),
+        fetch("https://og-playground.vercel.app/font/Inter-Bold.ttf", { next: { revalidate: 86400 } })
+            .then(r => (r.ok ? r.arrayBuffer() : null))
+            .catch(() => null),
     ]);
 
     const bg = "#0b1220";

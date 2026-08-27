@@ -1,6 +1,6 @@
 import type {Metadata} from "next";
 import PerfectDaysTable from "@/components/PerfectDaysTable";
-import {buildBreadcrumbJsonLd} from "@/lib/seo";
+import {buildBreadcrumbJsonLd, serializeJsonLd} from "@/lib/seo";
 import {fetchPerfectDays} from "@/lib/perfectDays";
 import {Routes} from "../../../routes";
 
@@ -17,7 +17,7 @@ export default async function PerfectDaysPage() {
     return (
         <>
             <script type="application/ld+json" dangerouslySetInnerHTML={{
-                __html: JSON.stringify(breadcrumbJsonLd)
+                __html: serializeJsonLd(breadcrumbJsonLd)
             }}/>
             <PerfectDaysTable initialData={result?.data ?? null} initialRefreshedAt={result?.refreshedAt ?? null}/>
         </>

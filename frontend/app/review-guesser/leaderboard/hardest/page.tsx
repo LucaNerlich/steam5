@@ -1,6 +1,6 @@
 import type {Metadata} from "next";
 import HardestGamesTable from "@/components/HardestGamesTable";
-import {buildBreadcrumbJsonLd} from "@/lib/seo";
+import {buildBreadcrumbJsonLd, serializeJsonLd} from "@/lib/seo";
 import {fetchHardestGames} from "@/lib/hardestGames";
 import {Routes} from "../../../routes";
 
@@ -17,7 +17,7 @@ export default async function LeaderboardHardestPage() {
     return (
         <>
             <script type="application/ld+json" dangerouslySetInnerHTML={{
-                __html: JSON.stringify(breadcrumbJsonLd)
+                __html: serializeJsonLd(breadcrumbJsonLd)
             }}/>
             <HardestGamesTable initialData={games}/>
         </>

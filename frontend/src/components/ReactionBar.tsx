@@ -2,7 +2,7 @@
 
 import React, {useEffect, useId, useRef, useState} from "react";
 import {SmileyIcon} from "@phosphor-icons/react/ssr";
-import {buildSteamLoginUrl} from "@/components/SteamLoginButton";
+import {buildSteamLoginUrl} from "@/lib/steamLogin";
 import {
     REACTION_EMOJI,
     REACTION_TYPES,
@@ -100,7 +100,7 @@ export default function ReactionBar(props: {
         };
 
         document.addEventListener("mousedown", onPointerDown);
-        document.addEventListener("touchstart", onPointerDown);
+        document.addEventListener("touchstart", onPointerDown, {passive: true});
         document.addEventListener("keydown", onKeyDown);
         return () => {
             document.removeEventListener("mousedown", onPointerDown);
@@ -112,7 +112,7 @@ export default function ReactionBar(props: {
     const handleToggle = async (reactionType: ReactionType) => {
         if (readOnly || pending) return;
         if (!canReact) {
-            window.location.href = buildSteamLoginUrl();
+            window.location.assign(buildSteamLoginUrl());
             return;
         }
         setPending(reactionType);
@@ -128,18 +128,16 @@ export default function ReactionBar(props: {
                 || message === "Unauthorized"
             ) {
                 onUnauthorized?.();
-                return;
             }
-            // Keep current UI; SWR will retain prior data.
-        } finally {
-            setPending(null);
+            // Otherwise keep current UI; SWR will retain prior data.
         }
+        setPending(null);
     };
 
     const handleOpenPicker = () => {
         if (readOnly) return;
         if (!canReact) {
-            window.location.href = buildSteamLoginUrl();
+            window.location.assign(buildSteamLoginUrl());
             return;
         }
         onPickerOpenChange?.(!open);

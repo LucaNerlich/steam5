@@ -1,6 +1,6 @@
 import type {Metadata} from "next";
 import LeaderboardTable from "@/components/LeaderboardTable";
-import {buildBreadcrumbJsonLd} from "@/lib/seo";
+import {buildBreadcrumbJsonLd, serializeJsonLd} from "@/lib/seo";
 import {Routes} from "../../routes";
 import {fetchLeaderboardPageData} from "@/lib/leaderboard";
 
@@ -20,7 +20,7 @@ export default async function LeaderboardPage() {
     return (
         <>
             <script type="application/ld+json" dangerouslySetInnerHTML={{
-                __html: JSON.stringify(breadcrumbJsonLd)
+                __html: serializeJsonLd(breadcrumbJsonLd)
             }} />
             <LeaderboardTable
                 mode="all"

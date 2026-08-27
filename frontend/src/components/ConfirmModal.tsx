@@ -1,6 +1,6 @@
 "use client";
 
-import React, {useEffect, useRef} from "react";
+import React, {useEffect, useEffectEvent, useRef} from "react";
 import "@/styles/components/confirmModal.css";
 
 type ConfirmModalProps = {
@@ -14,8 +14,9 @@ type ConfirmModalProps = {
 };
 
 /**
- * Generic accessible confirm/cancel dialog, following the same backdrop,
- * focus-trap, and Escape-to-close behavior as AuthWarningModal.
+ * Generic accessible confirm/cancel dialog built on the native <dialog>
+ * element (showModal provides focus trap, Escape handling, and scroll
+ * lock). The parent still owns open state via `isOpen`.
  */
 export default function ConfirmModal({
     isOpen,
@@ -26,108 +27,63 @@ export default function ConfirmModal({
     onConfirm,
     onCancel,
 }: Readonly<ConfirmModalProps>): React.ReactElement | null {
-    const modalRef = useRef<HTMLDivElement | null>(null);
+    const dialogRef = useRef<HTMLDialogElement | null>(null);
+    const contentRef = useRef<HTMLDivElement | null>(null);
+
+    // Clicks on ::backdrop target the <dialog> element itself; attached in the
+    // effect so the non-interactive <dialog> keeps no JSX interaction handler.
+    const onBackdropClick = useEffectEvent((event: MouseEvent) => {
+        const content = contentRef.current;
+        if (event.target === dialogRef.current || (content && !content.contains(event.target as Node))) {
+            onCancel();
+        }
+    });
 
     useEffect(() => {
         if (!isOpen) return;
 
-        const modal = modalRef.current;
-        if (!modal) return;
+        const dialog = dialogRef.current;
+        if (!dialog) return;
 
-        const getFocusableElements = () =>
-            Array.from(
-                modal.querySelectorAll<HTMLElement>(
-                    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-                )
-            ).filter((element) => !element.hasAttribute("disabled"));
-
-        const focusInitialElement = () => {
-            const focusables = getFocusableElements();
-            const fallback = modal.querySelector<HTMLElement>("#confirm-modal-title");
-            // Default focus to the last action (Cancel) rather than the first
-            // (Confirm), so an accidental Enter can't trigger a destructive
-            // action — per WAI-ARIA guidance for confirmation dialogs.
-            const target = focusables[focusables.length - 1] ?? fallback ?? modal;
-            target?.focus();
-        };
-
-        const handleKeyDown = (event: KeyboardEvent) => {
-            if (event.key === "Escape") {
-                event.preventDefault();
-                onCancel();
-                return;
-            }
-
-            if (event.key !== "Tab") return;
-
-            const focusables = getFocusableElements();
-            if (focusables.length === 0) {
-                event.preventDefault();
-                modal.focus();
-                return;
-            }
-
-            const first = focusables[0];
-            const last = focusables[focusables.length - 1];
-            const active = document.activeElement as HTMLElement | null;
-
-            if (event.shiftKey) {
-                if (!active || !modal.contains(active) || active === first) {
-                    event.preventDefault();
-                    last.focus();
-                }
-                return;
-            }
-
-            if (!active || !modal.contains(active) || active === last) {
-                event.preventDefault();
-                first.focus();
-            }
-        };
-
-        document.addEventListener("keydown", handleKeyDown);
-        const raf = requestAnimationFrame(() => {
-            if (!modal.contains(document.activeElement)) {
-                focusInitialElement();
-            }
-        });
+        dialog.showModal();
+        dialog.addEventListener("click", onBackdropClick);
 
         return () => {
-            document.removeEventListener("keydown", handleKeyDown);
-            cancelAnimationFrame(raf);
+            dialog.removeEventListener("click", onBackdropClick);
+            dialog.close();
         };
-    }, [isOpen, onCancel]);
+    }, [isOpen]);
 
     if (!isOpen) return null;
 
     return (
-        <div
-            className="confirm-modal__backdrop"
-            role="presentation"
-            onClick={onCancel}
-            onKeyDown={(event) => { if (event.key === "Escape") onCancel(); }}
+        <dialog
+            ref={dialogRef}
+            className="confirm-modal__card"
+            aria-labelledby="confirm-modal-title"
+            onCancel={(event) => {
+                // Escape: keep the parent as the single source of truth for open state.
+                event.preventDefault();
+                onCancel();
+            }}
         >
-            <div
-                className="confirm-modal__card"
-                role="dialog"
-                aria-modal="true"
-                aria-labelledby="confirm-modal-title"
-                ref={modalRef}
-                tabIndex={-1}
-                onClick={(event) => event.stopPropagation()}
-                onKeyDown={(event) => event.stopPropagation()}
-            >
-                <h2 id="confirm-modal-title" tabIndex={-1}>{title}</h2>
-                {message && <p className="text-muted">{message}</p>}
-                <div className="confirm-modal__actions">
-                    <button type="button" className="btn-cta" onClick={onConfirm}>
-                        {confirmLabel}
-                    </button>
-                    <button type="button" className="btn-ghost" onClick={onCancel}>
-                        {cancelLabel}
-                    </button>
-                </div>
+            <div ref={contentRef}>
+            <h2 id="confirm-modal-title">{title}</h2>
+            {message && <p className="text-muted">{message}</p>}
+            <div className="confirm-modal__actions">
+                <button type="button" className="btn-cta" onClick={onConfirm}>
+                    {confirmLabel}
+                </button>
+                {/* autoFocus: default focus to the last action (Cancel) rather
+                    than the first (Confirm), so an accidental Enter can't
+                    trigger a destructive action — per WAI-ARIA guidance for
+                    confirmation dialogs. The native dialog focusing steps honor
+                    `autofocus` over the first focusable element. */}
+                <button type="button" className="btn-ghost" onClick={onCancel} autoFocus>
+                    {cancelLabel}
+                </button>
             </div>
-        </div>
+            </div>
+        </dialog>
     );
 }

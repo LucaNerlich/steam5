@@ -43,6 +43,14 @@
 }
 
 /* ── Result card wrapper ── */
+/* Rendered as a native NON-modal <dialog open> so it stays an inline card in
+   the swap slot; reset the UA dialog styles that would pull it out of flow. */
+dialog.review-round__result {
+    position: static;
+    width: auto;
+    color: inherit;
+}
+
 .review-round__result {
     margin-top: 16px;
     border: 1px solid var(--color-border);

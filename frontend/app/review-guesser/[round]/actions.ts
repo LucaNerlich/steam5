@@ -1,7 +1,7 @@
 'use server';
 
 import type {GuessResponse, ReviewGameState} from "@/types/review-game";
-import {cookies} from 'next/headers';
+import {getAuth} from '@/lib/serverAuth';
 
 const MAX_BUCKET_GUESS_LENGTH = 50;
 
@@ -34,6 +34,11 @@ async function loadTodayBuckets(backend: string): Promise<string[] | null> {
 }
 
 export async function submitGuessAction(_prev: GuessActionState | undefined, formData: FormData): Promise<GuessActionState> {
+    // Auth gate first: exported server actions are public POST endpoints, so the
+    // session token is read before any other logic. Anonymous callers (no token)
+    // are allowed and submit via the backend's anonymous guess endpoint.
+    const token = await getAuth();
+
     const appIdRaw = formData.get('appId');
     const bucketGuess = formData.get('bucketGuess');
 
@@ -58,7 +63,6 @@ export async function submitGuessAction(_prev: GuessActionState | undefined, for
         if (!allowedBuckets.includes(bucketGuess)) {
             return {ok: false, error: 'Invalid input'};
         }
-        const token = (await cookies()).get('s5_token')?.value;
         const url = token ? `${backend}/api/review-game/guess-auth` : `${backend}/api/review-game/guess`;
         const headers: Record<string, string> = {'content-type': 'application/json', 'accept': 'application/json'};
         if (token) headers['authorization'] = `Bearer ${token}`;

@@ -1,6 +1,6 @@
 "use client";
 
-import React, {useCallback, useEffect, useMemo, useState} from "react";
+import React, {useEffect, useState} from "react";
 import Link from "next/link";
 import RoundResultDialog from "@/components/RoundResultDialog";
 import RoundResultActions from "@/components/RoundResultActions";
@@ -33,21 +33,31 @@ export default function ArchiveOfflineRound(props: Readonly<Props>): React.React
     const [stored, setStored] = useState<StoredDay | null>(null);
 
     useEffect(() => {
-        const d = loadDay(gameDate);
-        if (!d) return;
-        setStored(d);
-        const existing = d.results?.[roundIndex];
-        if (existing?.selectedLabel) {
-            setSelectedLabel(existing.selectedLabel);
-            setSubmitted(true);
-        }
+        // localStorage isn't available during SSR, and reading it during render would
+        // mismatch the server HTML — so load after mount. The updates are deferred to
+        // a microtask so the effect doesn't synchronously cascade an extra render.
+        let cancelled = false;
+        queueMicrotask(() => {
+            if (cancelled) return;
+            const d = loadDay(gameDate);
+            if (!d) return;
+            setStored(d);
+            const existing = d.results?.[roundIndex];
+            if (existing?.selectedLabel) {
+                setSelectedLabel(existing.selectedLabel);
+                setSubmitted(true);
+            }
+        });
+        return () => {
+            cancelled = true;
+        };
     }, [gameDate, roundIndex]);
 
     const prevHref = roundIndex > 1 ? `#round-${roundIndex - 1}` : null;
     const nextHref = roundIndex < totalRounds ? `#round-${roundIndex + 1}` : null;
     const randomArchiveHref = roundIndex >= totalRounds ? Routes.randomArchive : null;
 
-    const localResponse: GuessResponse | null = useMemo(() => {
+    const localResponse: GuessResponse | null = (() => {
         if (!offlineAnswer || !selectedLabel) return null;
         return {
             appId,
@@ -55,9 +65,9 @@ export default function ArchiveOfflineRound(props: Readonly<Props>): React.React
             actualBucket: offlineAnswer.actualBucket,
             correct: offlineAnswer.actualBucket === selectedLabel,
         } as GuessResponse;
-    }, [appId, offlineAnswer, selectedLabel]);
+    })();
 
-    const onSelect = useCallback((label: string) => {
+    const onSelect = (label: string) => {
         if (submitted) return;
         setSelectedLabel(label);
         if (!offlineAnswer) return;
@@ -72,7 +82,7 @@ export default function ArchiveOfflineRound(props: Readonly<Props>): React.React
         const updated = saveRound(gameDate, roundIndex, totalRounds, result);
         if (updated) setStored(updated);
         setSubmitted(true);
-    }, [submitted, offlineAnswer, appId, pickName, gameDate, roundIndex, totalRounds]);
+    };
 
     return (
         <div className="archive-offline-round">

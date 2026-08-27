@@ -15,6 +15,17 @@ function normalizeUrl(url: string, base: string): string {
     return `${base}/${url}`;
 }
 
+/**
+ * Serializes a value as JSON that is safe to embed in an HTML `<script>` tag:
+ * `<`, `>`, and `&` are escaped so data containing `</script>` cannot break out.
+ */
+export function serializeJsonLd(value: unknown): string {
+    return JSON.stringify(value)
+        .replace(/&/g, "\\u0026")
+        .replace(/</g, "\\u003c")
+        .replace(/>/g, "\\u003e");
+}
+
 export function buildBreadcrumbJsonLd(items: BreadcrumbItem[], base: string = defaultBase) {
     return {
         "@context": "https://schema.org",

@@ -1,13 +1,13 @@
 "use client";
 
-import React, {useActionState, useCallback, useEffect, useId, useRef, useState} from "react";
+import React, {useActionState, useEffect, useId, useReducer, useRef, useState} from "react";
 import Link from "next/link";
 import Form from "next/form";
 import {useFormStatus} from "react-dom";
 import useSWR from "swr";
 import {ArchiveIcon, GameControllerIcon, PaperPlaneRightIcon} from "@phosphor-icons/react/ssr";
 import {useAuth} from "@/contexts/AuthContext";
-import {buildSteamLoginUrl} from "@/components/SteamLoginButton";
+import {buildSteamLoginUrl} from "@/lib/steamLogin";
 import ReactionBar from "@/components/ReactionBar";
 import Avatar from "@/components/Avatar";
 import ConfirmModal from "@/components/ConfirmModal";
@@ -263,7 +263,7 @@ function GameLinkPicker(props: {
         };
 
         document.addEventListener("mousedown", onPointerDown);
-        document.addEventListener("touchstart", onPointerDown);
+        document.addEventListener("touchstart", onPointerDown, {passive: true});
         document.addEventListener("keydown", onKeyDown);
         return () => {
             document.removeEventListener("mousedown", onPointerDown);
@@ -344,7 +344,7 @@ function MentionMenu(props: {
         };
 
         document.addEventListener("mousedown", onPointerDown);
-        document.addEventListener("touchstart", onPointerDown);
+        document.addEventListener("touchstart", onPointerDown, {passive: true});
         document.addEventListener("keydown", onKeyDown);
         return () => {
             document.removeEventListener("mousedown", onPointerDown);
@@ -379,6 +379,63 @@ function MentionMenu(props: {
     );
 }
 
+type MentionSelection = {start: number; query: string};
+
+type ComposerState = {
+    /** True while the transient "Posted" confirmation is visible. */
+    posted: boolean;
+    bodyLength: number;
+    mention: MentionSelection | null;
+    mentionCandidates: MentionCandidate[];
+    mentionRateLimited: boolean;
+};
+
+type ComposerAction =
+    | {type: "bodyInput"; bodyLength: number; mention: MentionSelection | null}
+    | {type: "insertionLength"; bodyLength: number}
+    | {type: "mentionMenuClosed"}
+    | {type: "postSucceeded"}
+    | {type: "postedIndicatorExpired"}
+    | {type: "mentionSearchSucceeded"; candidates: MentionCandidate[]}
+    | {type: "mentionSearchRateLimited"};
+
+const initialComposerState: ComposerState = {
+    posted: false,
+    bodyLength: 0,
+    mention: null,
+    mentionCandidates: [],
+    mentionRateLimited: false,
+};
+
+/**
+ * Single source of truth for the comment composer's related UI state.
+ * Mirrors the previous per-slice useState transitions exactly.
+ */
+function composerReducer(state: ComposerState, action: ComposerAction): ComposerState {
+    switch (action.type) {
+        case "bodyInput":
+            return {...state, bodyLength: action.bodyLength, mention: action.mention};
+        case "insertionLength":
+            return {...state, bodyLength: action.bodyLength};
+        case "mentionMenuClosed":
+            return {...state, mention: null, mentionCandidates: [], mentionRateLimited: false};
+        case "postSucceeded":
+            return {
+                posted: true,
+                bodyLength: 0,
+                mention: null,
+                mentionCandidates: [],
+                mentionRateLimited: false,
+            };
+        case "postedIndicatorExpired":
+            return state.posted ? {...state, posted: false} : state;
+        case "mentionSearchSucceeded":
+            return {...state, mentionRateLimited: false, mentionCandidates: action.candidates};
+        case "mentionSearchRateLimited":
+            return {...state, mentionRateLimited: true, mentionCandidates: []};
+    }
+}
+
 /**
  * Renders a form for submitting a comment associated with a game date.
  *
@@ -394,94 +451,94 @@ function CommentComposer(props: {
     const {isSignedIn, steamId} = useAuth();
     const formRef = useRef<HTMLFormElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
-    const [posted, setPosted] = useState(false);
-    const [bodyLength, setBodyLength] = useState(0);
-    const [state, formAction] = useActionState(postCommentAction, initialActionState);
-    const lastHandled = useRef<CommentActionState | null>(null);
-    const remaining = MAX_BODY_LENGTH - bodyLength;
+    const postedTimerRef = useRef<number | null>(null);
+    const [composer, dispatch] = useReducer(composerReducer, initialComposerState);
+    const [state, formAction] = useActionState(
+        async (prev: CommentActionState, formData: FormData) => {
+            const next = await postCommentAction(prev, formData);
+            if (next.ok) {
+                formRef.current?.reset();
+                if (postedTimerRef.current !== null) window.clearTimeout(postedTimerRef.current);
+                dispatch({type: "postSucceeded"});
+                postedTimerRef.current = window.setTimeout(() => {
+                    postedTimerRef.current = null;
+                    dispatch({type: "postedIndicatorExpired"});
+                }, 1500);
+                void onPosted();
+            }
+            if (next.outcomeUnknown) {
+                // Refresh so a comment that may have landed is visible before any re-submit.
+                void onPosted();
+            }
+            if (next.unauthorized) {
+                onUnauthorized();
+            }
+            return next;
+        },
+        initialActionState,
+    );
+    const remaining = MAX_BODY_LENGTH - composer.bodyLength;
     const mentionMenuId = useId();
 
-    const [mention, setMention] = useState<{start: number; query: string} | null>(null);
-    const [mentionCandidates, setMentionCandidates] = useState<MentionCandidate[]>([]);
-    const [mentionRateLimited, setMentionRateLimited] = useState(false);
-    const debouncedMentionQuery = useDebouncedValue(mention?.query ?? null, MENTION_DEBOUNCE_MS);
+    const debouncedMentionQuery = useDebouncedValue(composer.mention?.query ?? null, MENTION_DEBOUNCE_MS);
+    const mentionQueryActive = isSignedIn === true && debouncedMentionQuery !== null
+        && debouncedMentionQuery.trim().length >= MIN_MENTION_QUERY_LENGTH;
+
+    // Clear the "Posted" indicator timer on unmount.
+    useEffect(() => () => {
+        if (postedTimerRef.current !== null) window.clearTimeout(postedTimerRef.current);
+    }, []);
 
     useEffect(() => {
-        if (!state || state === lastHandled.current) return;
-        lastHandled.current = state;
-
-        if (state.ok) {
-            formRef.current?.reset();
-            setBodyLength(0);
-            setMention(null);
-            setMentionCandidates([]);
-            setMentionRateLimited(false);
-            setPosted(true);
-            const timer = window.setTimeout(() => setPosted(false), 1500);
-            void onPosted();
-            return () => window.clearTimeout(timer);
-        }
-        if (state.outcomeUnknown) {
-            // Refresh so a comment that may have landed is visible before any re-submit.
-            void onPosted();
-        }
-        if (state.unauthorized) {
-            onUnauthorized();
-        }
-    }, [state, onPosted, onUnauthorized]);
-
-    useEffect(() => {
-        if (isSignedIn !== true || debouncedMentionQuery === null
-            || debouncedMentionQuery.trim().length < MIN_MENTION_QUERY_LENGTH) {
-            setMentionCandidates([]);
-            return;
-        }
+        if (!mentionQueryActive) return;
         let cancelled = false;
-        void searchMentionCandidates(debouncedMentionQuery.trim()).then((candidates) => {
+        const query = debouncedMentionQuery.trim();
+        void searchMentionCandidates(query).then((candidates) => {
             if (cancelled) return;
-            setMentionRateLimited(false);
-            setMentionCandidates(candidates.filter((candidate) => candidate.steamId !== steamId));
+            dispatch({
+                type: "mentionSearchSucceeded",
+                candidates: candidates.filter((candidate) => candidate.steamId !== steamId),
+            });
         }).catch((error: unknown) => {
             if (cancelled) return;
             if (error instanceof MentionSearchRateLimitedError) {
-                setMentionRateLimited(true);
-                setMentionCandidates([]);
+                dispatch({type: "mentionSearchRateLimited"});
             }
         });
         return () => {
             cancelled = true;
         };
-    }, [isSignedIn, debouncedMentionQuery, steamId]);
+    }, [mentionQueryActive, debouncedMentionQuery, steamId]);
 
     const handleInsertGame = (game: CommentGameRef) => {
         const ta = textareaRef.current;
         if (!ta) return;
         const nextLength = insertGameReference(ta, game, MAX_BODY_LENGTH);
-        if (nextLength !== null) setBodyLength(nextLength);
+        if (nextLength !== null) dispatch({type: "insertionLength", bodyLength: nextLength});
     };
 
-    const closeMentionMenu = useCallback(() => {
-        setMention(null);
-        setMentionCandidates([]);
-        setMentionRateLimited(false);
-    }, []);
+    const closeMentionMenu = () => {
+        dispatch({type: "mentionMenuClosed"});
+    };
 
     const handlePickMention = (candidate: MentionCandidate) => {
         const ta = textareaRef.current;
-        if (!ta || !mention) return;
-        const nextLength = insertMentionReference(ta, candidate, mention.start, MAX_BODY_LENGTH);
-        if (nextLength !== null) setBodyLength(nextLength);
+        if (!ta || composer.mention === null) return;
+        const nextLength = insertMentionReference(ta, candidate, composer.mention.start, MAX_BODY_LENGTH);
+        if (nextLength !== null) dispatch({type: "insertionLength", bodyLength: nextLength});
         closeMentionMenu();
     };
 
     const handleBodyInput = (e: React.FormEvent<HTMLTextAreaElement>) => {
         const value = e.currentTarget.value;
-        setBodyLength(value.length);
         const caret = e.currentTarget.selectionStart ?? value.length;
-        setMention(detectMentionQuery(value, caret));
+        dispatch({type: "bodyInput", bodyLength: value.length, mention: detectMentionQuery(value, caret)});
     };
 
-    const mentionOpen = isSignedIn === true && mention !== null && mentionCandidates.length > 0;
+    // Derived: an inactive mention query hides stale candidates without an
+    // extra effect-driven state reset.
+    const visibleMentionCandidates = mentionQueryActive ? composer.mentionCandidates : [];
+    const mentionOpen = isSignedIn === true && composer.mention !== null && visibleMentionCandidates.length > 0;
 
     return (
         <Form ref={formRef} className="comment-composer" action={formAction}>
@@ -498,18 +555,17 @@ function CommentComposer(props: {
                     maxLength={MAX_BODY_LENGTH}
                     placeholder="Share your take on today's games… Type @ to mention someone."
                     required
-                    aria-expanded={mentionOpen}
                     aria-controls={mentionOpen ? mentionMenuId : undefined}
                     onInput={handleBodyInput}
                 />
                 {mentionOpen ? (
                     <MentionMenu
                         id={mentionMenuId}
-                        candidates={mentionCandidates}
+                        candidates={visibleMentionCandidates}
                         onPick={handlePickMention}
                         onClose={closeMentionMenu}
                     />
-                ) : (mention !== null && mentionRateLimited && (
+                ) : (composer.mention !== null && composer.mentionRateLimited && (
                     <p className="comment-composer__mention-status" role="status">
                         Mention search is busy — try again in a moment.
                     </p>
@@ -526,10 +582,10 @@ function CommentComposer(props: {
                 >
                     {remaining} chars left
                 </span>
-                <span className={`comment-composer__posted ${posted ? "is-visible" : ""}`}>
+                <span className={`comment-composer__posted ${composer.posted ? "is-visible" : ""}`}>
                     Posted
                 </span>
-                <CommentSubmitButton disabled={bodyLength === 0}/>
+                <CommentSubmitButton disabled={composer.bodyLength === 0}/>
             </div>
             {state && !state.ok && state.error && (
                 <p className="comment-composer__error" role="alert">{state.error}</p>
@@ -581,15 +637,15 @@ export default function DayComments(props: {
             : {revalidateOnFocus: false},
     );
 
-    const handlePosted = useCallback(() => {
+    const handlePosted = () => {
         void mutate();
-    }, [mutate]);
+    };
 
-    const handleUnauthorized = useCallback(() => {
+    const handleUnauthorized = () => {
         refreshAuth();
-    }, [refreshAuth]);
+    };
 
-    const handleArchive = useCallback(async (commentId: number) => {
+    const handleArchive = async (commentId: number) => {
         if (archivingId !== null) return;
         setArchivingId(commentId);
         try {
@@ -600,17 +656,16 @@ export default function DayComments(props: {
             if (message === "unauthorized") {
                 refreshAuth();
             }
-        } finally {
-            setArchivingId(null);
         }
-    }, [archivingId, mutate, refreshAuth]);
+        setArchivingId(null);
+    };
 
-    const confirmArchive = useCallback(() => {
+    const confirmArchive = () => {
         if (confirmArchiveId === null) return;
         const id = confirmArchiveId;
         setConfirmArchiveId(null);
         void handleArchive(id);
-    }, [confirmArchiveId, handleArchive]);
+    };
 
     if (!gameDate) return null;
 
@@ -742,7 +797,7 @@ export default function DayComments(props: {
                         type="button"
                         className="btn-link"
                         onClick={() => {
-                            window.location.href = buildSteamLoginUrl();
+                            window.location.assign(buildSteamLoginUrl());
                         }}
                     >
                         Sign in with Steam

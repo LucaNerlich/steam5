@@ -12,6 +12,12 @@ export async function GET(req: NextRequest) {
             headers: {"accept": "application/json", "authorization": `Bearer ${token}`, ...forwardedForHeaders(req)},
             cache: 'no-store'
         });
+        if (!res.ok) {
+            // Backend error: pass the payload through with the upstream status,
+            // falling back to a generic error body when it isn't JSON.
+            const errorBody: unknown = await res.json().catch(() => null);
+            return NextResponse.json(errorBody ?? {error: "Failed to load today's guesses"}, {status: res.status, headers: {"Cache-Control": "private, no-store"}});
+        }
         const data = await res.json();
         return NextResponse.json(data, {status: res.status, headers: {"Cache-Control": "private, no-store"}});
     } catch (e) {
