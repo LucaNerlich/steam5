@@ -1,6 +1,6 @@
 "use client";
 
-import React, {useMemo} from "react";
+import React from "react";
 import useSWR from "swr";
 
 type Round = { selectedBucket: string; actualBucket: string; date?: string };
@@ -29,29 +29,30 @@ function Row({y, label, pct, color}: { y: number; label: string; pct: number | n
     );
 }
 
-const fetcher = (url: string) => fetch(url, {headers: {accept: 'application/json'}}).then(r => r.json());
+const fetcher = (url: string) => fetch(url, {headers: {accept: 'application/json'}}).then(r => {
+    if (!r.ok) throw new Error(`Failed to load ${url}: ${r.status}`);
+    return r.json();
+});
+
+function cutoffDateStr(daysWindow: number): string {
+    const now = new Date();
+    const cutoffDate = new Date(now);
+    cutoffDate.setDate(cutoffDate.getDate() - daysWindow);
+    return cutoffDate.toISOString().slice(0, 10);
+}
 
 export default function HitRateVsAverageCard({rounds}: { rounds: Round[] }): React.ReactElement {
-    const last = useMemo(() => {
-        if (rounds.length === 0) return [];
-        const now = new Date();
-        const cutoffDate = new Date(now);
-        cutoffDate.setDate(cutoffDate.getDate() - DAYS_WINDOW);
-        const cutoffStr = cutoffDate.toISOString().slice(0, 10);
-        return rounds.filter(r => r.date && r.date >= cutoffStr);
-    }, [rounds]);
+    const last = rounds.filter(r => r.date && r.date >= cutoffDateStr(DAYS_WINDOW));
 
-    const myHitRate = useMemo(() => {
-        if (last.length === 0) return 0;
-        const hits = last.filter(r => r.selectedBucket === r.actualBucket).length;
-        return (hits / last.length) * 100;
-    }, [last]);
+    const myHitRate = last.length === 0
+        ? 0
+        : (last.filter(r => r.selectedBucket === r.actualBucket).length / last.length) * 100;
 
     const {data: leaders} = useSWR<Array<{
         hits: number;
         rounds: number
     }>>("/api/leaderboard/all", fetcher, {refreshInterval: 300000, revalidateOnFocus: false});
-    const globalAvg = useMemo(() => {
+    const globalAvg = (() => {
         if (!Array.isArray(leaders) || leaders.length === 0) return null as number | null;
         let h = 0, t = 0;
         for (const l of leaders) {
@@ -60,7 +61,7 @@ export default function HitRateVsAverageCard({rounds}: { rounds: Round[] }): Rea
         }
         if (t <= 0) return null;
         return (h / t) * 100;
-    }, [leaders]);
+    })();
 
     return (
         <div className="perf-card">

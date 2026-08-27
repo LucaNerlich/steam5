@@ -46,11 +46,11 @@ export default function ReviewGuesserHero(props: Readonly<ReviewGuesserHeroProps
     const totalRounds = today.picks.length;
     const allShots = (pick.screenshots ?? []);
     const developerNames = formatEntityList(
-        (pick.developers ?? []).map((developer) => developer.name).filter(Boolean),
+        (pick.developers ?? []).flatMap((developer) => (developer.name ? [developer.name] : [])),
         props.locale
     );
     const publisherNames = formatEntityList(
-        (pick.publisher ?? []).map((publisher) => publisher.name).filter(Boolean),
+        (pick.publisher ?? []).flatMap((publisher) => (publisher.name ? [publisher.name] : [])),
         props.locale
     );
 

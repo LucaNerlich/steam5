@@ -1,26 +1,29 @@
 "use client";
 
-import React, {useCallback, useMemo} from "react";
+import React from "react";
 
 type Round = { selectedBucket: string; actualBucket: string; date?: string };
 
+const DAYS_WINDOW = 30;
+
+function lastNDays(n: number): string[] {
+    const now = new Date();
+    const dates: string[] = [];
+    for (let i = n - 1; i >= 0; i--) {
+        const day = new Date(now);
+        day.setDate(now.getDate() - i);
+        dates.push(day.toISOString().slice(0, 10));
+    }
+    return dates;
+}
+
 export default function RollingHitRateSpark({rounds}: { rounds: Round[] }): React.ReactElement {
-    const DAYS_WINDOW = 30;
-    const days = useMemo(() => {
-        const now = new Date();
-        const dates: string[] = [];
-        for (let i = DAYS_WINDOW - 1; i >= 0; i--) {
-            const day = new Date(now);
-            day.setDate(now.getDate() - i);
-            dates.push(day.toISOString().slice(0, 10));
-        }
-        return dates;
-    }, []);
+    const days = lastNDays(DAYS_WINDOW);
     const width = 600;
     const height = 140;
     const padding = 24;
 
-    const daily = useMemo(() => {
+    const daily = (() => {
         if (rounds.length === 0) {
             return days.map(date => ({date, hits: 0, total: 0}));
         }
@@ -35,9 +38,9 @@ export default function RollingHitRateSpark({rounds}: { rounds: Round[] }): Reac
             grouped.set(round.date, entry);
         }
         return days.map(date => grouped.get(date) ?? {date, hits: 0, total: 0});
-    }, [rounds, days]);
+    })();
 
-    const series = useMemo(() => {
+    const series = (() => {
         const values: number[] = [];
         const ROLLING_WINDOW_DAYS = 7;
         // Rolling window: for each day, calculate hit rate over trailing 7 days
@@ -49,15 +52,15 @@ export default function RollingHitRateSpark({rounds}: { rounds: Round[] }): Reac
             values.push(total === 0 ? 0 : Math.round((hits / total) * 100));
         }
         return values;
-    }, [daily]);
+    })();
 
-    const y = useCallback((v: number) => {
+    const y = (v: number) => {
         const min = 0, max = 100;
         const t = (v - min) / (max - min);
         return height - 6 - t * (height - 12);
-    }, [height]);
+    };
 
-    const points = useMemo(() => series.map((v, i) => `${padding + (i / Math.max(1, series.length - 1)) * (width - padding * 2)},${y(v)}`).join(' '), [series, width, y, padding]);
+    const points = series.map((v, i) => `${padding + (i / Math.max(1, series.length - 1)) * (width - padding * 2)},${y(v)}`).join(' ');
 
     return (
         <div className="perf-card">
@@ -91,5 +94,3 @@ export default function RollingHitRateSpark({rounds}: { rounds: Round[] }): Reac
         </div>
     );
 }
-
-

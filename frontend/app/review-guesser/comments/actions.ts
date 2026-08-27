@@ -1,6 +1,6 @@
 'use server';
 
-import {cookies} from 'next/headers';
+import {getAuth} from '@/lib/serverAuth';
 
 const MAX_BODY_LENGTH = 1000;
 
@@ -36,6 +36,12 @@ export async function postCommentAction(
     _prev: CommentActionState | undefined,
     formData: FormData,
 ): Promise<CommentActionState> {
+    // Auth gate first: exported server actions are public POST endpoints, so the
+    // session is established before any other logic. Input validation still runs
+    // before the unauthorized return so malformed input reports the same errors
+    // it always did.
+    const token = await getAuth();
+
     const gameDateRaw = formData.get('gameDate');
     const bodyRaw = formData.get('body');
 
@@ -52,7 +58,6 @@ export async function postCommentAction(
         return {ok: false, error: `Comments must be ${MAX_BODY_LENGTH} characters or fewer.`};
     }
 
-    const token = (await cookies()).get('s5_token')?.value;
     if (!token) {
         return {ok: false, unauthorized: true, error: 'Sign in with Steam to post a comment.'};
     }

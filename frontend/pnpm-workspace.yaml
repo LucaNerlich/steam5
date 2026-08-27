@@ -1,3 +1,27 @@
+# Supply-chain hardening (see https://pnpm.io/settings):
+# - minimumReleaseAge: never install a package version published less than
+#   7 days ago, shrinking the window for freshly-published malware.
+# - trustPolicy: refuse resolutions whose provenance/signature trust weakens.
+# - blockExoticSubdeps: transitive deps may not come from git:/file:/tarball URLs.
+minimumReleaseAge: 10080
+trustPolicy: no-downgrade
+# undici-types@6.21.0 (transitive via @types/node) predates OIDC provenance, so the
+# publish-date-based trust check misreads it as a takeover. Skip trust checks for
+# packages published more than a year ago; new releases are still fully checked.
+trustPolicyIgnoreAfter: 525948
+blockExoticSubdeps: true
 onlyBuiltDependencies:
   - sharp
   - unrs-resolver
+minimumReleaseAgeExclude:
+  - '@next/env@16.3.3'
+  - '@next/swc-darwin-arm64@16.3.3'
+  - '@next/swc-darwin-x64@16.3.3'
+  - '@next/swc-linux-arm64-gnu@16.3.3'
+  - '@next/swc-linux-arm64-musl@16.3.3'
+  - '@next/swc-linux-x64-gnu@16.3.3'
+  - '@next/swc-linux-x64-musl@16.3.3'
+  - '@next/swc-win32-arm64-msvc@16.3.3'
+  - '@next/swc-win32-x64-msvc@16.3.3'
+  - '@types/react-dom@19.2.5'
+  - next@16.3.3

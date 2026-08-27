@@ -3,7 +3,7 @@
 import "@/styles/components/leaderboard.css";
 import Avatar from "@/components/Avatar";
 import useSWR from "swr";
-import {useCallback, useMemo, useState} from "react";
+import {useState} from "react";
 import {
     UserAchievement,
     getAchievementLabel,
@@ -117,7 +117,7 @@ export default function LeaderboardTable(props: {
     const achievementsList = achievementsData?.data || [];
     const serverOffsetMinutes = achievementsData?.serverOffsetMinutes ?? 0;
 
-    const achievementBySteamId = useMemo(() => {
+    const achievementBySteamId = (() => {
         const m = new Map<string, UserAchievement>();
         if (Array.isArray(achievementsList)) {
             for (const a of achievementsList) {
@@ -127,7 +127,7 @@ export default function LeaderboardTable(props: {
             }
         }
         return m;
-    }, [achievementsList, props.mode]);
+    })();
 
     type SortKey = 'personaName' | 'totalPoints' | 'rounds' | 'streak' | 'hits' | 'flops' | 'tooHigh' | 'tooLow' | 'avgPoints';
     type SortDir = 'asc' | 'desc';
@@ -135,20 +135,20 @@ export default function LeaderboardTable(props: {
     const [sortKey, setSortKey] = useState<SortKey | null>(null);
     const [sortDir, setSortDir] = useState<SortDir>('desc');
 
-    const defaultDirFor = useCallback((key: SortKey): SortDir => {
+    const defaultDirFor = (key: SortKey): SortDir => {
         return key === 'personaName' ? 'asc' : 'desc';
-    }, []);
+    };
 
-    const requestSort = useCallback((key: SortKey) => {
+    const requestSort = (key: SortKey) => {
         if (sortKey === key) {
             setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
         } else {
             setSortKey(key);
             setSortDir(defaultDirFor(key));
         }
-    }, [sortKey, defaultDirFor]);
+    };
 
-    const sorted = useMemo(() => {
+    const sorted = (() => {
         if (!Array.isArray(data)) return [] as LeaderEntry[];
         if (!sortKey) return data;
         const sortedCopy = [...data];
@@ -172,14 +172,14 @@ export default function LeaderboardTable(props: {
         });
 
         return sortedCopy;
-    }, [data, sortDir, sortKey]);
+    })();
 
-    const avgTotalPoints = useMemo(() => {
+    const avgTotalPoints = (() => {
         const arr = Array.isArray(data) ? data : [];
         if (arr.length === 0) return 0;
         const sum = arr.reduce((acc, e) => acc + (typeof e.totalPoints === 'number' ? e.totalPoints : 0), 0);
         return sum / arr.length;
-    }, [data]);
+    })();
 
     // Only the MV-backed leaderboards have a meaningful refresh cadence to report;
     // 'today' and non-floating 'weekly' are always computed live.

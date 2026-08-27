@@ -11,8 +11,6 @@ export async function GET(req: NextRequest) {
             headers: {"accept": "application/json", ...forwardedForHeaders(req)},
             next: {revalidate, tags: ["stats-hardest-games"]},
         });
-        const data = await res.json();
-
         // Pass through the leaderboard freshness header (mirrors the achievements/leaderboard
         // routes' pattern) — otherwise NextResponse.json below would silently drop it, and the
         // frontend's "Last updated" line would never have anything to render.
@@ -22,6 +20,14 @@ export async function GET(req: NextRequest) {
             headers['X-Leaderboard-Refreshed-At'] = refreshedAtHeader;
         }
 
+        if (!res.ok) {
+            // Backend error: pass the payload through with the upstream status,
+            // falling back to a generic error body when it isn't JSON.
+            const errorBody: unknown = await res.json().catch(() => null);
+            return NextResponse.json(errorBody ?? {error: "Failed to load hardest games"}, {status: res.status, headers});
+        }
+
+        const data = await res.json();
         return NextResponse.json(data, {status: res.status, headers});
     } catch {
         return NextResponse.json({error: "Failed to load hardest games"}, {status: 502});

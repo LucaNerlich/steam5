@@ -1,6 +1,6 @@
 "use client";
 
-import React, {useMemo} from "react";
+import React from "react";
 
 type Round = { points: number; date?: string };
 
@@ -9,7 +9,7 @@ function avgPoints(rs: Round[]): number {
 }
 
 export default function ImprovementTrend({rounds}: { rounds: Round[] }): React.ReactElement {
-    const {early, recent, delta, third, earlyLabel, recentLabel} = useMemo(() => {
+    const {early, recent, delta, third, earlyLabel, recentLabel} = (() => {
         if (rounds.length < 6) return {early: null, recent: null, delta: null, third: 0, earlyLabel: "", recentLabel: ""};
         const t = Math.floor(rounds.length / 3);
         const earlySlice = rounds.slice(0, t);
@@ -18,7 +18,7 @@ export default function ImprovementTrend({rounds}: { rounds: Round[] }): React.R
         const r = avgPoints(recentSlice);
 
         const fmtLabel = (slice: Round[]): string => {
-            const dates = slice.map(rd => rd.date).filter(Boolean) as string[];
+            const dates = slice.flatMap(rd => rd.date ? [rd.date] : []);
             if (dates.length >= 2) {
                 const first = dates[0];
                 const last = dates[dates.length - 1];
@@ -33,7 +33,7 @@ export default function ImprovementTrend({rounds}: { rounds: Round[] }): React.R
         };
 
         return {early: e, recent: r, delta: r - e, third: t, earlyLabel: fmtLabel(earlySlice), recentLabel: fmtLabel(recentSlice)};
-    }, [rounds]);
+    })();
 
     const noData = delta === null;
     const improving = !noData && delta > 0.1;

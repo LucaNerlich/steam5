@@ -2,17 +2,7 @@ import React from "react";
 import Link from "next/link";
 import "@/styles/components/playerSpotlight.css";
 import {BACKEND_ORIGIN as backend} from "@/lib/backend";
-
-export type InsightType =
-    | "DAY_STREAK"
-    | "BEST_DAY_EVER"
-    | "BEAT_THE_ODDS"
-    | "WELCOME_BACK"
-    | "MOST_IMPROVED"
-    | "WEEKLY_ACHIEVEMENT"
-    | "HOT_STREAK"
-    | "TOP_COMMENT"
-    | "MILESTONE";
+import {INSIGHT_EMOJI, type InsightType} from "@/lib/insights";
 
 type SpotlightResponse = {
     steamId: string;
@@ -35,18 +25,6 @@ const INSIGHT_MODIFIER: Record<InsightType, string> = {
     HOT_STREAK: "hot-streak",
     TOP_COMMENT: "top-comment",
     MILESTONE: "milestone",
-};
-
-export const INSIGHT_EMOJI: Record<InsightType, string> = {
-    DAY_STREAK: "🔥",
-    BEST_DAY_EVER: "🏆",
-    BEAT_THE_ODDS: "🎯",
-    WELCOME_BACK: "👋",
-    MOST_IMPROVED: "📊",
-    WEEKLY_ACHIEVEMENT: "🏅",
-    HOT_STREAK: "📈",
-    TOP_COMMENT: "💬",
-    MILESTONE: "⭐",
 };
 
 async function loadSpotlight(): Promise<SpotlightResponse | null> {

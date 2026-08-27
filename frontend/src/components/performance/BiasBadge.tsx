@@ -1,6 +1,6 @@
 "use client";
 
-import React, {useMemo} from "react";
+import React from "react";
 
 type Round = { selectedBucket: string; actualBucket: string };
 
@@ -10,7 +10,7 @@ function bucketOrder(label: string): number {
 }
 
 export default function BiasBadge({rounds}: { rounds: Round[] }): React.ReactElement {
-    const {message, detail, color, kind, highPct, lowPct, hitPct} = useMemo(() => {
+    const {message, detail, color, kind, highPct, lowPct, hitPct} = (() => {
         let high = 0, low = 0, hit = 0;
         for (const r of rounds) {
             if (!r.selectedBucket || !r.actualBucket) continue;
@@ -41,7 +41,7 @@ export default function BiasBadge({rounds}: { rounds: Round[] }): React.ReactEle
             color: "var(--color-success, #16a34a)",
             kind: "balanced", highPct: hp, lowPct: lp, hitPct: htp,
         };
-    }, [rounds]);
+    })();
 
     const WIDTH = 300;
     const HEIGHT = 56;

@@ -1,11 +1,16 @@
 "use client";
 
-import {useEffect, useState} from "react";
+import {useEffect, useState, useSyncExternalStore} from "react";
 
 type FontChoice = "krypton" | "neon" | 'argon' | 'radon' | 'xenon' | 'space' | 'pixel-square';
 
+const emptySubscribe = () => () => {};
+
 export default function FontToggle() {
-    const [mounted, setMounted] = useState(false);
+    // Gate rendering on hydration without a synchronous setState in an effect (which
+    // the React Compiler can't optimize): useSyncExternalStore serves the server
+    // snapshot (false) during hydration and flips to true right after.
+    const mounted = useSyncExternalStore(emptySubscribe, () => true, () => false);
     const [font, setFont] = useState<FontChoice>(() => {
         if (typeof window === 'undefined') return 'krypton';
         const stored = window.localStorage.getItem('font-family-choice');
@@ -22,21 +27,6 @@ export default function FontToggle() {
                 return 'krypton';
         }
     });
-
-    // After hydration, ensure we sync with persisted choice from localStorage
-    useEffect(() => {
-        try {
-            const stored = window.localStorage.getItem('font-family-choice');
-            if (stored === 'neon' || stored === 'argon' || stored === 'radon' || stored === 'xenon' || stored === 'space' || stored === 'pixel-square' || stored === 'krypton') {
-                const s = stored as FontChoice;
-                setFont(prev => (prev === s ? prev : s));
-            }
-        } catch {
-            // ignore
-        } finally {
-            setMounted(true);
-        }
-    }, []);
 
     useEffect(() => {
         if (!font) return;

@@ -1,6 +1,6 @@
 "use client";
 
-import React, {useMemo} from "react";
+import React from "react";
 
 type Round = { roundIndex: number; points: number };
 
@@ -9,7 +9,7 @@ const HEIGHT = 160;
 const PAD = {top: 12, right: 16, bottom: 28, left: 32};
 
 export default function RoundPositionChart({rounds}: { rounds: Round[] }): React.ReactElement {
-    const bars = useMemo(() => {
+    const bars = (() => {
         const groups = new Map<number, { total: number; count: number }>();
         for (const r of rounds) {
             const pos = r.roundIndex ?? 1;
@@ -21,7 +21,7 @@ export default function RoundPositionChart({rounds}: { rounds: Round[] }): React
         return Array.from(groups.entries())
             .sort(([a], [b]) => a - b)
             .map(([pos, {total, count}]) => ({pos, avg: total / count, count}));
-    }, [rounds]);
+    })();
 
     const plotW = WIDTH - PAD.left - PAD.right;
     const plotH = HEIGHT - PAD.top - PAD.bottom;

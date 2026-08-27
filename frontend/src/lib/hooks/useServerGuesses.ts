@@ -1,6 +1,6 @@
 "use client";
 
-import {useEffect, useState} from "react";
+import useSWR from "swr";
 import type {RoundResult} from "@/lib/storage";
 
 /** Raw per-round guess shape returned by /api/review-game/my/today. */
@@ -28,42 +28,38 @@ export function toRoundResult(g: ServerGuess): RoundResult {
     };
 }
 
+/**
+ * Fetch today's server guesses. Never rejects — any failure (network, non-OK
+ * status, bad JSON) resolves to null so SWR treats it as "no data" without
+ * entering its error/retry path.
+ */
+const myTodayFetcher = async (url: string): Promise<ServerGuess[] | null> => {
+    try {
+        const res = await fetch(url, {credentials: 'include', cache: 'no-store'});
+        if (!res.ok) return null;
+        return await res.json() as ServerGuess[];
+    } catch {
+        return null;
+    }
+};
+
 export default function useServerGuesses(disabled: boolean = false): {
     guesses: Record<number, RoundResult>;
     loading: boolean;
 } {
-    const [serverGuesses, setServerGuesses] = useState<Record<number, RoundResult>>({});
-    const [loading, setLoading] = useState(false);
+    // SWR owns the fetch lifecycle (dedup, races, cleanup) instead of a manual
+    // effect. A null key disables fetching; keepPreviousData keeps the last map
+    // while disabled, matching the previous behavior of leaving state untouched.
+    const {data, isLoading} = useSWR<ServerGuess[] | null>(
+        disabled ? null : '/api/review-game/my/today',
+        myTodayFetcher,
+        {revalidateOnFocus: false, dedupingInterval: 0, keepPreviousData: true},
+    );
 
-    useEffect(() => {
-        if (disabled) {
-            setLoading(false);
-            return;
-        }
-        let cancelled = false;
+    const guesses: Record<number, RoundResult> = {};
+    if (data) {
+        for (const g of data) guesses[g.roundIndex] = toRoundResult(g);
+    }
 
-        async function load() {
-            try {
-                setLoading(true);
-                const res = await fetch('/api/review-game/my/today', {credentials: 'include', cache: 'no-store'});
-                if (!res.ok) return;
-                const data = await res.json() as ServerGuess[];
-                if (cancelled) return;
-                const map: Record<number, RoundResult> = {};
-                for (const g of data) map[g.roundIndex] = toRoundResult(g);
-                setServerGuesses(map);
-            } catch {
-                // ignore
-            } finally {
-                if (!cancelled) setLoading(false);
-            }
-        }
-
-        load();
-        return () => {
-            cancelled = true;
-        };
-    }, [disabled]);
-
-    return {guesses: serverGuesses, loading};
+    return {guesses, loading: !disabled && isLoading};
 }

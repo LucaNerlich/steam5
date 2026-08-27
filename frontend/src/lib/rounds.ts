@@ -16,9 +16,14 @@ type Day = { date: string; rounds: Omit<FlatRound, 'date'>[] };
  * Oldest date first; within a day, ascending roundIndex.
  */
 export function flattenDayRounds(days: Day[]): FlatRound[] {
-    const flat = days.flatMap(d => d.rounds
-        .filter(r => r.selectedBucket && r.actualBucket && r.points != null)
-        .map(r => ({...r, date: d.date})));
+    const flat: FlatRound[] = [];
+    for (const d of days) {
+        for (const r of d.rounds) {
+            if (r.selectedBucket && r.actualBucket && r.points != null) {
+                flat.push({...r, date: d.date});
+            }
+        }
+    }
     return flat.sort((a, b) => {
         if (a.date === b.date) return (a.roundIndex || 0) - (b.roundIndex || 0);
         return a.date.localeCompare(b.date);

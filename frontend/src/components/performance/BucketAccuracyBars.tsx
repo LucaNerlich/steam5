@@ -1,21 +1,21 @@
 "use client";
 
-import React, {useMemo} from "react";
+import React from "react";
 
 type Round = { selectedBucket: string; actualBucket: string; date?: string };
 
+function cutoffDateStr(daysWindow: number): string {
+    const now = new Date();
+    const cutoffDate = new Date(now);
+    cutoffDate.setDate(cutoffDate.getDate() - daysWindow);
+    return cutoffDate.toISOString().slice(0, 10);
+}
+
 export default function BucketAccuracyBars({rounds}: { rounds: Round[] }): React.ReactElement {
     const DAYS_WINDOW = 30;
-    const last = useMemo(() => {
-        if (rounds.length === 0) return [];
-        const now = new Date();
-        const cutoffDate = new Date(now);
-        cutoffDate.setDate(cutoffDate.getDate() - DAYS_WINDOW);
-        const cutoffStr = cutoffDate.toISOString().slice(0, 10);
-        return rounds.filter(r => r.date && r.date >= cutoffStr);
-    }, [rounds]);
+    const last = rounds.filter(r => r.date && r.date >= cutoffDateStr(DAYS_WINDOW));
 
-    const stats = useMemo(() => {
+    const stats = (() => {
         const map = new Map<string, { hits: number; total: number }>();
         for (const r of last) {
             if (!r.actualBucket || !r.selectedBucket) continue;
@@ -32,7 +32,7 @@ export default function BucketAccuracyBars({rounds}: { rounds: Round[] }): React
         return Array.from(map.entries())
             .sort((a, b) => parseStart(a[0]) - parseStart(b[0]))
             .map(([label, v]) => ({label, pct: v.total > 0 ? (v.hits / v.total) * 100 : 0}));
-    }, [last]);
+    })();
 
     return (
         <div className="perf-card">

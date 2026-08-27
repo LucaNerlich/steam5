@@ -8,7 +8,7 @@ import {formatDate, ordinal, placementTier} from "@/lib/format";
 import {flattenDayRounds} from "@/lib/rounds";
 import {BACKEND_ORIGIN as backend} from "@/lib/backend";
 import {formatAwardMetric} from "@/lib/seasons";
-import {INSIGHT_EMOJI, type InsightType} from "@/components/PlayerSpotlight";
+import {INSIGHT_EMOJI, type InsightType} from "@/lib/insights";
 
 type ProfileResponse = {
     steamId: string;

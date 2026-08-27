@@ -21,6 +21,12 @@ export async function GET(request: NextRequest) {
             next: {revalidate: ONE_DAY_REVALIDATE_SECONDS},
             headers: {"accept": "application/json", ...forwardedForHeaders(request)}
         });
+        if (!res.ok) {
+            // Backend error: pass the payload through with the upstream status,
+            // falling back to a generic error body when it isn't JSON.
+            const errorBody: unknown = await res.json().catch(() => null);
+            return NextResponse.json(errorBody ?? {error: "Failed to fetch archive days"}, {status: res.status});
+        }
         const data: string[] = await res.json();
         return NextResponse.json(data, {status: res.status});
     } catch (e) {

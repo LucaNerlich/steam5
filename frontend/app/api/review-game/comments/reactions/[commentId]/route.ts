@@ -42,6 +42,12 @@ export async function POST(
                 cache: "no-store",
             },
         );
+        if (!res.ok) {
+            // Backend error: pass the payload through with the upstream status,
+            // tolerating a non-JSON (e.g. empty) error body.
+            const errorBody: unknown = await res.json().catch(() => ({}));
+            return NextResponse.json(errorBody, {status: res.status, headers: NO_STORE});
+        }
         const data = await res.json().catch(() => ({}));
         return NextResponse.json(data, {status: res.status, headers: NO_STORE});
     } catch (e) {

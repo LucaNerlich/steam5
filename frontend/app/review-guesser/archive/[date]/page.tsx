@@ -7,7 +7,7 @@ import ArchiveSummary from "@/components/ArchiveSummary";
 import DayComments from "@/components/DayComments";
 import {notFound} from "next/navigation";
 import {formatDate} from "@/lib/format";
-import {buildBreadcrumbJsonLd} from "@/lib/seo";
+import {buildBreadcrumbJsonLd, serializeJsonLd} from "@/lib/seo";
 import "@/styles/components/archive.css";
 import GameInfoSection from "@/components/GameInfoSection";
 import React from "react";
@@ -73,7 +73,7 @@ export default async function ArchivePage({params}: { params: Promise<{ date: st
     return (
         <section className="container">
             <script type="application/ld+json" dangerouslySetInnerHTML={{
-                __html: JSON.stringify(breadcrumbJsonLd)
+                __html: serializeJsonLd(breadcrumbJsonLd)
             }} />
             <h1>Archive — {formatDate(date)}</h1>
             <DayComments gameDate={date} readOnly/>
@@ -85,7 +85,7 @@ export default async function ArchivePage({params}: { params: Promise<{ date: st
             <nav aria-label="Rounds table of contents" className="archive__toc">
                 <ol>
                     {data.picks.map((app, idx) => (
-                        <li key={`toc-${idx + 1}`}><a href={`#round-${idx + 1}`}>{app.name}</a></li>
+                        <li key={app.appId}><a href={`#round-${idx + 1}`}>{app.name}</a></li>
                     ))}
                 </ol>
             </nav>

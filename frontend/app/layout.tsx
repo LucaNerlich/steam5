@@ -6,6 +6,7 @@ import UmamiAnalytics from "@/components/UmamiAnalytics";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { serializeJsonLd } from "@/lib/seo";
 import localFont from "next/font/local";
 
 const krypton = localFont({
@@ -248,11 +249,11 @@ export default async function RootLayout({
         <Script src="/theme-init.js" strategy="beforeInteractive"/>
         <script
             type="application/ld+json"
-            dangerouslySetInnerHTML={{__html: JSON.stringify(websiteSchema)}}
+            dangerouslySetInnerHTML={{__html: serializeJsonLd(websiteSchema)}}
         />
         <script
             type="application/ld+json"
-            dangerouslySetInnerHTML={{__html: JSON.stringify(organizationSchema)}}
+            dangerouslySetInnerHTML={{__html: serializeJsonLd(organizationSchema)}}
         />
         <link rel="preconnect" href={origin}/>
         <link rel="dns-prefetch" href={origin}/>

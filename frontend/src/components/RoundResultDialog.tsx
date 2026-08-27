@@ -40,9 +40,9 @@ export default function RoundResultDialog(props: {
     const headerText = resolveHeaderText(correct, props.buckets, props.selectedLabel, props.result.actualBucket);
     const tier = resolveRoundResultTier(props.buckets, props.selectedLabel, props.result.actualBucket);
     return (
-        <div
-            role="dialog"
-            aria-modal="true"
+        <dialog
+            open
+            aria-label="Round result"
             className={`review-round__result review-round__result--${tier}`}
         >
             <RoundResult
@@ -64,6 +64,6 @@ export default function RoundResultDialog(props: {
                 />
             </div>
             {props.children}
-        </div>
+        </dialog>
     );
 }

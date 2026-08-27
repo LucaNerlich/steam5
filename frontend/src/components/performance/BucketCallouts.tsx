@@ -1,6 +1,6 @@
 "use client";
 
-import React, {useMemo} from "react";
+import React from "react";
 
 type Round = { selectedBucket: string; actualBucket: string };
 
@@ -22,7 +22,7 @@ function PctBar({pct, color}: { pct: number; color: string }) {
 }
 
 export default function BucketCallouts({rounds}: { rounds: Round[] }): React.ReactElement {
-    const {best, worst} = useMemo(() => {
+    const {best, worst} = (() => {
         const stats = new Map<string, { hits: number; total: number }>();
         for (const r of rounds) {
             if (!r.actualBucket) continue;
@@ -31,16 +31,19 @@ export default function BucketCallouts({rounds}: { rounds: Round[] }): React.Rea
             s.total++;
             if (r.selectedBucket === r.actualBucket) s.hits++;
         }
-        const qualified = Array.from(stats.entries())
-            .filter(([, s]) => s.total >= MIN_ROUNDS)
-            .map(([label, s]) => ({label, pct: s.hits / s.total, ...s}));
+        const qualified: { label: string; pct: number; hits: number; total: number }[] = [];
+        for (const [label, s] of stats.entries()) {
+            if (s.total >= MIN_ROUNDS) {
+                qualified.push({label, pct: s.hits / s.total, hits: s.hits, total: s.total});
+            }
+        }
         if (qualified.length === 0) return {best: null, worst: null};
         qualified.sort((a, b) => b.pct - a.pct);
         return {
             best: qualified[0],
             worst: qualified.length > 1 ? qualified[qualified.length - 1] : null,
         };
-    }, [rounds]);
+    })();
 
     const hasData = best !== null;
 

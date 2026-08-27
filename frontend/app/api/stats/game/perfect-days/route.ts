@@ -16,14 +16,25 @@ export async function GET(req: NextRequest) {
                 signal: controller.signal,
             });
 
-            const data = await res.json();
-
             const refreshedAtHeader = res.headers.get('X-Leaderboard-Refreshed-At');
             const headers: HeadersInit = {};
             if (refreshedAtHeader) {
                 headers['X-Leaderboard-Refreshed-At'] = refreshedAtHeader;
             }
 
+            if (!res.ok) {
+                // Backend error: pass the payload through with the upstream status,
+                // falling back to a problem+json error body when it isn't JSON.
+                const errorBody: unknown = await res.json().catch(() => null);
+                return NextResponse.json(errorBody ?? {
+                    type: 'about:blank',
+                    title: 'Bad Gateway',
+                    status: res.status,
+                    detail: 'Failed to load perfect days',
+                }, {status: res.status, headers});
+            }
+
+            const data = await res.json();
             return NextResponse.json(data, {status: res.status, headers});
         } finally {
             clearTimeout(timeout);

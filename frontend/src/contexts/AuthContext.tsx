@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
+import React, { createContext, useContext, useEffect } from "react";
 import type { ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import useSWR from "swr";
@@ -37,9 +37,9 @@ export function AuthProvider({
     children: ReactNode;
     initialAuth: AuthState;
 }) {
-    const [auth, setAuth] = useState<AuthState>(initialAuth);
-
-    // Use SWR for client-side auth refresh with the initial server data
+    // Auth state is derived directly from the SWR cache — fallbackData supplies the
+    // initial server value, so there is no need for an effect that mirrors `data`
+    // into separate state (that would cascade an extra render on every refresh).
     const { data, mutate } = useSWR<AuthState>('/api/auth/me', authFetcher, {
         fallbackData: initialAuth,
         // Re-check auth when the user returns to the tab so a stale signed-in state
@@ -50,12 +50,7 @@ export function AuthProvider({
         errorRetryCount: 2,
     });
 
-    // Update auth state when SWR data changes
-    useEffect(() => {
-        if (data) {
-            setAuth(data);
-        }
-    }, [data]);
+    const auth: AuthState = data ?? initialAuth;
 
     // Re-check auth on client-side navigation. The provider lives in the root
     // layout and does not remount between routes, so without this a session that
@@ -66,9 +61,11 @@ export function AuthProvider({
         void mutate();
     }, [pathname, mutate]);
 
-    const refreshAuth = useCallback(() => {
+    // Recreate per render is fine — the context value object is new each render
+    // anyway, and the React Compiler memoizes automatically.
+    const refreshAuth = () => {
         void mutate();
-    }, [mutate]);
+    };
 
     return (
         <AuthContext.Provider
