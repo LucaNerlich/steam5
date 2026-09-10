@@ -88,6 +88,8 @@ dialog.review-round__result {
 .result-header {
     display: flex;
     align-items: center;
+    /* Avatar row (32px) + vertical padding — reserve before presence mounts */
+    min-height: calc(32px + 1.25rem);
     padding: 0.625rem 0.875rem;
     font-weight: 700;
     font-size: 1rem;
@@ -100,6 +102,7 @@ dialog.review-round__result {
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    min-height: 32px;
 }
 
 .result-header--exact {

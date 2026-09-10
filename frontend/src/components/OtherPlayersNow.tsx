@@ -8,6 +8,7 @@ import Avatar from "@/components/Avatar";
 import "@/styles/components/otherPlayersNow.css";
 
 const MAX_VISIBLE_AVATARS = 8;
+const AVATAR_SIZE = 32;
 
 /**
  * Renders a player's avatar linked to their Steam profile.
@@ -19,8 +20,8 @@ function PlayerAvatar({player}: {player: PlayerInfo}): React.ReactElement {
     const displayName = player.personaName || "Player";
     const profileUrl = `/profile/${player.steamId}`;
     return (
-        <Link href={profileUrl} aria-label={`View ${displayName}'s Steam profile`}>
-            <Avatar src={player.avatar} name={player.personaName} size={32} className="other-players__avatar"/>
+        <Link href={profileUrl} className="other-players__avatar-link" aria-label={`View ${displayName}'s Steam profile`}>
+            <Avatar src={player.avatar} name={player.personaName} size={AVATAR_SIZE} className="other-players__avatar"/>
         </Link>
     );
 }
@@ -41,50 +42,50 @@ function presenceLabel(uniquePlayerCount: number, reconnecting: boolean): string
 /**
  * Displays current round presence information, including player avatars when available.
  *
- * Always reserves avatar-height space so delayed presence data does not expand
- * parent headers (e.g. `.result-header`) when the indicator mounts.
+ * Always renders a fixed-height shell so delayed presence data cannot expand parent
+ * headers (e.g. `.result-header`) when content mounts.
  *
- * @returns The presence indicator, or an empty reserved slot when disconnected
- *   without reconnecting or when no players are present.
+ * @returns The presence indicator shell (empty while inactive).
  */
 export default function OtherPlayersNow(): React.ReactElement {
     const {uniquePlayerCount, players, connected, reconnecting} = useRoundPresenceContext();
 
     const inactive = (!connected && !reconnecting) || (!reconnecting && uniquePlayerCount === 0);
-    if (inactive) {
-        return <div className="other-players other-players--reserved" aria-hidden="true"/>;
-    }
-
     const visible = players.slice(0, MAX_VISIBLE_AVATARS);
     const overflow = Math.max(0, players.length - visible.length);
     const label = presenceLabel(uniquePlayerCount, reconnecting);
 
     return (
         <div
-            className={`other-players${players.length >= 5 ? " other-players--many" : ""}${reconnecting ? " other-players--reconnecting" : ""}`}
-            aria-live="polite"
+            className={`other-players${players.length >= 5 ? " other-players--many" : ""}${reconnecting ? " other-players--reconnecting" : ""}${inactive ? " other-players--reserved" : ""}`}
+            aria-live={inactive ? undefined : "polite"}
+            aria-hidden={inactive || undefined}
         >
-            {visible.length > 0 && !reconnecting && (
-                <div className="other-players__avatars mobile__hide">
-                    {visible.map((player) => (
-                        <PlayerAvatar key={player.steamId} player={player}/>
-                    ))}
-                    {overflow > 0 && (
-                        <span
-                            className="avatar other-players__overflow"
-                            style={{width: 32, height: 32}}
-                            title={`${overflow} more player${overflow === 1 ? "" : "s"}`}
-                            aria-label={`${overflow} more players`}
-                        >
-                            +{overflow}
-                        </span>
+            {!inactive && (
+                <>
+                    {visible.length > 0 && !reconnecting && (
+                        <div className="other-players__avatars mobile__hide">
+                            {visible.map((player) => (
+                                <PlayerAvatar key={player.steamId} player={player}/>
+                            ))}
+                            {overflow > 0 && (
+                                <span
+                                    className="avatar other-players__overflow"
+                                    style={{width: AVATAR_SIZE, height: AVATAR_SIZE}}
+                                    title={`${overflow} more player${overflow === 1 ? "" : "s"}`}
+                                    aria-label={`${overflow} more players`}
+                                >
+                                    +{overflow}
+                                </span>
+                            )}
+                        </div>
                     )}
-                </div>
+                    <span className="other-players__count">
+                        <span className="other-players__dot" aria-hidden="true"/>
+                        {label}
+                    </span>
+                </>
             )}
-            <span className="other-players__count">
-                <span className="other-players__dot" aria-hidden="true"/>
-                {label}
-            </span>
         </div>
     );
 }
