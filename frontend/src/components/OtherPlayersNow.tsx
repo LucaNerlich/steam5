@@ -41,13 +41,19 @@ function presenceLabel(uniquePlayerCount: number, reconnecting: boolean): string
 /**
  * Displays current round presence information, including player avatars when available.
  *
- * @returns The presence indicator, or `null` when disconnected without reconnecting or when no players are present.
+ * Always reserves avatar-height space so delayed presence data does not expand
+ * parent headers (e.g. `.result-header`) when the indicator mounts.
+ *
+ * @returns The presence indicator, or an empty reserved slot when disconnected
+ *   without reconnecting or when no players are present.
  */
-export default function OtherPlayersNow(): React.ReactElement | null {
+export default function OtherPlayersNow(): React.ReactElement {
     const {uniquePlayerCount, players, connected, reconnecting} = useRoundPresenceContext();
 
-    if (!connected && !reconnecting) return null;
-    if (!reconnecting && uniquePlayerCount === 0) return null;
+    const inactive = (!connected && !reconnecting) || (!reconnecting && uniquePlayerCount === 0);
+    if (inactive) {
+        return <div className="other-players other-players--reserved" aria-hidden="true"/>;
+    }
 
     const visible = players.slice(0, MAX_VISIBLE_AVATARS);
     const overflow = Math.max(0, players.length - visible.length);

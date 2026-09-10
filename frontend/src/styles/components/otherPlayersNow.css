@@ -2,9 +2,19 @@
     display: flex;
     align-items: center;
     gap: 0.75rem;
+    /* Match Avatar size so delayed presence/avatars don't expand parent headers */
+    min-height: 32px;
     font-size: 0.875rem;
     font-weight: normal;
     color: var(--color-muted);
+}
+
+.other-players--reserved {
+    /* Invisible slot keeps header height stable before presence connects */
+    flex-shrink: 0;
+    width: 0;
+    overflow: hidden;
+    pointer-events: none;
 }
 
 .other-players__avatars {
