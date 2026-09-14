@@ -1,6 +1,8 @@
 /* 1. Use a more-intuitive box-sizing model */
 *, *::before, *::after {
     box-sizing: border-box;
+    /* Squircle corners wherever border-radius applies (Chromium 139+; ignored elsewhere) */
+    corner-shape: squircle;
 }
 
 /* 2. Remove default margin */
