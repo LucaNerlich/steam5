@@ -78,6 +78,13 @@ public class User {
     @Column(name = "updated_at")
     private OffsetDateTime updatedAt;
 
+    // Set on logout; a JWT issued before this instant is rejected by
+    // AuthTokenService#verifyToken even if its signature and expiry are still
+    // valid. Without this, a stolen token stays usable for its full 30-day
+    // lifetime regardless of the victim logging out. Null means never logged out.
+    @Column(name = "token_not_valid_before")
+    private OffsetDateTime tokenNotValidBefore;
+
     @PrePersist
     public void prePersist() {
         if (createdAt == null) createdAt = OffsetDateTime.now();

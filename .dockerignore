@@ -1,0 +1,18 @@
+# Never let secrets or local-only files enter a build context or image layer.
+.env
+.env.*
+!.env.example
+
+.git
+.idea
+.vscode
+
+*.log
+*.log*.gz
+
+**/build/
+**/.gradle/
+backend/bin/
+
+node_modules
+**/.next/

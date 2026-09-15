@@ -9,6 +9,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -17,6 +18,7 @@ import org.steam5.auth.OpenIdNonceStore;
 import org.steam5.auth.SteamOpenIdUtils;
 import org.steam5.domain.User;
 import org.steam5.repository.UserRepository;
+import org.steam5.security.CurrentUser;
 import org.steam5.service.AuthTokenService;
 import org.steam5.service.SteamUserService;
 
@@ -27,6 +29,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -241,5 +244,21 @@ public class AuthController {
         return ResponseEntity.ok()
                 .header(HttpHeaders.CACHE_CONTROL, "no-store")
                 .body(body);
+    }
+
+    /**
+     * Invalidates every JWT issued to this user before now. The frontend calls
+     * this on logout so a stolen/retained token stops working immediately
+     * instead of remaining valid for its full 30-day lifetime.
+     */
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(@CurrentUser String steamId) {
+        if (steamId == null) {
+            return ResponseEntity.status(401).build();
+        }
+        tokenService.invalidateTokensIssuedBefore(steamId, OffsetDateTime.now());
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CACHE_CONTROL, "no-store")
+                .body(Map.of("ok", true));
     }
 }

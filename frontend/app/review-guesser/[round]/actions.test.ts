@@ -1,10 +1,12 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 
-// cookies() is read inside the server action; mock it so we can control whether
-// an s5_token cookie is present.
+// cookies() is read by getAuth(). Keep a hostile headers() mock available to
+// prove the action never consults or relays caller-controlled forwarding data.
 const cookieGet = vi.fn<(name: string) => {value: string} | undefined>();
+const headerGet = vi.fn<(name: string) => string | null>();
 vi.mock('next/headers', () => ({
     cookies: async () => ({get: cookieGet}),
+    headers: async () => ({get: headerGet}),
 }));
 
 import {submitGuessAction} from './actions';
@@ -34,6 +36,8 @@ let fetchMock: ReturnType<typeof vi.fn>;
 beforeEach(() => {
     process.env.NEXT_PUBLIC_API_DOMAIN = BACKEND;
     cookieGet.mockReset();
+    headerGet.mockReset();
+    headerGet.mockReturnValue(null);
     fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
 });
@@ -156,6 +160,26 @@ describe('submitGuessAction without a session cookie (anonymous)', () => {
         const res = await submitGuessAction(undefined, form(10, 'Positive'));
 
         expect(res).toEqual({ok: false, error: 'Upstream error 500'});
+    });
+
+    it('does not relay a caller-controlled x-forwarded-for value', async () => {
+        headerGet.mockImplementation((name: string) => (name === 'x-forwarded-for' ? '203.0.113.7' : null));
+        stubCalls(mockResponse(200, okBody));
+
+        await submitGuessAction(undefined, form(10, 'Positive'));
+
+        const [, init] = fetchMock.mock.calls[1];
+        expect((init.headers as Record<string, string>)['x-forwarded-for']).toBeUndefined();
+        expect(headerGet).not.toHaveBeenCalled();
+    });
+
+    it('omits x-forwarded-for entirely when the inbound request has none', async () => {
+        stubCalls(mockResponse(200, okBody));
+
+        await submitGuessAction(undefined, form(10, 'Positive'));
+
+        const [, init] = fetchMock.mock.calls[1];
+        expect((init.headers as Record<string, string>)['x-forwarded-for']).toBeUndefined();
     });
 
     it('does not leak fetch error details to the client', async () => {

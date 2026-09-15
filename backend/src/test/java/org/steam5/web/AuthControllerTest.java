@@ -226,4 +226,28 @@ public class AuthControllerTest {
         assertNull(AuthController.queryParam(CALLBACK_BASE, "nonce"));
         assertNull(AuthController.queryParam(null, "nonce"));
     }
+
+    @Test
+    void logout_invalidatesTokensForTheCurrentUserAndNeverCaches() {
+        AuthTokenService token = mock(AuthTokenService.class);
+        AuthController controller = controller(token, mock(SteamUserService.class), mock(UserRepository.class), new OpenIdNonceStore());
+
+        final ResponseEntity<?> res = controller.logout(STEAM_ID);
+
+        assertEquals(200, res.getStatusCode().value());
+        assertEquals("no-store", res.getHeaders().getCacheControl());
+        org.mockito.Mockito.verify(token).invalidateTokensIssuedBefore(
+                org.mockito.ArgumentMatchers.eq(STEAM_ID), org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    void logout_withoutAValidSessionReturns401() {
+        AuthTokenService token = mock(AuthTokenService.class);
+        AuthController controller = controller(token, mock(SteamUserService.class), mock(UserRepository.class), new OpenIdNonceStore());
+
+        final ResponseEntity<?> res = controller.logout(null);
+
+        assertEquals(401, res.getStatusCode().value());
+        org.mockito.Mockito.verifyNoInteractions(token);
+    }
 }

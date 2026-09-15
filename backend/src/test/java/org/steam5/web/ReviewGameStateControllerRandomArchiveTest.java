@@ -12,6 +12,7 @@ import org.steam5.repository.ReviewGamePickRepository;
 import org.steam5.repository.SteamAppReviewsRepository;
 import org.steam5.repository.UserRepository;
 import org.steam5.repository.details.SteamAppDetailRepository;
+import org.steam5.service.AnonymousGuessLimiter;
 import org.steam5.service.ReviewGameStateService;
 
 import java.time.LocalDate;
@@ -43,7 +44,7 @@ public class ReviewGameStateControllerRandomArchiveTest {
         final MeterRegistry meterRegistry = mock(MeterRegistry.class);
         controller = new ReviewGameStateController(service, detailRepository, guessRepository,
                 reviewsRepository, userRepository, pickRepository, scheduler, meterRegistry,
-                mock(PlatformTransactionManager.class));
+                mock(PlatformTransactionManager.class), mock(AnonymousGuessLimiter.class));
     }
 
     @Test

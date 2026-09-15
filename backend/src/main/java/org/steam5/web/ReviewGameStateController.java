@@ -2,6 +2,7 @@ package org.steam5.web;
 
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
@@ -23,6 +24,7 @@ import org.steam5.repository.SteamAppReviewsRepository;
 import org.steam5.repository.UserRepository;
 import org.steam5.repository.details.SteamAppDetailRepository;
 import org.steam5.security.CurrentUser;
+import org.steam5.service.AnonymousGuessLimiter;
 import org.steam5.service.ReviewGameStateService;
 import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
@@ -65,6 +67,7 @@ public class ReviewGameStateController {
     private final Scheduler scheduler;
     private final MeterRegistry meterRegistry;
     private final PlatformTransactionManager transactionManager;
+    private final AnonymousGuessLimiter anonymousGuessLimiter;
 
     // Live daily data — rounds regenerate at ~00:01 UTC; 30 min CDN window absorbs
     // traffic spikes while keeping staleness bounded. must-revalidate forbids any
@@ -213,11 +216,32 @@ public class ReviewGameStateController {
                 .body(out);
     }
 
+    // Deliberately not @Cacheable: the response reveals the true answer for the
+    // requested appId regardless of the caller's guess. Caching it by
+    // (appId, bucketGuess) would let one caller's lookup answer every later
+    // caller's request for the same appId for free, bypassing the per-IP limiter
+    // below entirely (the cached response would be served without the method,
+    // and its per-IP check, ever running again).
     @PostMapping("/guess")
-    @Cacheable(value = "review-game", key = "#req.appId + ':' + #req.bucketGuess")
-    public ResponseEntity<GuessResponse> submitGuess(@RequestBody GuessRequest req) {
+    public ResponseEntity<GuessResponse> submitGuess(@RequestBody GuessRequest req, HttpServletRequest request) {
         if (req == null || req.appId == null || req.bucketGuess == null) {
             return ResponseEntity.badRequest().build();
+        }
+        if (!service.getBucketLabels().contains(req.bucketGuess)) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        // Anonymous guesses are not persisted and carry no one-guess-per-round
+        // guarantee, so a live (still-scored) appId must not be revealed more
+        // than once per caller here — otherwise a caller could learn the answer
+        // for free and replay it via the authenticated, scored endpoint for a
+        // guaranteed maximum score. Historical/archive appIds (no longer live)
+        // are safe to reveal freely and are not limited.
+        final boolean isLivePick = service.generateDailyPicks().stream()
+                .map(ReviewGamePick::getAppId)
+                .anyMatch(req.appId::equals);
+        if (isLivePick && !anonymousGuessLimiter.tryClaim(request.getRemoteAddr(), req.appId)) {
+            return ResponseEntity.status(429).build();
         }
 
         final int total = service.getTotalReviewCountForApp(req.appId);
@@ -455,6 +479,14 @@ public class ReviewGameStateController {
         }
         if (steamId == null) {
             return ResponseEntity.status(401).build();
+        }
+        // A guess persisted with a label outside the known bucket set can never
+        // parse as numeric in downstream native aggregation queries (e.g.
+        // GuessRepository#aggregateAllTimeStatsHavingMinRounds), which would
+        // throw and break the nightly PlayerSpotlight job for every future run
+        // until the row is removed. Reject before it ever reaches persistence.
+        if (!service.getBucketLabels().contains(req.bucketGuess)) {
+            return ResponseEntity.badRequest().build();
         }
 
         // ensure user exists (id is primary key; handle race with duplicate insert)
@@ -762,5 +794,4 @@ public class ReviewGameStateController {
         return totalReviewsByAppId;
     }
 }
-
 

@@ -1,10 +1,11 @@
 # Stage 1: Build
 FROM gradle:9.4.1-jdk21-alpine as build
 
-ARG STEAM_API_KEY
+# STEAM_API_KEY is a runtime-only property (loaded from .env at application
+# startup, see springboot4-dotenv in build.gradle.kts) — the Gradle build never
+# reads it, so it must not be declared here. It previously was, which put its
+# value into this stage's image layer history for no reason.
 ARG PORT
-
-ENV STEAM_API_KEY=$STEAM_API_KEY
 ENV PORT=$PORT
 
 WORKDIR /app

@@ -26,7 +26,10 @@ jobs:
         with:
           fetch-depth: 1
       - name: Run agent
-        uses: pullfrog/pullfrog@v0
+        # Pinned to an immutable commit (not the floating `v0` tag) so this job
+        # can never silently start executing different code than was reviewed.
+        # Bump deliberately: https://github.com/pullfrog/pullfrog/releases
+        uses: pullfrog/pullfrog@b6639f063a3017551d093eca1aeb9be12bf955b4 # v0.1.79
         with:
           prompt: ${{ inputs.prompt }}
         env:
