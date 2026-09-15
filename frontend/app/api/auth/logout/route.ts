@@ -3,11 +3,31 @@ import {NextRequest, NextResponse} from 'next/server';
 
 /** Trusted public origin of this site; never derived from client-supplied headers. */
 const SITE_ORIGIN = (process.env.NEXT_PUBLIC_DOMAIN || "").replace(/\/$/, "");
+const BACKEND_ORIGIN = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
 
 // POST (not GET): SameSite=Lax cookies are not sent on cross-site POSTs, so a
 // third-party page cannot force-logout the user via an <img>/GET request.
 export async function POST(req: NextRequest) {
     const base = SITE_ORIGIN || new URL(req.url).origin;
+
+    // Invalidate the token server-side before clearing the client's copy, so a
+    // previously retained/stolen token stops working immediately instead of
+    // remaining valid for its full lifetime. Best-effort: logout must still
+    // succeed for the browser even if the backend call fails.
+    const token = req.cookies.get('s5_token')?.value;
+    if (token) {
+        try {
+            await fetch(`${BACKEND_ORIGIN}/api/auth/logout`, {
+                method: 'POST',
+                headers: {authorization: `Bearer ${token}`},
+                cache: 'no-store',
+                signal: AbortSignal.timeout(3000),
+            });
+        } catch (e) {
+            console.error('Backend logout call failed', e);
+        }
+    }
+
     const resp = NextResponse.redirect(new URL('/review-guesser/1', base));
 
     // Clear-Site-Data instructs the browser to sweep all cookies for this origin in

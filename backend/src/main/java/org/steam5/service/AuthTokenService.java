@@ -6,9 +6,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
+import org.steam5.domain.User;
+import org.steam5.repository.UserRepository;
 
 import javax.crypto.SecretKey;
 import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.Date;
 
@@ -17,9 +21,12 @@ import java.util.Date;
 public class AuthTokenService {
 
     private final SecretKey key;
+    private final UserRepository userRepository;
 
     public AuthTokenService(@Value("${auth.jwtSecret:change-me-please-change-me-32-bytes-min}") String secret,
-                            Environment environment) {
+                            Environment environment,
+                            UserRepository userRepository) {
+        this.userRepository = userRepository;
         // Fix #8: enforce a minimum key length at startup so a misconfigured or
         // default secret causes an immediate, obvious failure rather than silently
         // running with a weak key in production.
@@ -60,17 +67,34 @@ public class AuthTokenService {
 
     public String verifyToken(String token) {
         try {
-            return Jwts.parser()
+            final var claims = Jwts.parser()
                     .verifyWith(key)
                     .build()
                     .parseSignedClaims(token)
-                    .getPayload()
-                    .getSubject();
+                    .getPayload();
+            final String steamId = claims.getSubject();
+            // Reject tokens issued before the user's last logout, even though
+            // signature and expiry are otherwise still valid. Missing user or a
+            // null tokenNotValidBefore means the token was never invalidated.
+            final User user = userRepository.findById(steamId).orElse(null);
+            if (user != null && user.getTokenNotValidBefore() != null
+                    && claims.getIssuedAt().toInstant().isBefore(user.getTokenNotValidBefore().toInstant())) {
+                return null;
+            }
+            return steamId;
         } catch (Exception e) {
             // Debug level since this happens on every request with invalid/expired tokens
             log.debug("Token verification failed", e);
             return null;
         }
+    }
+
+    /** Invalidates every JWT issued before now for this user (called on logout). */
+    public void invalidateTokensIssuedBefore(String steamId, OffsetDateTime instant) {
+        userRepository.findById(steamId).ifPresent(user -> {
+            user.setTokenNotValidBefore(instant.withOffsetSameInstant(ZoneOffset.UTC));
+            userRepository.save(user);
+        });
     }
 }
 

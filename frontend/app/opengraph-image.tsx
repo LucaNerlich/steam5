@@ -6,6 +6,25 @@ export const dynamic = "force-dynamic";
 export const size = {width: 1200, height: 630};
 export const contentType = "image/png";
 
+// next/og's renderer fetches any non-data-URI <img src> server-side with no
+// host allow-list of its own. avatarSrc comes from the backend's stored Steam
+// avatar URL, which should always be a Steam CDN address but is not otherwise
+// validated before reaching that fetch — restrict it here so this endpoint can
+// never be turned into a server-side fetch of an arbitrary URL.
+const ALLOWED_AVATAR_HOSTS = [/(^|\.)steamstatic\.com$/i, /(^|\.)akamaihd\.net$/i];
+
+export function sanitizeAvatarUrl(raw: string | null | undefined): string | null {
+    if (!raw) return null;
+    try {
+        const parsed = new URL(raw);
+        return parsed.protocol === "https:" && ALLOWED_AVATAR_HOSTS.some((re) => re.test(parsed.hostname))
+            ? raw
+            : null;
+    } catch {
+        return null;
+    }
+}
+
 function arrayBufferToBase64(buffer: ArrayBuffer): string {
     let binary = "";
     const bytes = new Uint8Array(buffer);
@@ -109,7 +128,7 @@ export default async function Image(req: Request) {
             const name = profile.personaName?.trim() || profile.steamId;
             title = name;
             subtitle = "Profile — Review Guesser";
-            avatarSrc = profile.avatar || null;
+            avatarSrc = sanitizeAvatarUrl(profile.avatar);
             primary = pickAccent(profile.steamId);
             const totalPct = leaders ? percentileRank(profile.stats.totalPoints, leaders.map(l => l.totalPoints)) : 100;
             const avgPct = leaders ? percentileRank(profile.stats.avgPoints, leaders.map(l => l.avgPoints)) : 100;
@@ -136,7 +155,7 @@ export default async function Image(req: Request) {
             const name = profile.personaName?.trim() || profile.steamId;
             title = `${name} — ${gameDate}`;
             subtitle = "Match Share";
-            avatarSrc = profile.avatar || null;
+            avatarSrc = sanitizeAvatarUrl(profile.avatar);
             primary = pickAccent(profile.steamId);
             if (day) {
                 const total = day.rounds.reduce((a, r) => a + r.points, 0);
