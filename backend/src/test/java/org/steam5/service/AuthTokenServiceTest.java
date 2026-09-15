@@ -6,13 +6,15 @@ import org.springframework.core.env.Environment;
 import org.steam5.domain.User;
 import org.steam5.repository.UserRepository;
 
+import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -42,15 +44,14 @@ class AuthTokenServiceTest {
 
     @Test
     void aTokenIssuedBeforeLogoutIsRejectedAfterInvalidation() {
-        final String token = service.generateToken(STEAM_ID);
+        final Instant issuedAt = Instant.parse("2026-09-15T12:00:00.900Z");
+        final String token = service.generateToken(STEAM_ID, issuedAt);
 
-        // Logout: invalidate everything issued up to and including now.
         final User user = new User();
         user.setSteamId(STEAM_ID);
+        user.setTokenNotValidBefore(OffsetDateTime.parse("2026-09-15T12:00:01.500Z"));
         when(userRepository.findById(STEAM_ID)).thenReturn(Optional.of(user));
-        service.invalidateTokensIssuedBefore(STEAM_ID, OffsetDateTime.now().plusSeconds(1));
 
-        // The same, already-issued token must no longer verify.
         assertNull(service.verifyToken(token));
     }
 
@@ -67,20 +68,41 @@ class AuthTokenServiceTest {
     }
 
     @Test
-    void invalidateTokensIssuedBefore_persistsTheTimestampOnTheUser() {
+    void logoutThenLoginWithinTheSameSecondKeepsTheNewTokenValid() {
+        final OffsetDateTime logoutAt = OffsetDateTime.parse("2026-09-15T12:00:00.100Z");
+        service.invalidateTokensIssuedBefore(STEAM_ID, logoutAt);
+
+        final OffsetDateTime storedCutoff = logoutAt.withOffsetSameInstant(ZoneOffset.UTC).withNano(0);
+        verify(userRepository).advanceTokenNotValidBefore(STEAM_ID, storedCutoff);
+
         final User user = new User();
         user.setSteamId(STEAM_ID);
+        user.setTokenNotValidBefore(storedCutoff);
         when(userRepository.findById(STEAM_ID)).thenReturn(Optional.of(user));
 
-        service.invalidateTokensIssuedBefore(STEAM_ID, OffsetDateTime.now());
+        final String token = service.generateToken(STEAM_ID, Instant.parse("2026-09-15T12:00:00.900Z"));
 
-        verify(userRepository).save(eq(user));
+        assertEquals(STEAM_ID, service.verifyToken(token));
     }
 
     @Test
-    void invalidatingAnUnknownUserDoesNothing() {
-        when(userRepository.findById(STEAM_ID)).thenReturn(Optional.empty());
-        service.invalidateTokensIssuedBefore(STEAM_ID, OffsetDateTime.now());
-        verify(userRepository, org.mockito.Mockito.never()).save(any());
+    void invalidateTokensIssuedBefore_usesAnAtomicWholeSecondUpdate() {
+        final OffsetDateTime requested = OffsetDateTime.parse("2026-09-15T14:00:00.987654321+02:00");
+
+        service.invalidateTokensIssuedBefore(STEAM_ID, requested);
+
+        verify(userRepository).advanceTokenNotValidBefore(
+                eq(STEAM_ID), eq(OffsetDateTime.parse("2026-09-15T12:00:00Z")));
+        verify(userRepository, never()).findById(STEAM_ID);
+    }
+
+    @Test
+    void invalidatingAnUnknownUserIsHandledByTheConditionalUpdate() {
+        final OffsetDateTime instant = OffsetDateTime.parse("2026-09-15T12:00:00Z");
+        when(userRepository.advanceTokenNotValidBefore(STEAM_ID, instant)).thenReturn(0);
+
+        service.invalidateTokensIssuedBefore(STEAM_ID, instant);
+
+        verify(userRepository).advanceTokenNotValidBefore(STEAM_ID, instant);
     }
 }

@@ -3,7 +3,39 @@ import {NextRequest, NextResponse} from 'next/server';
 
 /** Trusted public origin of this site; never derived from client-supplied headers. */
 const SITE_ORIGIN = (process.env.NEXT_PUBLIC_DOMAIN || "").replace(/\/$/, "");
-const BACKEND_ORIGIN = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
+
+function normalizedHttpOrigin(value: string): string | null {
+    try {
+        const url = new URL(value);
+        if ((url.protocol !== 'http:' && url.protocol !== 'https:')
+            || url.username || url.password || url.pathname !== '/' || url.search || url.hash) {
+            return null;
+        }
+        return url.origin;
+    } catch {
+        return null;
+    }
+}
+
+function isLoopbackOrigin(origin: string): boolean {
+    const hostname = new URL(origin).hostname;
+    return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1';
+}
+
+export function allowedLogoutBackendOrigin(
+    configuredOrigin: string,
+    production = process.env.NODE_ENV === 'production',
+    trustedOrigins = process.env.ALLOWED_BACKEND_ORIGINS || '',
+): string | null {
+    const origin = normalizedHttpOrigin(configuredOrigin);
+    if (!origin) return null;
+    if (!production || origin.startsWith('https://') || isLoopbackOrigin(origin)) return origin;
+
+    const trusted = trustedOrigins.split(',')
+        .map(value => normalizedHttpOrigin(value.trim()))
+        .filter((value): value is string => value !== null);
+    return trusted.includes(origin) ? origin : null;
+}
 
 // POST (not GET): SameSite=Lax cookies are not sent on cross-site POSTs, so a
 // third-party page cannot force-logout the user via an <img>/GET request.
@@ -16,15 +48,21 @@ export async function POST(req: NextRequest) {
     // succeed for the browser even if the backend call fails.
     const token = req.cookies.get('s5_token')?.value;
     if (token) {
-        try {
-            await fetch(`${BACKEND_ORIGIN}/api/auth/logout`, {
-                method: 'POST',
-                headers: {authorization: `Bearer ${token}`},
-                cache: 'no-store',
-                signal: AbortSignal.timeout(3000),
-            });
-        } catch (e) {
-            console.error('Backend logout call failed', e);
+        const configuredBackend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
+        const backendOrigin = allowedLogoutBackendOrigin(configuredBackend);
+        if (!backendOrigin) {
+            console.error('Backend logout call skipped: production backend origin must use HTTPS or be explicitly trusted');
+        } else {
+            try {
+                await fetch(`${backendOrigin}/api/auth/logout`, {
+                    method: 'POST',
+                    headers: {authorization: `Bearer ${token}`},
+                    cache: 'no-store',
+                    signal: AbortSignal.timeout(3000),
+                });
+            } catch (e) {
+                console.error('Backend logout call failed', e);
+            }
         }
     }
 
@@ -49,5 +87,4 @@ export async function POST(req: NextRequest) {
     revalidateTag('round-today', 'max');
     return resp;
 }
-
 

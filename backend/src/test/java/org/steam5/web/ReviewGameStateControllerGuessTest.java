@@ -22,6 +22,8 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -66,6 +68,7 @@ public class ReviewGameStateControllerGuessTest {
         when(service.getTotalReviewCountForApp(HISTORICAL_APP_ID)).thenReturn(50);
         when(service.inferBucket(500)).thenReturn("101-1000");
         when(service.inferBucket(50)).thenReturn("1-100");
+        when(service.getBucketLabels()).thenReturn(List.of("1-100", "101-1000", "1001+"));
     }
 
     private static HttpServletRequest requestFrom(String ip) {
@@ -99,6 +102,31 @@ public class ReviewGameStateControllerGuessTest {
     }
 
     @Test
+    void submitGuess_rejectsUnknownBucketBeforeRevealingOrRateLimiting() {
+        final ResponseEntity<ReviewGameStateController.GuessResponse> res =
+                controller.submitGuess(new ReviewGameStateController.GuessRequest(LIVE_APP_ID, "not-a-bucket"),
+                        requestFrom("203.0.113.7"));
+
+        assertEquals(400, res.getStatusCode().value());
+        verify(anonymousGuessLimiter, never()).tryClaim("203.0.113.7", LIVE_APP_ID);
+        verify(service, never()).getTotalReviewCountForApp(LIVE_APP_ID);
+    }
+
+    @Test
+    void submitGuess_usesTheEffectiveRemoteAddressAndIgnoresSpoofedForwardingHeaders() {
+        final HttpServletRequest request = requestFrom("10.0.0.12");
+        when(request.getHeader("x-forwarded-for")).thenReturn("203.0.113.99");
+        when(anonymousGuessLimiter.tryClaim("10.0.0.12", LIVE_APP_ID)).thenReturn(true);
+
+        final ResponseEntity<ReviewGameStateController.GuessResponse> res =
+                controller.submitGuess(new ReviewGameStateController.GuessRequest(LIVE_APP_ID, "101-1000"), request);
+
+        assertEquals(200, res.getStatusCode().value());
+        verify(anonymousGuessLimiter).tryClaim("10.0.0.12", LIVE_APP_ID);
+        verify(anonymousGuessLimiter, never()).tryClaim("203.0.113.99", LIVE_APP_ID);
+    }
+
+    @Test
     void submitGuess_historicalAppIdIsNeverLimited() {
         // A historical (no longer live) appId is not gated by the limiter at all —
         // archive pages rely on repeated anonymous lookups for resolved days.
@@ -117,8 +145,6 @@ public class ReviewGameStateControllerGuessTest {
 
     @Test
     void submitGuessAuthenticated_rejectsABucketGuessOutsideTheKnownLabels() {
-        when(service.getBucketLabels()).thenReturn(List.of("1-100", "101-1000", "1001+"));
-
         final ResponseEntity<ReviewGameStateController.GuessResponse> res =
                 controller.submitGuessAuthenticated("u1",
                         new ReviewGameStateController.GuessRequest(LIVE_APP_ID, "not-a-bucket"));

@@ -227,6 +227,9 @@ public class ReviewGameStateController {
         if (req == null || req.appId == null || req.bucketGuess == null) {
             return ResponseEntity.badRequest().build();
         }
+        if (!service.getBucketLabels().contains(req.bucketGuess)) {
+            return ResponseEntity.badRequest().build();
+        }
 
         // Anonymous guesses are not persisted and carry no one-guess-per-round
         // guarantee, so a live (still-scored) appId must not be revealed more
@@ -791,5 +794,4 @@ public class ReviewGameStateController {
         return totalReviewsByAppId;
     }
 }
-
 

@@ -1,8 +1,7 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 
-// cookies()/headers() are read inside the server action; mock them so we can
-// control whether an s5_token cookie is present and what inbound headers (e.g.
-// x-forwarded-for) look like.
+// cookies() is read by getAuth(). Keep a hostile headers() mock available to
+// prove the action never consults or relays caller-controlled forwarding data.
 const cookieGet = vi.fn<(name: string) => {value: string} | undefined>();
 const headerGet = vi.fn<(name: string) => string | null>();
 vi.mock('next/headers', () => ({
@@ -163,14 +162,15 @@ describe('submitGuessAction without a session cookie (anonymous)', () => {
         expect(res).toEqual({ok: false, error: 'Upstream error 500'});
     });
 
-    it('relays the real caller IP so the backend anonymous-guess limiter sees the visitor, not this server', async () => {
+    it('does not relay a caller-controlled x-forwarded-for value', async () => {
         headerGet.mockImplementation((name: string) => (name === 'x-forwarded-for' ? '203.0.113.7' : null));
         stubCalls(mockResponse(200, okBody));
 
         await submitGuessAction(undefined, form(10, 'Positive'));
 
         const [, init] = fetchMock.mock.calls[1];
-        expect((init.headers as Record<string, string>)['x-forwarded-for']).toBe('203.0.113.7');
+        expect((init.headers as Record<string, string>)['x-forwarded-for']).toBeUndefined();
+        expect(headerGet).not.toHaveBeenCalled();
     });
 
     it('omits x-forwarded-for entirely when the inbound request has none', async () => {

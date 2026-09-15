@@ -1,6 +1,5 @@
 'use server';
 
-import {headers} from 'next/headers';
 import type {GuessResponse, ReviewGameState} from "@/types/review-game";
 import {getAuth} from '@/lib/serverAuth';
 
@@ -67,14 +66,6 @@ export async function submitGuessAction(_prev: GuessActionState | undefined, for
         const url = token ? `${backend}/api/review-game/guess-auth` : `${backend}/api/review-game/guess`;
         const reqHeaders: Record<string, string> = {'content-type': 'application/json', 'accept': 'application/json'};
         if (token) reqHeaders['authorization'] = `Bearer ${token}`;
-        // Relay the real caller's IP, same as every proxied route.ts handler
-        // (see forwardedForHeaders in @/lib/backend). Server Actions call fetch()
-        // directly rather than going through a route handler, so without this the
-        // backend would see every anonymous guesser as this Next.js server's own
-        // outbound IP, collapsing the backend's per-IP anonymous-guess limiter
-        // into a single shared slot for all visitors.
-        const xff = (await headers()).get('x-forwarded-for');
-        if (xff) reqHeaders['x-forwarded-for'] = xff;
         const res = await fetch(url, {
             method: 'POST',
             headers: reqHeaders,
@@ -100,5 +91,4 @@ export async function submitGuessAction(_prev: GuessActionState | undefined, for
         return {ok: false, error: 'Could not reach the game server — try again'};
     }
 }
-
 
