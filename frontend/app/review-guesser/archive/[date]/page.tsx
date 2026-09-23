@@ -29,34 +29,44 @@ async function loadArchived(date: string): Promise<ReviewGameState | null> {
     }
 }
 
-async function loadAnswers(date: string, appIds: number[]): Promise<Record<number, {
+type DayAnswer = { appId: number; totalReviews: number; actualBucket: string };
+
+async function loadAnswers(date: string): Promise<Record<number, {
     actualBucket: string;
     totalReviews: number
 }>> {
-    // Call the public guess endpoint per appId to get the bucket and review count without auth
-    // This runs on the server during SSG, so it does not expose any secrets and avoids client requests.
-    const out: Record<number, { actualBucket: string; totalReviews: number }> = {};
-    await Promise.all(appIds.map(async (id) => {
-        try {
-            // We need bucket labels to query; however the backend guess API only needs appId and a label, but it returns the actual bucket regardless of correctness
-            // To avoid leaking labels, we just pass an arbitrary label; the response includes the correct one (actualBucket)
-            const res = await fetch(`${backend}/api/review-game/guess`, {
-                method: 'POST',
-                headers: {'content-type': 'application/json', 'accept': 'application/json'},
-                body: JSON.stringify({appId: id, bucketGuess: "_"})
-            });
-            if (!res.ok) return;
-            const data = await res.json() as { actualBucket: string; totalReviews: number };
-            out[id] = {actualBucket: data.actualBucket, totalReviews: data.totalReviews};
-        } catch {
-            // ignore
+    // Dedicated read-only endpoint that serves the finished day's answers.
+    // Restricted server-side to days before today, so the archive can never
+    // expose a live day's results.
+    try {
+        const res = await fetch(`${backend}/api/review-game/day/${encodeURIComponent(date)}/answers`, {
+            headers: {'accept': 'application/json'},
+            next: {revalidate: 31536000},
+        });
+        if (!res.ok) return {};
+        const rows: unknown = await res.json();
+        if (!Array.isArray(rows)) return {};
+        const out: Record<number, { actualBucket: string; totalReviews: number }> = {};
+        for (const row of rows as DayAnswer[]) {
+            if (typeof row?.appId === 'number'
+                && typeof row.actualBucket === 'string'
+                && typeof row.totalReviews === 'number') {
+                out[row.appId] = {actualBucket: row.actualBucket, totalReviews: row.totalReviews};
+            }
         }
-    }));
-    return out;
+        return out;
+    } catch {
+        return {};
+    }
 }
 
 export default async function ArchivePage({params}: { params: Promise<{ date: string }> }) {
     const {date} = await params;
+    // The archive is for finished days only; the index never links today, and
+    // this rejects direct hits so a live day can never be served here.
+    if (date >= new Date().toISOString().slice(0, 10)) {
+        notFound();
+    }
     const data = await loadArchived(date);
     const breadcrumbJsonLd = buildBreadcrumbJsonLd([
         {name: "Home", url: Routes.home},
@@ -67,8 +77,7 @@ export default async function ArchivePage({params}: { params: Promise<{ date: st
         notFound();
     }
 
-    const appIds = data.picks.map(p => p.appId);
-    const answers = await loadAnswers(date, appIds);
+    const answers = await loadAnswers(date);
 
     return (
         <section className="container">

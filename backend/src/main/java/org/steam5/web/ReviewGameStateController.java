@@ -2,7 +2,6 @@ package org.steam5.web;
 
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
@@ -24,7 +23,6 @@ import org.steam5.repository.SteamAppReviewsRepository;
 import org.steam5.repository.UserRepository;
 import org.steam5.repository.details.SteamAppDetailRepository;
 import org.steam5.security.CurrentUser;
-import org.steam5.service.AnonymousGuessLimiter;
 import org.steam5.service.ReviewGameStateService;
 import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
@@ -67,7 +65,6 @@ public class ReviewGameStateController {
     private final Scheduler scheduler;
     private final MeterRegistry meterRegistry;
     private final PlatformTransactionManager transactionManager;
-    private final AnonymousGuessLimiter anonymousGuessLimiter;
 
     // Live daily data — rounds regenerate at ~00:01 UTC; 30 min CDN window absorbs
     // traffic spikes while keeping staleness bounded. must-revalidate forbids any
@@ -219,29 +216,14 @@ public class ReviewGameStateController {
     // Deliberately not @Cacheable: the response reveals the true answer for the
     // requested appId regardless of the caller's guess. Caching it by
     // (appId, bucketGuess) would let one caller's lookup answer every later
-    // caller's request for the same appId for free, bypassing the per-IP limiter
-    // below entirely (the cached response would be served without the method,
-    // and its per-IP check, ever running again).
+    // caller's request for the same appId for free.
     @PostMapping("/guess")
-    public ResponseEntity<GuessResponse> submitGuess(@RequestBody GuessRequest req, HttpServletRequest request) {
+    public ResponseEntity<GuessResponse> submitGuess(@RequestBody GuessRequest req) {
         if (req == null || req.appId == null || req.bucketGuess == null) {
             return ResponseEntity.badRequest().build();
         }
         if (!service.getBucketLabels().contains(req.bucketGuess)) {
             return ResponseEntity.badRequest().build();
-        }
-
-        // Anonymous guesses are not persisted and carry no one-guess-per-round
-        // guarantee, so a live (still-scored) appId must not be revealed more
-        // than once per caller here — otherwise a caller could learn the answer
-        // for free and replay it via the authenticated, scored endpoint for a
-        // guaranteed maximum score. Historical/archive appIds (no longer live)
-        // are safe to reveal freely and are not limited.
-        final boolean isLivePick = service.generateDailyPicks().stream()
-                .map(ReviewGamePick::getAppId)
-                .anyMatch(req.appId::equals);
-        if (isLivePick && !anonymousGuessLimiter.tryClaim(request.getRemoteAddr(), req.appId)) {
-            return ResponseEntity.status(429).build();
         }
 
         final int total = service.getTotalReviewCountForApp(req.appId);
@@ -600,6 +582,44 @@ public class ReviewGameStateController {
                 .eTag(etag)
                 .header("Cache-Control", cc)
                 .body(new ReviewGameStateDto(day, service.getBucketLabels(), service.getBucketTitles(), details));
+    }
+
+    public record DayAnswer(Long appId, int totalReviews, String actualBucket) {
+    }
+
+    /**
+     * Reveals the review totals and buckets for a finished challenge day, so the
+     * archive can show results without replaying a guess per pick.
+     *
+     * <p>Restricted to days strictly before today: the archive is for finished
+     * days only, and keeping a live day's answers off this bulk endpoint avoids
+     * handing out the current challenge's results through a dedicated route.</p>
+     */
+    @GetMapping("/day/{date}/answers")
+    @Cacheable(value = "review-game", key = "'answers:' + #date", unless = CACHE_ONLY_2XX)
+    public ResponseEntity<List<DayAnswer>> getDayAnswers(@PathVariable("date") String date) {
+        final LocalDate day;
+        try {
+            day = LocalDate.parse(date);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+        if (!day.isBefore(GameDate.todayUtc())) {
+            return ResponseEntity.notFound().build();
+        }
+        final List<ReviewGamePick> picks = pickRepository.findByPickDate(day);
+        if (picks.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        final List<DayAnswer> answers = picks.stream()
+                .map(p -> {
+                    final int total = service.getTotalReviewCountForApp(p.getAppId());
+                    return new DayAnswer(p.getAppId(), total, service.inferBucket(total));
+                })
+                .toList();
+        return ResponseEntity.ok()
+                .header("Cache-Control", CACHE_HISTORICAL)
+                .body(answers);
     }
 
     @GetMapping("/buckets")
