@@ -104,7 +104,23 @@ public class AuthTokenService {
         // so concurrent logouts can only advance this cutoff.
         final OffsetDateTime cutoff = instant.withOffsetSameInstant(ZoneOffset.UTC)
                 .truncatedTo(ChronoUnit.SECONDS);
-        userRepository.advanceTokenNotValidBefore(steamId, cutoff);
+        if (userRepository.advanceTokenNotValidBefore(steamId, cutoff) > 0) {
+            return;
+        }
+        // No row to carry the cutoff. `verifyToken` skips the check entirely when the row is
+        // missing, so stopping here left a retained token valid for its full 30 days while
+        // the caller was told logout succeeded. The row can legitimately be absent: the
+        // profile upsert is @Async, and a deployment whose profile fetch returns nothing
+        // never creates it. Persist the minimal row that carries the cutoff.
+        //
+        // A concurrent logout for the same steamId can insert first; the unique constraint
+        // then aborts this transaction and logout answers 5xx. That is the honest outcome —
+        // it must not report success when no cutoff was recorded.
+        final User user = new User();
+        user.setSteamId(steamId);
+        user.setCreatedAt(OffsetDateTime.now());
+        user.setTokenNotValidBefore(cutoff);
+        userRepository.save(user);
     }
 }
 
