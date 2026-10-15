@@ -1,6 +1,6 @@
 "use client";
 
-import React, {useState} from "react";
+import React, {useEffect, useRef, useState} from "react";
 import useSWR from "swr";
 import "@/styles/components/reviewShareControls.css";
 import {scoreForRound} from "@/lib/scoring";
@@ -67,11 +67,25 @@ export default function ShareControls(props: {
         }
     }
 
-    if (!data || !data.results) return null;
-    const indices = new Set(Object.keys(data.results).map(n => parseInt(n, 10)));
+    const indices = new Set<number>(
+        data?.results ? Object.keys(data.results).map(n => parseInt(n, 10)) : []
+    );
     indices.add(latestRound);
-    const isComplete = indices.size >= totalRounds;
+    const isComplete = Boolean(data?.results) && indices.size >= totalRounds;
 
+    // Best-effort dev-only sync of local guesses to the backend.
+    //
+    // This used to run in the render body, so every re-render (the names SWR
+    // revalidation, a parent render, StrictMode's double invoke) fired another round of
+    // POSTs for the same completed day. An effect plus a ref makes it once per mount.
+    const syncAttempted = useRef(false);
+    useEffect(() => {
+        if (syncAttempted.current || !isLocalhost || !data || !isComplete) return;
+        syncAttempted.current = true;
+        void syncLocalGuessesToBackend();
+    });
+
+    if (!data || !data.results) return null;
     // Only allow sharing after finishing all rounds (regardless of auth state)
     if (!isComplete) return null;
 
@@ -97,12 +111,6 @@ export default function ShareControls(props: {
         } catch {
             // ignore sync errors
         }
-    }
-
-    // Best-effort sync in the background when summary/share is possible
-    if (isLocalhost) {
-        // no await; avoid blocking render
-        void syncLocalGuessesToBackend();
     }
 
     function buildShareText(): string | null {
