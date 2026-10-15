@@ -9,7 +9,6 @@ type AuthState = {
     isSignedIn: boolean;
     steamId?: string | null;
     avatar?: string | null;
-    isLoading?: boolean;
 };
 
 type AuthContextType = AuthState & {
@@ -88,8 +87,7 @@ export function useAuth(): AuthContextType {
 }
 
 // Backward compatibility hook that matches the old useAuthSignedIn interface
-export function useAuthSignedIn(): boolean | null {
-    const { isSignedIn, isLoading } = useAuth();
-    if (isLoading) return null;
+export function useAuthSignedIn(): boolean {
+    const { isSignedIn } = useAuth();
     return isSignedIn;
 }

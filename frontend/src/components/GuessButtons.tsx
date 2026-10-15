@@ -2,7 +2,6 @@
 
 import React from "react";
 import Link from "next/link";
-import {useFormStatus} from "react-dom";
 import {QuestionIcon} from "@phosphor-icons/react/ssr";
 import {Routes} from "../../app/routes";
 import "@/styles/components/reviewGuessButtons.css";
@@ -27,9 +26,8 @@ function BucketButton({label, title, selectedLabel, onSelect, submitted, isPendi
     submitted: boolean;
     isPending: boolean;
 }) {
-    const {pending} = useFormStatus();
     const isSelected = selectedLabel === label;
-    const disabled = (pending || submitted || isPending);
+    const disabled = (submitted || isPending);
     const showLoading = isPending && isSelected;
     return (
         <button

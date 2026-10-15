@@ -76,7 +76,6 @@ export default function GameStatistics() {
                             const archiveUrl = game.pickDate 
                                 ? `/review-guesser/archive/${game.pickDate}${game.roundIndex ? `#round-${game.roundIndex}` : ''}`
                                 : null;
-                            console.log('Game:', game.name, 'pickDate:', game.pickDate, 'roundIndex:', game.roundIndex, 'archiveUrl:', archiveUrl);
                             return (
                                 <li key={game.appId}>
                                     <Link href={`https://store.steampowered.com/app/${game.appId}`} target="_blank" rel="noopener noreferrer">
