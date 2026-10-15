@@ -47,7 +47,8 @@ describe('POST', () => {
         vi.spyOn(console, 'error').mockImplementation(() => undefined);
         const request = new NextRequest('https://steam5.org/api/auth/logout', {
             method: 'POST',
-            headers: {cookie: 's5_token=secret-token'},
+            // A same-origin browser POST navigation carries Origin; the guard requires it.
+            headers: {cookie: 's5_token=secret-token', origin: 'https://steam5.org'},
         });
 
         const response = await POST(request);
@@ -55,5 +56,21 @@ describe('POST', () => {
         expect(fetch).not.toHaveBeenCalled();
         expect(response.headers.get('location')).toBe('https://steam5.org/review-guesser/1');
         expect(response.cookies.get('s5_token')?.value).toBe('');
+    });
+
+    it('rejects a cross-site logout before touching the session', async () => {
+        vi.spyOn(console, 'error').mockImplementation(() => undefined);
+        const request = new NextRequest('https://steam5.org/api/auth/logout', {
+            method: 'POST',
+            headers: {cookie: 's5_token=secret-token', origin: 'https://evil.example'},
+        });
+
+        const response = await POST(request);
+
+        expect(response.status).toBe(403);
+        // The session must survive a forced logout: no cookie clear, no redirect, no revocation call.
+        expect(response.cookies.get('s5_token')).toBeUndefined();
+        expect(response.headers.get('location')).toBeNull();
+        expect(fetch).not.toHaveBeenCalled();
     });
 });

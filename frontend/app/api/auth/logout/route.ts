@@ -1,5 +1,6 @@
 import {revalidatePath, revalidateTag} from 'next/cache';
 import {NextRequest, NextResponse} from 'next/server';
+import {rejectUntrustedOrigin} from '@/lib/requestOrigin';
 
 /** Trusted public origin of this site; never derived from client-supplied headers. */
 const SITE_ORIGIN = (process.env.NEXT_PUBLIC_DOMAIN || "").replace(/\/$/, "");
@@ -41,6 +42,14 @@ export function allowedLogoutBackendOrigin(
 // third-party page cannot force-logout the user via an <img>/GET request.
 export async function POST(req: NextRequest) {
     const base = SITE_ORIGIN || new URL(req.url).origin;
+
+
+    // Reject cross-site submissions before touching the session. The POST-only shape and
+    // SameSite=Lax stop the cookie from being *sent*, but this handler cleared it anyway — the
+    // response's Set-Cookie is applied by the browser regardless — so any page could force a
+    // logout with a cross-site form POST. The sibling mutating proxies already do this.
+    const rejected = rejectUntrustedOrigin(req.headers, 'auth/logout', '');
+    if (rejected) return rejected;
 
     // Invalidate the token server-side before clearing the client's copy, so a
     // previously retained/stolen token stops working immediately instead of
