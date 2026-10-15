@@ -19,6 +19,8 @@ import java.time.OffsetDateTime;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -107,5 +109,33 @@ public class ReviewGameStateControllerGuessTest {
 
         assertEquals(400, res.getStatusCode().value());
         org.mockito.Mockito.verifyNoInteractions(guessRepository);
+    }
+
+    @Test
+    void submitGuess_gradesTheOpenEndedTopLabelByEqualityNotByItsParsedRange() {
+        // Labels are built as [..., "101-1000", "<lastBoundary>+"] from the configured
+        // boundaries, so the open-ended label carries the same number that closes the
+        // bucket below it: "1000+" parses to a lower bound of 1000, while a total of
+        // exactly 1000 is in "101-1000". Grading "1000+" as correct for that total is
+        // the drift this test pins down (a parsed range would accept it).
+        when(service.getBucketLabels()).thenReturn(List.of("1-100", "101-1000", "1000+"));
+        when(service.getTotalReviewCountForApp(LIVE_APP_ID)).thenReturn(1000);
+        when(service.inferBucket(1000)).thenReturn("101-1000");
+
+        final ResponseEntity<ReviewGameStateController.GuessResponse> res =
+                controller.submitGuess(new ReviewGameStateController.GuessRequest(LIVE_APP_ID, "1000+"));
+
+        assertEquals(200, res.getStatusCode().value());
+        assertEquals("101-1000", res.getBody().actualBucket());
+        assertFalse(res.getBody().correct());
+    }
+
+    @Test
+    void submitGuess_gradesAMatchingLabelAsCorrect() {
+        final ResponseEntity<ReviewGameStateController.GuessResponse> res =
+                controller.submitGuess(new ReviewGameStateController.GuessRequest(LIVE_APP_ID, "101-1000"));
+
+        assertEquals(200, res.getStatusCode().value());
+        assertTrue(res.getBody().correct());
     }
 }
