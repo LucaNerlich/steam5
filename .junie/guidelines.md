@@ -46,7 +46,8 @@ Root: `/mnt/workspace/luca/steam5`
   `SERVER_PORT`).
 - Database defaults (dev):
     - URL: `jdbc:postgresql://localhost:5432/steam5_db`
-    - Username: `steam5_user`, Password: `steam5_password`
+    - Username: `steam5_user`
+    - Password: no default; `SPRING_DATASOURCE_PASSWORD` is required and startup fails without it
 - Redirect base for auth flows: `REDIRECT_BASE` (defaults to `http://localhost:3000`).
 - Review game settings: `LOW_PERCENTILE`, `HIGH_PERCENTILE`, `MIN_REVIEWS_FRESH_DAYS`.
 - Batch/job toggles (all default to disabled unless overridden):
@@ -65,7 +66,8 @@ Prerequisites
 
 Database (dev)
 
-- Create a database and credentials matching the defaults above, or set `JDBC_URL`, `SPRING_PROFILE`, etc., in
+- Create a database and credentials matching the defaults above, then set `SPRING_PROFILE` and
+  `SPRING_DATASOURCE_PASSWORD` (required; the local setup password is `steam5_password`), `JDBC_URL`, etc., in
   `backend/.env`.
 - Hibernate is configured with `ddl-auto: update` for dev; schema will evolve automatically.
 

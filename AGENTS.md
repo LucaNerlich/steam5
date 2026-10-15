@@ -40,6 +40,7 @@ STEAM_API_KEY=dummy-dev-key
 ADMIN_API_TOKEN=dev-admin-token
 AUTH_JWT_SECRET=dev-jwt-secret-change-me-32-bytes-minimum-length
 SPRING_PROFILE=dev
+SPRING_DATASOURCE_PASSWORD=steam5_password
 ```
 
 ### Gotchas
