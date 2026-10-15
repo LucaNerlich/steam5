@@ -5,9 +5,6 @@ FROM gradle:9.4.1-jdk21-alpine as build
 # startup, see springboot4-dotenv in build.gradle.kts) — the Gradle build never
 # reads it, so it must not be declared here. It previously was, which put its
 # value into this stage's image layer history for no reason.
-ARG PORT
-ENV PORT=$PORT
-
 WORKDIR /app
 
 # path starts in repo root
@@ -29,6 +26,12 @@ USER spring:spring
 # Copy and rename so the CMD never needs updating when the Gradle version changes
 COPY --from=build /app/build/libs/steam5-*.jar app.jar
 
+# EXPOSE is image metadata only, and it has to be declared in *this* stage: a build arg does not
+# cross stages, so the previous `ARG PORT` in the build stage left `${PORT}` empty here and the
+# image advertised no port (only the base image's own). The app itself listens on SERVER_PORT
+# (default 8080); a build arg can still override what is advertised.
+ARG PORT=8080
+ENV PORT=$PORT
 EXPOSE ${PORT}
 
 # Mandatory JVM safety flags: MaxRAMPercentage respects container limits (Coolify/cgroup),
