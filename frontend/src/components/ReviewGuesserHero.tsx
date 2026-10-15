@@ -8,36 +8,14 @@ import {ReviewGameState, SteamAppDetail} from "@/types/review-game";
 import {formatDate, formatPrice} from "@/lib/format";
 import "@/styles/components/reviewGuesserHero.css";
 
-const formatEntityList = (names: string[], locale?: string): string => {
-    if (names.length === 0) return "";
-    if (names.length === 1) return names[0];
-
-    if (typeof Intl !== "undefined" && typeof Intl.ListFormat === "function") {
-        try {
-            const formatter = new Intl.ListFormat(locale, {style: "long", type: "conjunction"});
-            const parts = formatter.formatToParts(names);
-            const formattedWithSemicolons = parts
-                .map((part) => (part.type === "literal" ? "; " : part.value))
-                .join("");
-
-            if (formattedWithSemicolons.trim().length > 0) {
-                return formattedWithSemicolons;
-            }
-
-            return formatter.format(names);
-        } catch {
-            // Ignore locale formatting errors and fall back to a safe separator.
-        }
-    }
-
-    return names.join("; ");
-};
+// Names are joined with "; " — the previous Intl.ListFormat dance rewrote every literal part
+// to "; " anyway, so it reduced to this (and its locale argument was never passed).
+const formatEntityList = (names: string[]): string => names.join("; ");
 
 interface ReviewGuesserHeroProps {
     today: ReviewGameState;
     pick: SteamAppDetail;
     roundIndex: number;
-    locale?: string;
 }
 
 export default function ReviewGuesserHero(props: Readonly<ReviewGuesserHeroProps>): React.ReactElement {
@@ -46,12 +24,10 @@ export default function ReviewGuesserHero(props: Readonly<ReviewGuesserHeroProps
     const totalRounds = today.picks.length;
     const allShots = (pick.screenshots ?? []);
     const developerNames = formatEntityList(
-        (pick.developers ?? []).flatMap((developer) => (developer.name ? [developer.name] : [])),
-        props.locale
+        (pick.developers ?? []).flatMap((developer) => (developer.name ? [developer.name] : []))
     );
     const publisherNames = formatEntityList(
-        (pick.publisher ?? []).flatMap((publisher) => (publisher.name ? [publisher.name] : [])),
-        props.locale
+        (pick.publisher ?? []).flatMap((publisher) => (publisher.name ? [publisher.name] : []))
     );
 
     useEffect(() => {
@@ -102,7 +78,7 @@ export default function ReviewGuesserHero(props: Readonly<ReviewGuesserHeroProps
                 )}
                 {pick.releaseDate && (
                     <span title='Release date' className="meta-item">
-                        📅 {formatDate(pick.releaseDate, props.locale)}
+                        📅 {formatDate(pick.releaseDate)}
                     </span>
                 )}
                 {(() => {
@@ -117,7 +93,7 @@ export default function ReviewGuesserHero(props: Readonly<ReviewGuesserHeroProps
                         const amountCents = price.finalAmount;
                         const currencyCode = price.currency || 'USD';
                         const formatted = amountCents !== null
-                            ? formatPrice(amountCents, currencyCode, props.locale)
+                            ? formatPrice(amountCents, currencyCode)
                             : (price.finalFormatted || null);
                         return formatted ? (
                             <span title='Price' className="meta-item">💲 {formatted}</span>

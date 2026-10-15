@@ -1,19 +1,13 @@
 "use client";
 
 import React from "react";
+import {cutoffDateString} from "@/lib/rounds";
 
 type Round = { selectedBucket: string; actualBucket: string; date?: string };
 
-function cutoffDateStr(daysWindow: number): string {
-    const now = new Date();
-    const cutoffDate = new Date(now);
-    cutoffDate.setDate(cutoffDate.getDate() - daysWindow);
-    return cutoffDate.toISOString().slice(0, 10);
-}
-
 export default function BucketAccuracyBars({rounds}: { rounds: Round[] }): React.ReactElement {
     const DAYS_WINDOW = 30;
-    const cutoff = cutoffDateStr(DAYS_WINDOW);
+    const cutoff = cutoffDateString(DAYS_WINDOW);
     const last = rounds.filter(r => r.date && r.date >= cutoff);
 
     const stats = (() => {

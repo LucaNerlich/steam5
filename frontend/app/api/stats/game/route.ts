@@ -1,7 +1,6 @@
 import {NextRequest, NextResponse} from "next/server";
-import {forwardedForHeaders} from "@/lib/backend";
+import {BACKEND_ORIGIN, forwardedForHeaders} from "@/lib/backend";
 
-const BACKEND_ORIGIN = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
 const revalidate = 600; // 10 minutes
 
 export async function GET(req: NextRequest) {

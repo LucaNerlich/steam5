@@ -29,3 +29,24 @@ export function flattenDayRounds(days: Day[]): FlatRound[] {
         return a.date.localeCompare(b.date);
     });
 }
+
+/**
+ * yyyy-mm-dd cutoff for a window that ends today, `daysWindow` days back.
+ *
+ * The charts filter stored round dates (UTC game dates) with this string, so it is defined once
+ * here rather than copied into each card. Note it derives the cutoff with local-date arithmetic
+ * before slicing the ISO (UTC) representation — kept as-is from the copies so this refactor does
+ * not change any chart's output.
+ */
+export function cutoffDateString(daysWindow: number): string {
+    const now = new Date();
+    const cutoffDate = new Date(now);
+    cutoffDate.setDate(cutoffDate.getDate() - daysWindow);
+    return cutoffDate.toISOString().slice(0, 10);
+}
+
+/** Leading number of a bucket label ("856-6467" -> 856); -1 when the label has none. */
+export function leadingBucketOrder(label: string): number {
+    const m = label?.match(/^(\d+)/);
+    return m ? parseInt(m[1], 10) : -1;
+}

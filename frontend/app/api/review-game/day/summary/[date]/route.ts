@@ -1,9 +1,8 @@
 import {NextRequest, NextResponse} from "next/server";
-import {forwardedForHeaders} from "@/lib/backend";
+import {BACKEND_ORIGIN, forwardedForHeaders} from "@/lib/backend";
 
 export const revalidate = 300;
 
-const BACKEND_ORIGIN = process.env.NEXT_PUBLIC_API_DOMAIN || "http://localhost:8080";
 
 export async function GET(req: NextRequest, {params}: { params: Promise<{ date: string }> }) {
     const {date} = await params;

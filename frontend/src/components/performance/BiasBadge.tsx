@@ -1,13 +1,9 @@
 "use client";
 
 import React from "react";
+import {leadingBucketOrder} from "@/lib/rounds";
 
 type Round = { selectedBucket: string; actualBucket: string };
-
-function bucketOrder(label: string): number {
-    const m = label?.match(/^(\d+)/);
-    return m ? parseInt(m[1], 10) : -1;
-}
 
 export default function BiasBadge({rounds}: { rounds: Round[] }): React.ReactElement {
     const {message, detail, color, kind, highPct, lowPct, hitPct} = (() => {
@@ -15,7 +11,7 @@ export default function BiasBadge({rounds}: { rounds: Round[] }): React.ReactEle
         for (const r of rounds) {
             if (!r.selectedBucket || !r.actualBucket) continue;
             if (r.selectedBucket === r.actualBucket) hit++;
-            else if (bucketOrder(r.selectedBucket) > bucketOrder(r.actualBucket)) high++;
+            else if (leadingBucketOrder(r.selectedBucket) > leadingBucketOrder(r.actualBucket)) high++;
             else low++;
         }
         const total = high + low + hit;
