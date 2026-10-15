@@ -359,15 +359,13 @@ function MentionMenu(props: {
             id={id}
             ref={rootRef}
             className="comment-composer__mention-menu"
-            role="listbox"
+            role="group"
             aria-label="Mention suggestions"
         >
             {candidates.map((candidate) => (
                 <button
                     key={candidate.steamId}
                     type="button"
-                    role="option"
-                    aria-selected="false"
                     className="comment-composer__mention-option"
                     title={candidate.personaName}
                     onClick={() => onPick(candidate)}
