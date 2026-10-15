@@ -69,7 +69,7 @@ export default function HitRateVsAverageCard({rounds}: { rounds: Round[] }): Rea
         <div className="perf-card">
             <div className="perf-card__title">Hit rate vs average</div>
             <svg viewBox={`0 0 ${WIDTH} 96`} className="perf-line" role="img"
-                 aria-label="Your hit rate vs global average">
+                 aria-label={`Hit rate vs average: yours ${myHitRate === null ? "no data" : `${myHitRate.toFixed(0)}%`}, global ${globalAvg === null ? "no data" : `${globalAvg.toFixed(0)}%`}`}>
                 <Row y={22} label={`You (last ${DAYS_WINDOW} days)`} pct={myHitRate}
                      color={'var(--color-primary, #6366f1)'}/>
                 <Row y={52} label={'All players (all‑time)'} pct={globalAvg} color={'var(--color-success, #16a34a)'}/>

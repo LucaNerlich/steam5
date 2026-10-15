@@ -60,7 +60,7 @@ export default function BiasBadge({rounds}: { rounds: Round[] }): React.ReactEle
             </div>
             {rounds.length > 0 && (
                 <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="perf-line" role="img"
-                     aria-label="Breakdown of too high, hit, and too low guesses">
+                     aria-label={`Guess bias: ${highPct.toFixed(0)}% too high, ${hitPct.toFixed(0)}% hits, ${lowPct.toFixed(0)}% too low`}>
                     {/* Background */}
                     <rect x={barX} y={barY} width={barW} height={barH} rx={3}
                           fill="var(--color-border)" fillOpacity="0.3"/>

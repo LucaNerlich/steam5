@@ -36,7 +36,7 @@ export default function DayOfWeekChart({rounds}: { rounds: Round[] }): React.Rea
     return (
         <div className="perf-card">
             <div className="perf-card__title">Avg points by day of week</div>
-            <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="perf-line" role="img" aria-label="Average points by day of week">
+            <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="perf-line" role="img" aria-label={`Average points by day of week: ${bars.map(b => `${b.label} ${b.avg === null ? "no data" : b.avg.toFixed(2)}`).join(", ")}`}>
                 {/* Y grid */}
                 {[0, 5].map(v => (
                     <g key={v}>

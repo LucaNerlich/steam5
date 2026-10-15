@@ -34,7 +34,7 @@ export default function RoundPositionChart({rounds}: { rounds: Round[] }): React
     return (
         <div className="perf-card">
             <div className="perf-card__title">Avg points by round position</div>
-            <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="perf-line" role="img" aria-label="Average points by round position">
+            <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="perf-line" role="img" aria-label={`Average points by round position: ${bars.map(b => `round ${b.pos} ${b.avg.toFixed(2)}`).join(", ")}`}>
                 {/* Y grid & labels */}
                 {[0, 1, 2, 3, 4, 5].map(v => (
                     <g key={v}>
