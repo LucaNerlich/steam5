@@ -176,7 +176,7 @@ Notes
 A self-contained Prometheus + Grafana stack lives in [`monitoring/`](monitoring/README.md) and scrapes
 the backend's `/actuator/prometheus` endpoint over HTTP basic auth.
 
-- **Stack**: Prometheus 3.5.1, Grafana 12.3.1 (image tags pinned in `monitoring/.env.example`).
+- **Stack**: Prometheus 3.5.3, Grafana 13.0.1 (image tags default in `monitoring/docker-compose.yml`, overridable via `monitoring/.env.example`).
 - **Dashboards**: 9 provisioned dashboards (JVM, HTTP server, HikariCP, Caches, Quartz jobs, Domain,
   Infra host, Infra containers, PostgreSQL).
 - **Local quick start** (with the backend already running on `MANAGEMENT_SERVER_PORT=8081`):
