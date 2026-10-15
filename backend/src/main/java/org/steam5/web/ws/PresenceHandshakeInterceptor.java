@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.server.HandshakeInterceptor;
 import org.springframework.web.util.UriComponentsBuilder;
+import org.steam5.config.CorsConfig;
 import org.steam5.service.PresenceMetrics;
 import org.steam5.service.PresenceRateLimiter;
 import org.steam5.service.RoundPresenceService;
@@ -18,7 +19,6 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -53,10 +53,7 @@ public class PresenceHandshakeInterceptor implements HandshakeInterceptor {
             @Value("${cors.allowedOrigins:https://steam5.org,https://next.steam5.org,http://localhost:3000}") final String originsCsv,
             final PresenceRateLimiter presenceRateLimiter,
             final PresenceMetrics presenceMetrics) {
-        this.allowedOrigins = Arrays.stream(originsCsv.split(","))
-                .map(String::trim)
-                .filter(s -> !s.isEmpty())
-                .toList();
+        this.allowedOrigins = CorsConfig.parseAllowedOrigins(originsCsv);
         this.presenceRateLimiter = presenceRateLimiter;
         this.presenceMetrics = presenceMetrics;
     }
