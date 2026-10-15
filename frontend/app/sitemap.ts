@@ -42,11 +42,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const baseUrl = (process.env.NEXT_PUBLIC_DOMAIN || 'https://steam5.org').replace(/\/$/, '');
     const existingDates = await loadExistingArchiveDates();
 
-    // These routes redirect (308/307) and must not appear in the sitemap —
-    // search engines would waste crawl budget on the redirect hops.
-    const redirectingRoutes = new Set(['/', '/review-guesser', '/review-guesser/random']);
+    // Routes the sitemap must not advertise, for two reasons:
+    //  - redirects (308/307): search engines would waste crawl budget on the redirect hops
+    //  - noindex pages: submitting a URL whose page declares robots {index:false} produces
+    //    "submitted URL marked noindex" in Search Console
+    // The set is hand-maintained; route-level metadata is not consulted here.
+    const excludedRoutes = new Set([
+        '/',
+        '/review-guesser',
+        '/review-guesser/random',
+        '/privacy',
+        '/imprint',
+    ]);
     const routes = Object.values(Routes).filter(
-        (route): route is string => typeof route === 'string' && !redirectingRoutes.has(route)
+        (route): route is string => typeof route === 'string' && !excludedRoutes.has(route)
     );
     const now = new Date();
     const staticPageFrequency = 'weekly' as const;
