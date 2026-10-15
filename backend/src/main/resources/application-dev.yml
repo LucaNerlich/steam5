@@ -24,8 +24,6 @@ jobs:
     enabled: true
   blurhash:
     enabled: true
-  blurhashAvatar:
-    enabled: true
   reviews-refresh:
     enabled: true
   seasons-finalizer:

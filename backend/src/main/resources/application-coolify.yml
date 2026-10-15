@@ -1,8 +1,5 @@
 name: coolify
 spring:
-  cache:
-    caffeine:
-      spec: maximumSize=500,expireAfterWrite=12h,refreshAfterWrite=1h #https://github.com/ben-manes/caffeine/wiki/Refresh
   datasource:
     hikari:
       # Surface connection leaks in prod logs (0 disables detection)

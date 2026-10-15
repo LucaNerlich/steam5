@@ -137,8 +137,6 @@ jobs:
   blurhash:
     enabled: ${JOB_BLURHASH:false}
     batch-limit: ${JOB_BLURHASH_BATCH_LIMIT:100}
-  blurhashAvatar:
-    enabled: ${JOB_BLURHASH_AVATAR:false}
   reviews-refresh:
     enabled: ${JOB_REVIEWS_REFRESH:false}
     # Cap nightly refresh volume. At ~1 Steam req/sec, 2500 apps ≈ 40+ minutes.

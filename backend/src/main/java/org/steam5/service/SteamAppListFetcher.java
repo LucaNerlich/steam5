@@ -40,7 +40,7 @@ public class SteamAppListFetcher implements Fetcher {
     @Override
     public void ingest() throws IOException {
         if (properties.getApiKey() == null || properties.getApiKey().isBlank()) {
-            throw new IllegalStateException("steam.apps.apiKey must be configured");
+            throw new IllegalStateException("STEAM_API_KEY must be configured");
         }
 
         boolean haveMore = true;
@@ -94,7 +94,7 @@ public class SteamAppListFetcher implements Fetcher {
         final UriComponentsBuilder b = UriComponentsBuilder.fromUriString(properties.getApiUrl())
                 .queryParam("key", properties.getApiKey())
                 .queryParam("max_results", 50000)
-                .queryParam("include_games", properties.isIncludeGames());
+                .queryParam("include_games", true);
 
         if (lastAppId > 0) {
             b.queryParam("last_appid", lastAppId);
