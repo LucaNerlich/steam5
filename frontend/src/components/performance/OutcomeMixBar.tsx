@@ -1,31 +1,19 @@
 "use client";
 
 import React from "react";
+import {cutoffDateString, leadingBucketOrder} from "@/lib/rounds";
 
 type Round = { selectedBucket: string; actualBucket: string; date?: string };
 
-/** Extract the leading numeric threshold from a bucket label (e.g. "2001-10000" → 2001). */
-function bucketOrder(label: string): number {
-    const m = label?.match(/^(\d+)/);
-    return m ? parseInt(m[1], 10) : -1;
-}
-
-function cutoffDateStr(daysWindow: number): string {
-    const now = new Date();
-    const cutoffDate = new Date(now);
-    cutoffDate.setDate(cutoffDate.getDate() - daysWindow);
-    return cutoffDate.toISOString().slice(0, 10);
-}
-
 export default function OutcomeMixBar({rounds}: { rounds: Round[] }): React.ReactElement {
     const DAYS_WINDOW = 30;
-    const cutoff = cutoffDateStr(DAYS_WINDOW);
+    const cutoff = cutoffDateString(DAYS_WINDOW);
     const last = rounds.filter(r => r.date && r.date >= cutoff);
     const bars = (() => {
         const counts = {hit: 0, high: 0, low: 0};
         for (const r of last) {
             if (r.selectedBucket === r.actualBucket) counts.hit++;
-            else if (bucketOrder(r.selectedBucket) > bucketOrder(r.actualBucket)) counts.high++;
+            else if (leadingBucketOrder(r.selectedBucket) > leadingBucketOrder(r.actualBucket)) counts.high++;
             else counts.low++;
         }
         const total = Math.max(1, counts.hit + counts.high + counts.low);

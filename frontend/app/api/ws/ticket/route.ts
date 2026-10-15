@@ -1,8 +1,7 @@
 import {NextRequest, NextResponse} from 'next/server';
 import {cookies} from 'next/headers';
-import {forwardedForHeaders} from '@/lib/backend';
+import {BACKEND_ORIGIN, forwardedForHeaders} from '@/lib/backend';
 
-const BACKEND_ORIGIN = process.env.API_DOMAIN || process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
 const isDevelopment = process.env.NODE_ENV === 'development';
 // Explicitly trusted internal backend origins (e.g. 'http://backend:8080' in
 // docker/k8s deployments) that may serve tickets over plain HTTP in production.

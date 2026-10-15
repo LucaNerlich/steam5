@@ -1,8 +1,7 @@
 import {NextRequest, NextResponse} from 'next/server';
 import {cookies} from 'next/headers';
-import {forwardedForHeaders} from '@/lib/backend';
+import {BACKEND_ORIGIN, forwardedForHeaders} from '@/lib/backend';
 
-const BACKEND_ORIGIN = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
 
 // Per-user auth state — must never be cached by Next, a CDN, or a proxy.
 const NO_STORE = {"Cache-Control": "private, no-store"} as const;

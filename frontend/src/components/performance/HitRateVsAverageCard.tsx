@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import {cutoffDateString} from "@/lib/rounds";
 import useSWR from "swr";
 
 type Round = { selectedBucket: string; actualBucket: string; date?: string };
@@ -34,15 +35,8 @@ const fetcher = (url: string) => fetch(url, {headers: {accept: 'application/json
     return r.json();
 });
 
-function cutoffDateStr(daysWindow: number): string {
-    const now = new Date();
-    const cutoffDate = new Date(now);
-    cutoffDate.setDate(cutoffDate.getDate() - daysWindow);
-    return cutoffDate.toISOString().slice(0, 10);
-}
-
 export default function HitRateVsAverageCard({rounds}: { rounds: Round[] }): React.ReactElement {
-    const cutoff = cutoffDateStr(DAYS_WINDOW);
+    const cutoff = cutoffDateString(DAYS_WINDOW);
 
     const myHitRate = (() => {
         let eligible = 0;

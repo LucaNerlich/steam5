@@ -1,8 +1,7 @@
 import {revalidatePath, revalidateTag} from 'next/cache';
 import {NextRequest, NextResponse} from "next/server";
-import {forwardedForHeaders} from "@/lib/backend";
+import {BACKEND_ORIGIN, forwardedForHeaders} from "@/lib/backend";
 
-const BACKEND_ORIGIN = process.env.NEXT_PUBLIC_API_DOMAIN || "http://localhost:8080";
 
 /** Trusted public origin of this site; never derived from client-supplied headers. */
 const SITE_ORIGIN = (process.env.NEXT_PUBLIC_DOMAIN || "").replace(/\/$/, "");

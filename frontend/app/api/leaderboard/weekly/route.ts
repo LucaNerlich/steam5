@@ -1,7 +1,6 @@
 import {NextRequest, NextResponse} from "next/server";
-import {forwardedForHeaders} from "@/lib/backend";
+import {BACKEND_ORIGIN, forwardedForHeaders} from "@/lib/backend";
 
-const BACKEND_ORIGIN = process.env.NEXT_PUBLIC_API_DOMAIN || "http://localhost:8080";
 
 // Matches the 10-minute Caffeine TTL on the backend
 export const revalidate = 600;
