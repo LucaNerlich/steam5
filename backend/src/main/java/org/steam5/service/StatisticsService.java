@@ -310,7 +310,7 @@ public class StatisticsService {
                         row.getAvatarFull(),
                         row.getProfileUrl(),
                         row.getGameDate(),
-                        row.getAppNames() != null ? List.of(row.getAppNames().split(", ")) : List.of()
+                        row.getAppNames() != null ? List.of(row.getAppNames().split("\u001f")) : List.of()
                 ))
                 .toList();
     }

@@ -27,7 +27,10 @@ SELECT
     MAX(u.blurdata_avatar_full)                                          AS blurdata_avatar_full,
     MAX(u.profile_url)                                                   AS profile_url,
     g.game_date                                                          AS game_date,
-    (SELECT string_agg(COALESCE(sai2.name, CAST(rgp.app_id AS TEXT)), ', ' ORDER BY rgp.created_at)
+    -- Names are joined with chr(31) (unit separator), not ', ': Steam titles such as
+    -- "Warhammer 40,000: Dawn of War" contain ", ", so a comma join made the Java
+    -- split produce extra, bogus entries. StatisticsService splits on the same byte.
+    (SELECT string_agg(COALESCE(sai2.name, CAST(rgp.app_id AS TEXT)), chr(31) ORDER BY rgp.created_at)
      FROM review_game_pick rgp
      LEFT JOIN steam_app_index sai2 ON sai2.app_id = rgp.app_id
      WHERE rgp.pick_date = g.game_date)                                  AS app_names
