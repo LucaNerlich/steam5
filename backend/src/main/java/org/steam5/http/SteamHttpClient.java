@@ -103,15 +103,10 @@ public class SteamHttpClient {
                     recordOutcome(endpoint, "success", System.nanoTime() - started);
                     return resp.getBody();
                 }
-                // Non-2xx without exception (custom handlers) - treat as error
-                if (shouldRetry(status) && attempt < maxAttempts) {
-                    log.warn("Steam API returned {} on attempt {}/{}, retrying: {}",
-                             status, attempt, maxAttempts, sanitizeUrl(url));
-                    backoff(attempt);
-                    continue;
-                }
-                if (status == 429) recordRateLimited(endpoint);
-                recordOutcome(endpoint, status == 429 ? "rate_limited" : "failed", System.nanoTime() - started);
+                // Anything else is an error and must terminate the retry loop. The default
+                // ResponseErrorHandler throws for 4xx/5xx, so only 1xx or an unfollowed 3xx can
+                // reach this line; their retry policy lives in the catch blocks below.
+                recordOutcome(endpoint, "failed", System.nanoTime() - started);
                 throw new SteamApiException(status, url, "HTTP " + status + " calling Steam API");
             } catch (RestClientResponseException rcre) {
                 final int status = rcre.getStatusCode().value();

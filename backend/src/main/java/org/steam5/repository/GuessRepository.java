@@ -19,15 +19,6 @@ public interface GuessRepository extends JpaRepository<Guess, Long> {
     List<Guess> findBySteamIdOrderByGameDateDescRoundIndexAsc(String steamId);
 
     /**
-     * Batched form of {@link #findBySteamIdOrderByGameDateDescRoundIndexAsc(String)} for a
-     * whole candidate pool at once (e.g. PlayerSpotlightService), avoiding an N+1 pattern
-     * across per-tier per-candidate lookups. Callers group the result by steamId in memory.
-     * Prefer {@link #findBySteamIdInAndGameDateBetween} when a date bound is available —
-     * unbounded loads of every guess for many players can OOM the JDBC driver on small heaps.
-     */
-    List<Guess> findBySteamIdIn(List<String> steamIds);
-
-    /**
      * All players' guesses for one specific (date, round) pair in a single query — used to
      * check every eligible candidate's result on a single shared round (e.g. "yesterday's
      * hardest round") without querying per candidate.
@@ -36,7 +27,7 @@ public interface GuessRepository extends JpaRepository<Guess, Long> {
 
     /**
      * Per-user daily point totals for BEST_DAY_EVER-style comparisons without materializing
-     * every Guess row. Far cheaper than {@link #findBySteamIdIn(List)} for large histories.
+     * every Guess row. Far cheaper than loading full Guess rows for large histories.
      */
     @Query("""
             select g.steamId as steamId,
@@ -69,16 +60,6 @@ public interface GuessRepository extends JpaRepository<Guess, Long> {
     List<Guess> findBySteamIdBetween(@Param("steamId") String steamId,
                                      @Param("start") LocalDate start,
                                      @Param("end") LocalDate end);
-
-    @Query("select u.steamId as steamId, coalesce(u.personaName, u.steamId) as personaName, sum(g.points) as totalPoints, count(g) as rounds " +
-            "from Guess g join User u on u.steamId = g.steamId " +
-            "where g.gameDate = :date group by u.steamId, u.personaName order by sum(g.points) desc")
-    List<LeaderboardRow> leaderboardForDay(@Param("date") LocalDate date);
-
-    @Query("select u.steamId as steamId, coalesce(u.personaName, u.steamId) as personaName, sum(g.points) as totalPoints, count(g) as rounds " +
-            "from Guess g join User u on u.steamId = g.steamId " +
-            "group by u.steamId, u.personaName order by sum(g.points) desc")
-    List<LeaderboardRow> leaderboardAllTime();
 
     @Query("select g from Guess g where g.gameDate = :date")
     List<Guess> findAllByDate(@Param("date") LocalDate date);
@@ -142,10 +123,6 @@ public interface GuessRepository extends JpaRepository<Guess, Long> {
             """)
     List<SeasonDateRow> findSeasonDates(@Param("startDate") LocalDate startDate,
                                         @Param("endDate") LocalDate endDate);
-
-    @Query("select distinct g.gameDate from Guess g where g.steamId = :steamId and g.gameDate <= :asOfDate order by g.gameDate desc")
-    List<LocalDate> findDistinctDatesUpTo(@Param("steamId") String steamId,
-                                          @Param("asOfDate") LocalDate asOfDate);
 
     interface UserDateRow {
         String getSteamId();
@@ -449,16 +426,6 @@ public interface GuessRepository extends JpaRepository<Guess, Long> {
                                                                 @Param("endDate") LocalDate endDate,
                                                                 @Param("minRounds") int minRounds);
 
-    interface LeaderboardRow {
-        String getSteamId();
-
-        String getPersonaName();
-
-        Long getTotalPoints();
-
-        Long getRounds();
-    }
-
     /**
      * Row shape shared with the leaderboard materialized views (see
      * backend/src/main/resources/db/mv-leaderboard-*.sql) and {@link #aggregateAllTimeStatsHavingMinRounds}.
@@ -506,5 +473,3 @@ public interface GuessRepository extends JpaRepository<Guess, Long> {
             """, nativeQuery = true)
     List<AllTimeStatsRow> aggregateAllTimeStatsHavingMinRounds(@Param("minRounds") long minRounds);
 }
-
-

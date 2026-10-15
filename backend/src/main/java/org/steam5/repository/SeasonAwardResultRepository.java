@@ -11,8 +11,6 @@ public interface SeasonAwardResultRepository extends JpaRepository<SeasonAwardRe
 
     List<SeasonAwardResult> findAllBySeasonIdOrderByCategoryAscPlacementLevelAsc(Long seasonId);
 
-    List<SeasonAwardResult> findAllBySeasonIdAndCategoryOrderByPlacementLevelAsc(Long seasonId, SeasonAwardCategory category);
-
     @EntityGraph(attributePaths = "season")
     List<SeasonAwardResult> findAllBySteamIdOrderBySeasonSeasonNumberDescPlacementLevelAsc(String steamId);
 

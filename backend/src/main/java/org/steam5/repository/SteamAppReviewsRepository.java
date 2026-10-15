@@ -24,68 +24,6 @@ public interface SteamAppReviewsRepository extends JpaRepository<SteamAppReviews
     // WHERE (total_positive + total_negative) > 0;
     // Standard JPA @Index cannot express partial-index WHERE clauses.
     /**
-     * Randomly selects low-review eligible apps via a two-phase CTE.
-     * Uses NOT EXISTS anti-joins and limits ORDER BY random() to the eligible subset.
-     */
-    @Query(value = """
-            WITH eligible AS (
-                SELECT r.app_id
-                FROM steam_app_reviews r
-                WHERE (r.total_positive + r.total_negative) > 0
-                  AND (r.total_positive + r.total_negative) <= :threshold
-                  AND NOT EXISTS (
-                      SELECT 1
-                      FROM review_game_pick p
-                      WHERE p.app_id = r.app_id
-                        AND p.pick_date >= :sinceDate
-                  )
-                  AND NOT EXISTS (
-                      SELECT 1
-                      FROM excluded_app x
-                      WHERE x.app_id = r.app_id
-                  )
-            )
-            SELECT app_id
-            FROM eligible
-            ORDER BY random()
-            LIMIT :#{#pageable.pageSize}
-            """, nativeQuery = true)
-    List<Long> findRandomLowAppIds(@Param("sinceDate") LocalDate sinceDate,
-                                   @Param("threshold") int threshold,
-                                   Pageable pageable);
-
-    /**
-     * Randomly selects high-review eligible apps via a two-phase CTE.
-     * Uses NOT EXISTS anti-joins and limits ORDER BY random() to the eligible subset.
-     */
-    @Query(value = """
-            WITH eligible AS (
-                SELECT r.app_id
-                FROM steam_app_reviews r
-                WHERE (r.total_positive + r.total_negative) > 0
-                  AND (r.total_positive + r.total_negative) >= :threshold
-                  AND NOT EXISTS (
-                      SELECT 1
-                      FROM review_game_pick p
-                      WHERE p.app_id = r.app_id
-                        AND p.pick_date >= :sinceDate
-                  )
-                  AND NOT EXISTS (
-                      SELECT 1
-                      FROM excluded_app x
-                      WHERE x.app_id = r.app_id
-                  )
-            )
-            SELECT app_id
-            FROM eligible
-            ORDER BY random()
-            LIMIT :#{#pageable.pageSize}
-            """, nativeQuery = true)
-    List<Long> findRandomHighAppIds(@Param("sinceDate") LocalDate sinceDate,
-                                    @Param("threshold") int threshold,
-                                    Pageable pageable);
-
-    /**
      * Randomly selects any eligible app with at least one review.
      * Uses NOT EXISTS anti-joins and limits ORDER BY random() to the eligible subset.
      */

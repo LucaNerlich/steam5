@@ -41,7 +41,7 @@ public class SteamUserService {
         try {
             final User existing = userRepository.findById(steamId).orElse(null);
 
-            final String apiKey = getApiKeySafe();
+            final String apiKey = steamAppsConfig.getApiKey();
             if (apiKey == null || apiKey.isBlank()) {
                 log.warn("Steam API key not configured; skipping persona fetch");
                 return;
@@ -90,9 +90,6 @@ public class SteamUserService {
         }
     }
 
-    private String getApiKeySafe() {
-        return steamAppsConfig.getApiKey();
-    }
 }
 
 
