@@ -4,8 +4,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.web.filter.CorsFilter;
 
 import java.util.Arrays;
 import java.util.List;
@@ -32,8 +32,19 @@ public class CorsConfig {
                 .toList();
     }
 
+    /**
+     * The CORS configuration for the application, wired into the security chains with
+     * {@code http.cors(...)}.
+     *
+     * <p>This used to be a standalone {@code CorsFilter} bean. Spring Security's
+     * {@code FilterChainProxy} runs at order -100 and the bean had no order, so the chain always
+     * ran first: {@code AuthorizationFilter} evaluated a preflight against the URL rules before
+     * any CORS header could be added, and the {@code OPTIONS} exemptions inside the rate-limit and
+     * admin filters could never take effect. Handing the same configuration to the chain removes
+     * that ordering question instead of relying on servlet-filter ordering.</p>
+     */
     @Bean
-    public CorsFilter corsFilter(
+    public CorsConfigurationSource corsConfigurationSource(
             @Value("${cors.allowedOrigins:https://steam5.org,https://next.steam5.org,http://localhost:3000}") String originsCsv
     ) {
         CorsConfiguration config = new CorsConfiguration();
@@ -44,7 +55,7 @@ public class CorsConfig {
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
-        return new CorsFilter(source);
+        return source;
     }
 }
 

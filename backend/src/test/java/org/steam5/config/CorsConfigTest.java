@@ -1,10 +1,15 @@
 package org.steam5.config;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.context.annotation.Bean;
+import org.springframework.web.cors.CorsConfigurationSource;
 
+import java.lang.reflect.Method;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * One parse for the {@code cors.allowedOrigins} property, shared by {@link CorsConfig}'s filter
@@ -35,5 +40,18 @@ class CorsConfigTest {
     void keepsASingleOriginUnchanged() {
         assertEquals(List.of("https://steam5.org"),
                 CorsConfig.parseAllowedOrigins("https://steam5.org"));
+    }
+
+    @Test
+    void exposesACorsConfigurationSourceAndNoStandaloneFilterBean() throws Exception {
+        // Spring Security's CorsConfigurer looks up a bean named "corsConfigurationSource";
+        // wiring it into the chain is what puts CORS ahead of authorization.
+        final Method source = CorsConfig.class.getMethod("corsConfigurationSource", String.class);
+        assertTrue(CorsConfigurationSource.class.isAssignableFrom(source.getReturnType()));
+        assertTrue(source.isAnnotationPresent(Bean.class));
+
+        // The standalone filter bean is deliberately gone: with no order it ran after the
+        // security chain (order -100), which is the defect this pins shut.
+        assertThrows(NoSuchMethodException.class, () -> CorsConfig.class.getMethod("corsFilter", String.class));
     }
 }
