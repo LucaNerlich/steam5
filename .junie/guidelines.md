@@ -51,7 +51,7 @@ Root: `/mnt/workspace/luca/steam5`
 - Review game settings: `LOW_PERCENTILE`, `HIGH_PERCENTILE`, `MIN_REVIEWS_FRESH_DAYS`.
 - Batch/job toggles (all default to disabled unless overridden):
     - `JOB_INGEST_LIST`, `JOB_INGEST_REVIEWS`, `JOB_INGEST_DETAILS`,
-    - `JOB_GENERATE_REVIEW_STATE`, `JOB_BLURHASH`, `JOB_BLURHASH_AVATAR`,
+    - `JOB_GENERATE_REVIEW_STATE`, `JOB_BLURHASH`,
     - `JOB_REVIEWS_REFRESH` and `JOB_REVIEWS_REFRESH_LIMIT`
 - `.env` support: `backend` loads variables from a `.env` file (see `backend/.env.example`).
 
