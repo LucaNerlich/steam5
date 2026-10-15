@@ -3,7 +3,6 @@ import {notFound} from "next/navigation";
 import type {Metadata} from "next";
 import "@/styles/components/profile.css";
 import PerformanceSection from "@/components/PerformanceSection";
-import {Suspense} from "react";
 import {formatDate, ordinal, placementTier} from "@/lib/format";
 import {flattenDayRounds} from "@/lib/rounds";
 import {BACKEND_ORIGIN as backend} from "@/lib/backend";
@@ -172,10 +171,7 @@ export default async function ProfilePage({params}: { params: { steamId: string 
                     )}
                 </section>
 
-                <Suspense fallback={<div style={{height: 160, background: 'var(--color-border)', borderRadius: 'var(--border-radius)'}}/>}>
-                    {/* PerformanceSection is client and renders quickly; Suspense ensures streaming */}
-                    <PerformanceSection rounds={flattenDayRounds(allDays)} />
-                </Suspense>
+                <PerformanceSection rounds={flattenDayRounds(allDays)} />
 
                 <section aria-labelledby="days-title">
                     <h2 id="days-title">Review Guesser — Rounds by day</h2>

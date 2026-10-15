@@ -5,7 +5,6 @@ import GameInfoSection from "@/components/GameInfoSection";
 import NewsBox from "@/components/NewsBox";
 import PlayerSpotlight from "@/components/PlayerSpotlight";
 import ReviewGuesserRound from "@/components/ReviewGuesserRound";
-import {Suspense} from "react";
 import {cookies} from "next/headers";
 import {notFound} from "next/navigation";
 import {BACKEND_ORIGIN as backend} from "@/lib/backend";
@@ -104,20 +103,18 @@ export default async function ReviewGuesserRoundPage({params}: { params: Promise
                                pick={pick}
                                roundIndex={roundIndex}/>
 
-            <Suspense fallback={<div style={{height: 220, background: 'var(--color-border)', borderRadius: 'var(--border-radius)'}}/>}>
-                <ReviewGuesserRound
-                    appId={pick.appId}
-                    buckets={today.buckets}
-                    bucketTitles={today.bucketTitles}
-                    roundIndex={roundIndex}
-                    totalRounds={totalRounds}
-                    pickName={pick.name}
-                    gameDate={today.date}
-                    dayGames={today.picks.map((p) => ({appId: p.appId, name: p.name}))}
-                    prefilled={currentPrefill}
-                    allResults={allResults}
-                />
-            </Suspense>
+            <ReviewGuesserRound
+                appId={pick.appId}
+                buckets={today.buckets}
+                bucketTitles={today.bucketTitles}
+                roundIndex={roundIndex}
+                totalRounds={totalRounds}
+                pickName={pick.name}
+                gameDate={today.date}
+                dayGames={today.picks.map((p) => ({appId: p.appId, name: p.name}))}
+                prefilled={currentPrefill}
+                allResults={allResults}
+            />
 
             {roundIndex === 1 && <PlayerSpotlight/>}
             {roundIndex === 1 && <NewsBox/>}
