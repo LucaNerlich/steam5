@@ -17,26 +17,7 @@ export default function NextChallengeTime() {
         }
     );
 
-    const nextChallengeTimeLocal = (() => {
-        if (!nextChallengeData?.nextChallengeTime) return null;
-
-        try {
-            // Parse ISO-8601 datetime string (e.g., "2025-11-12T00:01Z")
-            // The 'Z' indicates UTC time, JavaScript Date will automatically convert to local timezone
-            const utcDate = new Date(nextChallengeData.nextChallengeTime);
-            
-            // getHours() and getMinutes() automatically return local time values
-            const hours = utcDate.getHours();
-            const mins = utcDate.getMinutes();
-            const period = hours >= 12 ? 'PM' : 'AM';
-            const displayHours = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
-            
-            return `${displayHours}:${mins.toString().padStart(2, '0')} ${period}`;
-        } catch (e) {
-            console.error('Error parsing next challenge time:', e);
-            return null;
-        }
-    })();
+    const nextChallengeTimeLocal = formatChallengeTime(nextChallengeData?.nextChallengeTime);
 
     if (!nextChallengeTimeLocal) return null;
 
@@ -45,3 +26,23 @@ export default function NextChallengeTime() {
     );
 }
 
+/**
+ * Formats the backend's next-challenge timestamp for display, or null when it cannot be parsed.
+ *
+ * <p>`new Date(value)` never throws — it yields an Invalid Date — so a try/catch could not catch
+ * anything, while the real failure mode went unguarded: a malformed timestamp rendered as
+ * "NaN:NaN AM" (truthy, so the caller's null check passed it through) instead of hiding the line.</p>
+ *
+ * @param raw ISO-8601 UTC timestamp from the backend, e.g. "2025-11-12T00:01Z"
+ * @returns the local 12-hour time, or null when there is nothing usable to show
+ */
+export function formatChallengeTime(raw: string | null | undefined): string | null {
+    if (!raw) return null;
+    const utcDate = new Date(raw);
+    if (Number.isNaN(utcDate.getTime())) return null;
+    const hours = utcDate.getHours();
+    const mins = utcDate.getMinutes();
+    const period = hours >= 12 ? 'PM' : 'AM';
+    const displayHours = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+    return `${displayHours}:${mins.toString().padStart(2, '0')} ${period}`;
+}
