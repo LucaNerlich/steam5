@@ -15,11 +15,11 @@ import org.steam5.domain.GameDate;
 import org.steam5.domain.Guess;
 import org.steam5.domain.ReviewGamePick;
 import org.steam5.domain.details.SteamAppDetail;
+import org.steam5.domain.details.SteamAppDetailService;
 import org.steam5.repository.GuessRepository;
 import org.steam5.repository.ReviewGamePickRepository;
 import org.steam5.repository.SteamAppReviewsRepository;
 import org.steam5.repository.UserRepository;
-import org.steam5.repository.details.SteamAppDetailRepository;
 import org.steam5.service.ReviewGameStateService;
 
 import java.lang.reflect.Field;
@@ -51,7 +51,7 @@ import static org.mockito.Mockito.when;
 public class ReviewGameStateControllerCacheTest {
 
     private ReviewGameStateService service;
-    private SteamAppDetailRepository detailRepository;
+    private SteamAppDetailService detailService;
     private GuessRepository guessRepository;
     private SteamAppReviewsRepository reviewsRepository;
     private UserRepository userRepository;
@@ -64,14 +64,14 @@ public class ReviewGameStateControllerCacheTest {
     @BeforeEach
     void setUp() {
         service = mock(ReviewGameStateService.class);
-        detailRepository = mock(SteamAppDetailRepository.class);
+        detailService = mock(SteamAppDetailService.class);
         guessRepository = mock(GuessRepository.class);
         reviewsRepository = mock(SteamAppReviewsRepository.class);
         userRepository = mock(UserRepository.class);
         pickRepository = mock(ReviewGamePickRepository.class);
         scheduler = mock(Scheduler.class);
         meterRegistry = mock(MeterRegistry.class);
-        controller = new ReviewGameStateController(service, detailRepository, guessRepository,
+        controller = new ReviewGameStateController(service, detailService, guessRepository,
                 reviewsRepository, userRepository, pickRepository, scheduler, meterRegistry,
                 mock(PlatformTransactionManager.class));
     }
@@ -150,7 +150,7 @@ public class ReviewGameStateControllerCacheTest {
         when(detail.getAppId()).thenReturn(42L);
         when(service.generateDailyPicks())
                 .thenReturn(List.of(new ReviewGamePick(1L, LocalDate.now(), 42L, OffsetDateTime.now())));
-        when(detailRepository.findAllByAppIdIn(anyList())).thenReturn(List.of(detail));
+        when(detailService.findAllByAppIdIn(anyList())).thenReturn(List.of(detail));
 
         // No If-None-Match -> 200 with body + ETag + live (public) cache header.
         final ResponseEntity<List<SteamAppDetail>> ok = controller.getTodayDetails(new HttpHeaders());

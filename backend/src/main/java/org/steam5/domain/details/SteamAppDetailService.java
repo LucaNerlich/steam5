@@ -8,6 +8,7 @@ import org.steam5.service.DomainCacheEvictor;
 import tools.jackson.databind.JsonNode;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -73,6 +74,41 @@ public class SteamAppDetailService {
             sb.append(n.asLong());
         }
         return sb.isEmpty() ? null : sb.toString();
+    }
+
+    /**
+     * Reads one detail with every collection JSON serialization walks initialized
+     * inside this read-only transaction, so callers can return the detached entity
+     * with {@code open-in-view: false} set. Each collection loads through its own
+     * query, batched by {@code hibernate.default_batch_fetch_size} — no cartesian
+     * product like the join-fetching entity graph produced.
+     */
+    @Transactional(readOnly = true)
+    public Optional<SteamAppDetail> findByAppId(final Long appId) {
+        return repository.findByAppId(appId).map(SteamAppDetailService::initializeCollections);
+    }
+
+    /** Collection sibling of {@link #findByAppId(Long)}. */
+    @Transactional(readOnly = true)
+    public List<SteamAppDetail> findAllByAppIdIn(final Collection<Long> appIds) {
+        return repository.findAllByAppIdIn(appIds).stream()
+                .map(SteamAppDetailService::initializeCollections)
+                .toList();
+    }
+
+    /**
+     * Touches every lazy collection that serialization walks. Must be called
+     * inside a transaction; after it returns, the entity is safe to detach and
+     * serialize.
+     */
+    private static SteamAppDetail initializeCollections(final SteamAppDetail detail) {
+        detail.getDevelopers().size();
+        detail.getPublisher().size();
+        detail.getGenres().size();
+        detail.getCategories().size();
+        detail.getScreenshots().size();
+        detail.getMovies().size();
+        return detail;
     }
 
     @Transactional

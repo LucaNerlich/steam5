@@ -6,7 +6,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.steam5.domain.details.SteamAppDetail;
-import org.steam5.repository.details.SteamAppDetailRepository;
+import org.steam5.domain.details.SteamAppDetailService;
 
 import java.util.Collections;
 import java.util.Map;
@@ -21,8 +21,8 @@ public class SteamAppDetailControllerTest {
 
     @Test
     void indexJson_returnsLinks() {
-        SteamAppDetailRepository repo = mock(SteamAppDetailRepository.class);
-        SteamAppDetailController controller = new SteamAppDetailController(repo);
+        SteamAppDetailService detailService = mock(SteamAppDetailService.class);
+        SteamAppDetailController controller = new SteamAppDetailController(detailService);
         ResponseEntity<Map<String, String>> res = controller.indexJson();
         assertEquals(200, res.getStatusCode().value());
         assertNotNull(res.getBody());
@@ -34,8 +34,8 @@ public class SteamAppDetailControllerTest {
 
     @Test
     void indexHtml_returnsHtml() {
-        SteamAppDetailRepository repo = mock(SteamAppDetailRepository.class);
-        SteamAppDetailController controller = new SteamAppDetailController(repo);
+        SteamAppDetailService detailService = mock(SteamAppDetailService.class);
+        SteamAppDetailController controller = new SteamAppDetailController(detailService);
         ResponseEntity<String> res = controller.indexHtml();
         assertEquals(200, res.getStatusCode().value());
         assertEquals(MediaType.TEXT_HTML, res.getHeaders().getContentType());
@@ -47,11 +47,11 @@ public class SteamAppDetailControllerTest {
 
     @Test
     void getDetails_found_and_notFound() {
-        SteamAppDetailRepository repo = mock(SteamAppDetailRepository.class);
-        SteamAppDetailController controller = new SteamAppDetailController(repo);
+        SteamAppDetailService detailService = mock(SteamAppDetailService.class);
+        SteamAppDetailController controller = new SteamAppDetailController(detailService);
 
         // not found
-        when(repo.findByAppId(anyLong())).thenReturn(Optional.empty());
+        when(detailService.findByAppId(anyLong())).thenReturn(Optional.empty());
         assertEquals(404, controller.getDetails(42L, new HttpHeaders()).getStatusCode().value());
 
         // found
@@ -63,8 +63,7 @@ public class SteamAppDetailControllerTest {
         when(detail.getScreenshots()).thenReturn(Collections.emptySet());
         when(detail.getMovies()).thenReturn(Collections.emptySet());
         when(detail.getPriceOverview()).thenReturn(null);
-        when(repo.findByAppId(7L)).thenReturn(Optional.of(detail));
-
+        when(detailService.findByAppId(7L)).thenReturn(Optional.of(detail));
         ResponseEntity<SteamAppDetail> ok = controller.getDetails(7L, new HttpHeaders());
         assertEquals(200, ok.getStatusCode().value());
         assertNotNull(ok.getHeaders().getFirst("Cache-Control"));

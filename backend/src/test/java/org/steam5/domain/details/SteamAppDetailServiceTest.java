@@ -12,12 +12,15 @@ import org.steam5.service.DomainCacheEvictor;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -83,6 +86,45 @@ class SteamAppDetailServiceTest {
         verify(repository).save(saved.capture());
         assertEquals(APP_ID, saved.getValue().getAppId());
         assertEquals("New", saved.getValue().getName());
+    }
+
+    @Test
+    void findByAppId_touchesEveryCollectionSoTheDetachedEntityCanSerialize() {
+        final SteamAppDetail spy = spy(new SteamAppDetail());
+        when(repository.findByAppId(APP_ID)).thenReturn(Optional.of(spy));
+
+        final Optional<SteamAppDetail> result = service.findByAppId(APP_ID);
+
+        assertSame(spy, result.orElseThrow());
+        verifyEveryCollectionTouched(spy);
+    }
+
+    @Test
+    void findAllByAppIdIn_touchesEveryCollectionSoDetachedEntitiesCanSerialize() {
+        final SteamAppDetail spy = spy(new SteamAppDetail());
+        when(repository.findAllByAppIdIn(List.of(APP_ID))).thenReturn(List.of(spy));
+
+        final List<SteamAppDetail> result = service.findAllByAppIdIn(List.of(APP_ID));
+
+        assertEquals(1, result.size());
+        assertSame(spy, result.getFirst());
+        verifyEveryCollectionTouched(spy);
+    }
+
+    /**
+     * The returns here are made while {@code open-in-view: false} is active, so every
+     * collection serialization walks must have been touched in the transaction —
+     * accessing them later (or leaving them uninitialized) would throw
+     * LazyInitializationException. The graph no longer join-fetches them; Hibernate
+     * batches each collection load.
+     */
+    private static void verifyEveryCollectionTouched(final SteamAppDetail spy) {
+        verify(spy).getDevelopers();
+        verify(spy).getPublisher();
+        verify(spy).getGenres();
+        verify(spy).getCategories();
+        verify(spy).getScreenshots();
+        verify(spy).getMovies();
     }
 
     private static JsonNode json(final String value) {

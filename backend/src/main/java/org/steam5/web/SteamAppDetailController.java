@@ -10,7 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.steam5.domain.details.SteamAppDetail;
-import org.steam5.repository.details.SteamAppDetailRepository;
+import org.steam5.domain.details.SteamAppDetailService;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -23,7 +23,7 @@ import java.util.Optional;
 @Validated
 public class SteamAppDetailController {
 
-    private final SteamAppDetailRepository detailRepository;
+    private final SteamAppDetailService detailService;
 
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Map<String, String>> indexJson() {
@@ -140,7 +140,7 @@ public class SteamAppDetailController {
     @Cacheable(value = "one-day", key = "#appId", unless = "#result == null || !#result.statusCode.is2xxSuccessful()")
     public ResponseEntity<SteamAppDetail> getDetails(@PathVariable("appId") Long appId,
                                                      @RequestHeader HttpHeaders headers) {
-        final Optional<SteamAppDetail> detailOpt = detailRepository.findByAppId(appId);
+        final Optional<SteamAppDetail> detailOpt = detailService.findByAppId(appId);
         if (detailOpt.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
