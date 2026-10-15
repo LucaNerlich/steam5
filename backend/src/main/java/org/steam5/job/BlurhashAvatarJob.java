@@ -60,19 +60,30 @@ public class BlurhashAvatarJob implements Job {
 
         if (StringUtils.isNotBlank(avatar)) {
             final BlurhashService.Encoded thumbEncoded = service.readAndEncode(avatar, BlurhashService.Type.THUMBNAIL);
-            user.setBlurhashAvatar(thumbEncoded.hash());
-            user.setBlurdataAvatar(thumbEncoded.dataUrl());
-            userRepository.save(user);
-            encoded++;
+            if (thumbEncoded == null) {
+                // readAndEncode returns null whenever the fetch or decode fails (non-public
+                // URL, non-2xx, timeout, unreadable image). Guarding here keeps the full
+                // avatar encode below running instead of aborting the whole method.
+                log.warn("Avatar thumbnail blurhash encode returned nothing for steamId={}", steamId);
+            } else {
+                user.setBlurhashAvatar(thumbEncoded.hash());
+                user.setBlurdataAvatar(thumbEncoded.dataUrl());
+                userRepository.save(user);
+                encoded++;
+            }
         }
 
 
         if (StringUtils.isNotBlank(avatarFull)) {
             final BlurhashService.Encoded fullEncoded = service.readAndEncode(avatarFull, BlurhashService.Type.FULL);
-            user.setBlurhashAvatarFull(fullEncoded.hash());
-            user.setBlurdataAvatarFull(fullEncoded.dataUrl());
-            userRepository.save(user);
-            encoded++;
+            if (fullEncoded == null) {
+                log.warn("Full avatar blurhash encode returned nothing for steamId={}", steamId);
+            } else {
+                user.setBlurhashAvatarFull(fullEncoded.hash());
+                user.setBlurdataAvatarFull(fullEncoded.dataUrl());
+                userRepository.save(user);
+                encoded++;
+            }
         }
 
         log.info("Blurhash immediate finished for steamId={} encoded={} ", steamId, encoded);
