@@ -3,7 +3,11 @@ spring:
   application:
     name: steam5
   profiles:
-    active: ${SPRING_PROFILE:dev} # Default to 'dev', allow override via env (e.g., coolify in Docker)
+    # Required, deliberately without a default. A fallback of 'dev' meant a deployment that
+    # forgot the variable silently ran the dev profile, which exposes extra actuator
+    # endpoints (/actuator/env, /actuator/beans, settable /actuator/loggers) and downgrades
+    # the "refusing to start on the public default JWT secret" interlock to a warning.
+    active: ${SPRING_PROFILE} # e.g. dev locally, coolify in production — see .env.example
   datasource:
     url: ${JDBC_URL:jdbc:postgresql://localhost:5432/steam5_db}
     username: steam5_user
