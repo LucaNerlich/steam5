@@ -10,8 +10,10 @@ spring:
     active: ${SPRING_PROFILE} # e.g. dev locally, coolify in production — see .env.example
   datasource:
     url: ${JDBC_URL:jdbc:postgresql://localhost:5432/steam5_db}
-    username: steam5_user
-    password: steam5_password
+    # No default for the password on purpose: a missing SPRING_DATASOURCE_PASSWORD fails
+    # startup instead of silently connecting with the credential published in setup-local-db.sql.
+    username: ${SPRING_DATASOURCE_USERNAME:steam5_user}
+    password: ${SPRING_DATASOURCE_PASSWORD}
     driver-class-name: org.postgresql.Driver
     name: steam5_db
     hikari:

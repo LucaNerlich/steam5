@@ -70,10 +70,10 @@ You can override properties with environment variables:
 
 - `SPRING_DATASOURCE_URL` (e.g. `jdbc:postgresql://localhost:5432/steam5`)
 - `SPRING_DATASOURCE_USERNAME` (default `steam5_user`)
-- `SPRING_DATASOURCE_PASSWORD` (default `steam5_password`)
+- `SPRING_DATASOURCE_PASSWORD` (required; the local setup in "Database setup" uses `steam5_password`)
 - `SERVER_PORT` (default `8080`)
 
-The `dev` profile is active by default. See `backend/src/main/resources/application.yml`.
+`SPRING_PROFILE` is required and must be set (use `dev` locally). See `backend/src/main/resources/application.yml`.
 
 ### Run the backend
 
