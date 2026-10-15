@@ -36,6 +36,7 @@ import java.time.OffsetDateTime;
 import java.time.YearMonth;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
@@ -747,8 +748,9 @@ public class ReviewGameStateController {
             final List<org.steam5.domain.ReviewGamePick> picks = picksByDate.get(d);
             for (org.steam5.domain.ReviewGamePick p : picks) appIds.add(p.getAppId());
         }
+        final Map<Long, Integer> totalReviewsByAppId = lookupTotalReviewsByAppIds(new HashSet<>(appIds));
         final List<String> actualBuckets = appIds.stream()
-                .map(id -> service.inferBucket(service.getTotalReviewCountForApp(id)))
+                .map(id -> service.inferBucket(totalReviewsByAppId.getOrDefault(id, 0)))
                 .toList();
         final int rounds = actualBuckets.size();
         final java.util.ArrayList<AlwaysPickScore> out = new java.util.ArrayList<>();
@@ -769,6 +771,19 @@ public class ReviewGameStateController {
                 appIds.add(guess.getAppId());
             }
         }
+        return lookupTotalReviewsByAppIds(appIds);
+    }
+
+    /**
+     * Loads total review counts for the given app ids in one query. A per-appId
+     * lookup here is an N+1: the range endpoints can span thousands of picks, and
+     * each lookup also pushed a short-lived {@code review-count} entry into the
+     * shared {@code review-game} cache, evicting the page entries.
+     *
+     * @param appIds the app ids to load; duplicates and unknown ids are harmless
+     * @return totals by app id; ids without a reviews row are absent (callers default to 0)
+     */
+    private Map<Long, Integer> lookupTotalReviewsByAppIds(Collection<Long> appIds) {
         if (appIds.isEmpty()) {
             return Map.of();
         }
