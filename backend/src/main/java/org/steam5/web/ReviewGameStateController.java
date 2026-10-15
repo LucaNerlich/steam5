@@ -6,7 +6,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
@@ -27,9 +26,6 @@ import org.steam5.service.ReviewGameStateService;
 import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
 import org.quartz.TriggerKey;
-import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.TransactionDefinition;
-import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -64,7 +60,6 @@ public class ReviewGameStateController {
     private final org.steam5.repository.ReviewGamePickRepository pickRepository;
     private final Scheduler scheduler;
     private final MeterRegistry meterRegistry;
-    private final PlatformTransactionManager transactionManager;
 
     // Live daily data — rounds regenerate at ~00:01 UTC; 30 min CDN window absorbs
     // traffic spikes while keeping staleness bounded. must-revalidate forbids any
@@ -422,8 +417,13 @@ public class ReviewGameStateController {
     public record AlwaysPickScore(int bucketIndex, String bucketLabel, double avgPoints, int rounds) {
     }
 
+    // Deliberately NOT @Transactional: the duplicate-key violation caught below
+    // escapes the repository's participating transaction, Spring marks the
+    // handler's transaction rollback-only, and the commit at method exit throws
+    // UnexpectedRollbackException — discarding the idempotent 200 built in the
+    // catch. Without an ambient transaction each repository call commits on its
+    // own, and the unique index alone guards concurrency.
     @PostMapping("/guess-auth")
-    @Transactional
     public ResponseEntity<GuessResponse> submitGuessAuthenticated(@CurrentUser String steamId,
                                                                   @RequestBody GuessRequest req) {
         if (req == null || req.appId == null || req.bucketGuess == null) {
@@ -487,17 +487,13 @@ public class ReviewGameStateController {
                     .register(meterRegistry)
                     .increment();
         } catch (DataIntegrityViolationException ignored) {
-            // Another request saved the same guess concurrently. The current
-            // transaction is aborted (Postgres 25P02), so any re-read here would
-            // fail too — re-read OUTSIDE it in a fresh read-only transaction and
-            // return the persisted guess to keep concurrent double-submits
-            // idempotent.
-            final TransactionTemplate readOnly = new TransactionTemplate(transactionManager);
-            readOnly.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
-            readOnly.setReadOnly(true);
-            final var existing = readOnly.execute(status ->
-                    guessRepository.findBySteamIdAndGameDateAndRoundIndex(steamId, date, roundIndex));
-            if (existing != null && existing.isPresent()) {
+            // Another request saved the same guess concurrently. The failed insert
+            // rolled back only its own transaction (the handler is not
+            // transactional), so this read — the repository's default read-only
+            // transaction — sees the winner's committed row and returns it to
+            // keep concurrent double-submits idempotent.
+            final var existing = guessRepository.findBySteamIdAndGameDateAndRoundIndex(steamId, date, roundIndex);
+            if (existing.isPresent()) {
                 final var g = existing.get();
                 final boolean alreadyOk = g.getActualBucket() != null && g.getActualBucket().equals(g.getSelectedBucket());
                 return ResponseEntity.ok(new GuessResponse(g.getAppId(), total, g.getActualBucket(), alreadyOk));

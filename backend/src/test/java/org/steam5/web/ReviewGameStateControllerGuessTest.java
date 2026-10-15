@@ -1,11 +1,13 @@
 package org.steam5.web;
 
-import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.quartz.Scheduler;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
-import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.annotation.Transactional;
+import org.steam5.domain.Guess;
 import org.steam5.domain.ReviewGamePick;
 import org.steam5.domain.details.SteamAppDetailService;
 import org.steam5.repository.GuessRepository;
@@ -14,13 +16,17 @@ import org.steam5.repository.SteamAppReviewsRepository;
 import org.steam5.repository.UserRepository;
 import org.steam5.service.ReviewGameStateService;
 
+import java.lang.reflect.Method;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -36,22 +42,25 @@ public class ReviewGameStateControllerGuessTest {
 
     private ReviewGameStateService service;
     private GuessRepository guessRepository;
+    private UserRepository userRepository;
+    private SimpleMeterRegistry meterRegistry;
     private ReviewGameStateController controller;
 
     @BeforeEach
     void setUp() {
         service = mock(ReviewGameStateService.class);
         guessRepository = mock(GuessRepository.class);
+        userRepository = mock(UserRepository.class);
+        meterRegistry = new SimpleMeterRegistry();
         controller = new ReviewGameStateController(
                 service,
                 mock(SteamAppDetailService.class),
                 guessRepository,
                 mock(SteamAppReviewsRepository.class),
-                mock(UserRepository.class),
+                userRepository,
                 mock(ReviewGamePickRepository.class),
                 mock(Scheduler.class),
-                mock(MeterRegistry.class),
-                mock(PlatformTransactionManager.class));
+                meterRegistry);
 
         when(service.generateDailyPicks()).thenReturn(
                 List.of(new ReviewGamePick(1L, LocalDate.now(), LIVE_APP_ID, OffsetDateTime.now())));
@@ -137,5 +146,44 @@ public class ReviewGameStateControllerGuessTest {
 
         assertEquals(200, res.getStatusCode().value());
         assertTrue(res.getBody().correct());
+    }
+
+    @Test
+    void submitGuessAuthenticated_returnsThePersistedRowWhenAConcurrentInsertWins() {
+        // Issue #203: the exists-check misses, the insert loses the race against
+        // ix_guess_steam_date_round, and the handler must answer 200 from the
+        // winner's committed row. With an ambient @Transactional this path was a
+        // 500: the failed insert marked the transaction rollback-only and the
+        // commit at method exit threw UnexpectedRollbackException.
+        when(userRepository.existsById("u1")).thenReturn(true);
+        final Guess persisted = new Guess(9L, "u1", LocalDate.now(), 1, LIVE_APP_ID,
+                "101-1000", "101-1000", 4, OffsetDateTime.now());
+        when(guessRepository.findBySteamIdAndGameDateAndRoundIndex("u1", LocalDate.now(), 1))
+                .thenReturn(Optional.empty(), Optional.of(persisted));
+        when(guessRepository.save(any()))
+                .thenThrow(new DataIntegrityViolationException("duplicate key value violates unique constraint"));
+
+        final ResponseEntity<ReviewGameStateController.GuessResponse> res =
+                controller.submitGuessAuthenticated("u1",
+                        new ReviewGameStateController.GuessRequest(LIVE_APP_ID, "101-1000"));
+
+        assertEquals(200, res.getStatusCode().value());
+        assertEquals(500, res.getBody().totalReviews());
+        assertEquals("101-1000", res.getBody().actualBucket());
+        assertTrue(res.getBody().correct());
+        // The loser persisted nothing, so the throughput counter must not move.
+        assertTrue(meterRegistry.find("steam5.guesses").counters().isEmpty());
+    }
+
+    @Test
+    void submitGuessAuthenticated_isNotWrappedInATransaction() throws Exception {
+        // Transaction-semantics guard (issue #203): a transaction around the
+        // handler lets a caught duplicate-key violation mark it rollback-only,
+        // turning the idempotent 200 into an UnexpectedRollbackException (500)
+        // at commit time.
+        final Method method = ReviewGameStateController.class.getMethod(
+                "submitGuessAuthenticated", String.class, ReviewGameStateController.GuessRequest.class);
+        assertNull(method.getAnnotation(Transactional.class),
+                "submitGuessAuthenticated must not run in an ambient transaction");
     }
 }

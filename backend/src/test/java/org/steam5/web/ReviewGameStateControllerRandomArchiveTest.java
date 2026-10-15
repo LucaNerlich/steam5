@@ -5,7 +5,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.quartz.Scheduler;
 import org.springframework.http.ResponseEntity;
-import org.springframework.transaction.PlatformTransactionManager;
 import org.steam5.domain.GameDate;
 import org.steam5.domain.ReviewGamePick;
 import org.steam5.domain.SteamAppReviews;
@@ -51,8 +50,7 @@ public class ReviewGameStateControllerRandomArchiveTest {
         final Scheduler scheduler = mock(Scheduler.class);
         final MeterRegistry meterRegistry = mock(MeterRegistry.class);
         controller = new ReviewGameStateController(service, detailService, guessRepository,
-                reviewsRepository, userRepository, pickRepository, scheduler, meterRegistry,
-                mock(PlatformTransactionManager.class));
+                reviewsRepository, userRepository, pickRepository, scheduler, meterRegistry);
     }
 
     @Test
