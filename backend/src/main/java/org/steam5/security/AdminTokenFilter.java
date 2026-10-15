@@ -26,9 +26,13 @@ public class AdminTokenFilter extends OncePerRequestFilter {
     private static final Logger log = LoggerFactory.getLogger(AdminTokenFilter.class);
 
     private static final String ADMIN_HEADER = "X-Admin-Token";
-    private static final String ADMIN_PATH_PREFIX = "/api/admin/";
-    private static final String METRICS_PATH_PREFIX = "/api/metrics/";
-    private static final String CACHE_PATH_PREFIX = "/api/cache/";
+    // No trailing slash: the filters match with startsWith, and both the class-root
+    // mappings ("/api/metrics") and every child path must be gated. A trailing slash here
+    // left the exact-path endpoints ungated, and since ROLE_ADMIN is only ever granted by
+    // this filter, they were permanently 401 even with a valid token.
+    private static final String ADMIN_PATH_PREFIX = "/api/admin";
+    private static final String METRICS_PATH_PREFIX = "/api/metrics";
+    private static final String CACHE_PATH_PREFIX = "/api/cache";
     // Public-facing metrics endpoint consumed by the game statistics UI.
     private static final String PUBLIC_METRICS_PATH = "/api/metrics/picks/summary";
 
