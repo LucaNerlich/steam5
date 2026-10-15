@@ -14,6 +14,13 @@ over HTTP basic auth.
 | cAdvisor          | `gcr.io/cadvisor/cadvisor:v0.49.1`                 | _(internal)_      | Per-container CPU / memory / network / restarts / OOM events.            |
 | postgres-exporter | `prometheuscommunity/postgres-exporter:v0.15.0`    | _(internal)_      | Postgres connections, transactions, locks, deadlocks, cache hit ratio.   |
 
+The two published ports bind to `127.0.0.1` only: Prometheus and Grafana are
+reachable from the host itself (or through a tunnel / the reverse proxy running
+on that host), but nothing on the network can open them — including the
+`--web.enable-lifecycle` shutdown/reload endpoints, which are intentionally not
+enabled. Widen the bind address in `docker-compose.yml` deliberately if a remote
+caller ever needs direct access.
+
 The backend is **not** part of this stack — it must already be running and
 exposing `/actuator/prometheus` (port `8081` by default in dev). The
 Prometheus container reaches the backend via `host.docker.internal:8081`.
@@ -156,7 +163,7 @@ every variable so you can scan it without opening the file.
 | Variable                     | Default                              | Purpose                                                                 |
 |------------------------------|--------------------------------------|-------------------------------------------------------------------------|
 | `PROMETHEUS_IMAGE`           | `prom/prometheus:v3.5.1`             | Prometheus container image (pin a tag, never `:latest`).                |
-| `PROMETHEUS_PORT`            | `9090`                               | Host port mapped to Prometheus.                                         |
+| `PROMETHEUS_PORT`            | `9090`                               | Loopback host port mapped to Prometheus (`127.0.0.1` bind).             |
 | `PROMETHEUS_RETENTION`       | `15d`                                | TSDB retention window (`--storage.tsdb.retention.time`).                |
 | `PROMETHEUS_SCRAPE_INTERVAL` | `15s`                                | Global `scrape_interval` and `evaluation_interval`.                     |
 | `STEAM5_METRICS_TARGET`      | `host.docker.internal:8081`          | `host:port` Prometheus scrapes. Set to backend service DNS in prod.     |
@@ -169,7 +176,7 @@ every variable so you can scan it without opening the file.
 | `POSTGRES_EXPORTER_TARGET`   | `postgres-exporter:9187`             | In-stack DNS target for the postgres-exporter sidecar.                  |
 | `POSTGRES_EXPORTER_DSN`      | _(empty)_                            | libpq DSN postgres-exporter uses to connect (e.g. `postgresql://metrics:PW@host:5432/db?sslmode=disable`). Required for the `postgres` scrape job. |
 | `GRAFANA_IMAGE`              | `grafana/grafana:12.3.1`             | Grafana container image.                                                |
-| `GRAFANA_PORT`               | `3001`                               | Host port mapped to Grafana (3001 to avoid Next.js dev on 3000).        |
+| `GRAFANA_PORT`               | `3001`                               | Loopback host port mapped to Grafana (`127.0.0.1` bind; 3001 avoids Next.js dev on 3000). |
 | `GF_SECURITY_ADMIN_USER`     | `admin`                              | Initial Grafana admin username.                                         |
 | `GF_SECURITY_ADMIN_PASSWORD` | `admin`                              | Initial Grafana admin password — **must override in production**.       |
 | `GF_SERVER_ROOT_URL`         | `http://localhost:3001`              | Public URL Grafana uses for redirects, share links, OAuth callbacks.    |
