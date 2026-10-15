@@ -1,7 +1,5 @@
 package org.steam5.security;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -11,8 +9,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.time.Duration;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Per-IP rate limiter for {@code GET /api/users/search}.
@@ -28,10 +24,7 @@ public class UserSearchRateLimitFilter extends OncePerRequestFilter {
     private static final String SEARCH_PATH = "/api/users/search";
     private static final int MAX_REQUESTS_PER_MINUTE = 30;
 
-    private final Cache<String, AtomicInteger> requestCounts = Caffeine.newBuilder()
-            .expireAfterWrite(Duration.ofMinutes(1))
-            .maximumSize(10_000)
-            .build();
+    private final FixedWindowCounter requestCounts = new FixedWindowCounter(MAX_REQUESTS_PER_MINUTE);
 
     @Override
     protected boolean shouldNotFilter(final HttpServletRequest request) {
@@ -44,9 +37,7 @@ public class UserSearchRateLimitFilter extends OncePerRequestFilter {
                                     final HttpServletResponse response,
                                     final FilterChain chain) throws ServletException, IOException {
         final String ip = request.getRemoteAddr();
-        final AtomicInteger count = requestCounts.get(ip, k -> new AtomicInteger(0));
-
-        if (count.incrementAndGet() > MAX_REQUESTS_PER_MINUTE) {
+        if (!requestCounts.tryAcquire(ip)) {
             log.warn("User search rate limit exceeded");
             response.setStatus(429);
             response.setContentType("application/json");

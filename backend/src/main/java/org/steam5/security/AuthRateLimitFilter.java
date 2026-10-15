@@ -1,7 +1,5 @@
 package org.steam5.security;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -11,8 +9,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.time.Duration;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Fix #5: Per-IP rate limiter for all {@code /api/auth/**} endpoints.
@@ -39,10 +35,7 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
      * request from that IP.  The cache is bounded to 10 000 entries to prevent
      * unbounded memory growth during an IP-distributed flood.
      */
-    private final Cache<String, AtomicInteger> requestCounts = Caffeine.newBuilder()
-            .expireAfterWrite(Duration.ofMinutes(1))
-            .maximumSize(10_000)
-            .build();
+    private final FixedWindowCounter requestCounts = new FixedWindowCounter(MAX_REQUESTS_PER_MINUTE);
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
@@ -58,9 +51,7 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
         // getRemoteAddr() from X-Forwarded-For only when the socket peer is a
         // trusted internal proxy (server.tomcat.remoteip.internal-proxies).
         final String ip = request.getRemoteAddr();
-        final AtomicInteger count = requestCounts.get(ip, k -> new AtomicInteger(0));
-
-        if (count.incrementAndGet() > MAX_REQUESTS_PER_MINUTE) {
+        if (!requestCounts.tryAcquire(ip)) {
             log.warn("Auth rate limit exceeded: ip={} uri={}", ip, request.getRequestURI());
             response.setStatus(429);
             response.setContentType("application/json");

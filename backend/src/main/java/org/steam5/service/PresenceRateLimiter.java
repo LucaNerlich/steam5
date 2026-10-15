@@ -1,37 +1,26 @@
 package org.steam5.service;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.steam5.config.PresenceProperties;
+import org.steam5.security.FixedWindowCounter;
 
-import java.time.Duration;
-import java.util.concurrent.atomic.AtomicInteger;
-
-/**
- * Fixed-window rate limiter for presence ticket issuance and WebSocket handshakes.
- */
 @Service
-@RequiredArgsConstructor
 public class PresenceRateLimiter {
 
-    private final PresenceProperties properties;
+    private final FixedWindowCounter ticketsByIp;
+    private final FixedWindowCounter ticketsByUser;
+    private final FixedWindowCounter handshakesByIp;
 
-    private final Cache<String, AtomicInteger> ticketByIp = Caffeine.newBuilder()
-            .expireAfterWrite(Duration.ofMinutes(1))
-            .maximumSize(10_000)
-            .build();
-
-    private final Cache<String, AtomicInteger> ticketByUser = Caffeine.newBuilder()
-            .expireAfterWrite(Duration.ofMinutes(1))
-            .maximumSize(10_000)
-            .build();
-
-    private final Cache<String, AtomicInteger> handshakeByIp = Caffeine.newBuilder()
-            .expireAfterWrite(Duration.ofMinutes(1))
-            .maximumSize(10_000)
-            .build();
+    /**
+     * Builds one fixed-window counter per limit from the configured presence properties.
+     *
+     * @param properties the presence limits
+     */
+    public PresenceRateLimiter(final PresenceProperties properties) {
+        this.ticketsByIp = new FixedWindowCounter(properties.getTicketRateLimitPerMinute());
+        this.ticketsByUser = new FixedWindowCounter(properties.getTicketRateLimitPerUserPerMinute());
+        this.handshakesByIp = new FixedWindowCounter(properties.getHandshakeRateLimitPerMinute());
+    }
 
     /**
      * Determines whether a presence ticket request from an IP address is within the configured rate limit.
@@ -41,7 +30,7 @@ public class PresenceRateLimiter {
      */
     public boolean tryAcquireTicket(final String ip) {
         if (ip == null || ip.isBlank()) return true;
-        return increment(ticketByIp, ip) <= properties.getTicketRateLimitPerMinute();
+        return ticketsByIp.tryAcquire(ip);
     }
 
     /**
@@ -52,7 +41,7 @@ public class PresenceRateLimiter {
      */
     public boolean tryAcquireTicketForUser(final String steamId) {
         if (steamId == null || steamId.isBlank()) return true;
-        return increment(ticketByUser, steamId) <= properties.getTicketRateLimitPerUserPerMinute();
+        return ticketsByUser.tryAcquire(steamId);
     }
 
     /**
@@ -63,17 +52,6 @@ public class PresenceRateLimiter {
      */
     public boolean tryAcquireHandshake(final String ip) {
         if (ip == null || ip.isBlank()) return true;
-        return increment(handshakeByIp, ip) <= properties.getHandshakeRateLimitPerMinute();
-    }
-
-    /**
-     * Increments the counter associated with a key and returns its updated value.
-     *
-     * @param cache the cache containing counters by key
-     * @param key   the counter key
-     * @return the incremented counter value
-     */
-    private static int increment(final Cache<String, AtomicInteger> cache, final String key) {
-        return cache.get(key, k -> new AtomicInteger(0)).incrementAndGet();
+        return handshakesByIp.tryAcquire(ip);
     }
 }
