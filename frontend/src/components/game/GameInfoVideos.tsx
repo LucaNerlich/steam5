@@ -81,17 +81,29 @@ export default function GameInfoVideos({appId, movies}: {
 
         let disposed = false;
         let FancyboxInstance: any = null;
-        const dashPlayers: Array<{ reset: () => void }> = [];
+        // Player per slide <video> element. Fancybox removes and later re-creates that element
+        // for a slide, so a flat list cannot tell which player to reset when one is detached:
+        // every video viewed in a session kept streaming a torn-down element (its XHR loader,
+        // timers and segment fetches alive) until the lightbox closed.
+        const playersByVideoEl = new Map<HTMLVideoElement, { reset: () => void }>();
         const selector = `[data-fancybox="videos-${appId}"]`;
 
+        // Resets and forgets the player bound to a slide element, if any.
+        const releasePlayerFor = (videoEl: HTMLVideoElement | null | undefined) => {
+            if (!videoEl) return;
+            const player = playersByVideoEl.get(videoEl);
+            if (!player) return;
+            playersByVideoEl.delete(videoEl);
+            try {
+                player.reset();
+            } catch {
+                // ignore cleanup failures
+            }
+        };
+
         const disposePlayers = () => {
-            while (dashPlayers.length > 0) {
-                const player = dashPlayers.pop();
-                try {
-                    player?.reset();
-                } catch {
-                    // ignore cleanup failures
-                }
+            for (const videoEl of Array.from(playersByVideoEl.keys())) {
+                releasePlayerFor(videoEl);
             }
         };
 
@@ -124,8 +136,13 @@ export default function GameInfoVideos({appId, movies}: {
                             const player = dashLib.MediaPlayer().create();
                             player.initialize(videoEl, src, true);
                             player.setMute(true);
-                            dashPlayers.push(player);
+                            releasePlayerFor(videoEl); // defensive: never leave an earlier player on this element
+                            playersByVideoEl.set(videoEl, player);
                         });
+                    },
+                    "Carousel.detachSlideEl": (_fancyboxRef: unknown, _carouselRef: unknown, slide: { src?: string; el?: HTMLElement }) => {
+                        // Fancybox is removing this slide's element, so its player must go with it.
+                        releasePlayerFor(slide?.el?.querySelector("video") as HTMLVideoElement | null);
                     },
                     destroy: () => {
                         disposePlayers();
