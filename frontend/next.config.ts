@@ -49,6 +49,14 @@ const nextConfig: NextConfig = {
                 destination: '/review-guesser/leaderboard/hardest',
                 permanent: true,
             },
+            {
+                // The legacy singular season URL duplicated the whole page (its `export *`
+                // could not shadow the local exports, so the copy below it was what ran).
+                // One redirect replaces it.
+                source: '/review-guesser/season/:seasonNumber',
+                destination: '/review-guesser/seasons/:seasonNumber',
+                permanent: true,
+            },
 
         ];
     }

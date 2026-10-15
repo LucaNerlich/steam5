@@ -9,6 +9,7 @@ import {buildBreadcrumbJsonLd, serializeJsonLd} from "@/lib/seo";
 import "@/styles/components/season-detail.css";
 import "@/styles/components/seasons.css";
 import {Routes} from "../../../routes";
+import {BACKEND_ORIGIN as backend} from "@/lib/backend";
 
 type PageParams = {
     params: {
@@ -18,9 +19,6 @@ type PageParams = {
 
 type PageProps = PageParams;
 
-type MaybePromise<T> = T | Promise<T>;
-
-import {BACKEND_ORIGIN as backend} from "@/lib/backend";
 const numberFormatter = new Intl.NumberFormat();
 const decimalFormatter = new Intl.NumberFormat(undefined, {maximumFractionDigits: 2});
 const percentFormatter = new Intl.NumberFormat(undefined, {style: "percent", maximumFractionDigits: 1});
@@ -49,20 +47,13 @@ async function fetchSeasonDetail(seasonNumber: string): Promise<SeasonDetailResp
 }
 
 type MetadataParams = {
-    params: MaybePromise<PageParams["params"]>;
+    params: PageParams["params"];
 };
 
-async function resolveParams(params: MaybePromise<PageParams["params"]>): Promise<PageParams["params"]> {
-    if (params && typeof (params as Promise<PageParams["params"]>).then === "function") {
-        return await (params as Promise<PageParams["params"]>);
-    }
-    return params as PageParams["params"];
-}
-
 export async function generateMetadata({params}: MetadataParams): Promise<Metadata> {
-    const resolvedParams = await resolveParams(params);
-    const data = await fetchSeasonDetail(resolvedParams.seasonNumber);
-    const seasonLabel = data?.season?.seasonNumber ?? resolvedParams.seasonNumber;
+    const {seasonNumber} = await params;
+    const data = await fetchSeasonDetail(seasonNumber);
+    const seasonLabel = data?.season?.seasonNumber ?? seasonNumber;
     const title = `Season #${seasonLabel} recap — Steam Review Guesser`;
     const description = data
         ? `Full recap, stats, and award winners from Steam Review Guesser Season #${data.season.seasonNumber}.`
@@ -103,9 +94,9 @@ export async function generateMetadata({params}: MetadataParams): Promise<Metada
 
 export const revalidate = 600;
 
-export default async function SeasonDetailPage({params}: {params: MaybePromise<PageParams["params"]>}) {
-    const resolvedParams = await resolveParams(params);
-    const data = await fetchSeasonDetail(resolvedParams.seasonNumber);
+export default async function SeasonDetailPage({params}: {params: PageParams["params"]}) {
+    const {seasonNumber} = await params;
+    const data = await fetchSeasonDetail(seasonNumber);
     if (!data) {
         notFound();
     }
