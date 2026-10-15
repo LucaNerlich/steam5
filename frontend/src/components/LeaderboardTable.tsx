@@ -220,7 +220,9 @@ export default function LeaderboardTable(props: {
                     </thead>
                     <tbody>
                     {sorted.map((entry, i) => (
-                        <tr key={entry.profileUrl}>
+                        // steamId is the identity; profileUrl is nullable (players with no
+                        // users row get null), so two entries could share a key.
+                        <tr key={entry.steamId}>
                             <td className="num">{i + 1}</td>
                             <td>
                                 <div className="leaderboard__player">
