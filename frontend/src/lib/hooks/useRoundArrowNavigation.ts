@@ -35,8 +35,13 @@ export default function useRoundArrowNavigation(opts: {
                     }
                 }
 
-                // Fancybox owns arrow keys while media lightbox is active.
-                if (document.querySelector(".fancybox__container.is-open")) return true;
+                // Fancybox owns the arrow keys while a lightbox is open. Fancybox v6 renders a
+                // native <dialog class="fancybox__dialog"> and opens it with showModal(), so an
+                // open dialog is the signal. The previously tested ".fancybox__container.is-open"
+                // class is never emitted by the installed version (the bundle only ever adds
+                // is-idle/is-ready/is-hiding/is-closing), which made this guard dead: with focus
+                // inside the player, arrows routed away behind the open lightbox.
+                if (document.querySelector("dialog[open]")) return true;
 
                 return false;
             };
