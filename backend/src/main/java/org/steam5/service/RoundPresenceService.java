@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
+import org.springframework.web.socket.handler.ConcurrentWebSocketSessionDecorator;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
@@ -50,6 +51,10 @@ public class RoundPresenceService {
     public static final String ATTR_AVATAR = "avatar";
     public static final String ATTR_LAST_ACTIVITY = "lastActivityAt";
 
+    /** Bounded send per session: a hopelessly slow client is closed instead of buffered without limit. */
+    private static final int SEND_TIME_LIMIT_MS = 5_000;
+    private static final int SEND_BUFFER_LIMIT_BYTES = 64 * 1024;
+
     public enum RegisterResult {
         OK,
         GLOBAL_LIMIT,
@@ -63,6 +68,8 @@ public class RoundPresenceService {
 
     private final ConcurrentHashMap<String, CopyOnWriteArrayList<WebSocketSession>> sessionsByScope =
             new ConcurrentHashMap<>();
+    /** Send-serializing wrapper per session id; the registry itself holds raw sessions. */
+    private final ConcurrentHashMap<String, WebSocketSession> sendSessions = new ConcurrentHashMap<>();
     private final AtomicInteger globalConnections = new AtomicInteger();
     private final ConcurrentHashMap<String, AtomicInteger> connectionsByIp = new ConcurrentHashMap<>();
     private final Object registerLock = new Object();
@@ -115,10 +122,41 @@ public class RoundPresenceService {
         if (scopeKey == null) return;
         sessionsByScope.computeIfPresent(scopeKey, (k, list) -> {
             if (list.remove(session)) {
+                sendSessions.remove(session.getId());
                 decrementConnectionCounters(session);
             }
             return list.isEmpty() ? null : list;
         });
+    }
+
+    /**
+     * Prunes a session from a scope list and releases its send wrapper.
+     *
+     * @param list the scope's session list
+     * @param session the session to remove
+     */
+    private boolean pruneSession(final CopyOnWriteArrayList<WebSocketSession> list, final WebSocketSession session) {
+        if (list.remove(session)) {
+            sendSessions.remove(session.getId());
+            decrementConnectionCounters(session);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Returns the send-serializing wrapper for a session, creating it on first use.
+     *
+     * <p>Without it, two broadcasts for one scope can write to the same session at the
+     * same time — a join/leave racing the 30s sweep, for instance — and the container
+     * answers that with an {@link IllegalStateException}, which the broadcast error path
+     * used to mistake for a dead session. The wrapper also bounds a slow client (5s
+     * send, 64KiB buffer) instead of buffering without limit. The registry keeps the raw
+     * session, so session identity is unchanged.</p>
+     */
+    private WebSocketSession sendSessionFor(final WebSocketSession session) {
+        return sendSessions.computeIfAbsent(session.getId(),
+                id -> new ConcurrentWebSocketSessionDecorator(session, SEND_TIME_LIMIT_MS, SEND_BUFFER_LIMIT_BYTES));
     }
 
     /**
@@ -161,8 +199,7 @@ public class RoundPresenceService {
 
             for (final WebSocketSession session : List.copyOf(list)) {
                 if (!session.isOpen()) {
-                    if (list.remove(session)) {
-                        decrementConnectionCounters(session);
+                    if (pruneSession(list, session)) {
                         changed = true;
                     }
                     continue;
@@ -211,19 +248,23 @@ public class RoundPresenceService {
         final TextMessage message = new TextMessage(payload);
         for (final WebSocketSession session : list) {
             if (!session.isOpen()) {
-                if (list.remove(session)) {
-                    decrementConnectionCounters(session);
-                }
+                pruneSession(list, session);
                 continue;
             }
             try {
-                session.sendMessage(message);
+                sendSessionFor(session).sendMessage(message);
             } catch (IOException | IllegalStateException e) {
                 presenceMetrics.getObject().recordBroadcastFailure();
-                log.debug("Pruning failed presence session {} for scope {}: {}",
-                        session.getId(), scopeKey, e.toString());
-                if (list.remove(session)) {
-                    decrementConnectionCounters(session);
+                // Only genuinely dead sessions are pruned. With sends serialized, a failed
+                // write to a still-open session is transient (the next snapshot carries the
+                // full state), and pruning it would silently drop a connected client.
+                if (!session.isOpen() || e instanceof IOException) {
+                    log.debug("Pruning failed presence session {} for scope {}: {}",
+                            session.getId(), scopeKey, e.toString());
+                    pruneSession(list, session);
+                } else {
+                    log.debug("Broadcast to session {} failed but the session is open; keeping it: {}",
+                            session.getId(), e.toString());
                 }
             }
         }
