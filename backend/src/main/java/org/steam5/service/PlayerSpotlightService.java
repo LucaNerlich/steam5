@@ -284,7 +284,7 @@ public class PlayerSpotlightService {
         final List<Candidate> eligible = excludeRecentlyFeaturedPlayers(rawEligible, recentSpotlights);
 
         // Batch-prefetch recent guess rows for windowed tiers (MOST_IMPROVED needs 60d,
-        // HOT_STREAK/WELCOME_BACK need less). Avoid unbounded findBySteamIdIn — loading
+        // HOT_STREAK/WELCOME_BACK need less). Avoid unbounded per-user loads — loading
         // every guess for every eligible player is a known JDBC OOM path on small heaps.
         // BEST_DAY_EVER uses a separate daily-totals aggregation instead of full Guess rows.
         final List<String> eligibleIds = eligible.stream().map(Candidate::steamId).toList();

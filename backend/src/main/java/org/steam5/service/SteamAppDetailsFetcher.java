@@ -79,14 +79,10 @@ public class SteamAppDetailsFetcher implements Fetcher {
                 }
                 final Long appId = idx.getAppId();
                 if (appId == null) continue;
-                try {
-                    fetchForAppId(appId);
-                } catch (Exception e) {
-                    // bail immediately on any HTTP error such as 429. The cursor is
-                    // deliberately NOT advanced: the failed app must be retried on
-                    // the next run instead of being skipped forever.
-                    throw e;
-                }
+                // Bail out immediately on any HTTP error such as 429: the cursor is
+                // deliberately NOT advanced (see the upsert below), so the failed app is
+                // retried on the next run instead of being skipped forever.
+                fetchForAppId(appId);
                 // advance cursor only on success so transient failures are retried
                 ingestStateRepository.upsert("steam_app_details", appId, OffsetDateTime.now());
                 processed++;
