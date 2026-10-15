@@ -46,7 +46,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Slf4j
@@ -109,36 +108,6 @@ public class ReviewGameStateController {
         int max = 5;
         int step = 2;
         return Math.max(0, max - step * d);
-    }
-
-    private static Range parseBucketLabel(String label) {
-        if (label == null) throw new IllegalArgumentException("label null");
-        String s = label.trim();
-        // normalize thousands separators and spaces
-        s = s.replaceAll("[\\s,._]", "");
-        // open ended: "+", "≥", ">="
-        if (s.contains("+") || s.contains("≥") || s.contains(">=")) {
-            String digits = s.replaceAll("[^0-9]", "");
-            long lower = digits.isEmpty() ? 0L : Long.parseLong(digits);
-            return new Range(lower, null);
-        }
-        // closed range: hyphen, en dash, em dash
-        final Matcher matcher = Pattern.compile("(?i)(\\d+)[-–—](\\d+)").matcher(s);
-        if (matcher.find()) {
-            long a = Long.parseLong(matcher.group(1));
-            long b = Long.parseLong(matcher.group(2));
-            long lower = Math.min(a, b);
-            long upper = Math.max(a, b);
-            return new Range(lower, upper);
-        }
-        // single number fallback => exact match
-        Matcher one = Pattern.compile("(\\d+)").matcher(s);
-        if (one.find()) {
-            long v = Long.parseLong(one.group(1));
-            return new Range(v, v);
-        }
-        // default: treat as open ended from zero to be forgiving
-        return new Range(0L, null);
     }
 
     private static String weakEtagForPicks(List<SteamAppDetail> details) {
@@ -228,7 +197,12 @@ public class ReviewGameStateController {
 
         final int total = service.getTotalReviewCountForApp(req.appId);
         final String actual = service.inferBucket(total);
-        final boolean ok = isCorrectForLabel(req.bucketGuess, total);
+        // Correct means "this label names the bucket the app is in" — the same rule the
+        // existing-guess branch of /guess-auth already applies
+        // (actualBucket.equals(selectedBucket)). The range parser used here was a second,
+        // divergent rule: it accepted the open-ended top label for a total of exactly its
+        // boundary value, which inferBucket places in the closed bucket below.
+        final boolean ok = req.bucketGuess.equals(actual);
         return ResponseEntity.ok(new GuessResponse(req.appId, total, actual, ok));
     }
 
@@ -445,13 +419,6 @@ public class ReviewGameStateController {
     public record AlwaysPickScore(int bucketIndex, String bucketLabel, double avgPoints, int rounds) {
     }
 
-    // --- Bucket label parser: supports ranges like "1-100", en dash, em dash, and open-ended labels like "10000+" or "≥ 10000" ---
-    private static boolean isCorrectForLabel(String label, long totalReviews) {
-        Range r = parseBucketLabel(label);
-        if (r.upper == null) return totalReviews >= r.lower;
-        return totalReviews >= r.lower && totalReviews <= r.upper;
-    }
-
     @PostMapping("/guess-auth")
     @Transactional
     public ResponseEntity<GuessResponse> submitGuessAuthenticated(@CurrentUser String steamId,
@@ -539,7 +506,7 @@ public class ReviewGameStateController {
             // was not saved (that would leak today's answer for a retry).
             return ResponseEntity.status(409).build();
         }
-        final boolean ok = isCorrectForLabel(req.bucketGuess, total);
+        final boolean ok = req.bucketGuess.equals(computedActual);
         return ResponseEntity.ok(new GuessResponse(req.appId, total, computedActual, ok));
     }
 
@@ -712,9 +679,6 @@ public class ReviewGameStateController {
         return ResponseEntity.ok()
                 .header("Cache-Control", "no-store")
                 .body(Map.of("date", date.get().toString()));
-    }
-
-    private record Range(long lower, Long upper) {
     }
 
     public record HistoricalAlwaysPickResponse(String from, String to, List<AlwaysPickScore> scores) {
