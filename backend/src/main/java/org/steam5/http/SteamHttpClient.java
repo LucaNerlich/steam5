@@ -5,13 +5,18 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tags;
 import io.micrometer.core.instrument.Timer;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.RestTemplate;
 import org.steam5.config.SteamAppsConfig;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 
 @Slf4j
 @Component
@@ -94,20 +99,12 @@ public class SteamHttpClient {
             attempt++;
             try {
                 rateLimiter.acquirePermit();
-                final ResponseEntity<String> resp = restTemplate.getForEntity(url, String.class);
-                final int status = resp.getStatusCode().value();
-                if (status >= 200 && status < 300) {
-                    if (attempt > 1) {
-                        log.info("Steam API call succeeded on attempt {}: {}", attempt, sanitizeUrl(url));
-                    }
-                    recordOutcome(endpoint, "success", System.nanoTime() - started);
-                    return resp.getBody();
+                final String body = readBodyBounded(url);
+                if (attempt > 1) {
+                    log.info("Steam API call succeeded on attempt {}: {}", attempt, sanitizeUrl(url));
                 }
-                // Anything else is an error and must terminate the retry loop. The default
-                // ResponseErrorHandler throws for 4xx/5xx, so only 1xx or an unfollowed 3xx can
-                // reach this line; their retry policy lives in the catch blocks below.
-                recordOutcome(endpoint, "failed", System.nanoTime() - started);
-                throw new SteamApiException(status, url, "HTTP " + status + " calling Steam API");
+                recordOutcome(endpoint, "success", System.nanoTime() - started);
+                return body;
             } catch (RestClientResponseException rcre) {
                 final int status = rcre.getStatusCode().value();
                 if (shouldRetry(status) && attempt < maxAttempts) {
@@ -134,5 +131,50 @@ public class SteamHttpClient {
                 throw new SteamApiException(599, url, "Network error calling Steam API", rae);
             }
         }
+    }
+
+    /** Largest Steam API response this client will buffer. */
+    static final long MAX_RESPONSE_BYTES = 16L * 1024 * 1024;
+
+    /**
+     * GETs {@code url} and reads the body with a hard size cap.
+     *
+     * <p>{@code getForEntity(url, String.class)} buffered the entire response before anything
+     * could look at its size, so one oversized or malformed Steam response could pressure or
+     * exhaust the single backend JVM's heap (the app list request alone asks Steam for up to
+     * 50k apps). The declared {@code Content-Length} is rejected first, and the read is capped
+     * as well because a chunked response declares no length.</p>
+     */
+    private String readBodyBounded(final String url) {
+        return restTemplate.execute(url, HttpMethod.GET, null, response -> {
+            final HttpStatusCode status = response.getStatusCode();
+            if (!status.is2xxSuccessful()) {
+                // The default error handler throws for 4xx/5xx; only 1xx or an unfollowed 3xx
+                // reach here, and they must not be buffered as a success.
+                throw new SteamApiException(status.value(), url, "HTTP " + status.value() + " calling Steam API");
+            }
+            final long declared = response.getHeaders().getContentLength();
+            if (declared > MAX_RESPONSE_BYTES) {
+                throw new IOException("Steam API response declares " + declared
+                        + " bytes, over the " + MAX_RESPONSE_BYTES + "-byte cap");
+            }
+            return new String(readBounded(response.getBody(), MAX_RESPONSE_BYTES), StandardCharsets.UTF_8);
+        });
+    }
+
+    /**
+     * Reads at most {@code maxBytes} from {@code in}, failing when the stream holds more.
+     *
+     * @param in       the response body stream
+     * @param maxBytes the largest body this client will buffer
+     * @return the body bytes
+     * @throws IOException when the body exceeds {@code maxBytes} (or the stream fails)
+     */
+    static byte[] readBounded(final InputStream in, final long maxBytes) throws IOException {
+        final byte[] body = in.readNBytes((int) maxBytes + 1);
+        if (body.length > maxBytes) {
+            throw new IOException("Steam API response exceeds the " + maxBytes + "-byte cap");
+        }
+        return body;
     }
 }
