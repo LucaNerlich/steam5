@@ -48,6 +48,18 @@ function buildHeatmapGrid(avgByDay: Map<string, number>) {
     return {cells, monthLabels};
 }
 
+/**
+ * A usable text summary: `role="img"` collapses the grid, so the per-cell labels and
+ * `<title>` elements inside it are never announced.
+ */
+function heatmapSummary(cells: {dateStr: string; avg: number | null}[]): string {
+    const played = cells.filter(c => c.avg !== null);
+    if (played.length === 0) return "no recorded play";
+    const best = played.reduce((a, b) => ((b.avg as number) > (a.avg as number) ? b : a));
+    const total = played.reduce((sum, c) => sum + (c.avg ?? 0), 0);
+    return `${played.length} active days, average ${(total / played.length).toFixed(1)} pts/round, busiest ${best.dateStr} at ${(best.avg as number).toFixed(1)}`;
+}
+
 export default function CalendarHeatmap({rounds}: { rounds: Round[] }): React.ReactElement {
     const avgByDay = (() => {
         const map = new Map<string, { total: number; count: number }>();
@@ -79,7 +91,7 @@ export default function CalendarHeatmap({rounds}: { rounds: Round[] }): React.Re
                     viewBox={`0 0 ${svgW} ${svgH}`}
                     className="perf-line"
                     role="img"
-                    aria-label="Calendar heatmap of play activity over the last year"
+                    aria-label={`Calendar heatmap of play activity over the last year: ${heatmapSummary(cells)}`}
                     style={{minWidth: 400}}
                 >
                     {/* Month labels */}

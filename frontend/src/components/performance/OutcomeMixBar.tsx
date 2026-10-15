@@ -39,7 +39,7 @@ export default function OutcomeMixBar({rounds}: { rounds: Round[] }): React.Reac
     return (
         <div className="perf-card">
             <div className="perf-card__title">Outcome mix (last {DAYS_WINDOW} days)</div>
-            <div className="perf-stacked" role="img" aria-label="Distribution of outcomes">
+            <div className="perf-stacked" role="img" aria-label={`Outcome mix: ${bars.map(b => `${b.key} ${b.value} (${Math.round(b.pct * 100)}%)`).join(", ")}`}>
                 {bars.map(part => (
                     <div key={part.key} className="perf-stacked__part" style={{width: `${part.pct * 100}%`, background: part.color}}/>
                 ))}

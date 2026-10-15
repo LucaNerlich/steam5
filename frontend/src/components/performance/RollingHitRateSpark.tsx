@@ -65,7 +65,7 @@ export default function RollingHitRateSpark({rounds}: { rounds: Round[] }): Reac
     return (
         <div className="perf-card">
             <div className="perf-card__title">Hit rate (rolling last {DAYS_WINDOW} days)</div>
-            <svg viewBox={`0 0 ${width} ${height}`} className="perf-spark" role="img" aria-label="Rolling hit rate with axes">
+            <svg viewBox={`0 0 ${width} ${height}`} className="perf-spark" role="img" aria-label={`Rolling hit rate over the last ${DAYS_WINDOW} days: ${series.length === 0 ? "no data" : `min ${Math.min(...series)}%, max ${Math.max(...series)}%, latest ${series[series.length - 1]}%`}`}>
                 {([0,25,50,75,100] as const).map(p => (
                     <g key={p}>
                         <line x1={padding} x2={width - padding} y1={y(p)} y2={y(p)} stroke="var(--color-border)" strokeOpacity="0.5" strokeWidth="1" />

@@ -55,7 +55,7 @@ export default function BucketCallouts({rounds}: { rounds: Round[] }): React.Rea
                     Need at least {MIN_ROUNDS} rounds per bucket
                 </p>
             ) : (
-                <div className="bucket-callout" role="img" aria-label="Best and worst bucket by hit rate">
+                <div className="bucket-callout" role="img" aria-label={`Best and worst bucket by hit rate: best ${best!.label} ${Math.round(best!.pct * 100)}% (${best!.hits}/${best!.total}), ${worst === null ? "no second bucket" : `worst ${worst.label} ${Math.round(worst.pct * 100)}% (${worst.hits}/${worst.total})`}`}>
                     <div className="bucket-callout__row">
                         <span className="bucket-callout__label">
                             Best: <strong className="bucket-callout__label--success">{best!.label}</strong>

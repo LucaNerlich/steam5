@@ -41,7 +41,7 @@ export default function BucketAccuracyBars({rounds}: { rounds: Round[] }): React
             {stats.length === 0 ? (
                 <p className="text-muted">No data</p>
             ) : (
-                <div className="bucket-bars" role="img" aria-label="Accuracy by bucket">
+                <div className="bucket-bars" role="img" aria-label={`Accuracy by bucket: ${stats.map(s => `${s.label} ${Math.round(s.pct)}%`).join(", ")}`}>
                     {stats.map((row) => (
                         <div key={row.label} className="bucket-bars__row">
                             <span className="bucket-bars__label">{row.label}</span>

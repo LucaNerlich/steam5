@@ -31,6 +31,17 @@ function computeWindow(daysWindow: number) {
     };
 }
 
+/**
+ * A usable text summary for a chart whose values otherwise exist only inside its
+ * `role="img"` subtree (which assistive tech collapses to the label).
+ */
+function pointSummary(rounds: { points: number }[]): string {
+    if (rounds.length === 0) return "no data";
+    const pts = rounds.map(r => r.points);
+    const avg = pts.reduce((a, b) => a + b, 0) / pts.length;
+    return `${rounds.length} rounds, average ${avg.toFixed(2)} pts, range ${Math.min(...pts)}-${Math.max(...pts)}`;
+}
+
 export default function PointsByRoundChart({rounds}: { rounds: Round[] }): React.ReactElement {
     const DAYS_WINDOW = 30;
 
@@ -80,7 +91,7 @@ export default function PointsByRoundChart({rounds}: { rounds: Round[] }): React
     return (
         <div className="perf-card">
             <div className="perf-card__title">Points by round (last {DAYS_WINDOW} days)</div>
-            <svg viewBox={`0 0 ${width} ${height}`} className="perf-line" role="img" aria-label="Points by round with axes">
+            <svg viewBox={`0 0 ${width} ${height}`} className="perf-line" role="img" aria-label={`Points by round: ${pointSummary(last)}`}>
                 <defs>
                     <linearGradient id="perfLineGrad" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor="var(--color-primary, #6366f1)" stopOpacity="0.4"/>
