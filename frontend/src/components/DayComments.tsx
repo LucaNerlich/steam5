@@ -11,6 +11,7 @@ import {buildSteamLoginUrl} from "@/lib/steamLogin";
 import ReactionBar from "@/components/ReactionBar";
 import Avatar from "@/components/Avatar";
 import ConfirmModal from "@/components/ConfirmModal";
+import useStoredDay from "@/components/round/useStoredDay";
 import {
     COMMENT_MODERATOR_STEAM_ID,
     archiveComment,
@@ -637,6 +638,12 @@ export default function DayComments(props: {
             : {revalidateOnFocus: false},
     );
 
+    // The stored day comes from the shared external store rather than a render-phase
+    // localStorage read: reading it during render made the server HTML and the hydration
+    // render disagree (React logs a hydration error and discards that render), and never
+    // subscribed to later writes.
+    const stored = useStoredDay(gameDate);
+
     const handlePosted = () => {
         void mutate();
     };
@@ -673,13 +680,6 @@ export default function DayComments(props: {
     // round for this day (same completion check as RoundSummary/ShareControls).
     // Readonly (archive) views and anonymous visitors are exempt from this gate.
     if (!readOnly && isSignedIn === true && totalRounds !== undefined && latestRound !== undefined && latest) {
-        let stored: StoredDay | null = null;
-        try {
-            const raw = typeof window !== "undefined" ? window.localStorage.getItem(`review-guesser:${gameDate}`) : null;
-            stored = raw ? (JSON.parse(raw) as StoredDay) : null;
-        } catch {
-            stored = null;
-        }
         const merged: Record<number, RoundResult> = {
             ...(stored?.results || {}),
             ...(results || {}),
