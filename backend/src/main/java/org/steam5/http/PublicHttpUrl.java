@@ -16,6 +16,7 @@ import java.net.Socket;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.UnknownHostException;
+import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 
@@ -201,28 +202,28 @@ public final class PublicHttpUrl {
 
         @Override
         public Socket createSocket() throws IOException {
-            return configure(createPlainSocket());
+            return configure(createPlainSocket(), true);
         }
 
         @Override
         public Socket createSocket(String host, int port) throws IOException {
-            return configure(createPlainSocket());
+            return configure(createPlainSocket(), true);
         }
 
         @Override
         public Socket createSocket(String host, int port, InetAddress localHost, int localPort) throws IOException {
-            return configure(createPlainSocket());
+            return configure(createPlainSocket(), true);
         }
 
         @Override
         public Socket createSocket(InetAddress host, int port) throws IOException {
-            return configure(createPlainSocket());
+            return configure(createPlainSocket(), true);
         }
 
         @Override
         public Socket createSocket(InetAddress address, int port, InetAddress localAddress, int localPort)
                 throws IOException {
-            return configure(createPlainSocket());
+            return configure(createPlainSocket(), true);
         }
 
         @Override
@@ -237,7 +238,7 @@ public final class PublicHttpUrl {
 
         @Override
         public Socket createSocket(Socket socket, String host, int port, boolean autoClose) throws IOException {
-            return configure(delegate.createSocket(socket, this.hostname, this.port, autoClose));
+            return configure(socket, autoClose);
         }
 
         private Socket createPlainSocket() throws IOException {
@@ -246,12 +247,15 @@ public final class PublicHttpUrl {
             return socket;
         }
 
-        private SSLSocket configure(Socket socket) throws IOException {
-            final SSLSocket ssl = (SSLSocket) delegate.createSocket(socket, hostname, port, true);
+        private Socket configure(Socket socket, boolean autoClose) throws IOException {
+            final SSLSocket ssl = (SSLSocket) delegate.createSocket(socket, hostname, port, autoClose);
             final SSLParameters params = ssl.getSSLParameters();
-            params.setServerNames(java.util.List.of(new SNIHostName(hostname)));
+            params.setServerNames(List.of(new SNIHostName(hostname)));
             ssl.setSSLParameters(params);
-            return ssl;
+            // HttpsURLConnection connects whatever this factory returned, but the
+            // socket already is connected to the validated address and SSLSocketImpl
+            // rejects a second connect() on a layered socket ("Already connected").
+            return new PinnedSslSocket(ssl);
         }
     }
 }
