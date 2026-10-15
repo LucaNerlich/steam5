@@ -2,6 +2,7 @@ package org.steam5.service;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.core.env.Environment;
 import org.steam5.domain.User;
 import org.steam5.repository.UserRepository;
@@ -13,6 +14,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.mock;
@@ -70,6 +72,8 @@ class AuthTokenServiceTest {
     @Test
     void logoutThenLoginWithinTheSameSecondKeepsTheNewTokenValid() {
         final OffsetDateTime logoutAt = OffsetDateTime.parse("2026-09-15T12:00:00.100Z");
+        when(userRepository.advanceTokenNotValidBefore(STEAM_ID, logoutAt.withOffsetSameInstant(ZoneOffset.UTC).withNano(0)))
+                .thenReturn(1); // known user: the conditional update records the cutoff
         service.invalidateTokensIssuedBefore(STEAM_ID, logoutAt);
 
         final OffsetDateTime storedCutoff = logoutAt.withOffsetSameInstant(ZoneOffset.UTC).withNano(0);
@@ -88,21 +92,29 @@ class AuthTokenServiceTest {
     @Test
     void invalidateTokensIssuedBefore_usesAnAtomicWholeSecondUpdate() {
         final OffsetDateTime requested = OffsetDateTime.parse("2026-09-15T14:00:00.987654321+02:00");
+        when(userRepository.advanceTokenNotValidBefore(STEAM_ID, OffsetDateTime.parse("2026-09-15T12:00:00Z")))
+                .thenReturn(1);
 
         service.invalidateTokensIssuedBefore(STEAM_ID, requested);
 
         verify(userRepository).advanceTokenNotValidBefore(
                 eq(STEAM_ID), eq(OffsetDateTime.parse("2026-09-15T12:00:00Z")));
         verify(userRepository, never()).findById(STEAM_ID);
+        verify(userRepository, never()).save(any(User.class));
     }
 
     @Test
-    void invalidatingAnUnknownUserIsHandledByTheConditionalUpdate() {
+    void invalidatingAUserWithNoRowStillRecordsTheCutoff() {
+        // The defect: 0 rows affected was treated as success. `verifyToken` skips the cutoff
+        // when the row is missing, so the token stayed valid for its full 30 days.
         final OffsetDateTime instant = OffsetDateTime.parse("2026-09-15T12:00:00Z");
         when(userRepository.advanceTokenNotValidBefore(STEAM_ID, instant)).thenReturn(0);
 
         service.invalidateTokensIssuedBefore(STEAM_ID, instant);
 
-        verify(userRepository).advanceTokenNotValidBefore(STEAM_ID, instant);
+        final ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(captor.capture());
+        assertEquals(STEAM_ID, captor.getValue().getSteamId());
+        assertEquals(instant, captor.getValue().getTokenNotValidBefore());
     }
 }
