@@ -36,12 +36,10 @@ Layout:
 
 ```
 monitoring/
-├── docker-compose.yml
+├── docker-compose.yml          # inlined container configs (single source) + env contract
 ├── .env.example                # source of truth for tunable env vars
 ├── prometheus/
-│   ├── prometheus.yml.tpl      # config template (see entrypoint.sh)
-│   ├── alert_rules.yml         # source-of-truth alert rules (mirrored inline)
-│   └── entrypoint.sh           # renders template + writes basic-auth secrets
+│   └── alert_rules.yml         # source-of-truth alert rules (mirrored inline)
 └── grafana/
     ├── provisioning/
     │   ├── datasources/        # Prometheus datasource (auto-provisioned)
@@ -49,11 +47,15 @@ monitoring/
     └── dashboards-json/        # JSON dashboards picked up by the provider
 ```
 
-Everything under `prometheus/` and `grafana/` is also inlined into
-`docker-compose.yml` as a top-level `configs:` entry: Coolify's Git deploy mode
-ships only the compose file, so the compose is what a deployment actually runs.
-Editing a source file here only reaches a deployment once the matching inlined
-copy is regenerated (see [Dashboards](#dashboards) below).
+Configs that live **only** in `docker-compose.yml`: the Prometheus entrypoint
+shim and the Prometheus config template — there are deliberately no on-disk
+copies to keep in sync.
+
+Configs **mirrored inline from disk**: the alert rules and the Grafana
+provisioning files/dashboards. Coolify's Git deploy mode ships only the compose
+file, so the compose is what a deployment actually runs; editing a source file
+here only reaches a deployment once the matching inlined copy is regenerated
+(see [Dashboards](#dashboards) below).
 
 ## Local development
 
@@ -462,5 +464,5 @@ dashboard — panels should render within one scrape interval.
 | Dashboards empty, no data                        | No traffic generated yet, or wrong datasource.                                | Hit the backend (`curl http://localhost:8080/actuator/health`); wait one scrape interval. In Grafana → **Connections → Data sources**, confirm `Prometheus` is healthy. |
 | Dashboards empty, datasource healthy             | Backend not emitting `application="steam5"` label, or different label value.  | Confirm `management.metrics.tags.application: steam5` is set in the backend's `application.yml`. Check Prometheus → **Graph** with `up{job="steam5"}`; if it returns `1` but a query like `jvm_memory_used_bytes{application="steam5"}` is empty, the tag is missing or different. |
 | Grafana shows "If you're seeing this Grafana has failed to load…" | `GF_SERVER_ROOT_URL` mismatch behind reverse proxy.                            | Set `GF_SERVER_ROOT_URL` to the **external** HTTPS URL and `GF_SERVER_DOMAIN` to the same hostname. Restart Grafana. |
-| Prometheus container restarts in a loop         | Bad placeholder substitution in `prometheus.yml.tpl`, or missing env var.     | `docker compose logs prometheus` — the entrypoint script `sed` step will surface unresolved `@@VAR@@` markers. Confirm all `STEAM5_METRICS_*` vars are set. |
+| Prometheus container restarts in a loop         | Bad placeholder substitution in the inlined Prometheus config template, or missing env var. | `docker compose logs prometheus` — the entrypoint script `sed` step will surface unresolved `@@VAR@@` markers. Confirm all `STEAM5_METRICS_*` vars are set. |
 | Backend logs `WARN … METRICS_USERNAME … default` | Production running with `metrics` / `metrics` defaults.                       | Set strong `METRICS_USERNAME` / `METRICS_PASSWORD` on the backend service in Coolify; redeploy.                  |

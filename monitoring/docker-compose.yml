@@ -1,22 +1,22 @@
 # Steam5 monitoring stack: Prometheus + Grafana.
 #
-# Mandatory sidecar configs (the Prometheus entrypoint shim, config template and
-# alert rules, the Grafana datasource and dashboards) are inlined below as
-# top-level `configs:` so the stack is self-contained — Coolify's Git deploy
-# mode ships only this compose file, not sibling sidecar files.
+# The Prometheus entrypoint shim and config template are inlined below as
+# top-level `configs:` and exist ONLY here — there is deliberately no on-disk
+# `prometheus/entrypoint.sh` / `prometheus.yml.tpl` to keep in sync. Coolify's
+# Git deploy mode ships only this compose file, and no configuration files are
+# mounted from disk, so this file is what a deployment runs: edit the inlined
+# content directly (escape every literal `$` as `$$`).
 #
-# Source-of-truth files remain on disk under `monitoring/prometheus/` and
-# `monitoring/grafana/` (`provisioning/` and `dashboards-json/`). Keep the
-# inlined copies below in sync when editing those (escape every literal `$` to
-# `$$`).
+# The alert rules and the Grafana provisioning files ARE mirrored from disk
+# under `monitoring/prometheus/` and `monitoring/grafana/` (`provisioning/` and
+# `dashboards-json/`). Keep the inlined copies below in sync when editing those
+# (again escaping `$` as `$$`).
 #
-# Dashboards ARE inlined as well: the Grafana dashboard provider
-# (`grafana_dashboards_provider`) and every JSON under
-# `monitoring/grafana/dashboards-json/` are mounted read-only under /etc/grafana
-# so a fresh deploy provisions them and recreating the data volume cannot lose
-# them. When editing a dashboard, re-inline it here the same way (indent the
-# JSON by six spaces and escape every literal `$` as `$$` — the dashboards use
-# Grafana template variables like `$cache`).
+# Dashboards: every JSON under `monitoring/grafana/dashboards-json/` is mounted
+# read-only under /etc/grafana so a fresh deploy provisions them and recreating
+# the data volume cannot lose them. When editing a dashboard, re-inline it here
+# the same way (indent the JSON by six spaces and escape every literal `$` as
+# `$$` — the dashboards use Grafana template variables like `$cache`).
 #
 # Image tags and data directories default to the pinned / production values and
 # are overridable from the environment (`PROMETHEUS_IMAGE`, `GRAFANA_IMAGE`,
