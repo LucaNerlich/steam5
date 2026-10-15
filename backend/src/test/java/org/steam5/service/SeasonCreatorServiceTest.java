@@ -32,6 +32,32 @@ class SeasonCreatorServiceTest {
     }
 
     @Test
+    void buildSeason_isTheOneDefinitionBothCreationPathsUse() {
+        final LocalDate start = LocalDate.of(2026, 3, 1);
+
+        final Season season = SeasonCreatorService.buildSeason(4, start, SeasonStatus.ACTIVE, seasonProperties);
+
+        assertEquals(4, season.getSeasonNumber());
+        assertEquals(start, season.getStartDate());
+        assertEquals(start.plusDays(6), season.getEndDate(), "7-day window, inclusive");
+        assertEquals(SeasonStatus.ACTIVE, season.getStatus());
+        assertNotNull(season.getAwardSeed());
+        assertNull(season.getAwardsFinalizedAt());
+        assertNotNull(season.getCreatedAt());
+        assertNotNull(season.getUpdatedAt());
+    }
+
+    @Test
+    void seasonLengthIsClampedToAtLeastOneDay() {
+        seasonProperties.setLengthDays(0);
+
+        assertEquals(1, SeasonCreatorService.seasonLengthDays(seasonProperties));
+        assertEquals(LocalDate.of(2026, 3, 1),
+                SeasonCreatorService.buildSeason(1, LocalDate.of(2026, 3, 1), SeasonStatus.ACTIVE, seasonProperties)
+                        .getEndDate());
+    }
+
+    @Test
     void createSeasonsUntil_createsFirstSeasonWhenNoneExist() {
         when(seasonRepository.findTopByOrderBySeasonNumberDesc()).thenReturn(Optional.empty());
         final LocalDate date = LocalDate.of(2026, 1, 1);

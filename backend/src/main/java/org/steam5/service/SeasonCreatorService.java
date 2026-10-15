@@ -39,10 +39,20 @@ class SeasonCreatorService {
     }
 
     private Season buildSeason(int seasonNumber, LocalDate startDate, SeasonStatus status) {
+        return buildSeason(seasonNumber, startDate, status, seasonProperties);
+    }
+
+    /**
+     * The single definition of what a season row is: its dates, status, award seed and
+     * timestamps. Lives here because this service owns season creation; {@code SeasonService}
+     * calls it too, so the invariants cannot drift between the two creation paths.
+     */
+    static Season buildSeason(int seasonNumber, LocalDate startDate, SeasonStatus status,
+                              SeasonProperties properties) {
         Season season = new Season();
         season.setSeasonNumber(seasonNumber);
         season.setStartDate(startDate);
-        season.setEndDate(startDate.plusDays(seasonLengthDays() - 1L));
+        season.setEndDate(startDate.plusDays(seasonLengthDays(properties) - 1L));
         season.setStatus(status);
         season.setAwardSeed(ThreadLocalRandom.current().nextLong(Long.MAX_VALUE));
         season.setAwardsFinalizedAt(null);
@@ -51,7 +61,8 @@ class SeasonCreatorService {
         return season;
     }
 
-    private int seasonLengthDays() {
-        return Math.max(1, seasonProperties.getLengthDays());
+    /** Season length in days, clamped to at least one. */
+    static int seasonLengthDays(SeasonProperties properties) {
+        return Math.max(1, properties.getLengthDays());
     }
 }

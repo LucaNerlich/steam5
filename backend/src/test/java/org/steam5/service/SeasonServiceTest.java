@@ -205,6 +205,10 @@ class SeasonServiceTest {
         assertEquals(1, result.size());
         assertEquals(1, result.get(0).getSeasonNumber());
         assertEquals(onlyDate, result.get(0).getStartDate());
+        // The length rule is shared with SeasonCreatorService (SeasonProperties defaults to 30
+        // days), so this path must produce the same inclusive window.
+        assertEquals(onlyDate.plusDays(29), result.get(0).getEndDate(),
+                "a 30-day season window, from the shared length rule");
         verify(guessRepository, times(1)).findLatestGameDate();
     }
 

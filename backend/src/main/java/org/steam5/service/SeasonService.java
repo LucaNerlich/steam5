@@ -24,7 +24,6 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -200,8 +199,8 @@ public class SeasonService {
                 seasonRepository.shiftSeasonNumbersUpBy(1_000_000);
                 seasonRepository.shiftSeasonNumbersUpBy(missing - 1_000_000);
                 for (int number = missing; number >= 1; number--) {
-                    final LocalDate start = earliest.get().getStartDate().minusDays((long) number * seasonLengthDays());
-                    created.add(seasonRepository.save(buildSeason(number, start, SeasonStatus.ACTIVE)));
+                    final LocalDate start = earliest.get().getStartDate().minusDays((long) number * SeasonCreatorService.seasonLengthDays(seasonProperties));
+                    created.add(seasonRepository.save(SeasonCreatorService.buildSeason(number, start, SeasonStatus.ACTIVE, seasonProperties)));
                 }
             }
         }
@@ -211,7 +210,7 @@ public class SeasonService {
 
         if (last == null) {
             // Empty table: seed season #1 at the earliest guess date.
-            last = seasonRepository.save(buildSeason(1, startInclusive, SeasonStatus.ACTIVE));
+            last = seasonRepository.save(SeasonCreatorService.buildSeason(1, startInclusive, SeasonStatus.ACTIVE, seasonProperties));
             created.add(last);
             nextNumber = 2;
         } else {
@@ -220,7 +219,7 @@ public class SeasonService {
 
         LocalDate nextStart = last.getEndDate().plusDays(1);
         while (!nextStart.isAfter(endInclusive)) {
-            last = seasonRepository.save(buildSeason(nextNumber++, nextStart, SeasonStatus.ACTIVE));
+            last = seasonRepository.save(SeasonCreatorService.buildSeason(nextNumber++, nextStart, SeasonStatus.ACTIVE, seasonProperties));
             created.add(last);
             nextStart = last.getEndDate().plusDays(1);
         }
@@ -231,7 +230,7 @@ public class SeasonService {
     private int missingSeasonCount(LocalDate startInclusive, LocalDate earliestStart) {
         final long days = ChronoUnit.DAYS.between(startInclusive, earliestStart);
         if (days <= 0) return 0;
-        final int length = seasonLengthDays();
+        final int length = SeasonCreatorService.seasonLengthDays(seasonProperties);
         return (int) ((days + length - 1) / length);
     }
 
@@ -280,19 +279,6 @@ public class SeasonService {
         managed.setAwardsFinalizedAt(OffsetDateTime.now());
         managed.setUpdatedAt(OffsetDateTime.now());
         return seasonRepository.save(managed);
-    }
-
-    private Season buildSeason(int seasonNumber, LocalDate startDate, SeasonStatus status) {
-        Season season = new Season();
-        season.setSeasonNumber(seasonNumber);
-        season.setStartDate(startDate);
-        season.setEndDate(startDate.plusDays(seasonLengthDays() - 1L));
-        season.setStatus(status);
-        season.setAwardSeed(ThreadLocalRandom.current().nextLong(Long.MAX_VALUE));
-        season.setAwardsFinalizedAt(null);
-        season.setCreatedAt(OffsetDateTime.now());
-        season.setUpdatedAt(OffsetDateTime.now());
-        return season;
     }
 
     private SeasonStats buildSeasonStats(GuessRepository.SeasonStatRow row, List<LocalDate> participationDates) {
@@ -477,10 +463,6 @@ public class SeasonService {
         int hash = Objects.hash(season.getAwardSeed(), category, steamId);
         int roll = Math.floorMod(hash, TIE_ROLL_MAX);
         return roll == 0 ? 1 : roll;
-    }
-
-    private int seasonLengthDays() {
-        return Math.max(1, seasonProperties.getLengthDays());
     }
 
     private static LocalDate todayUtc() {
