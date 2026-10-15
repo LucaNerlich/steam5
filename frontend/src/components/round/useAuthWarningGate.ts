@@ -37,6 +37,8 @@ function cloneFormData(formData: FormData): FormData {
 type AuthWarningGate = {
     /** Whether the "not signed in" warning modal is currently open. */
     showAuthWarning: boolean;
+    /** Whether the pre-submit auth probe is in flight (the bucket buttons must stay disabled). */
+    isGating: boolean;
     /** Wrap this as the guess form's action to run the auth guard first. */
     handleAuthGuardedSubmit: (formData: FormData) => Promise<void>;
     handleLogin: () => void;
@@ -61,6 +63,7 @@ export default function useAuthWarningGate(
     submitGuess: (formData: FormData) => void,
 ): AuthWarningGate {
     const [showAuthWarning, setShowAuthWarning] = useState(false);
+    const [isGating, setIsGating] = useState(false);
     const pendingFormData = useRef<FormData | null>(null);
 
     const handleAuthGuardedSubmit = async (formData: FormData) => {
@@ -71,7 +74,19 @@ export default function useAuthWarningGate(
         // re-validate before letting the guess count — this catches a session
         // lost mid-round (the HttpOnly s5_token cookie can vanish without the
         // client knowing).
-        const fetched = (dismissed || signedIn === false) ? false : await fetchSignedIn();
+        //
+        // The probe can take seconds on a slow link, and nothing else marks the submit as
+        // in flight during it: `isPending` only starts once startTransition runs inside
+        // submitGuess. Reporting it lets the caller disable the bucket buttons, so a second
+        // click cannot pair its label with the first guess's response.
+        const willProbe = !dismissed && signedIn !== false;
+        if (willProbe) setIsGating(true);
+        let fetched: boolean | null = null;
+        try {
+            fetched = willProbe ? await fetchSignedIn() : false;
+        } finally {
+            if (willProbe) setIsGating(false);
+        }
         const live = resolveLiveSignedIn(signedIn, fetched);
         if (shouldWarnBeforeSubmit(dismissed, live)) {
             if (signedIn !== false) refreshAuth(); // sync header with the fresh value
@@ -104,5 +119,5 @@ export default function useAuthWarningGate(
         if (data) submitGuess(data);
     };
 
-    return {showAuthWarning, handleAuthGuardedSubmit, handleLogin, handleSkip, handleIgnore};
+    return {showAuthWarning, isGating, handleAuthGuardedSubmit, handleLogin, handleSkip, handleIgnore};
 }
