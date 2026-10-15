@@ -9,11 +9,11 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.steam5.domain.GameDate;
 import org.steam5.domain.ReviewGamePick;
 import org.steam5.domain.SteamAppReviews;
+import org.steam5.domain.details.SteamAppDetailService;
 import org.steam5.repository.GuessRepository;
 import org.steam5.repository.ReviewGamePickRepository;
 import org.steam5.repository.SteamAppReviewsRepository;
 import org.steam5.repository.UserRepository;
-import org.steam5.repository.details.SteamAppDetailRepository;
 import org.steam5.service.ReviewGameStateService;
 
 import java.time.LocalDate;
@@ -43,14 +43,14 @@ public class ReviewGameStateControllerRandomArchiveTest {
     @BeforeEach
     void setUp() {
         service = mock(ReviewGameStateService.class);
-        final SteamAppDetailRepository detailRepository = mock(SteamAppDetailRepository.class);
+        final SteamAppDetailService detailService = mock(SteamAppDetailService.class);
         final GuessRepository guessRepository = mock(GuessRepository.class);
         reviewsRepository = mock(SteamAppReviewsRepository.class);
         final UserRepository userRepository = mock(UserRepository.class);
         pickRepository = mock(ReviewGamePickRepository.class);
         final Scheduler scheduler = mock(Scheduler.class);
         final MeterRegistry meterRegistry = mock(MeterRegistry.class);
-        controller = new ReviewGameStateController(service, detailRepository, guessRepository,
+        controller = new ReviewGameStateController(service, detailService, guessRepository,
                 reviewsRepository, userRepository, pickRepository, scheduler, meterRegistry,
                 mock(PlatformTransactionManager.class));
     }

@@ -17,11 +17,11 @@ import org.steam5.domain.ReviewGamePick;
 import org.steam5.domain.SteamAppReviews;
 import org.steam5.domain.User;
 import org.steam5.domain.details.SteamAppDetail;
+import org.steam5.domain.details.SteamAppDetailService;
 import org.steam5.http.ReviewGameException;
 import org.steam5.repository.GuessRepository;
 import org.steam5.repository.SteamAppReviewsRepository;
 import org.steam5.repository.UserRepository;
-import org.steam5.repository.details.SteamAppDetailRepository;
 import org.steam5.security.CurrentUser;
 import org.steam5.service.ReviewGameStateService;
 import org.quartz.Scheduler;
@@ -57,7 +57,7 @@ import java.util.regex.Pattern;
 public class ReviewGameStateController {
 
     private final ReviewGameStateService service;
-    private final SteamAppDetailRepository detailRepository;
+    private final SteamAppDetailService detailService;
     private final GuessRepository guessRepository;
     private final SteamAppReviewsRepository reviewsRepository;
     private final UserRepository userRepository;
@@ -214,7 +214,7 @@ public class ReviewGameStateController {
     public ResponseEntity<List<SteamAppDetail>> getTodayDetails(@RequestHeader HttpHeaders headers) {
         final List<ReviewGamePick> picks = service.generateDailyPicks();
         final List<Long> appIds = picks.stream().map(ReviewGamePick::getAppId).toList();
-        final List<SteamAppDetail> details = detailRepository.findAllByAppIdIn(appIds);
+        final List<SteamAppDetail> details = detailService.findAllByAppIdIn(appIds);
         final String etag = weakEtagForPicks(details);
         if (etag != null && headers.getIfNoneMatch().contains(etag)) {
             return ResponseEntity.status(304)
@@ -330,7 +330,7 @@ public class ReviewGameStateController {
     public ResponseEntity<ReviewGameStateDto> getToday(@RequestHeader HttpHeaders headers) {
         final List<ReviewGamePick> picks = service.generateDailyPicks();
         final List<Long> appIds = picks.stream().map(ReviewGamePick::getAppId).toList();
-        final List<SteamAppDetail> fetched = detailRepository.findAllByAppIdIn(appIds).stream().toList();
+        final List<SteamAppDetail> fetched = detailService.findAllByAppIdIn(appIds).stream().toList();
         // Ensure details preserve the appIds order so round indices match what the user sees
         final Map<Long, SteamAppDetail> byId = new HashMap<>();
         for (SteamAppDetail d : fetched) {
@@ -528,7 +528,7 @@ public class ReviewGameStateController {
             return ResponseEntity.notFound().build();
         }
         final List<Long> appIds = picks.stream().map(ReviewGamePick::getAppId).toList();
-        final List<SteamAppDetail> fetched = detailRepository.findAllByAppIdIn(appIds).stream().toList();
+        final List<SteamAppDetail> fetched = detailService.findAllByAppIdIn(appIds).stream().toList();
         final Map<Long, SteamAppDetail> byId = new HashMap<>();
         for (SteamAppDetail d : fetched) byId.put(d.getAppId(), d);
         final List<SteamAppDetail> details = appIds.stream()

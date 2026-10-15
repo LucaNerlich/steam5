@@ -45,25 +45,20 @@ public interface SteamAppDetailRepository extends JpaRepository<SteamAppDetail, 
         long getCount();
     }
 
+    // Only `priceOverview` (a to-one) rides in the entity graph: a join fetch of
+    // the six collections would transfer their cartesian product for every read
+    // (Hibernate then discards the duplicates during distinct processing). The
+    // collections are initialized in-transaction by
+    // SteamAppDetailService#findByAppId / #findAllByAppIdIn, which lets
+    // Hibernate load each one with its own batched query
+    // (hibernate.default_batch_fetch_size).
     @EntityGraph(attributePaths = {
-            "priceOverview",
-            "developers",
-            "publisher",
-            "genres",
-            "categories",
-            "screenshots",
-            "movies"
+            "priceOverview"
     }, type = org.springframework.data.jpa.repository.EntityGraph.EntityGraphType.LOAD)
     Optional<SteamAppDetail> findByAppId(Long appId);
 
     @EntityGraph(attributePaths = {
-            "priceOverview",
-            "developers",
-            "publisher",
-            "genres",
-            "categories",
-            "screenshots",
-            "movies"
+            "priceOverview"
     }, type = org.springframework.data.jpa.repository.EntityGraph.EntityGraphType.LOAD)
     @Query("select distinct d from SteamAppDetail d where d.appId in :ids")
     List<SteamAppDetail> findAllByAppIdIn(@Param("ids") Collection<Long> ids);
