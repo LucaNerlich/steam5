@@ -58,6 +58,8 @@ class PresenceConnection {
     private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
     private pingTimer: ReturnType<typeof setInterval> | null = null;
     private closedByUser = false;
+    /** True while the tab is hidden: keepalive stops and no reconnect is scheduled. */
+    private paused = false;
     private retryCount = 0;
     private connectionId = 0;
     private disposed = false;
@@ -80,7 +82,7 @@ class PresenceConnection {
      * No-op while a connection is open or already being established.
      */
     recover(): void {
-        if (this.disposed || this.closedByUser) return;
+        if (this.disposed || this.closedByUser || this.paused) return;
         const readyState = this.ws?.readyState;
         if (readyState === WebSocket.OPEN || readyState === WebSocket.CONNECTING) return;
         this.clearReconnect();
@@ -89,12 +91,14 @@ class PresenceConnection {
 
     /** Stops keepalive and pending reconnects while the tab is hidden. */
     pause(): void {
+        this.paused = true;
         this.clearPing();
         this.clearReconnect();
     }
 
     /** Resumes keepalive or reconnects once the tab is visible again. */
     resume(): void {
+        this.paused = false;
         const readyState = this.ws?.readyState;
         if (readyState === WebSocket.OPEN) {
             this.startPing();
@@ -253,8 +257,10 @@ class PresenceConnection {
     }
 
     private scheduleReconnect(): void {
-        if (this.disposed || this.closedByUser) return;
-        // Don't burn reconnect attempts while the tab is backgrounded overnight.
+        // Don't burn reconnect attempts while the tab is backgrounded overnight: pings stop
+        // while hidden, so the server's idle sweep closes the socket, and without this guard
+        // onclose would immediately reopen it — forever, from every hidden tab.
+        if (this.disposed || this.closedByUser || this.paused) return;
         this.callbacks.onReconnectingChange(true);
         const attempt = this.retryCount++;
         const delay = Math.min(BASE_DELAY_MS * Math.pow(2, attempt), MAX_DELAY_MS)
