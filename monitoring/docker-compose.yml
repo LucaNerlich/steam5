@@ -18,11 +18,16 @@
 # JSON by six spaces and escape every literal `$` as `$$` — the dashboards use
 # Grafana template variables like `$cache`).
 #
+# Image tags and data directories default to the pinned / production values and
+# are overridable from the environment (`PROMETHEUS_IMAGE`, `GRAFANA_IMAGE`,
+# `PROMETHEUS_DATA_PATH`, `GRAFANA_DATA_PATH`); see `.env.example` for the
+# documented contract.
+#
 # Local quickstart: cp .env.example .env && docker compose --env-file .env up -d
 
 services:
   prometheus:
-    image: prom/prometheus:v3.5.3
+    image: ${PROMETHEUS_IMAGE:-prom/prometheus:v3.5.3}
     pull_policy: always
     container_name: steam5-prometheus
     restart: unless-stopped
@@ -56,7 +61,7 @@ services:
         target: /etc/prometheus/alert_rules.yml
         mode: 0444
     volumes:
-      - /data/volumes/steam5/prometheus:/prometheus
+      - ${PROMETHEUS_DATA_PATH:-/data/volumes/steam5/prometheus}:/prometheus
     extra_hosts:
       # No-op on macOS Docker Desktop (where host.docker.internal already
       # resolves), required on Linux Docker Engine 20.10+ to reach the host.
@@ -78,7 +83,7 @@ services:
       start_period: 30s
 
   grafana:
-    image: grafana/grafana:13.0.1-security-01-ubuntu
+    image: ${GRAFANA_IMAGE:-grafana/grafana:13.0.1-security-01-ubuntu}
     pull_policy: always
     container_name: steam5-grafana
     restart: unless-stopped
@@ -129,7 +134,7 @@ services:
         target: /etc/grafana/dashboards-json/quartz.json
         mode: 0444
     volumes:
-      - /data/volumes/steam5/grafana:/var/lib/grafana
+      - ${GRAFANA_DATA_PATH:-/data/volumes/steam5/grafana}:/var/lib/grafana
     networks:
       - default
       - coolify

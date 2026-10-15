@@ -74,12 +74,12 @@ cp .env.example .env
 docker compose --env-file .env up -d
 ```
 
-Tear down (named volumes survive):
+Tear down (the bind-mounted data lives on the host and survives):
 
 ```bash
 docker compose down
-# wipe TSDB and Grafana state too:
-docker compose down -v
+# wipe TSDB and Grafana state by emptying the host bind mounts:
+sudo rm -rf /data/volumes/steam5/prometheus/* /data/volumes/steam5/grafana/*
 ```
 
 > **Heads-up — `MANAGEMENT_SERVER_PORT` ↔ `STEAM5_METRICS_TARGET` coupling.**
@@ -173,7 +173,7 @@ every variable so you can scan it without opening the file.
 
 | Variable                     | Default                              | Purpose                                                                 |
 |------------------------------|--------------------------------------|-------------------------------------------------------------------------|
-| `PROMETHEUS_IMAGE`           | `prom/prometheus:v3.5.1`             | Prometheus container image (pin a tag, never `:latest`).                |
+| `PROMETHEUS_IMAGE`           | `prom/prometheus:v3.5.3`             | Prometheus container image (pin a tag, never `:latest`).                |
 | `PROMETHEUS_PORT`            | `9090`                               | Loopback host port mapped to Prometheus (`127.0.0.1` bind).             |
 | `PROMETHEUS_RETENTION`       | `15d`                                | TSDB retention window (`--storage.tsdb.retention.time`).                |
 | `PROMETHEUS_SCRAPE_INTERVAL` | `15s`                                | Global `scrape_interval` and `evaluation_interval`.                     |
@@ -186,15 +186,15 @@ every variable so you can scan it without opening the file.
 | `CADVISOR_TARGET`            | `cadvisor:8080`                      | In-stack DNS target for the cAdvisor sidecar.                           |
 | `POSTGRES_EXPORTER_TARGET`   | `postgres-exporter:9187`             | In-stack DNS target for the postgres-exporter sidecar.                  |
 | `POSTGRES_EXPORTER_DSN`      | _(empty)_                            | libpq DSN postgres-exporter uses to connect (e.g. `postgresql://metrics:PW@host:5432/db?sslmode=disable`). Required for the `postgres` scrape job. |
-| `GRAFANA_IMAGE`              | `grafana/grafana:12.3.1`             | Grafana container image.                                                |
+| `GRAFANA_IMAGE`              | `grafana/grafana:13.0.1-security-01-ubuntu` | Grafana container image.                                                |
 | `GRAFANA_PORT`               | `3001`                               | Loopback host port mapped to Grafana (`127.0.0.1` bind; 3001 avoids Next.js dev on 3000). |
 | `GF_SECURITY_ADMIN_USER`     | `admin`                              | Initial Grafana admin username.                                         |
 | `GF_SECURITY_ADMIN_PASSWORD` | `admin`                              | Initial Grafana admin password — **must override in production**.       |
 | `GF_SERVER_ROOT_URL`         | `http://localhost:3001`              | Public URL Grafana uses for redirects, share links, OAuth callbacks.    |
 | `GF_SERVER_DOMAIN`           | `localhost`                          | Grafana's external domain (used in cookies, links).                     |
 | `GF_USERS_ALLOW_SIGN_UP`     | `false`                              | Disable self-service account creation.                                  |
-| `PROMETHEUS_DATA_PATH`       | _(unset → named volume)_             | Optional — bind-mount data volume to a host path.                       |
-| `GRAFANA_DATA_PATH`          | _(unset → named volume)_             | Optional — bind-mount data volume to a host path.                       |
+| `PROMETHEUS_DATA_PATH`       | `/data/volumes/steam5/prometheus`    | Host directory bind-mounted at `/prometheus` (TSDB).                    |
+| `GRAFANA_DATA_PATH`          | `/data/volumes/steam5/grafana`       | Host directory bind-mounted at `/var/lib/grafana` (Grafana state).      |
 
 ## Postgres exporter setup
 
@@ -287,7 +287,7 @@ Create a new Coolify service from this `monitoring/docker-compose.yml`. Set:
 
 | Service      | Env var                       | Coolify location     | Example prod value                                |
 |--------------|-------------------------------|----------------------|---------------------------------------------------|
-| `prometheus` | `PROMETHEUS_IMAGE`            | Service env          | `prom/prometheus:v3.5.1` (pin a tag for prod)     |
+| `prometheus` | `PROMETHEUS_IMAGE`            | Service env          | `prom/prometheus:v3.5.3` (pin a tag for prod)     |
 | `prometheus` | `PROMETHEUS_PORT`             | Service env          | `9090`                                            |
 | `prometheus` | `STEAM5_METRICS_TARGET`       | Service env          | `steam5-backend:8081`                             |
 | `prometheus` | `STEAM5_METRICS_SCHEME`       | Service env          | `http` (internal) or `https` (public)             |
@@ -296,7 +296,7 @@ Create a new Coolify service from this `monitoring/docker-compose.yml`. Set:
 | `prometheus` | `STEAM5_METRICS_PASSWORD`     | Service env (secret) | _= backend `METRICS_PASSWORD`_                    |
 | `prometheus` | `PROMETHEUS_RETENTION`        | Service env          | `15d` (or higher with sized volume)               |
 | `prometheus` | `PROMETHEUS_SCRAPE_INTERVAL`  | Service env          | `15s`                                             |
-| `grafana`    | `GRAFANA_IMAGE`               | Service env          | `grafana/grafana:12.3.1` (pin a tag for prod)     |
+| `grafana`    | `GRAFANA_IMAGE`               | Service env          | `grafana/grafana:13.0.1-security-01-ubuntu` (pin a tag for prod) |
 | `grafana`    | `GF_SECURITY_ADMIN_USER`      | Service env          | _operator choice (e.g. `steam5-admin`)_           |
 | `grafana`    | `GF_SECURITY_ADMIN_PASSWORD`  | Service env (secret) | _strong password, ≥ 16 chars_                     |
 | `grafana`    | `GF_SERVER_ROOT_URL`          | Service env          | `https://grafana.steam5.org`                      |
@@ -305,36 +305,23 @@ Create a new Coolify service from this `monitoring/docker-compose.yml`. Set:
 
 ### 4. Persistent volumes
 
-The compose file declares two named volumes — both **must** be backed by
-Coolify persistent storage so data survives redeploys:
+Both services persist state on absolute host paths (bind mounts), which
+**must** live on persistent storage so data survives redeploys:
 
-| Volume            | Mount path inside container | Holds                                          |
-|-------------------|-----------------------------|------------------------------------------------|
-| `prometheus-data` | `/prometheus`               | TSDB (size with `PROMETHEUS_RETENTION`).       |
-| `grafana-data`    | `/var/lib/grafana`          | Grafana SQLite DB, alert state, user prefs.    |
+| Env var                | Default                           | Mount path inside container | Holds                                        |
+|------------------------|-----------------------------------|-----------------------------|----------------------------------------------|
+| `PROMETHEUS_DATA_PATH` | `/data/volumes/steam5/prometheus` | `/prometheus`               | TSDB (size with `PROMETHEUS_RETENTION`).     |
+| `GRAFANA_DATA_PATH`    | `/data/volumes/steam5/grafana`    | `/var/lib/grafana`          | Grafana SQLite DB, alert state, user prefs.  |
 
-In Coolify → service → **Storages**, mark both volumes as persistent. Without
-this, redeploys wipe metric history and any Grafana customisations.
-
-#### Bind-mount overrides (optional)
-
-By default the volumes above are Docker named volumes living under
-`/var/lib/docker/volumes`. If you want the data on a known host path —
-e.g. on a VPS with a dedicated `/data` partition for easier backups,
-snapshots, or filesystem-level management — set:
-
-```
-PROMETHEUS_DATA_PATH=/data/volumes/steam5/prometheus
-GRAFANA_DATA_PATH=/data/volumes/steam5/grafana
-```
-
-When either variable is set to an absolute host path, docker compose
-bind-mounts that directory instead of using the named volume. The host
-directory **must exist and be writable by the container UID**
+The defaults match a `/data` partition layout on the Coolify host; set either
+variable to a different ABSOLUTE host path to move the data elsewhere. The
+host directory **must exist and be writable by the container UID**
 (Prometheus: `65534/nobody`, Grafana: `472`) before `docker compose up` —
 Coolify (or whoever provisions the host) is responsible for creating and
-chowning the directories. Leave both unset to keep the named-volume
-behaviour.
+chowning the directories.
+
+If these paths do not survive a host rebuild, redeploys wipe metric history
+and any Grafana customisations.
 
 Pre-deploy host prep (run once on the host, as root):
 
@@ -345,9 +332,7 @@ sudo chown -R 472:0       /data/volumes/steam5/grafana      # Grafana container 
 ```
 
 Without correct ownership the containers will fail on first boot with
-`permission denied` errors when they try to write to the mount. This
-only applies when bind-mounting; the named-volume case is handled
-automatically by Docker.
+`permission denied` errors when they try to write to the mount.
 
 ### 5. Pointing Prometheus at the backend (`STEAM5_METRICS_TARGET`)
 
