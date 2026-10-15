@@ -1,6 +1,6 @@
 "use client";
 
-import {useEffect, useRef, useState} from "react";
+import {useEffect, useState} from "react";
 import {useAuth} from "@/contexts/AuthContext";
 import {BACKEND_ORIGIN} from "@/lib/backend";
 
@@ -288,8 +288,6 @@ export function useRoundPresence(scopeKey: string | null): PresenceSnapshot & {
     const [connected, setConnected] = useState(false);
     const [reconnecting, setReconnecting] = useState(false);
 
-    const connectionRef = useRef<PresenceConnection | null>(null);
-
     useEffect(() => {
         let disposed = false;
 
@@ -308,7 +306,6 @@ export function useRoundPresence(scopeKey: string | null): PresenceSnapshot & {
             onConnectedChange: setConnected,
             onReconnectingChange: setReconnecting,
         });
-        connectionRef.current = connection;
 
         const handleRecovery = () => {
             if (scopeKey) connection.recover();
@@ -337,7 +334,6 @@ export function useRoundPresence(scopeKey: string | null): PresenceSnapshot & {
             window.removeEventListener("focus", handleRecovery);
             document.removeEventListener("visibilitychange", handleVisibilityChange);
             connection.destroy();
-            connectionRef.current = null;
             setConnected(false);
             setReconnecting(false);
         };

@@ -219,8 +219,8 @@ export default function ReviewGuesserRound({
     );
 
     // Determine auth state (client-side) to conditionally show the sign-in nudge
-    const {isSignedIn, isLoading: authLoading, refreshAuth} = useAuth();
-    const signedIn = authLoading ? null : isSignedIn;
+    const {isSignedIn, refreshAuth} = useAuth();
+    const signedIn = isSignedIn;
 
     // Detect a silently-lost session: either the backend rejected our cookie (401),
     // or the UI believed we were signed in but the guess was saved anonymously
