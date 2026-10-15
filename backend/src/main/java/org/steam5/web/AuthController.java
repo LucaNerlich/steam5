@@ -216,19 +216,18 @@ public class AuthController {
     }
 
     /**
-     * Fix #4: Accept the JWT via {@code Authorization: Bearer} header rather than
-     * a query parameter.  Tokens in query strings end up in server access logs,
-     * browser history, and {@code Referer} headers — none of which is appropriate
-     * for a credential.
+     * Reports whether the caller's credential is valid, and echoes their steamId with the small
+     * Steam avatar the header renders.
+     *
+     * <p>Identity extraction is delegated to the {@code @CurrentUser} resolver — the single place
+     * that knows how a request conveys identity. It accepts the {@code Bearer} scheme
+     * case-insensitively and falls back to the {@code s5_token} cookie; this endpoint used to
+     * parse the header itself with {@code startsWith("Bearer ")}, so it disagreed with every other
+     * authenticated handler: a lowercase {@code bearer} authenticated elsewhere but answered 401
+     * here, and the cookie fallback did not apply at all.</p>
      */
     @GetMapping("/validate")
-    public ResponseEntity<?> validate(
-            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authHeader) {
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            return ResponseEntity.status(401).body(Map.of("valid", false));
-        }
-        final String token = authHeader.substring(7);
-        final String steamId = tokenService.verifyToken(token);
+    public ResponseEntity<?> validate(@CurrentUser String steamId) {
         if (steamId == null) return ResponseEntity.status(401).body(Map.of("valid", false));
         // Surface the user's small Steam avatar so the header can render it alongside
         // "Profile" without an extra request. Use the small avatar (not the *Full
