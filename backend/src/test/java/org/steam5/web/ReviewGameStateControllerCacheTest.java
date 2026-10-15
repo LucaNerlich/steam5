@@ -26,9 +26,11 @@ import java.lang.reflect.Field;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -244,8 +246,30 @@ public class ReviewGameStateControllerCacheTest {
 
     /** Reads a method's @Cacheable key SpEL and evaluates it (the key uses a T(GameDate) static call). */
     private static String evalCacheKey(String method, Class<?>... params) throws Exception {
+        return evalCacheKeyWithVars(method, Map.of(), params);
+    }
+
+    /** Evaluates a method's @Cacheable key SpEL with the given SpEL variables in scope. */
+    private static String evalCacheKeyWithVars(String method, Map<String, Object> vars, Class<?>... params) throws Exception {
         final Cacheable c = ReviewGameStateController.class.getMethod(method, params).getAnnotation(Cacheable.class);
         final Expression expr = new SpelExpressionParser().parseExpression(c.key());
-        return expr.getValue(new StandardEvaluationContext(), String.class);
+        final StandardEvaluationContext ctx = new StandardEvaluationContext();
+        vars.forEach(ctx::setVariable);
+        return expr.getValue(ctx, String.class);
+    }
+
+    // --- Cache-key scoping: the /days body depends on `limit`, so the key must too. ---
+
+    @Test
+    void listDays_cacheKeyIncludesTheClampedLimit() throws Exception {
+        final Class<?>[] signature = {int.class, HttpHeaders.class};
+
+        assertEquals("days:5", evalCacheKeyWithVars("listDays", Map.of("limit", 5), signature));
+        assertNotEquals(
+                evalCacheKeyWithVars("listDays", Map.of("limit", 5), signature),
+                evalCacheKeyWithVars("listDays", Map.of("limit", 3650), signature),
+                "two different limits must not share one cache entry");
+        assertEquals("days:3650", evalCacheKeyWithVars("listDays", Map.of("limit", 9999), signature),
+                "an over-large limit must key on the clamped value the method actually uses");
     }
 }
