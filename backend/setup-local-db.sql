@@ -26,5 +26,9 @@ GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO steam5_user;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL PRIVILEGES ON TABLES TO steam5_user;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL PRIVILEGES ON SEQUENCES TO steam5_user;
 
--- 6) If superuser is needed (e.g., migrations), uncomment:
-ALTER ROLE steam5_user WITH SUPERUSER;
+-- 6) If superuser is needed (e.g., migrations), uncomment the line below.
+-- It stays commented out on purpose: SUPERUSER is cluster-wide, letting the application's
+-- own role drop other databases, read pg_authid password hashes, and undo the
+-- `SET statement_timeout` guard application-coolify.yml relies on. The grants above are
+-- everything the app (and Hibernate's ddl-auto in dev) needs.
+-- ALTER ROLE steam5_user WITH SUPERUSER;
