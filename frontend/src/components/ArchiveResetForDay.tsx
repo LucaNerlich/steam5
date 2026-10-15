@@ -1,46 +1,30 @@
 "use client";
 
-import React, {useSyncExternalStore} from "react";
-import {clearAll, clearDay, hasAny, hasAnyForDay} from "@/lib/storage";
+import React from "react";
+import {clearAll, clearDay, hasAny} from "@/lib/storage";
+import useStoredDay, {notifyStoredDayChanged} from "@/components/round/useStoredDay";
 
-let revision = 0;
-const listeners = new Set<() => void>();
-function notifyStorageChange() {
-    revision++;
-    for (const l of listeners) l();
-}
-function subscribeStorage(cb: () => void) {
-    listeners.add(cb);
-    return () => { listeners.delete(cb); };
-}
-
+/**
+ * Reset controls for the offline archive.
+ *
+ * <p>Reads the shared stored-day store instead of keeping a private listener/revision pair: the
+ * local copy never heard about the guesses `ArchiveOfflineRound` writes, so a saved round left the
+ * controls hidden until a reload. Any store write clears the snapshot cache, so this also re-renders
+ * for progress on *other* days — which the "reset all" control depends on.</p>
+ */
 export default function ArchiveResetForDay({date}: { date: string }): React.ReactElement | null {
-    const snap = useSyncExternalStore(
-        subscribeStorage,
-        () => {
-            void revision;
-            return JSON.stringify({day: hasAnyForDay(date), global: hasAny()});
-        },
-        () => JSON.stringify({day: false, global: false})
-    );
-    let hasAnyDay = false;
-    let hasAnyGlobal = false;
-    try {
-        const parsed = JSON.parse(snap) as { day?: unknown; global?: unknown };
-        hasAnyDay = parsed?.day === true;
-        hasAnyGlobal = parsed?.global === true;
-    } catch {
-        // Malformed snapshot: treat as no stored progress
-    }
+    const stored = useStoredDay(date);
+    const hasAnyDay = Boolean(stored?.results && Object.keys(stored.results).length > 0);
+    const hasAnyGlobal = hasAny();
 
     const resetDay = () => {
         clearDay(date);
-        notifyStorageChange();
+        notifyStoredDayChanged();
     };
 
     const resetAll = () => {
         clearAll();
-        notifyStorageChange();
+        notifyStoredDayChanged();
     };
 
     if (!hasAnyDay && !hasAnyGlobal) return null;
@@ -56,5 +40,3 @@ export default function ArchiveResetForDay({date}: { date: string }): React.Reac
         </div>
     );
 }
-
-

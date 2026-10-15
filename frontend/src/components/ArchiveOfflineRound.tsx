@@ -6,6 +6,7 @@ import RoundResultDialog from "@/components/RoundResultDialog";
 import RoundResultActions from "@/components/RoundResultActions";
 import type {GuessResponse} from "@/types/review-game";
 import {loadDay, saveRound, type StoredDay} from "@/lib/storage";
+import {notifyStoredDayChanged} from "@/components/round/useStoredDay";
 import {QuestionIcon} from "@phosphor-icons/react/ssr";
 import {Routes} from "../../app/routes";
 import "@/styles/components/reviewGuesserRound.css";
@@ -81,6 +82,9 @@ export default function ArchiveOfflineRound(props: Readonly<Props>): React.React
         };
         const updated = saveRound(gameDate, roundIndex, totalRounds, result);
         if (updated) setStored(updated);
+        // The shared store backs the reset controls on this page; without this notification they
+        // still showed "no progress" until a reload or navigation.
+        notifyStoredDayChanged();
         setSubmitted(true);
     };
 
