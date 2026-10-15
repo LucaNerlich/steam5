@@ -6,6 +6,7 @@ import "@/styles/components/reviewShareControls.css";
 import {scoreForRound} from "@/lib/scoring";
 import {ExportIcon} from "@phosphor-icons/react/ssr";
 import type {RoundResult, StoredDay} from "@/lib/storage";
+import useStoredDay from "@/components/round/useStoredDay";
 
 export default function ShareControls(props: {
     buckets: string[];
@@ -55,16 +56,12 @@ export default function ShareControls(props: {
         return map;
     })();
 
+    const stored = useStoredDay(gameDate);
     let data: StoredDay | null = null;
     if (results && Object.keys(results).length > 0) {
         data = {totalRounds, results};
     } else {
-        try {
-            const raw = typeof window !== 'undefined' ? window.localStorage.getItem(`review-guesser:${gameDate}`) : null;
-            data = raw ? JSON.parse(raw) as StoredDay : null;
-        } catch {
-            data = null;
-        }
+        data = stored;
     }
 
     const indices = new Set<number>(

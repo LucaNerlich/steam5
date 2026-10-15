@@ -4,6 +4,7 @@ import React from "react";
 import "@/styles/components/reviewRoundSummary.css";
 import {scoreForRound} from "@/lib/scoring";
 import type {RoundResult, StoredDay} from "@/lib/storage";
+import useStoredDay from "@/components/round/useStoredDay";
 
 export default function RoundSummary(props: {
     buckets: string[];
@@ -30,15 +31,11 @@ export default function RoundSummary(props: {
     }>
 }) {
     const {buckets, gameDate, totalRounds, latestRound, latest, results} = props;
+    // From the shared external store, not a render-phase localStorage read: the read made
+    // the server HTML and the hydration render disagree (React logs a hydration error and
+    // discards that render) and never subscribed to later writes.
+    const stored = useStoredDay(gameDate);
     if (!gameDate) return null;
-
-    let stored: StoredDay | null = null;
-    try {
-        const raw = typeof window !== 'undefined' ? window.localStorage.getItem(`review-guesser:${gameDate}`) : null;
-        stored = raw ? JSON.parse(raw) as StoredDay : null;
-    } catch {
-        stored = null;
-    }
 
     const merged: Record<number, RoundResult> = {
         ...(stored?.results || {}),
