@@ -73,6 +73,7 @@ public class SecurityConfig {
         http
                 .securityMatcher(EndpointRequest.toAnyEndpoint())
                 .csrf(AbstractHttpConfigurer::disable)
+                .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(EndpointRequest.to(HealthEndpoint.class)).permitAll()
                         .anyRequest().hasRole("METRICS")
@@ -97,6 +98,11 @@ public class SecurityConfig {
                                                    ProfileRateLimitFilter profileRateLimitFilter) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
+                // CORS inside the chain, before authorization: as a standalone CorsFilter bean it
+                // ran *after* Spring Security's chain (order -100), so a preflight for any
+                // authorization-protected path was denied before CORS headers could be added and
+                // the filters' own OPTIONS exemptions were dead. See CorsConfig.
+                .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/review-game/comments/**").permitAll()
                         .requestMatchers("/api/review-game/**").permitAll()
