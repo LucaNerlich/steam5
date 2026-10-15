@@ -46,12 +46,14 @@ class AuthTokenServiceTest {
 
     @Test
     void aTokenIssuedBeforeLogoutIsRejectedAfterInvalidation() {
-        final Instant issuedAt = Instant.parse("2026-09-15T12:00:00.900Z");
+        // Relative to now: the JWT expiry is 30 days after issue, so a hard-coded
+        // issue time eventually expires and no longer exercises the cutoff.
+        final Instant issuedAt = Instant.now().minusSeconds(60);
         final String token = service.generateToken(STEAM_ID, issuedAt);
 
         final User user = new User();
         user.setSteamId(STEAM_ID);
-        user.setTokenNotValidBefore(OffsetDateTime.parse("2026-09-15T12:00:01.500Z"));
+        user.setTokenNotValidBefore(OffsetDateTime.ofInstant(Instant.now().minusSeconds(30), ZoneOffset.UTC));
         when(userRepository.findById(STEAM_ID)).thenReturn(Optional.of(user));
 
         assertNull(service.verifyToken(token));
@@ -71,7 +73,9 @@ class AuthTokenServiceTest {
 
     @Test
     void logoutThenLoginWithinTheSameSecondKeepsTheNewTokenValid() {
-        final OffsetDateTime logoutAt = OffsetDateTime.parse("2026-09-15T12:00:00.100Z");
+        // Relative to now: the JWT expiry is 30 days after issue, so a hard-coded
+        // issue time eventually expires and no longer exercises the cutoff.
+        final OffsetDateTime logoutAt = OffsetDateTime.now(ZoneOffset.UTC).withNano(100_000_000);
         when(userRepository.advanceTokenNotValidBefore(STEAM_ID, logoutAt.withOffsetSameInstant(ZoneOffset.UTC).withNano(0)))
                 .thenReturn(1); // known user: the conditional update records the cutoff
         service.invalidateTokensIssuedBefore(STEAM_ID, logoutAt);
@@ -84,7 +88,7 @@ class AuthTokenServiceTest {
         user.setTokenNotValidBefore(storedCutoff);
         when(userRepository.findById(STEAM_ID)).thenReturn(Optional.of(user));
 
-        final String token = service.generateToken(STEAM_ID, Instant.parse("2026-09-15T12:00:00.900Z"));
+        final String token = service.generateToken(STEAM_ID, storedCutoff.toInstant().plusMillis(900));
 
         assertEquals(STEAM_ID, service.verifyToken(token));
     }
