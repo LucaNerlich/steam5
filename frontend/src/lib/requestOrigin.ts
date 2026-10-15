@@ -19,6 +19,22 @@ function isLoopbackHostname(hostname: string): boolean {
     return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "[::1]";
 }
 
+/**
+ * True when an absolute origin (or URL) points at loopback.
+ *
+ * <p>`URL#hostname` keeps the brackets around IPv6 literals, so the check is for `[::1]`, not
+ * `::1`. Two api routes had their own copies comparing `::1`, which could never match — an
+ * IPv6-loopback backend therefore silently lost its loopback exemption (no WS ticket, no
+ * server-side logout revocation).</p>
+ */
+export function isLoopbackOrigin(origin: string): boolean {
+    try {
+        return isLoopbackHostname(new URL(origin).hostname);
+    } catch {
+        return false;
+    }
+}
+
 function originsMatch(candidate: string, trusted: string): boolean {
     try {
         const a = new URL(candidate);

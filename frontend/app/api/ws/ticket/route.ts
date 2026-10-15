@@ -1,6 +1,7 @@
 import {NextRequest, NextResponse} from 'next/server';
 import {cookies} from 'next/headers';
 import {BACKEND_ORIGIN, forwardedForHeaders} from '@/lib/backend';
+import {isLoopbackOrigin} from '@/lib/requestOrigin';
 
 const isDevelopment = process.env.NODE_ENV === 'development';
 // Explicitly trusted internal backend origins (e.g. 'http://backend:8080' in
@@ -12,21 +13,6 @@ const ALLOWED_BACKEND_ORIGINS = (process.env.ALLOWED_BACKEND_ORIGINS || '')
 
 // Per-user, short-lived — must never be cached by Next, a CDN, or a proxy.
 const NO_STORE = {"Cache-Control": "private, no-store"} as const;
-
-/**
- * Determines whether an origin uses a loopback hostname.
- *
- * @param origin - The origin URL to inspect
- * @returns `true` if the origin hostname is `localhost`, `127.0.0.1`, or `::1`, `false` otherwise
- */
-function isLoopbackOrigin(origin: string): boolean {
-    try {
-        const {hostname} = new URL(origin);
-        return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1';
-    } catch {
-        return false;
-    }
-}
 
 /**
  * Determines whether a scope key matches the expected date-based format.

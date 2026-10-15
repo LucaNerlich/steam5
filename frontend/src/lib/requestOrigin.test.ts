@@ -1,5 +1,5 @@
 import {afterEach, describe, expect, it, vi} from 'vitest';
-import {isTrustedBrowserOrigin, rejectUntrustedOrigin, trustedSiteOrigin} from './requestOrigin';
+import {isLoopbackOrigin, isTrustedBrowserOrigin, rejectUntrustedOrigin, trustedSiteOrigin} from './requestOrigin';
 
 describe('isTrustedBrowserOrigin', () => {
     afterEach(() => {
@@ -79,5 +79,24 @@ describe('rejectUntrustedOrigin', () => {
                 referer: 'https://evil.example/path',
             }),
         );
+    });
+});
+
+describe('isLoopbackOrigin', () => {
+    it('recognises an IPv6-loopback origin, whose hostname keeps its brackets', () => {
+        // URL#hostname returns "[::1]", so a `::1` comparison can never match — the two api routes
+        // that had their own copies compared exactly that, silently losing the loopback exemption.
+        expect(isLoopbackOrigin('http://[::1]:8080')).toBe(true);
+        expect(new URL('http://[::1]:8080').hostname).toBe('[::1]');
+    });
+
+    it('recognises the IPv4 and hostname forms', () => {
+        expect(isLoopbackOrigin('http://localhost:8080')).toBe(true);
+        expect(isLoopbackOrigin('http://127.0.0.1:8080')).toBe(true);
+    });
+
+    it('rejects remote and malformed origins', () => {
+        expect(isLoopbackOrigin('https://steam5.org')).toBe(false);
+        expect(isLoopbackOrigin('not a URL')).toBe(false);
     });
 });
