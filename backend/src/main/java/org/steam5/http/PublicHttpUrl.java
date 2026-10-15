@@ -25,9 +25,9 @@ import java.util.Optional;
  *
  * <p>Only http(s) on ports 80/443 is allowed, http is upgraded to https, and
  * every resolved address must be a public unicast address (no loopback,
- * link-local, RFC1918, CGNAT, IPv6 ULA, multicast, or IPv4-mapped private
- * literals). Resolved addresses are re-checked immediately before connect to
- * mitigate DNS rebinding.</p>
+ * link-local, RFC1918, CGNAT, IPv6 ULA, multicast, 0.0.0.0/8, or
+ * IPv4-compatible/mapped private literals). Resolved addresses are re-checked
+ * immediately before connect to mitigate DNS rebinding.</p>
  */
 public final class PublicHttpUrl {
 
@@ -130,6 +130,7 @@ public final class PublicHttpUrl {
     static boolean isDisallowedAddress(InetAddress address) {
         final InetAddress normalized = normalizeAddress(address);
         if (normalized.isAnyLocalAddress()
+                || isThisNetwork(normalized)
                 || normalized.isLoopbackAddress()
                 || normalized.isLinkLocalAddress()
                 || normalized.isSiteLocalAddress()
@@ -139,11 +140,18 @@ public final class PublicHttpUrl {
         return isCarrierGradeNat(normalized) || isUniqueLocalIpv6(normalized);
     }
 
-    /** Treat IPv4-compatible/mapped IPv6 literals as their embedded IPv4 address. */
+    /**
+     * Treat IPv4-mapped ({@code ::ffff:a.b.c.d}) and IPv4-compatible
+     * ({@code ::a.b.c.d}) IPv6 literals as the IPv4 address they embed, so a
+     * single deny-list pass covers them. The JDK predicates already classify a
+     * mapped literal parsed by {@link InetAddress}, but not the compatible
+     * form: {@code ::7f00:1} reads as a public address there while Linux routes
+     * it to the local host.
+     */
     private static InetAddress normalizeAddress(InetAddress address) {
-        if (address instanceof Inet6Address v6 && isIpv4MappedAddress(v6)) {
+        if (address instanceof Inet6Address v6 && isIpv4EmbeddedAddress(v6)) {
             try {
-                return extractIpv4FromMapped(v6);
+                return extractEmbeddedIpv4(v6);
             } catch (UnknownHostException ex) {
                 return address;
             }
@@ -151,19 +159,34 @@ public final class PublicHttpUrl {
         return address;
     }
 
-    static boolean isIpv4MappedAddress(Inet6Address v6) {
+    /** {@code ::ffff:0:0/96} (mapped) and {@code ::/96} (compatible) both embed an IPv4 address. */
+    static boolean isIpv4EmbeddedAddress(Inet6Address v6) {
         final byte[] octets = v6.getAddress();
         for (int i = 0; i < 10; i++) {
             if (octets[i] != 0) {
                 return false;
             }
         }
-        return octets[10] == (byte) 0xff && octets[11] == (byte) 0xff;
+        final boolean mapped = octets[10] == (byte) 0xff && octets[11] == (byte) 0xff;
+        final boolean compatible = octets[10] == 0 && octets[11] == 0;
+        return mapped || compatible;
     }
 
-    private static InetAddress extractIpv4FromMapped(Inet6Address v6) throws UnknownHostException {
+    private static InetAddress extractEmbeddedIpv4(Inet6Address v6) throws UnknownHostException {
         final byte[] octets = v6.getAddress();
         return InetAddress.getByAddress(new byte[]{octets[12], octets[13], octets[14], octets[15]});
+    }
+
+    /**
+     * 0.0.0.0/8 — "this network" (RFC 1122). Only {@code 0.0.0.0} itself is
+     * reported by {@link InetAddress#isAnyLocalAddress()}; Linux routes every
+     * other address in the block to the local host.
+     */
+    private static boolean isThisNetwork(InetAddress address) {
+        if (!(address instanceof Inet4Address v4)) {
+            return false;
+        }
+        return (v4.getAddress()[0] & 0xFF) == 0;
     }
 
     /** 100.64.0.0/10 — not classified as site-local by {@link InetAddress}. */
