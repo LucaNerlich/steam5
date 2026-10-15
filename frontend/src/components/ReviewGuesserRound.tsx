@@ -86,6 +86,10 @@ export default function ReviewGuesserRound({
     const [state, formAction] = useActionState<GuessActionState, FormData>(submitGuessAction, initial);
     const [isPending, startTransition] = useTransition();
     const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
+    // The label actually submitted for the in-flight guess. The save effect used the live
+    // `selectedLabel`, so a click during the submit window persisted a pair made of two
+    // different guesses (that label with the previous guess's response).
+    const [submittedLabel, setSubmittedLabel] = useState<string | null>(null);
     const disableClientFetch = Boolean(prefilled) || (allResults && Object.keys(allResults).length >= totalRounds);
     const {guesses: serverGuesses, loading: serverGuessesLoading} = useServerGuesses(disableClientFetch);
 
@@ -105,6 +109,7 @@ export default function ReviewGuesserRound({
     if (prevScopeKey !== scopeKey) {
         setPrevScopeKey(scopeKey);
         if (selectedLabel !== null) setSelectedLabel(null);
+        if (submittedLabel !== null) setSubmittedLabel(null);
     }
 
     const nextRound = roundIndex + 1;
@@ -117,17 +122,17 @@ export default function ReviewGuesserRound({
     // Persist this round's result for the current game date, then notify the
     // stored-day external store so readers re-render with the fresh snapshot.
     useEffect(() => {
-        if (!state || !state.ok || !state.response || !selectedLabel || !gameDate) return;
+        if (!state || !state.ok || !state.response || !submittedLabel || !gameDate) return;
         saveRound(gameDate, roundIndex, totalRounds, {
             appId,
             pickName,
-            selectedLabel,
+            selectedLabel: submittedLabel,
             actualBucket: state.response.actualBucket,
             totalReviews: state.response.totalReviews,
             correct: state.response.correct,
         });
         notifyStoredDayChanged();
-    }, [state, selectedLabel, gameDate, totalRounds, roundIndex, appId, pickName]);
+    }, [state, submittedLabel, gameDate, totalRounds, roundIndex, appId, pickName]);
 
     // Live mirror of the stored day in localStorage (see useStoredDay).
     const stored = useStoredDay(gameDate);
@@ -227,6 +232,11 @@ export default function ReviewGuesserRound({
     }, [signedOutDuringPlay, refreshAuth]);
 
     const submitGuess = (formData: FormData) => {
+        // Record the label being submitted (also for the deferred modal paths) so the save
+        // effect pairs it with this response instead of whatever is selected by the time the
+        // action resolves.
+        const label = formData.get('bucketGuess');
+        if (typeof label === 'string' && label) setSubmittedLabel(label);
         startTransition(() => {
             formAction(formData);
         });
@@ -234,12 +244,12 @@ export default function ReviewGuesserRound({
 
     const {
         showAuthWarning,
+        isGating,
         handleAuthGuardedSubmit,
         handleLogin,
         handleSkip,
         handleIgnore
     } = useAuthWarningGate(signedIn, refreshAuth, submitGuess);
-
     useRoundArrowNavigation({prevHref, nextHref, hasNextRound, disabled: showAuthWarning});
 
     const submitError = state && !state.ok ? state.error : undefined;
@@ -255,7 +265,7 @@ export default function ReviewGuesserRound({
                     selectedLabel={renderSelectedLabel}
                     onSelect={setSelectedLabel}
                     submitted={submittedFlag}
-                    isPending={isPending}
+                    isPending={isPending || isGating}
                     formAction={handleAuthGuardedSubmit}
                     signedOutDuringPlay={signedOutDuringPlay}
                     error={submitError}
