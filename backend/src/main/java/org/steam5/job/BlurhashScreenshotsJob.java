@@ -8,11 +8,14 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 import org.steam5.config.JobsConfig;
+import org.steam5.domain.IngestState;
 import org.steam5.domain.details.Screenshot;
+import org.steam5.repository.IngestStateRepository;
 import org.steam5.repository.details.ScreenshotRepository;
 import org.steam5.service.BlurhashService;
 import org.steam5.service.DomainCacheEvictor;
 
+import java.time.OffsetDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -22,22 +25,27 @@ import java.util.Set;
 @DisallowConcurrentExecution
 public class BlurhashScreenshotsJob implements Job {
 
+    private static final String CURSOR_ID = "blurhash_screenshots";
+
     private final BlurhashService service;
     private final CacheManager cacheManager;
     private final ScreenshotRepository screenshotRepository;
     private final DomainCacheEvictor cacheEvictor;
     private final JobsConfig jobsConfig;
+    private final IngestStateRepository ingestStateRepository;
 
     public BlurhashScreenshotsJob(final BlurhashService service,
                                   final CacheManager cacheManager,
                                   final ScreenshotRepository screenshotRepository,
                                   final DomainCacheEvictor cacheEvictor,
-                                  final JobsConfig jobsConfig) {
+                                  final JobsConfig jobsConfig,
+                                  final IngestStateRepository ingestStateRepository) {
         this.service = service;
         this.cacheManager = cacheManager;
         this.screenshotRepository = screenshotRepository;
         this.cacheEvictor = cacheEvictor;
         this.jobsConfig = jobsConfig;
+        this.ingestStateRepository = ingestStateRepository;
     }
 
     /**
@@ -98,17 +106,34 @@ public class BlurhashScreenshotsJob implements Job {
         final int batchLimit = Math.max(1, jobsConfig.getBlurhash().getBatchLimit());
         try {
             final int pageSize = 10; // small batch to limit memory
-            long cursorId = 0L; // keyset cursor: query rows with id > cursorId
+            // Persisted keyset cursor. A local 0 made every run restart at the head of
+            // the queue: rows whose image can never be encoded stay eligible (their
+            // blurhash columns stay null), so once batchLimit of them sat at the front
+            // every run spent its whole batch on them, encoded nothing, and starved
+            // every later screenshot silently.
+            long cursorId = ingestStateRepository.findById(CURSOR_ID)
+                    .map(IngestState::getLastAppId)
+                    .orElse(0L);
             boolean more = true;
             while (more && scanned < batchLimit) {
                 final List<Screenshot> batch = screenshotRepository.findPageWithoutBlurhash(cursorId, PageRequest.of(0, pageSize));
-                if (batch.isEmpty()) break;
+                if (batch.isEmpty()) {
+                    // Reached the end of the queue: reset so the next pass retries the
+                    // rows that could not be encoded this time.
+                    if (cursorId > 0L) {
+                        ingestStateRepository.upsert(CURSOR_ID, 0L, OffsetDateTime.now());
+                    }
+                    break;
+                }
                 for (Screenshot screenshot : batch) {
                     if (scanned >= batchLimit) {
                         break;
                     }
                     scanned++;
                     cursorId = screenshot.getId(); // advance cursor to last scanned screenshot
+                    // Persist as it advances, including for rows that fail to encode, so a
+                    // permanently failing row cannot block the head of the queue next run.
+                    ingestStateRepository.upsert(CURSOR_ID, cursorId, OffsetDateTime.now());
                     if (screenshot.getAppId() != null) {
                         processedAppIds.add(screenshot.getAppId().getAppId());
                     }
