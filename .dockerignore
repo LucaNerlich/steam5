@@ -1,18 +1,23 @@
 # Never let secrets or local-only files enter a build context or image layer.
-.env
-.env.*
-!.env.example
+#
+# Every pattern needs a `**/` prefix to match at any depth: Docker anchors a pattern without
+# one to the context root. That is why `.env` left `backend/.env` in the context (and in the
+# build stage's layer), `node_modules` left `frontend/node_modules` in it, and `*.log` left
+# `backend/steam5.log` plus the Playwright logs.
+**/.env
+**/.env.*
+!**/.env.example
 
 .git
-.idea
-.vscode
+**/.idea
+**/.vscode
 
-*.log
-*.log*.gz
+**/*.log
+**/*.log*.gz
 
 **/build/
 **/.gradle/
 backend/bin/
 
-node_modules
+**/node_modules
 **/.next/
