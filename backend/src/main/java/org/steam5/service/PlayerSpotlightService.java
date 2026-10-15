@@ -528,7 +528,10 @@ public class PlayerSpotlightService {
 
             final LocalDate mostRecent = datesDesc.get(0);
             final LocalDate previous = datesDesc.get(1);
-            final long gapDays = ChronoUnit.DAYS.between(previous, mostRecent);
+            // Days actually skipped, not the calendar distance: `between` counts the return
+            // day itself, so a player back after four days off spans five. The copy and the
+            // threshold both read this value, so both were a day looser than intended.
+            final long gapDays = ChronoUnit.DAYS.between(previous, mostRecent) - 1;
             if (gapDays < WELCOME_BACK_MIN_GAP_DAYS) continue;
 
             final List<Guess> history = historyByPlayer.getOrDefault(c.steamId(), List.of());

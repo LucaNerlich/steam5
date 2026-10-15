@@ -500,6 +500,49 @@ class PlayerSpotlightServiceTest {
     }
 
     @Test
+    void welcomeBackTierReportsSkippedDaysNotTheCalendarSpan() {
+        final LocalDate mostRecent = today.minusDays(1);
+        final LocalDate beforeGap = mostRecent.minusDays(5); // five days apart => four days off
+
+        stubAllTimeStats(allTimeRow("returner", 100, 2.0));
+        final List<GuessRepository.UserDateRow> dates = new ArrayList<>();
+        dates.add(dateRow("returner", mostRecent));
+        dates.add(dateRow("returner", beforeGap));
+        when(guessRepository.findDistinctDatesUpToForUsers(anyList(), eq(today))).thenReturn(dates);
+        stubRecentHistory(List.of(guess("returner", mostRecent, 4), guess("returner", mostRecent, 3)));
+
+        service.computeAndPersistForToday();
+
+        final ArgumentCaptor<PlayerSpotlight> captor = ArgumentCaptor.forClass(PlayerSpotlight.class);
+        verify(playerSpotlightRepository).save(captor.capture());
+        assertEquals(PlayerSpotlightInsightType.WELCOME_BACK, captor.getValue().getInsightType());
+        assertEquals(4.0, captor.getValue().getStatValue(),
+                "four days off must report four, not the five-day calendar span");
+    }
+
+    @Test
+    void welcomeBackTierRejectsACandidateWhoseSkippedDaysAreBelowTheThreshold() {
+        final LocalDate mostRecent = today.minusDays(1);
+        // Four calendar days apart means only three days off, one short of the 4-day minimum.
+        final LocalDate beforeGap = mostRecent.minusDays(4);
+
+        stubAllTimeStats(allTimeRow("returner", 100, 2.0));
+        final List<GuessRepository.UserDateRow> dates = new ArrayList<>();
+        dates.add(dateRow("returner", mostRecent));
+        dates.add(dateRow("returner", beforeGap));
+        when(guessRepository.findDistinctDatesUpToForUsers(anyList(), eq(today))).thenReturn(dates);
+        stubRecentHistory(List.of(guess("returner", mostRecent, 4), guess("returner", mostRecent, 3)));
+
+        service.computeAndPersistForToday();
+
+        final ArgumentCaptor<PlayerSpotlight> captor = ArgumentCaptor.forClass(PlayerSpotlight.class);
+        verify(playerSpotlightRepository, atLeast(0)).save(captor.capture());
+        assertTrue(captor.getAllValues().stream()
+                        .noneMatch(s -> s.getInsightType() == PlayerSpotlightInsightType.WELCOME_BACK),
+                "three days off is below WELCOME_BACK_MIN_GAP_DAYS");
+    }
+
+    @Test
     void mostImprovedTierWinsWhenRecentFormIsClearlyBetterThanBefore() {
         final GuessRepository.AllTimeStatsRow improver = allTimeRow("improver", 100, 2.0);
         stubAllTimeStats(improver);
