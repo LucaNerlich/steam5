@@ -11,6 +11,9 @@ import java.time.LocalDate;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -108,7 +111,7 @@ class StatisticsServiceTest {
     void getPerfectDays_mapsRowsAndSplitsAppNamesOnCommaSpace() {
         final LeaderboardMvRepository.PerfectDayMvRow row = perfectDayRow(
                 "76561198000000001", "Alice", "https://avatar/full.jpg", "data:blur", "https://steamcommunity.com/id/alice",
-                LocalDate.of(2026, 1, 15), "Half-Life, Portal 2, Left 4 Dead");
+                LocalDate.of(2026, 1, 15), "Half-Life\u001fPortal 2\u001fLeft 4 Dead");
         when(leaderboardMvRepository.findPerfectDays()).thenReturn(List.of(row));
 
         final List<StatisticsService.PerfectDayEntry> result = service.getPerfectDays();
@@ -165,5 +168,32 @@ class StatisticsServiceTest {
 
         assertEquals("steam-newer", result.get(0).steamId());
         assertEquals("steam-older", result.get(1).steamId());
+    }
+
+    @Test
+    void getPerfectDays_splitsNamesOnTheDelimiterTheViewUses() {
+        // chr(31) is the view's join delimiter, so a real title containing ", " stays
+        // one name; splitting on ", " used to expand it into bogus extra entries.
+        final LeaderboardMvRepository.PerfectDayMvRow row = perfectDayRow(
+                "steam-1", "Player", null, null, null, LocalDate.of(2026, 1, 1),
+                "Warhammer 40,000: Dawn of War" + '\u001f' + "Portal 2");
+        when(leaderboardMvRepository.findPerfectDays()).thenReturn(List.of(row));
+
+        final List<StatisticsService.PerfectDayEntry> result = service.getPerfectDays();
+
+        assertEquals(List.of("Warhammer 40,000: Dawn of War", "Portal 2"), result.getFirst().appNames());
+    }
+
+    @Test
+    void perfectDaysView_joinsNamesWithASeparatorNoSteamTitleCanContain() throws Exception {
+        final String sql;
+        try (var in = StatisticsServiceTest.class.getResourceAsStream("/db/mv-perfect-days.sql")) {
+            assertNotNull(in, "mv-perfect-days.sql must be on the classpath");
+            sql = new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+        }
+
+        assertTrue(sql.contains("chr(31)"), "the view must join app names with chr(31)");
+        assertFalse(sql.contains("', ' ORDER BY"),
+                "the view and StatisticsService must agree on the delimiter; ', ' occurs in real titles");
     }
 }
