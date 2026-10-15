@@ -91,18 +91,17 @@ public class AuthControllerTest {
         when(userRepo.findById("123")).thenReturn(Optional.empty());
         AuthController controller = controller(token, users, userRepo, new OpenIdNonceStore());
 
-        when(token.verifyToken("good")).thenReturn("123");
-        when(token.verifyToken("bad")).thenReturn(null);
-
-        // validate() reads an Authorization header, which must carry the "Bearer " scheme.
-        var ok = controller.validate("Bearer good");
+        // validate() takes the identity the @CurrentUser resolver extracted (header scheme
+        // parsing and the cookie fallback live there, covered by
+        // CurrentUserArgumentResolverTest); it only decides 200 vs 401.
+        var ok = controller.validate("123");
         assertEquals(200, ok.getStatusCode().value());
         assertNotNull(ok.getBody());
         final var okBody = ok.getBody();
         assertNotNull(okBody);
         assertEquals(true, ((Map<?, ?>) okBody).get("valid"));
 
-        var bad = controller.validate("Bearer bad");
+        var bad = controller.validate(null);
         assertEquals(401, bad.getStatusCode().value());
         assertNotNull(bad.getBody());
         final var badBody = bad.getBody();
@@ -118,10 +117,7 @@ public class AuthControllerTest {
         when(userRepo.findById("123")).thenReturn(Optional.empty());
         AuthController controller = controller(token, users, userRepo, new OpenIdNonceStore());
 
-        when(token.verifyToken("good")).thenReturn("123");
-
-        // Bearer prefix is required for the success path.
-        var ok = controller.validate("Bearer good");
+        var ok = controller.validate("123");
         assertEquals(200, ok.getStatusCode().value());
         // Per-user token validation must never be stored by any cache (shared or private).
         assertEquals("no-store", ok.getHeaders().getCacheControl());
