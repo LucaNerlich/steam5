@@ -1,9 +1,9 @@
-# Dashboard provider: loads any *.json dashboard dropped into
-# /var/lib/grafana/dashboards-json on the container (mounted from
-# monitoring/grafana/dashboards-json on the host). The path lives outside
-# /etc/grafana/provisioning because that tree is mounted read-only and
-# Docker cannot create sub-mountpoints inside a read-only parent bind.
-# Wave 3 fills this folder.
+# Dashboard provider: loads every *.json dashboard mounted into
+# /etc/grafana/dashboards-json on the container. The dashboards are compose
+# configs rather than host binds (Coolify's Git deploy mode ships only the
+# compose file), so this file is mirrored inline as
+# `grafana_dashboards_provider` in docker-compose.yml — keep both copies in
+# sync when editing.
 apiVersion: 1
 
 providers:
@@ -16,5 +16,5 @@ providers:
     updateIntervalSeconds: 30
     allowUiUpdates: false
     options:
-      path: /var/lib/grafana/dashboards-json
+      path: /etc/grafana/dashboards-json
       foldersFromFilesStructure: false

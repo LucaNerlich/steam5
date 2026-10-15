@@ -49,6 +49,12 @@ monitoring/
     └── dashboards-json/        # JSON dashboards picked up by the provider
 ```
 
+Everything under `prometheus/` and `grafana/` is also inlined into
+`docker-compose.yml` as a top-level `configs:` entry: Coolify's Git deploy mode
+ships only the compose file, so the compose is what a deployment actually runs.
+Editing a source file here only reaches a deployment once the matching inlined
+copy is regenerated (see [Dashboards](#dashboards) below).
+
 ## Local development
 
 ### Prerequisites
@@ -124,7 +130,12 @@ share one Prometheus. Infra dashboards (`infra-host`, `infra-containers`,
 | `dashboards-json/postgres.json` | `steam5-postgres`         | Steam5 — PostgreSQL            | Connections, transactions/sec, deadlocks, cache hit ratio, rows, DB size, longest query (via postgres-exporter). |
 
 To add a new dashboard, drop a JSON file with a unique `uid` into
-`grafana/dashboards-json/` and restart Grafana (`docker compose restart grafana`).
+`grafana/dashboards-json/`, then mirror it into `docker-compose.yml` as a
+`grafana_dashboard_<name>` config mounted at `/etc/grafana/dashboards-json/<file>`
+— indent the JSON by six spaces under `content: |` and escape every literal `$`
+as `$$` (the dashboards use Grafana template variables like `$cache`) — and
+apply it with `docker compose up -d grafana`. A JSON that is not inlined into
+the compose never reaches a Coolify deployment.
 
 ## Alert rules
 
