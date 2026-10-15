@@ -10,6 +10,7 @@ import tools.jackson.databind.JsonNode;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 @Service
@@ -76,7 +77,8 @@ public class SteamAppDetailService {
 
     @Transactional
     public void upsertFromJson(final Long appId, final JsonNode data) {
-        SteamAppDetail detail = repository.findById(appId).orElseGet(SteamAppDetail::new);
+        final Optional<SteamAppDetail> existing = repository.findById(appId);
+        SteamAppDetail detail = existing.orElseGet(SteamAppDetail::new);
         detail.setAppId(appId);
 
         detail.setType(asTextOrNull(data, "type"));
@@ -237,7 +239,15 @@ public class SteamAppDetailService {
             }
         }
 
-        repository.save(detail);
+        // Persist only brand-new details. An entity loaded by findById is managed, so
+        // dirty checking plus the children's cascade = ALL / orphanRemoval = true write
+        // the same state at flush time. save() would merge a managed entity instead,
+        // and that merge's collection replacement cannot handle the deferred
+        // DelayedPostInsertIdentifier of the freshly added Screenshot/Movie rows (it
+        // casts the identifier to Long -> ClassCastException).
+        if (existing.isEmpty()) {
+            repository.save(detail);
+        }
 
         // Evict caches impacted by details updates
         cacheEvictor.evictAppDetail(appId);
