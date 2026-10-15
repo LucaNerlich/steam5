@@ -1,11 +1,15 @@
 package org.steam5.job;
 
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.quartz.JobDataMap;
 import org.quartz.JobDetail;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobKey;
+import org.slf4j.LoggerFactory;
 import org.springframework.cache.CacheManager;
 import org.springframework.data.domain.PageRequest;
 import org.steam5.config.JobsConfig;
@@ -21,6 +25,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
@@ -40,6 +46,7 @@ class BlurhashScreenshotsJobTest {
 
     private ScreenshotRepository screenshotRepository;
     private IngestStateRepository ingestStateRepository;
+    private JobsConfig.Blurhash blurhashConfig;
     private BlurhashScreenshotsJob job;
 
     @BeforeEach
@@ -49,9 +56,9 @@ class BlurhashScreenshotsJobTest {
         screenshotRepository = mock(ScreenshotRepository.class);
         final DomainCacheEvictor cacheEvictor = mock(DomainCacheEvictor.class);
         final JobsConfig jobsConfig = mock(JobsConfig.class);
-        final JobsConfig.Blurhash blurhash = mock(JobsConfig.Blurhash.class);
-        when(jobsConfig.getBlurhash()).thenReturn(blurhash);
-        when(blurhash.getBatchLimit()).thenReturn(100);
+        blurhashConfig = mock(JobsConfig.Blurhash.class);
+        when(jobsConfig.getBlurhash()).thenReturn(blurhashConfig);
+        when(blurhashConfig.getBatchLimit()).thenReturn(100);
         ingestStateRepository = mock(IngestStateRepository.class);
         job = new BlurhashScreenshotsJob(service, cacheManager, screenshotRepository, cacheEvictor,
                 jobsConfig, ingestStateRepository);
@@ -90,6 +97,79 @@ class BlurhashScreenshotsJobTest {
 
         verify(screenshotRepository).findPageWithoutBlurhash(eq(0L), any(PageRequest.class));
         verify(ingestStateRepository, never()).upsert(any(), anyLong(), any(OffsetDateTime.class));
+    }
+
+    @Test
+    void fullRun_logsTruncationWhenTheBatchLimitIsReached() throws Exception {
+        when(blurhashConfig.getBatchLimit()).thenReturn(5);
+        when(ingestStateRepository.findById(CURSOR_ID)).thenReturn(Optional.empty());
+
+        // One full page of ten against a limit of five: the inner loop stops at the limit
+        // while seven rows are still unprocessed in the page, so work was deferred.
+        final List<Screenshot> fullPage = new ArrayList<>();
+        for (long id = 1L; id <= 10L; id++) {
+            fullPage.add(screenshot(id));
+        }
+        when(screenshotRepository.findPageWithoutBlurhash(eq(0L), any(PageRequest.class))).thenReturn(fullPage);
+
+        final ListAppender<ILoggingEvent> logs = attachJobLogCapture();
+        try {
+            job.execute(contextWithoutAppId());
+        } finally {
+            detachJobLogCapture(logs);
+        }
+
+        assertTrue(containsMessage(logs, "batch limit reached (5)"),
+                "expected a truncation log, got: " + messages(logs));
+    }
+
+    @Test
+    void fullRun_doesNotLogTruncationWhenTheQueueIsExhaustedBeforeTheLimit() throws Exception {
+        when(ingestStateRepository.findById(CURSOR_ID)).thenReturn(Optional.empty());
+
+        // A full page keeps the loop going; the following empty page exhausts the queue
+        // with ten rows scanned against a limit of one hundred.
+        final List<Screenshot> fullPage = new ArrayList<>();
+        for (long id = 1L; id <= 10L; id++) {
+            fullPage.add(screenshot(id));
+        }
+        when(screenshotRepository.findPageWithoutBlurhash(eq(0L), any(PageRequest.class))).thenReturn(fullPage);
+        when(screenshotRepository.findPageWithoutBlurhash(eq(10L), any(PageRequest.class))).thenReturn(List.of());
+
+        final ListAppender<ILoggingEvent> logs = attachJobLogCapture();
+        try {
+            job.execute(contextWithoutAppId());
+        } finally {
+            detachJobLogCapture(logs);
+        }
+
+        assertTrue(containsMessage(logs, "finished scanned=10"),
+                "expected the completed-run summary, got: " + messages(logs));
+        assertFalse(containsMessage(logs, "batch limit reached"),
+                "a completed run must not report a truncated batch: " + messages(logs));
+    }
+
+    private static ListAppender<ILoggingEvent> attachJobLogCapture() {
+        final ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        jobLogger().addAppender(appender);
+        return appender;
+    }
+
+    private static void detachJobLogCapture(ListAppender<ILoggingEvent> appender) {
+        jobLogger().detachAppender(appender);
+    }
+
+    private static Logger jobLogger() {
+        return (Logger) LoggerFactory.getLogger(BlurhashScreenshotsJob.class);
+    }
+
+    private static boolean containsMessage(ListAppender<ILoggingEvent> logs, String needle) {
+        return logs.list.stream().anyMatch(event -> event.getFormattedMessage().contains(needle));
+    }
+
+    private static List<String> messages(ListAppender<ILoggingEvent> logs) {
+        return logs.list.stream().map(ILoggingEvent::getFormattedMessage).toList();
     }
 
     private static Screenshot screenshot(long id) {

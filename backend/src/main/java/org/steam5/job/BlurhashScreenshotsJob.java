@@ -143,7 +143,7 @@ public class BlurhashScreenshotsJob implements Job {
                 }
                 more = (batch.size() == pageSize) && scanned < batchLimit;
             }
-            if (scanned >= batchLimit && more) {
+            if (scanned >= batchLimit) {
                 log.info("BlurhashScreenshotsJob batch limit reached ({}); remaining work deferred to next run", batchLimit);
             }
         } catch (Exception e) {
