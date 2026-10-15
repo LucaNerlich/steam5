@@ -11,7 +11,7 @@ import {
 } from "@/lib/achievements";
 import AchievementsTable from "@/components/AchievementsTable";
 import SortableTH from "@/components/SortableTH";
-import {formatRefreshedAt} from "@/lib/leaderboard";
+import {formatRefreshedAt, parseServerOffsetHeader} from "@/lib/leaderboard";
 
 type LeaderEntry = {
     steamId: string;
@@ -103,7 +103,7 @@ export default function LeaderboardTable(props: {
         const response = await fetch(url, {headers: {accept: 'application/json'}});
         if (!response.ok) throw new Error(`Failed to load ${url}: ${response.status}`);
         const data = await response.json();
-        const serverOffsetMinutes = parseInt(response.headers.get('X-Server-Timezone-Offset') || '0', 10);
+        const serverOffsetMinutes = parseServerOffsetHeader(response.headers);
         return { data, serverOffsetMinutes };
     }, {
         refreshInterval,
