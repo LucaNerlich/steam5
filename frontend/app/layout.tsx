@@ -1,12 +1,13 @@
 import type {Metadata} from "next";
 import Script from "next/script";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import "@/styles/globals.css";
 import UmamiAnalytics from "@/components/UmamiAnalytics";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { serializeJsonLd } from "@/lib/seo";
+import { forwardedForHeaderValue } from "@/lib/backend";
 import localFont from "next/font/local";
 
 const krypton = localFont({
@@ -195,7 +196,14 @@ async function resolveAuth() {
         const res = await fetch(
             `${BACKEND_ORIGIN}/api/auth/validate`,
             {
-                headers: { 'accept': 'application/json', 'authorization': `Bearer ${token}` },
+                headers: {
+                    'accept': 'application/json',
+                    'authorization': `Bearer ${token}`,
+                    // Relay the edge-supplied client IP so the backend's per-IP auth rate
+                    // limit buckets by the real caller instead of this server's address,
+                    // which every visitor otherwise shares.
+                    ...forwardedForHeaderValue((await headers()).get('x-forwarded-for')),
+                },
                 cache: 'no-store',
                 signal: AbortSignal.timeout(3000),
             }
