@@ -224,6 +224,50 @@ class RoundPresenceServiceTest {
 
     private static final AtomicInteger SESSION_ID = new AtomicInteger();
 
+    // --- A failed broadcast must not evict a live session (a concurrent write used to) ---
+
+    @Test
+    void overlappingBroadcastsReachTheSessionAndKeepItRegistered() throws IOException {
+        final WebSocketSession session = sessionFor("scopeA", "1.1.1.1", null, null, null);
+        service.register(session);
+
+        // Two broadcasts for one scope, as a join/leave racing the sweep produces. With
+        // the serializing wrapper each send is delivered in turn instead of colliding.
+        service.broadcastSnapshot("scopeA");
+        service.broadcastSnapshot("scopeA");
+
+        verify(session, times(2)).sendMessage(any(TextMessage.class));
+        assertEquals(1, service.scopeSize("scopeA"), "the session must stay in its scope");
+    }
+
+    @Test
+    void aFailedBroadcastToAnOpenSessionKeepsTheSession() throws IOException {
+        final WebSocketSession session = sessionFor("scopeA", "1.1.1.1", null, null, null);
+        service.register(session);
+        doThrow(new IllegalStateException("concurrent write")).when(session).sendMessage(any(TextMessage.class));
+
+        service.broadcastSnapshot("scopeA");
+
+        assertEquals(1, service.scopeSize("scopeA"), "a still-open session must not be pruned");
+
+        // ...and it keeps receiving the following broadcasts.
+        doNothing().when(session).sendMessage(any(TextMessage.class));
+        service.broadcastSnapshot("scopeA");
+        verify(session, times(2)).sendMessage(any(TextMessage.class));
+    }
+
+    @Test
+    void aClosedSessionIsStillPruned() throws IOException {
+        final WebSocketSession session = sessionFor("scopeA", "1.1.1.1", null, null, null);
+        service.register(session);
+        when(session.isOpen()).thenReturn(false);
+
+        service.broadcastSnapshot("scopeA");
+
+        assertEquals(0, service.scopeSize("scopeA"), "a closed session must be pruned");
+        verify(session, never()).sendMessage(any(TextMessage.class));
+    }
+
     private static WebSocketSession sessionFor(final String scopeKey,
                                                final String clientIp,
                                                final String steamId,
