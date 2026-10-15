@@ -2,11 +2,18 @@ package org.steam5.http;
 
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
+import java.net.HttpURLConnection;
 import java.net.Inet6Address;
 import java.net.InetAddress;
+import java.net.URI;
 import java.net.UnknownHostException;
+import java.util.Optional;
+
+import javax.net.ssl.HttpsURLConnection;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class PublicHttpUrlTest {
@@ -59,5 +66,20 @@ class PublicHttpUrlTest {
         }
         assertFalse(PublicHttpUrl.isDisallowedAddress(InetAddress.getByName("8.8.8.8")));
         assertFalse(PublicHttpUrl.isDisallowedAddress(InetAddress.getByName("1.1.1.1")));
+    }
+
+    @Test
+    void leavesHostnameVerificationToTheDefaultVerifier() throws IOException {
+        // A public literal host needs no DNS, so this stays an offline test.
+        final Optional<URI> target = PublicHttpUrl.httpsTarget("https://8.8.8.8/img.png");
+        assertTrue(target.isPresent());
+
+        final HttpURLConnection connection = PublicHttpUrl.openHttpsConnection(target.get());
+        assertTrue(connection instanceof HttpsURLConnection);
+        // A connection with no verifier installed reports the JDK default, which
+        // rejects a certificate whose SAN does not match the URL host. Installing any
+        // other verifier here would replace that check with the installed one.
+        assertSame(HttpsURLConnection.getDefaultHostnameVerifier(),
+                ((HttpsURLConnection) connection).getHostnameVerifier());
     }
 }

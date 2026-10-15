@@ -95,7 +95,9 @@ public final class PublicHttpUrl {
 
         final HttpsURLConnection conn = (HttpsURLConnection) httpsUri.toURL().openConnection(Proxy.NO_PROXY);
         conn.setSSLSocketFactory(new PinnedAddressSocketFactory(host, port, connectAddress));
-        conn.setHostnameVerifier((hostname, session) -> hostname.equalsIgnoreCase(host));
+        // No custom HostnameVerifier: the default one validates the peer certificate
+        // against the URL host, which is exactly what the pinned connect intends.
+        // A verifier that compares the host to itself would disable that check.
         conn.setInstanceFollowRedirects(false);
         return conn;
     }
