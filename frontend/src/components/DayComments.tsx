@@ -620,6 +620,7 @@ export default function DayComments(props: {
     const {isSignedIn, steamId, refreshAuth} = useAuth();
     const canModerate = isSignedIn === true && steamId === COMMENT_MODERATOR_STEAM_ID;
     const [archivingId, setArchivingId] = useState<number | null>(null);
+    const [archiveError, setArchiveError] = useState<{commentId: number; message: string} | null>(null);
     const [confirmArchiveId, setConfirmArchiveId] = useState<number | null>(null);
     const [openPickerCommentId, setOpenPickerCommentId] = useState<number | null>(null);
 
@@ -655,6 +656,7 @@ export default function DayComments(props: {
     const handleArchive = async (commentId: number) => {
         if (archivingId !== null) return;
         setArchivingId(commentId);
+        setArchiveError(null);
         try {
             await archiveComment(commentId);
             await mutate();
@@ -662,6 +664,11 @@ export default function DayComments(props: {
             const message = e instanceof Error ? e.message : "";
             if (message === "unauthorized") {
                 refreshAuth();
+            } else {
+                setArchiveError({
+                    commentId,
+                    message: message || "Could not archive the comment. Please try again.",
+                });
             }
         }
         setArchivingId(null);
@@ -759,6 +766,11 @@ export default function DayComments(props: {
                                                     <ArchiveIcon size={14} weight="regular" aria-hidden="true"/>
                                                     <span>{archivingId === comment.id ? "…" : "Archive"}</span>
                                                 </button>
+                                            )}
+                                            {archiveError?.commentId === comment.id && (
+                                                <p className="day-comments__archive-error" role="alert">
+                                                    {archiveError.message}
+                                                </p>
                                             )}
                                         </div>
                                         <ReactionBar
