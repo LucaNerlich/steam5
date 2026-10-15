@@ -163,7 +163,9 @@ public class ReviewGameStateController {
     }
 
     @GetMapping("/days")
-    @Cacheable(value = "review-game", key = "'days'", unless = CACHE_ONLY_2XX)
+    // The body depends on `limit`, so the clamped limit is part of the key; a constant
+    // key let a 5-day request and a 3650-day request (the sitemap) share one entry.
+    @Cacheable(value = "review-game", key = "'days:' + T(Math).max(1, T(Math).min(#limit, 3650))", unless = CACHE_ONLY_2XX)
     public ResponseEntity<List<String>> listDays(@RequestParam(value = "limit", defaultValue = "60") int limit,
                                                  @RequestHeader HttpHeaders headers) {
         final int capped = Math.max(1, Math.min(limit, 3650));
