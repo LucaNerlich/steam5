@@ -21,13 +21,11 @@ export default function ShareControls(props: {
         totalReviews: number;
         correct: boolean
     },
-    inline?: boolean,
     // Optional: provide full results when user is authenticated (server-provided),
     // so we don't rely on localStorage
     results?: Record<number, RoundResult>,
-    signedIn?: boolean | null,
 }) {
-    const {buckets, gameDate, totalRounds, latestRound, latest, inline, results} = props;
+    const {buckets, gameDate, totalRounds, latestRound, latest, results} = props;
     const [copied, setCopied] = useState(false);
     const isLocalhost = typeof window !== 'undefined' && (location.hostname === 'localhost' || location.hostname === '127.0.0.1');
 
@@ -183,21 +181,6 @@ export default function ShareControls(props: {
         }
     }
 
-    if (inline) {
-        return (
-            <div className="share-inline">
-                <button
-                    type="button"
-                    className="btn-success"
-                    disabled={namesLoading}
-                    onClick={copyToClipboard}
-                    title={namesLoading ? 'Preparing…' : undefined}
-                    data-umami-event="share-results">Share Results <ExportIcon size={28}/>
-                </button>
-                <span className={`share-copied ${copied ? 'is-visible' : ''}`}>Copied</span>
-            </div>
-        );
-    }
     return (
         <div className="review-round__share">
             <div className="share-inline">

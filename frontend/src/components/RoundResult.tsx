@@ -1,22 +1,19 @@
 "use client";
 
 import React, {type ReactNode} from "react";
-import type {GuessResponse} from "@/types/review-game";
 import {ArrowRightIcon} from "@phosphor-icons/react/ssr";
 import type {RoundResultTier} from "@/lib/scoring";
 import {tierEmoji} from "@/lib/scoring";
 import "@/styles/components/reviewRoundResult.css";
 
 export default function RoundResult(props: {
-    result: GuessResponse;
     selectedLabel?: string | null;
     actualBucket: string;
     headerText: string;
     tier: RoundResultTier;
     headerRight?: ReactNode;
 }): React.ReactElement {
-    const {result, selectedLabel, actualBucket, headerText, tier} = props;
-    const correct = result.correct;
+    const {selectedLabel, actualBucket, headerText, tier} = props;
     const showComparison = !!selectedLabel;
 
     return (
