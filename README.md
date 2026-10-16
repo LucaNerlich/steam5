@@ -64,6 +64,27 @@ docker run --name steam5-pg -e POSTGRES_DB=postgres -e POSTGRES_USER=steam5_user
 
 If first time, login to container and setup database and role, via above sql steps.
 
+### Database migrations (Flyway)
+
+Schema changes are versioned Flyway migrations in `backend/src/main/resources/db/migration/` and are
+applied automatically on backend startup.
+
+- **Every schema change ships as a new migration** `V<N>__short_description.sql` (e.g.
+  `V2__add_wishlist_table.sql`). Never edit or delete an applied migration; Flyway verifies checksums
+  and startup fails if one changed.
+- Existing databases (dev machines and production) predate Flyway: `baseline-on-migrate` records a
+  `BASELINE` row at version 1 and the current schema is taken as-is — `V1__baseline.sql` (the captured
+  production schema) only ever runs on empty databases.
+- Local dev keeps `ddl-auto: update` (Hibernate may evolve the schema while developing); production
+  (`coolify` profile) runs `ddl-auto: validate` — Flyway is the only thing allowed to change the schema.
+- Databases created before August 2025 may still carry a stale `flyway_schema_history` table from the
+  first Flyway era; `backend/src/main/resources/db/flyway-legacy-history-reset.sql` drops it safely
+  (guarded — refuses on unexpected contents) before the first start of a Flyway-enabled build. Already
+  executed on production.
+
+Rollback levers (environment variables, no code revert needed): `SPRING_FLYWAY_ENABLED=false` disables
+Flyway entirely; `SPRING_JPA_HIBERNATE_DDL_AUTO=update` temporarily restores automatic schema updates.
+
 ### Configure environment (overrides)
 
 You can override properties with environment variables:
