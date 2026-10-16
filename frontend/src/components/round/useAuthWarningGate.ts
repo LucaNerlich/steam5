@@ -1,7 +1,7 @@
 "use client";
 
 import {useRef, useState} from "react";
-import {buildSteamLoginUrl} from "@/lib/steamLogin";
+import {startSteamLogin} from "@/lib/steamLogin";
 import {resolveLiveSignedIn, shouldWarnBeforeSubmit} from "@/lib/authGuard";
 import {dismissAuthWarning, hasDismissedAuthWarning} from "./warningPreference";
 
@@ -100,7 +100,7 @@ export default function useAuthWarningGate(
     const handleLogin = () => {
         setShowAuthWarning(false);
         pendingFormData.current = null;
-        window.location.href = buildSteamLoginUrl();
+        startSteamLogin();
     };
 
     const handleSkip = (reason?: "backdrop" | "button" | "escape") => {

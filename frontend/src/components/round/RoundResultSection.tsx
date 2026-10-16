@@ -5,7 +5,7 @@ import RoundResultDialog from "@/components/RoundResultDialog";
 import RoundResultActions from "@/components/RoundResultActions";
 import ShareControls from "@/components/ShareControls";
 import RoundSummary from "@/components/RoundSummary";
-import {buildSteamLoginUrl} from "@/lib/steamLogin";
+import {startSteamLogin} from "@/lib/steamLogin";
 import type {GuessResponse} from "@/types/review-game";
 import type {RoundResult} from "@/lib/storage";
 
@@ -89,14 +89,14 @@ export default function RoundResultSection({
                             <p className="text-muted review-round__signin-nudge">
                                 You&apos;ve been signed out, so this result wasn&apos;t saved.{" "}
                                 <button type="button" className="btn-link" onClick={() => {
-                                    window.location.href = buildSteamLoginUrl();
+                                    startSteamLogin();
                                 }}>Sign in with Steam</button>
                                 &nbsp;to save your results, track streaks, and appear on the leaderboard.
                             </p>
                         ) : signedIn === false && (
                             <p className="text-muted review-round__signin-nudge">
                                 <button type="button" className="btn-link" onClick={() => {
-                                    window.location.href = buildSteamLoginUrl();
+                                    startSteamLogin();
                                 }}>Sign in with Steam</button>
                                 &nbsp;to save your results, track streaks, and appear on the leaderboard.
                             </p>
