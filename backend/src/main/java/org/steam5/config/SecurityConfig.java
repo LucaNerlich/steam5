@@ -61,9 +61,10 @@ public class SecurityConfig {
                 // Default credentials in a non-dev profile let anyone scrape
                 // /actuator/prometheus and satisfy basic auth on shared chains.
                 throw new IllegalStateException(
-                        "METRICS_PASSWORD is blank or still the default (\"metrics\") — refusing to start. " +
-                        "Override METRICS_USERNAME / METRICS_PASSWORD via environment variables before exposing " +
-                        "the actuator endpoints. (active profiles: " + Arrays.toString(activeProfiles) + ")");
+                        "METRICS_USERNAME / METRICS_PASSWORD is blank, or METRICS_PASSWORD is still the " +
+                        "default (\"metrics\") — refusing to start. Override METRICS_USERNAME / METRICS_PASSWORD " +
+                        "via environment variables before exposing the actuator endpoints. (active profiles: " +
+                        Arrays.toString(activeProfiles) + ")");
             }
             log.warn("Dev profile active but METRICS_USERNAME / METRICS_PASSWORD are blank or still the defaults — "
                     + "set them via environment variables before exposing /actuator/prometheus to the public.");
