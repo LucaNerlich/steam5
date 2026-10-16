@@ -292,7 +292,7 @@ export async function generateMetadata({params}: { params: { steamId: string } }
     const title = `${name} — Profile`;
     const description = `Achievements, daily performance, and season awards for ${name} in Steam5 Review Guesser.`;
     const path = `/profile/${encodeURIComponent(steamId)}`;
-    const ogImage = `/opengraph-image?variant=profile&steamId=${encodeURIComponent(steamId)}`;
+    const ogImage = `/og?variant=profile&steamId=${encodeURIComponent(steamId)}`;
     return {
         title,
         description,

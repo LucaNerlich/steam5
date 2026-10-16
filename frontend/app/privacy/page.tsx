@@ -9,7 +9,7 @@ export const metadata: Metadata = {
         title: 'Privacy Policy',
         description: 'GDPR-compliant privacy policy explaining data protection and your rights at Steam5.org.',
         url: '/privacy',
-        images: ['/opengraph-image'],
+        images: ['/og'],
     },
 };
 

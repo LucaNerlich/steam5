@@ -42,12 +42,12 @@ export const metadata: Metadata = {
         title: "Leaderboard — Perfect Days",
         description: "Players who scored 25 out of 25 points in a single day.",
         url: Routes.leaderboardPerfectDays,
-        images: ["/opengraph-image"]
+        images: ["/og"]
     },
     twitter: {
         card: "summary_large_image",
         title: "Leaderboard — Perfect Days",
         description: "Players who scored 25 out of 25 points in a single day.",
-        images: ["/opengraph-image"]
+        images: ["/og"]
     }
 };

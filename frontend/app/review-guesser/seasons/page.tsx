@@ -183,13 +183,13 @@ export const metadata: Metadata = {
         title: "Steam Review Guesser Seasons",
         description: "Track the current season schedule and browse past award winners.",
         url: Routes.seasons,
-        images: ["/opengraph-image"]
+        images: ["/og"]
     },
     twitter: {
         card: "summary_large_image",
         title: "Steam Review Guesser Seasons",
         description: "Track the current season schedule and browse past award winners.",
-        images: ["/opengraph-image"]
+        images: ["/og"]
     }
 };
 
