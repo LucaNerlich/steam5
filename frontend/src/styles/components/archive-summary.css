@@ -84,12 +84,10 @@
     text-align: right;
 }
 
-.archive-summary__delta.positive {
-    color: var(--color-success);
-}
-
+/* The sign carries the meaning; the token colours were below AA on the table surface. */
+.archive-summary__delta.positive,
 .archive-summary__delta.negative {
-    color: var(--color-error);
+    color: var(--color-text);
 }
 
 .archive-summary__delta.neutral {

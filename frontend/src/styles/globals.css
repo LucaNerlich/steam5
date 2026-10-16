@@ -33,7 +33,10 @@ a:visited {
 }
 
 /* Ensure button-like links keep their intended contrast even when visited */
-a.btn-cta:visited,
+a.btn-cta:visited {
+    color: var(--color-on-primary, #fff);
+}
+
 a.btn-success:visited {
     color: #fff;
 }
