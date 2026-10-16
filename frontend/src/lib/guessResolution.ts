@@ -34,8 +34,12 @@ export function resolveEffectiveResponse(
     state: ActionState | null | undefined,
     storedThisRound: RoundResult | undefined,
     prefilledResponse: GuessResponse | null,
+    appId: number,
 ): GuessResponse | null {
-    if (state?.ok && state.response) return state.response;
+    // The round page component is reused across rounds, so the action state can still hold
+    // the previous round's response while this round's submit is in flight — a response
+    // graded for another pick must never be shown as this round's result.
+    if (state?.ok && state.response && state.response.appId === appId) return state.response;
     if (storedThisRound) {
         return {
             appId: storedThisRound.appId,

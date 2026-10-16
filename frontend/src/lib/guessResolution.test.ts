@@ -33,11 +33,25 @@ describe('resolveEffectiveResponse', () => {
 
     it('prefers a fresh, successful action state above all else', () => {
         const state = {ok: true, response: {appId: 10, totalReviews: 99, actualBucket: 'C', correct: false}};
-        expect(resolveEffectiveResponse(state, stored, prefilled)).toBe(state.response);
+        expect(resolveEffectiveResponse(state, stored, prefilled, 10)).toBe(state.response);
+    });
+
+    it('rejects an action response graded for another pick', () => {
+        // The round changed while the submit was in flight: the response carries the
+        // previous round's appId, so it must not be shown as this round's result.
+        const state = {ok: true, response: {appId: 11, totalReviews: 99, actualBucket: 'C', correct: false}};
+
+        expect(resolveEffectiveResponse(state, undefined, null, 10)).toBeNull();
+        expect(resolveEffectiveResponse(state, stored, null, 10)).toEqual({
+            appId: 10,
+            totalReviews: 50,
+            actualBucket: 'A',
+            correct: true,
+        });
     });
 
     it('falls back to the stored round result when there is no live response', () => {
-        expect(resolveEffectiveResponse({ok: false}, stored, prefilled)).toEqual({
+        expect(resolveEffectiveResponse({ok: false}, stored, prefilled, 10)).toEqual({
             appId: 10,
             totalReviews: 50,
             actualBucket: 'A',
@@ -46,10 +60,10 @@ describe('resolveEffectiveResponse', () => {
     });
 
     it('falls back to the prefilled response when nothing else is present', () => {
-        expect(resolveEffectiveResponse(null, undefined, prefilled)).toBe(prefilled);
+        expect(resolveEffectiveResponse(null, undefined, prefilled, 10)).toBe(prefilled);
     });
 
     it('returns null when no source has data', () => {
-        expect(resolveEffectiveResponse(null, undefined, null)).toBeNull();
+        expect(resolveEffectiveResponse(null, undefined, null, 10)).toBeNull();
     });
 });
