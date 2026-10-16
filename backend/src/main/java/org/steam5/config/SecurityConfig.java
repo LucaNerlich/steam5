@@ -20,6 +20,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
+import org.springframework.util.StringUtils;
 import org.steam5.security.AdminTokenFilter;
 import org.steam5.security.AuthRateLimitFilter;
 import org.steam5.security.PresenceRateLimitFilter;
@@ -46,18 +47,25 @@ public class SecurityConfig {
             @Value("${metrics.password:metrics}") String password,
             PasswordEncoder passwordEncoder,
             Environment environment) {
-        if (DEFAULT_METRICS_CRED.equals(username) && DEFAULT_METRICS_CRED.equals(password)) {
+        // Gate on the credential itself, not on the both-defaults pair: a present-but-empty
+        // METRICS_PASSWORD resolves to "" (it beats the placeholder default), and setting only
+        // METRICS_USERNAME leaves the password at "metrics" — both used to pass as "overridden"
+        // and start a production instance whose actuator surface anyone could scrape.
+        final boolean defaultsOrBlank = !StringUtils.hasText(username)
+                || !StringUtils.hasText(password)
+                || DEFAULT_METRICS_CRED.equals(password);
+        if (defaultsOrBlank) {
             final String[] activeProfiles = environment.getActiveProfiles();
             final boolean isDevProfile = Arrays.asList(activeProfiles).contains("dev");
             if (!isDevProfile) {
                 // Default credentials in a non-dev profile let anyone scrape
                 // /actuator/prometheus and satisfy basic auth on shared chains.
                 throw new IllegalStateException(
-                        "METRICS_USERNAME / METRICS_PASSWORD are still the defaults (metrics/metrics) — refusing to start. " +
-                        "Override them via environment variables before exposing the actuator endpoints. " +
-                        "(active profiles: " + Arrays.toString(activeProfiles) + ")");
+                        "METRICS_PASSWORD is blank or still the default (\"metrics\") — refusing to start. " +
+                        "Override METRICS_USERNAME / METRICS_PASSWORD via environment variables before exposing " +
+                        "the actuator endpoints. (active profiles: " + Arrays.toString(activeProfiles) + ")");
             }
-            log.warn("Dev profile active but METRICS_USERNAME / METRICS_PASSWORD are still the defaults — "
+            log.warn("Dev profile active but METRICS_USERNAME / METRICS_PASSWORD are blank or still the defaults — "
                     + "set them via environment variables before exposing /actuator/prometheus to the public.");
         }
         UserDetails metricsUser = User.withUsername(username)
@@ -124,7 +132,12 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/ws/ticket").permitAll()
                         .requestMatchers("/ws/presence").permitAll()
-                        .anyRequest().authenticated()
+                        // Nothing is served outside the matcher table above, and the only
+                        // UserDetailsService in the context is the shared metrics scraper
+                        // account. `authenticated()` + httpBasic therefore made that shared
+                        // credential an app-chain principal for any future unmapped path;
+                        // deny instead, so a missing matcher line fails closed.
+                        .anyRequest().denyAll()
                 )
                 // Fix #5: both custom filters are anchored before BasicAuthenticationFilter.
                 // The rate limiter is registered first so it runs before AdminTokenFilter —
@@ -135,8 +148,6 @@ public class SecurityConfig {
                 .addFilterBefore(userSearchRateLimitFilter, BasicAuthenticationFilter.class)
                 .addFilterBefore(profileRateLimitFilter, BasicAuthenticationFilter.class)
                 .addFilterBefore(adminTokenFilter, BasicAuthenticationFilter.class)
-                .httpBasic(basic -> {
-                })
                 .formLogin(AbstractHttpConfigurer::disable);
         return http.build();
     }
