@@ -1,6 +1,6 @@
 import {NextRequest, NextResponse} from "next/server";
 import {cookies} from "next/headers";
-import {BACKEND_ORIGIN, forwardedForHeaders} from "@/lib/backend";
+import {BACKEND_ORIGIN, BACKEND_TIMEOUT_MS, forwardedForHeaders} from "@/lib/backend";
 
 
 export async function GET(req: NextRequest, {params}: { params: Promise<{ date: string }> }) {
@@ -15,7 +15,8 @@ export async function GET(req: NextRequest, {params}: { params: Promise<{ date: 
     try {
         const res = await fetch(`${BACKEND_ORIGIN}/api/review-game/my/day/${encodeURIComponent(date)}`, {
             headers: {"accept": "application/json", "authorization": `Bearer ${token}`, ...forwardedForHeaders(req)},
-            cache: 'no-store'
+            cache: 'no-store',
+            signal: AbortSignal.timeout(BACKEND_TIMEOUT_MS)
         });
         if (!res.ok) {
             return NextResponse.json({error: "Failed to fetch"}, {

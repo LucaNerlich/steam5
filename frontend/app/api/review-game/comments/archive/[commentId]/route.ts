@@ -1,6 +1,6 @@
 import {NextRequest, NextResponse} from "next/server";
 import {cookies} from "next/headers";
-import {BACKEND_ORIGIN, forwardedForHeaders} from "@/lib/backend";
+import {BACKEND_ORIGIN, BACKEND_TIMEOUT_MS, forwardedForHeaders} from "@/lib/backend";
 import {rejectUntrustedOrigin} from "@/lib/requestOrigin";
 
 const NO_STORE = {"Cache-Control": "private, no-store"} as const;
@@ -38,6 +38,7 @@ export async function POST(
                     ...forwardedForHeaders(req),
                 },
                 cache: "no-store",
+                signal: AbortSignal.timeout(BACKEND_TIMEOUT_MS),
             },
         );
         if (!res.ok) {

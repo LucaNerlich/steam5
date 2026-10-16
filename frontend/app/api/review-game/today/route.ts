@@ -1,6 +1,6 @@
 import {NextRequest, NextResponse} from "next/server";
 import type {ReviewGameState} from "@/types/review-game";
-import {BACKEND_ORIGIN, forwardedForHeaders} from "@/lib/backend";
+import {BACKEND_ORIGIN, BACKEND_TIMEOUT_MS} from "@/lib/backend";
 
 // Cache today's data briefly at the edge; backend now caches live data for ~30 min.
 // Tagged 'round-today' so auth events can invalidate it via revalidateTag.
@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
     try {
         const res = await fetch(`${BACKEND_ORIGIN}/api/review-game/today`, {
             next: {revalidate: 60, tags: ['round-today']},
-            headers: {"accept": "application/json", ...forwardedForHeaders(req)}
+            headers: {"accept": "application/json"}
         });
         if (!res.ok) {
             // Backend error: pass the payload through with the upstream status,

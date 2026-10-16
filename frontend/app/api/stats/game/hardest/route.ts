@@ -1,34 +1,15 @@
-import {NextRequest, NextResponse} from "next/server";
-import {BACKEND_ORIGIN, forwardedForHeaders} from "@/lib/backend";
-
+import {NextRequest} from "next/server";
+import {proxyBackendJson} from "@/lib/backend";
 
 export const revalidate = 3600;
 
 export async function GET(req: NextRequest) {
-    try {
-        const res = await fetch(`${BACKEND_ORIGIN}/api/stats/game/hardest`, {
-            headers: {"accept": "application/json", ...forwardedForHeaders(req)},
-            next: {revalidate, tags: ["stats-hardest-games"]},
-        });
-        // Pass through the leaderboard freshness header (mirrors the achievements/leaderboard
-        // routes' pattern) — otherwise NextResponse.json below would silently drop it, and the
-        // frontend's "Last updated" line would never have anything to render.
-        const refreshedAtHeader = res.headers.get('X-Leaderboard-Refreshed-At');
-        const headers: HeadersInit = {};
-        if (refreshedAtHeader) {
-            headers['X-Leaderboard-Refreshed-At'] = refreshedAtHeader;
-        }
-
-        if (!res.ok) {
-            // Backend error: pass the payload through with the upstream status,
-            // falling back to a generic error body when it isn't JSON.
-            const errorBody: unknown = await res.json().catch(() => null);
-            return NextResponse.json(errorBody ?? {error: "Failed to load hardest games"}, {status: res.status, headers});
-        }
-
-        const data = await res.json();
-        return NextResponse.json(data, {status: res.status, headers});
-    } catch {
-        return NextResponse.json({error: "Failed to load hardest games"}, {status: 502});
-    }
+    return proxyBackendJson(req, {
+        path: "/api/stats/game/hardest",
+        revalidate,
+        tags: ["stats-hardest-games"],
+        // Relayed so the frontend's "Last updated" line has a timestamp to render.
+        passThroughHeaders: ["X-Leaderboard-Refreshed-At"],
+        errorMessage: "Failed to load hardest games",
+    });
 }
