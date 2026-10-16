@@ -1627,12 +1627,12 @@ configs:
             "targets": [{"refId": "A", "expr": "pg_database_size_bytes{datname=~\"$$datname\"}", "legendFormat": "{{datname}}", "datasource": {"type": "prometheus", "uid": "prometheus"}}]
           },
           {
-            "id": 11, "type": "stat", "title": "Replication lag (bytes)",
+            "id": 11, "type": "stat", "title": "Replication lag (s)",
             "gridPos": {"h": 4, "w": 12, "x": 0, "y": 28},
             "datasource": {"type": "prometheus", "uid": "prometheus"},
             "fieldConfig": {"defaults": {"unit": "bytes"}, "overrides": []},
             "options": {"reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "colorMode": "value", "graphMode": "area"},
-            "targets": [{"refId": "A", "expr": "max(pg_replication_lag_bytes) or vector(0)", "datasource": {"type": "prometheus", "uid": "prometheus"}}]
+            "targets": [{"refId": "A", "expr": "max(pg_replication_lag_seconds) or vector(0)", "datasource": {"type": "prometheus", "uid": "prometheus"}}]
           },
           {
             "id": 12, "type": "stat", "title": "Longest running query (s)",
