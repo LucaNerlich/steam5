@@ -85,4 +85,23 @@ class ReviewGameStateCachingTest {
 
         assertEquals(200, res.getStatusCode().value());
     }
+
+    @Test
+    void alwaysPickHistoryRefusesAFromOnlyRangeWiderThanTenYears() {
+        // A from-only request parses to from..today; with the bound gated on both params
+        // being present it would be answered 200 and cached under always-pick-hist:<from>:max —
+        // one shared-cache entry per client-minted value.
+        ResponseEntity<ReviewGameStateController.HistoricalAlwaysPickResponse> res =
+                controller.alwaysPickHistory("2000-01-01", null);
+
+        assertEquals(400, res.getStatusCode().value());
+    }
+
+    @Test
+    void alwaysPickHistoryRefusesAToOnlyRangeWiderThanTenYears() {
+        ResponseEntity<ReviewGameStateController.HistoricalAlwaysPickResponse> res =
+                controller.alwaysPickHistory(null, "2026-12-31");
+
+        assertEquals(400, res.getStatusCode().value());
+    }
 }
