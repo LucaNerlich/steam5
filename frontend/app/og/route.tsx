@@ -2,6 +2,8 @@ import {ImageResponse} from "next/og";
 import {readFile} from "node:fs/promises";
 import {join} from "node:path";
 import {sanitizeAvatarUrl} from "@/lib/ogAvatar";
+import {outcomeCounts} from "@/lib/rounds";
+import {genericCardLines} from "@/lib/seo";
 
 /**
  * Renders the shared social card for the site.
@@ -118,11 +120,8 @@ export async function GET(req: Request): Promise<ImageResponse> {
                 { label: "Top Rank", value: `Top ${totalPct}%` },
             ];
             const recent = profile.days.flatMap(d => d.rounds).slice(-10);
-            const hits = recent.filter(r => r.selectedBucket === r.actualBucket).length;
-            const misses = recent.length - hits;
-            const tooHigh = recent.filter(r => r.selectedBucket > r.actualBucket).length;
-            const tooLow = recent.filter(r => r.selectedBucket < r.actualBucket).length;
-            kdaText = recent.length > 0 ? `${hits} / ${misses} / ${Math.max(0, recent.length - hits - misses)}` : null;
+            const {hits, tooHigh, tooLow} = outcomeCounts(recent);
+            kdaText = recent.length > 0 ? `${hits} / ${tooHigh} / ${tooLow}` : null;
             // Show explicit breakdown
             statsLines.push({ label: "Recent H/H/L", value: `${hits}/${tooHigh}/${tooLow}` });
         }
@@ -137,23 +136,18 @@ export async function GET(req: Request): Promise<ImageResponse> {
             primary = pickAccent(profile.steamId);
             if (day) {
                 const total = day.rounds.reduce((a, r) => a + r.points, 0);
-                const hits = day.rounds.filter(r => r.selectedBucket === r.actualBucket).length;
-                const tooHigh = day.rounds.filter(r => r.selectedBucket > r.actualBucket).length;
-                const tooLow = day.rounds.filter(r => r.selectedBucket < r.actualBucket).length;
+                const {hits, tooHigh, tooLow} = outcomeCounts(day.rounds);
                 statsLines = [
                     { label: "Points", value: String(total) },
                     { label: "Rounds", value: String(day.rounds.length) },
                     { label: "H/H/L", value: `${hits}/${tooHigh}/${tooLow}` },
                 ];
-                kdaText = `${hits} / ${tooHigh + tooLow} / 0`;
+                kdaText = `${hits} / ${tooHigh} / ${tooLow}`;
             }
         }
     } else {
         // Fallback generic card
-        statsLines = [
-            { label: "Play", value: "steam5.app/review-guesser" },
-            { label: "Daily challenge", value: "Guess review buckets" },
-        ];
+        statsLines = genericCardLines();
     }
 
     const accent = primary;
@@ -241,7 +235,7 @@ export async function GET(req: Request): Promise<ImageResponse> {
                     </div>
                     <div style={{ width: 280, display: "flex", flexDirection: "column", gap: 12 }}>
                         <div style={sideBox}>
-                            <div style={{ display: "flex", color: "#9ca3af", fontSize: 18 }}>Recent KDA</div>
+                            <div style={{ display: "flex", color: "#9ca3af", fontSize: 18 }}>Recent H/H/L</div>
                             <div style={{ display: "flex", fontSize: 36, fontWeight: 700, color: accent }}>{kdaText || "—"}</div>
                         </div>
                         <div style={sideBox}>
