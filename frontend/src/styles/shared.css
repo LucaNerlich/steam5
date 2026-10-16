@@ -4,12 +4,6 @@
     }
 }
 
-.mobile__show {
-    @media only screen and (min-width: 769px) {
-        display: none;
-    }
-}
-
 .text-muted {
     color: var(--color-muted);
 }

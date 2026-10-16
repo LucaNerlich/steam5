@@ -23,13 +23,6 @@
         }
     }
 
-    .steam-link {
-        color: var(--color-text);
-        text-decoration: underline;
-        text-underline-offset: 2px;
-        font-size: 0.95rem;
-    }
-
     .screenshots {
         display: grid;
         grid-template-columns: repeat(4, 1fr);

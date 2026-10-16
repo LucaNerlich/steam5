@@ -131,12 +131,6 @@
     color: var(--color-muted);
 }
 
-.season-card__subtext {
-    margin: 0;
-    color: var(--color-muted);
-    font-size: 0.9rem;
-}
-
 .season-card__awards {
     display: grid;
     gap: 1rem;
