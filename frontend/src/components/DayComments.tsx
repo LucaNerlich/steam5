@@ -240,9 +240,11 @@ export function insertMentionIntoBody(
 }
 
 /**
- * Replaces an in-progress `@query` token with a mention reference at the textarea caret.
+ * Replaces an in-progress `@query` token with a mention reference at the textarea
+ * caret. Exported so the live-textarea call path (menu pick → caret read from
+ * `selectionStart`) is testable without a DOM.
  */
-function insertMentionReference(
+export function insertMentionReference(
     textarea: HTMLTextAreaElement,
     candidate: MentionCandidate,
     maxLength: number,

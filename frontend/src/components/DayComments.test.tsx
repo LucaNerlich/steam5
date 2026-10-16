@@ -13,7 +13,7 @@ vi.mock('next/link', () => ({
     ),
 }));
 
-import {CommentBodyText, insertMentionIntoBody} from './DayComments';
+import {CommentBodyText, insertMentionIntoBody, insertMentionReference} from './DayComments';
 
 function render(body: string): string {
     return renderToStaticMarkup(<CommentBodyText body={body}/>);
@@ -111,5 +111,44 @@ describe('insertMentionIntoBody', () => {
 
     it('refuses an insertion that would exceed the body limit', () => {
         expect(insertMentionIntoBody('hi @al', 6, snippet, 3)).toBeNull();
+    });
+});
+
+describe('insertMentionReference', () => {
+    // Drives the real call path (menu pick reads the caret from the live textarea)
+    // with a plain stub object — the vitest env has no DOM. For value 'hello @al'
+    // the token's '@' sits at index 6, so a caret read from the stale stored token
+    // start (6) differs from both live carets used below and would fail these tests.
+    const candidate = {steamId: '7', personaName: 'Alice'};
+    const snippet = '[@Alice](mention:7)';
+
+    function stubTextarea(value: string, selectionStart: number) {
+        const focus = vi.fn();
+        const setSelectionRange = vi.fn();
+        const ta = {value, selectionStart, focus, setSelectionRange} as unknown as HTMLTextAreaElement;
+        return {ta, focus, setSelectionRange};
+    }
+
+    it('closes the menu without inserting when the live caret is left of the token', () => {
+        //selectionStart 0 is left of the '@' at index 6: a caret taken from the stale
+        // stored token start (6) would insert here and mutate the value instead.
+        const {ta, focus, setSelectionRange} = stubTextarea('hello @al', 0);
+
+        expect(insertMentionReference(ta, candidate, 1000)).toBeNull();
+        expect(ta.value).toBe('hello @al');
+        expect(focus).not.toHaveBeenCalled();
+        expect(setSelectionRange).not.toHaveBeenCalled();
+    });
+
+    it('inserts the reference at the live caret and returns the new length', () => {
+        // selectionStart 9 is the token end: insertion replaces exactly the token.
+        // A caret taken from the stale token start (6) would leave '@al' behind and
+        // return the longer length of `hello ${snippet} @al`.
+        const {ta, focus, setSelectionRange} = stubTextarea('hello @al', 9);
+
+        expect(insertMentionReference(ta, candidate, 1000)).toBe(`hello ${snippet}`.length);
+        expect(ta.value).toBe(`hello ${snippet}`);
+        expect(focus).toHaveBeenCalled();
+        expect(setSelectionRange).toHaveBeenCalledWith(`hello ${snippet}`.length, `hello ${snippet}`.length);
     });
 });
