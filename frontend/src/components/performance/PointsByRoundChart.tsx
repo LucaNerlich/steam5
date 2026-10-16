@@ -92,13 +92,6 @@ export default function PointsByRoundChart({rounds}: { rounds: Round[] }): React
         <div className="perf-card">
             <div className="perf-card__title">Points by round (last {DAYS_WINDOW} days)</div>
             <svg viewBox={`0 0 ${width} ${height}`} className="perf-line" role="img" aria-label={`Points by round: ${pointSummary(last)}`}>
-                <defs>
-                    <linearGradient id="perfLineGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="var(--color-primary, #6366f1)" stopOpacity="0.4"/>
-                        <stop offset="100%" stopColor="var(--color-primary, #6366f1)" stopOpacity="0"/>
-                    </linearGradient>
-                </defs>
-                <rect x="0" y="0" width={width} height={height} fill="transparent"/>
                 {/* Y grid lines */}
                 <g>
                     {[0, 1, 2, 3, 4, 5].map(p => (
