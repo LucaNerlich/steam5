@@ -15,12 +15,14 @@ import java.util.List;
  * caller's fields, in the caller's order, each field terminated by a NUL byte. The terminator
  * is what keeps {@code ["ab", "c"]} and {@code ["a", "bc"]} apart — concatenating fields
  * without one (as two of the previous copies did) makes different content hash the same. A
- * null field contributes only its terminator, so it is distinct from an empty string.</p>
+ * null field contributes a marker byte instead of content, so it stays distinct from an empty
+ * string (both are valid JSON values with different payloads).</p>
  */
 @Slf4j
 final class Etags {
 
     private static final byte FIELD_TERMINATOR = 0;
+    private static final byte NULL_FIELD_MARKER = 1;
 
     private Etags() {
     }
@@ -33,7 +35,9 @@ final class Etags {
         try {
             final MessageDigest digest = MessageDigest.getInstance("SHA-256");
             for (final String field : fields) {
-                if (field != null) {
+                if (field == null) {
+                    digest.update(NULL_FIELD_MARKER);
+                } else {
                     digest.update(field.getBytes(StandardCharsets.UTF_8));
                 }
                 digest.update(FIELD_TERMINATOR);
