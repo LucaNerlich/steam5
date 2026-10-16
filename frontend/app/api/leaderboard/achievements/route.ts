@@ -30,16 +30,8 @@ export async function GET(request: NextRequest) {
     }
     const data = await res.json();
 
-    // Pass through server timezone offset header
-    const serverOffsetHeader = res.headers.get('X-Server-Timezone-Offset');
-    const headers: HeadersInit = {};
-    if (serverOffsetHeader) {
-      headers['X-Server-Timezone-Offset'] = serverOffsetHeader;
-    }
-
     return NextResponse.json(data, {
       status: res.status,
-      headers,
     });
   } catch (error) {
     console.error('[Achievements API] Error:', error);

@@ -13,10 +13,9 @@ export async function GET(req: NextRequest) {
             headers: {"accept": "application/json", ...forwardedForHeaders(req)},
             next: { revalidate: 600 },
         });
-        // Pass through the leaderboard freshness header (mirrors the achievements route's
-        // X-Server-Timezone-Offset handling) — otherwise NextResponse.json below would silently
-        // drop it. Only present for floating=true (the MV-backed variant); absent for the live,
-        // non-floating path, which is correct and expected.
+        // Pass through the leaderboard freshness header — otherwise NextResponse.json
+        // below would silently drop it. Only present for floating=true (the MV-backed
+        // variant); absent for the live, non-floating path, which is correct and expected.
         const refreshedAtHeader = res.headers.get('X-Leaderboard-Refreshed-At');
         const headers: HeadersInit = {};
         if (refreshedAtHeader) {
