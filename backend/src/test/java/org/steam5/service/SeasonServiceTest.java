@@ -14,6 +14,7 @@ import org.steam5.repository.SeasonAwardResultRepository;
 import org.steam5.repository.SeasonRepository;
 
 import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -518,6 +519,36 @@ class SeasonServiceTest {
         assertTrue(created.stream().anyMatch(season -> !season.getStartDate().isAfter(earliestGuess)));
         verify(seasonRepository, times(1)).shiftSeasonNumbersUpBy(1_000_000);
         verify(seasonRepository, times(1)).shiftSeasonNumbersUpBy(-1_000_000 + created.size());
+    }
+
+    @Test
+    void backfillRange_numbersCreatedSeasonsInStartDateOrder() {
+        // A gap of two seasons: the earliest window must get the lowest number, or the season
+        // timeline (and the rerun's "earliest season" lookup) walks backwards.
+        final LocalDate startInclusive = LocalDate.of(2026, 1, 1);
+        final LocalDate existingStart = LocalDate.of(2026, 2, 1);
+        Season existing = seasonWith(1, existingStart, LocalDate.of(2026, 3, 2), SeasonStatus.ACTIVE);
+        when(seasonRepository.findFirstByOrderBySeasonNumberAsc()).thenReturn(Optional.of(existing));
+        when(seasonRepository.findTopByOrderBySeasonNumberDesc()).thenReturn(Optional.of(existing));
+        when(seasonRepository.save(any(Season.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        List<Season> created = service.backfillRange(startInclusive, LocalDate.of(2026, 1, 31));
+
+        List<Season> backwardFill = created.stream()
+                .filter(season -> season.getStartDate().isBefore(existingStart))
+                .sorted(Comparator.comparingInt(Season::getSeasonNumber))
+                .toList();
+        assertEquals(2, backwardFill.size(), "the two missing windows are created");
+        assertEquals(1, backwardFill.get(0).getSeasonNumber());
+        assertTrue(backwardFill.get(0).getStartDate().isBefore(backwardFill.get(1).getStartDate()),
+                "season #" + backwardFill.get(0).getSeasonNumber() + " starts "
+                        + backwardFill.get(0).getStartDate() + " but season #"
+                        + backwardFill.get(1).getSeasonNumber() + " starts "
+                        + backwardFill.get(1).getStartDate());
+        assertFalse(backwardFill.get(0).getStartDate().isAfter(startInclusive),
+                "season #1 must start at or before the earliest guess");
+        assertTrue(backwardFill.get(1).getEndDate().isBefore(existingStart),
+                "the created windows must not overlap the existing season");
     }
 
     // finalizeSeason ----------------------------------------------------------------------------
