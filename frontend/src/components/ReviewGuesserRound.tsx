@@ -15,7 +15,7 @@ import type {CommentGameRef} from "@/lib/comments";
 import useServerGuesses from "@/lib/hooks/useServerGuesses";
 import useRoundArrowNavigation from "@/lib/hooks/useRoundArrowNavigation";
 import {saveRound, type RoundResult} from "@/lib/storage";
-import {prefillToResponse, resolveEffectiveResponse} from "@/lib/guessResolution";
+import {isRoundSubmitted, prefillToResponse, resolveEffectiveResponse} from "@/lib/guessResolution";
 import {computeSignedOutDuringPlay} from "@/lib/authGuard";
 import {Routes} from "../../app/routes";
 import "@/styles/components/reviewGuesserRound.css";
@@ -213,7 +213,7 @@ export default function ReviewGuesserRound({
     // Submitted flag: either current state submitted, or restored from storage, or authenticated prefilled for this round.
     // Note: state.error alone does not mark the round as submitted — a failed submission
     // must keep the guess buttons enabled so the player can retry without a page reload.
-    const submittedFlag = Boolean(state?.ok) || Boolean(storedThisRound) || Boolean(prefilled);
+    const submittedFlag = isRoundSubmitted(state, appId, storedThisRound, Boolean(prefilled));
 
     // Single source of truth: when to show ShareControls
     const hasServerResults = Object.keys(serverResults).length > 0;
