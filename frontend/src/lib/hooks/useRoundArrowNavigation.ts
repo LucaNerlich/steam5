@@ -10,6 +10,15 @@ import {useRouter} from "next/navigation";
  * keys are held, when the event originates from a text field or editable element, or
  * while a Fancybox lightbox owns the arrow keys.
  */
+/**
+ * True while a modal dialog — the Fancybox lightbox or one of the app's own modals — is open.
+ * `:modal` matches only dialogs opened with `showModal()`, so the inline, non-modal result card
+ * does not suppress arrow-key navigation.
+ */
+export function hasOpenModalDialog(): boolean {
+    return typeof document !== "undefined" && document.querySelector("dialog:modal") !== null;
+}
+
 export default function useRoundArrowNavigation(opts: {
     prevHref: string | null;
     nextHref: string | null;
@@ -35,13 +44,14 @@ export default function useRoundArrowNavigation(opts: {
                     }
                 }
 
-                // Fancybox owns the arrow keys while a lightbox is open. Fancybox v6 renders a
-                // native <dialog class="fancybox__dialog"> and opens it with showModal(), so an
-                // open dialog is the signal. The previously tested ".fancybox__container.is-open"
-                // class is never emitted by the installed version (the bundle only ever adds
-                // is-idle/is-ready/is-hiding/is-closing), which made this guard dead: with focus
-                // inside the player, arrows routed away behind the open lightbox.
-                if (document.querySelector("dialog[open]")) return true;
+                // A modal owns the arrow keys: Fancybox v6 renders a native
+                // <dialog class="fancybox__dialog"> opened with showModal(), and the app's own
+                // auth/confirm modals do the same. The test must be `:modal`, not `[open]`: the
+                // round result card is a deliberately non-modal `<dialog open>` that stays open
+                // for the rest of the visit, so `[open]` suppressed the shortcut for the whole
+                // normal play loop. (The earlier ".fancybox__container.is-open" test matched a
+                // class the installed bundle never emits, which is why it was replaced.)
+                if (hasOpenModalDialog()) return true;
 
                 return false;
             };
