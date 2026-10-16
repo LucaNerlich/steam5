@@ -54,12 +54,12 @@ export const metadata: Metadata = {
         title: 'Leaderboard — Weekly',
         description: 'Last seven days rankings and high scores for Steam Review Guesser. Weekly challenge standings.',
         url: '/review-guesser/leaderboard/weekly',
-        images: ['/opengraph-image'],
+        images: ['/og'],
     },
     twitter: {
         card: 'summary_large_image',
         title: 'Leaderboard — Weekly',
         description: 'Last seven days rankings and high scores for Steam Review Guesser. Weekly challenge standings.',
-        images: ['/opengraph-image'],
+        images: ['/og'],
     },
 };

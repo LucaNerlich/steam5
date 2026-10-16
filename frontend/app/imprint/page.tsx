@@ -9,7 +9,7 @@ export const metadata: Metadata = {
         title: 'Imprint',
         description: 'Legal information and ownership details for Steam5.org.',
         url: '/imprint',
-        images: ['/opengraph-image'],
+        images: ['/og'],
     },
 };
 

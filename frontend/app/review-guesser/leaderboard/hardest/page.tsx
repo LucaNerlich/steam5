@@ -43,12 +43,12 @@ export const metadata: Metadata = {
         title: "Leaderboard — Hardest Games",
         description: "The Steam games players struggle with the most, with deception metrics.",
         url: Routes.leaderboardHardest,
-        images: ["/opengraph-image"]
+        images: ["/og"]
     },
     twitter: {
         card: "summary_large_image",
         title: "Leaderboard — Hardest Games",
         description: "The Steam games players struggle with the most, with deception metrics.",
-        images: ["/opengraph-image"]
+        images: ["/og"]
     }
 };

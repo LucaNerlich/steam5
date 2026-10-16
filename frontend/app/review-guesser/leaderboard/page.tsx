@@ -54,13 +54,13 @@ export const metadata: Metadata = {
         title: 'Leaderboard — All-time',
         description: 'All-time rankings and high scores for Steam Review Guesser. Compete for the top spot.',
         url: '/review-guesser/leaderboard',
-        images: ['/opengraph-image'],
+        images: ['/og'],
     },
     twitter: {
         card: 'summary_large_image',
         title: 'Leaderboard — All-time',
         description: 'All-time rankings and high scores for Steam Review Guesser. Compete for the top spot.',
-        images: ['/opengraph-image'],
+        images: ['/og'],
     },
 };
 

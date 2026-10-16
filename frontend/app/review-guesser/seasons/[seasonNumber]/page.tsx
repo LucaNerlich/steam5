@@ -81,13 +81,13 @@ export async function generateMetadata({params}: MetadataParams): Promise<Metada
             title,
             description,
             url: canonical,
-            images: ["/opengraph-image"]
+            images: ["/og"]
         },
         twitter: {
             card: "summary_large_image",
             title,
             description,
-            images: ["/opengraph-image"]
+            images: ["/og"]
         }
     };
 }

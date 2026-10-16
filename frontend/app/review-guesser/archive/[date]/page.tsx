@@ -124,7 +124,7 @@ export async function generateMetadata({params}: { params: Promise<{ date: strin
     const title = `Archive — ${formatDate(date)}`;
     const description = `Past daily challenge for ${formatDate(date)} — Steam Review Guesser.`;
     const base = (process.env.NEXT_PUBLIC_DOMAIN || 'https://steam5.org').replace(/\/$/, '');
-    let ogUrl = '/opengraph-image';
+    let ogUrl = '/og';
     try {
         const day: ReviewGameState | null = await fetch(`${backend}/api/review-game/day/${encodeURIComponent(date)}`, {
             headers: { 'accept': 'application/json' },
