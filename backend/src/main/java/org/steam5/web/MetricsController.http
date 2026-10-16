@@ -1,22 +1,27 @@
 ### Index of metrics endpoints (JSON)
 GET {{host}}/api/metrics
 Accept: application/json
+X-Admin-Token: {{adminToken}}
 
 ### Index of metrics endpoints (HTML)
 GET {{host}}/api/metrics
 Accept: text/html
+X-Admin-Token: {{adminToken}}
 
 ### Get entity counts
 GET {{host}}/api/metrics/counts
 Accept: application/json
+X-Admin-Token: {{adminToken}}
 
 ### Get coverage of reviews/details over index
 GET {{host}}/api/metrics/coverage
 Accept: application/json
+X-Admin-Token: {{adminToken}}
 
 ### Get details breakdown (free/paid, platforms)
 GET {{host}}/api/metrics/details/breakdown
 Accept: application/json
+X-Admin-Token: {{adminToken}}
 
 ### Get picks summary (days, latest)
 GET {{host}}/api/metrics/picks/summary
@@ -25,5 +30,6 @@ Accept: application/json
 ### Get configured bucket labels (game metadata)
 GET {{host}}/api/metrics/thresholds
 Accept: application/json
+X-Admin-Token: {{adminToken}}
 
 
