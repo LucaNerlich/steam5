@@ -13,7 +13,7 @@ vi.mock('next/link', () => ({
     ),
 }));
 
-import {CommentBodyText} from './DayComments';
+import {CommentBodyText, insertMentionIntoBody} from './DayComments';
 
 function render(body: string): string {
     return renderToStaticMarkup(<CommentBodyText body={body}/>);
@@ -69,5 +69,47 @@ describe('CommentBodyText mentions', () => {
         const gameIndex = html.indexOf('/app/220');
         expect(mentionIndex).toBeGreaterThan(-1);
         expect(gameIndex).toBeGreaterThan(mentionIndex);
+    });
+});
+
+describe('insertMentionIntoBody', () => {
+    const snippet = '[@Alice](mention:7)';
+
+    it('replaces the token that ends at the caret and moves the caret after it', () => {
+        const result = insertMentionIntoBody('hello @al', 9, snippet, 1000);
+
+        expect(result).toEqual({value: `hello ${snippet}`, caret: `hello ${snippet}`.length});
+    });
+
+    it('closes the menu without inserting when the caret moved left of the token', () => {
+        // Home/End and arrow keys move the caret without firing an input event; using the
+        // menu's stored token start here duplicated the text between caret and token.
+        expect(insertMentionIntoBody('hello @al', 0, snippet, 1000)).toBeNull();
+    });
+
+    it('closes the menu without inserting when the caret moved right past the token', () => {
+        expect(insertMentionIntoBody('hi @al there', 12, snippet, 1000)).toBeNull();
+    });
+
+    it('leaves the text that follows the token intact', () => {
+        const result = insertMentionIntoBody('hi @al and more', 6, snippet, 1000);
+
+        expect(result).toEqual({
+            value: `hi ${snippet} and more`,
+            caret: `hi ${snippet}`.length,
+        });
+    });
+
+    it('inserts a separating space when the following character is not whitespace', () => {
+        const result = insertMentionIntoBody('hi @al, see', 6, snippet, 1000);
+
+        expect(result).toEqual({
+            value: `hi ${snippet} , see`,
+            caret: `hi ${snippet} `.length,
+        });
+    });
+
+    it('refuses an insertion that would exceed the body limit', () => {
+        expect(insertMentionIntoBody('hi @al', 6, snippet, 3)).toBeNull();
     });
 });
