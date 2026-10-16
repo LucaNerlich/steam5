@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import {prefillToResponse, resolveEffectiveResponse} from './guessResolution';
+import {isRoundSubmitted, prefillToResponse, resolveEffectiveResponse} from './guessResolution';
 import type {RoundResult} from './storage';
 
 describe('prefillToResponse', () => {
@@ -18,6 +18,39 @@ describe('prefillToResponse', () => {
     it('is not correct when the actual bucket is unknown', () => {
         expect(prefillToResponse(10, {selectedLabel: 'A'}))
             .toEqual({appId: 10, totalReviews: 0, actualBucket: '', correct: false});
+    });
+});
+
+describe('isRoundSubmitted', () => {
+    it('counts a successful response graded for this round', () => {
+        const state = {ok: true, response: {appId: 10, totalReviews: 1, actualBucket: 'C', correct: false}};
+        expect(isRoundSubmitted(state, 10, undefined, false)).toBe(true);
+    });
+
+    it('ignores a stale ok-state graded for another pick', () => {
+        // The round changed while the submit was in flight: the ok-state still
+        // holds the previous round's response, so it must NOT mark this round
+        // submitted (else the buttons render disabled with no result, no error).
+        const state = {ok: true, response: {appId: 11, totalReviews: 1, actualBucket: 'C', correct: false}};
+        expect(isRoundSubmitted(state, 10, undefined, false)).toBe(false);
+    });
+
+    it('counts restored results and authenticated prefills for this round', () => {
+        const stored: RoundResult = {
+            appId: 10,
+            selectedLabel: 'A',
+            actualBucket: 'A',
+            totalReviews: 50,
+            correct: true,
+        };
+        expect(isRoundSubmitted(undefined, 10, stored, false)).toBe(true);
+        expect(isRoundSubmitted(undefined, 10, undefined, true)).toBe(true);
+    });
+
+    it('does not mark the round submitted on failed or absent states', () => {
+        expect(isRoundSubmitted({ok: false}, 10, undefined, false)).toBe(false);
+        expect(isRoundSubmitted(null, 10, undefined, false)).toBe(false);
+        expect(isRoundSubmitted(undefined, 10, undefined, false)).toBe(false);
     });
 });
 

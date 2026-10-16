@@ -22,6 +22,28 @@ export function prefillToResponse(appId: number, prefill: Prefill | undefined): 
 }
 
 /**
+ * Whether the round should render as already submitted: a successful action
+ * state whose response was graded for this round's pick, or a restored result
+ * (stored/server) or an authenticated prefill for this round. The round page
+ * reuses its component across rounds, so a stale ok-state can still hold the
+ * previous round's response while the new submit is in flight — it must never
+ * mark this round submitted, or the guess buttons would render disabled with
+ * no result and no error shown.
+ */
+export function isRoundSubmitted(
+    state: ActionState | null | undefined,
+    appId: number,
+    storedThisRound: RoundResult | undefined,
+    prefilled: boolean,
+): boolean {
+    return Boolean(
+        (state?.ok && state.response?.appId === appId)
+        || storedThisRound
+        || prefilled,
+    );
+}
+
+/**
  * Priority order for the result to display for a completed round:
  *   1. Live action state (just submitted this session)
  *   2. Stored result from localStorage or server (authenticated restore)
