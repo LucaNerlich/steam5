@@ -5,6 +5,20 @@ type BreadcrumbItem = {
 
 const defaultBase = (process.env.NEXT_PUBLIC_DOMAIN || "https://steam5.org").replace(/\/$/, "");
 
+/** Public site origin used by metadata and share copy, without a trailing slash. */
+export const SITE_BASE = defaultBase;
+
+/**
+ * Copy for the generic social card (no variant): the playable URL is built from the
+ * configured site origin, never a hardcoded host.
+ */
+export function genericCardLines(base: string = SITE_BASE): Array<{label: string; value: string}> {
+    return [
+        {label: "Play", value: `${base}/review-guesser`},
+        {label: "Daily challenge", value: "Guess review buckets"},
+    ];
+}
+
 function normalizeUrl(url: string, base: string): string {
     if (/^https?:\/\//i.test(url)) {
         return url;
