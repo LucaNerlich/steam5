@@ -1,5 +1,11 @@
-import {describe, expect, it} from 'vitest';
+import {afterEach, describe, expect, it, vi} from 'vitest';
+import {NextResponse} from 'next/server';
 import sitemap from './sitemap';
+
+afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+});
 
 /**
  * The sitemap is generated from the central `Routes` map minus a hand-maintained exclusion set,
@@ -22,6 +28,19 @@ describe('sitemap', () => {
         // privacy/page.tsx and imprint/page.tsx both set robots: { index: false }.
         expect(urls).not.toContain(`${baseUrl}/privacy`);
         expect(urls).not.toContain(`${baseUrl}/imprint`);
+    });
+
+    it('emits the archived challenge dates the backend reports', async () => {
+        // A build that cannot reach the backend silently shipped an empty archive section; the
+        // loader now warns, and this pins that the dated entries are emitted when they exist.
+        const archiveDate = '2026-10-01';
+        vi.stubGlobal('fetch', vi.fn(async () => NextResponse.json([archiveDate])));
+        vi.stubEnv('NEXT_PUBLIC_API_DOMAIN', 'https://api.example.com');
+
+        const urls = (await sitemap()).map((entry) => entry.url);
+
+        expect(urls).toContain(`${baseUrl}/review-guesser/archive/${archiveDate}`);
+        vi.unstubAllGlobals();
     });
 
     it('omits the redirecting routes', async () => {

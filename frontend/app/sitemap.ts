@@ -23,20 +23,36 @@ function resolveBackendOrigin(): string | null {
 /** Loads the set of dates that actually have an archived challenge; empty on failure. */
 async function loadExistingArchiveDates(): Promise<Set<string>> {
     const backend = resolveBackendOrigin();
-    if (!backend) return new Set();
+    if (!backend) {
+        console.warn('[sitemap] archive dates unavailable: no https NEXT_PUBLIC_API_DOMAIN configured');
+        return new Set();
+    }
     try {
         const res = await fetch(`${backend}/api/review-game/days?limit=5000`, {
             headers: {accept: 'application/json'},
             signal: AbortSignal.timeout(5000),
         });
-        if (!res.ok) return new Set();
+        if (!res.ok) {
+            console.warn(`[sitemap] archive dates unavailable: backend responded ${res.status}`);
+            return new Set();
+        }
         const data: unknown = await res.json();
-        if (!Array.isArray(data)) return new Set();
+        if (!Array.isArray(data)) {
+            console.warn('[sitemap] archive dates unavailable: unexpected payload shape');
+            return new Set();
+        }
         return new Set(data.filter((d): d is string => typeof d === 'string'));
-    } catch {
+    } catch (error) {
+        console.warn('[sitemap] archive dates unavailable: fetch to the backend failed', error);
         return new Set();
     }
 }
+
+// Cached by default: without a revalidate window the route is generated once at build time,
+// so days archived after the deploy never appear and a build that could not reach the backend
+// silently shipped an empty archive section (production has ~430 dated URLs; one such build
+// shipped 0).
+export const revalidate = 3600;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const baseUrl = (process.env.NEXT_PUBLIC_DOMAIN || 'https://steam5.org').replace(/\/$/, '');
