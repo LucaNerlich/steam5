@@ -11,6 +11,7 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
@@ -74,6 +75,18 @@ class SteamUserServiceTest {
         service.updateUserProfile(STEAM_ID);
 
         verifyNoInteractions(httpClient, profileWriter);
+    }
+
+    // Issue #339: a @Transactional on updateUserProfile would re-introduce the starvation
+    // bug above (the fetch would join a transaction). These tests are pure Mockito and run
+    // without a Spring context, so an accidentally re-added annotation would stay inert here
+    // unless pinned explicitly via reflection.
+    @Test
+    void mustNotRunInsideATransaction() throws NoSuchMethodException {
+        assertNull(SteamUserService.class
+                        .getMethod("updateUserProfile", String.class)
+                        .getAnnotation(org.springframework.transaction.annotation.Transactional.class),
+                "must not run inside a transaction (refs issue #339 stale-@Async-transactional bug)");
     }
 
     @Test
