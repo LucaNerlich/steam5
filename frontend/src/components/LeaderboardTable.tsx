@@ -41,7 +41,7 @@ export default function LeaderboardTable(props: {
     refreshMs?: number;
     ariaLabel?: string;
     initialData?: LeaderEntry[] | null;
-    initialAchievements?: { data: UserAchievement[], serverOffsetMinutes: number } | null;
+    initialAchievements?: { data: UserAchievement[] } | null;
 }) {
 
     let aria;
@@ -90,12 +90,11 @@ export default function LeaderboardTable(props: {
 
     const endpointAchievements = `/api/leaderboard/achievements?timeframe=${achievementTimeframe}`;
 
-    const { data: achievementsData } = useSWR<{data: UserAchievement[], serverOffsetMinutes: number}>(endpointAchievements, async (url) => {
+    const { data: achievementsData } = useSWR<{data: UserAchievement[]}>(endpointAchievements, async (url) => {
         const response = await fetch(url, {headers: {accept: 'application/json'}});
         if (!response.ok) throw new Error(`Failed to load ${url}: ${response.status}`);
         const data = await response.json();
-        const serverOffsetMinutes = parseServerOffsetHeader(response.headers);
-        return { data, serverOffsetMinutes };
+        return { data };
     }, {
         refreshInterval,
         revalidateOnFocus: true,
@@ -106,7 +105,6 @@ export default function LeaderboardTable(props: {
 
     // Extract achievements array and server offset
     const achievementsList = achievementsData?.data || [];
-    const serverOffsetMinutes = achievementsData?.serverOffsetMinutes ?? 0;
 
     const achievementBySteamId = (() => {
         const m = new Map<string, UserAchievement>();
@@ -230,7 +228,7 @@ export default function LeaderboardTable(props: {
                                         return lbl ? (
                                             <span
                                                 className="leaderboard__achievement"
-                                                title={getAchievementTitle(k, achievement, serverOffsetMinutes) ?? lbl ?? undefined}
+                                                title={getAchievementTitle(k, achievement) ?? lbl ?? undefined}
                                                 style={{
                                                     marginLeft: 8,
                                                     padding: '2px 6px',
@@ -271,7 +269,6 @@ export default function LeaderboardTable(props: {
 
             <AchievementsTable
                 achievements={achievementsList}
-                serverOffsetMinutes={serverOffsetMinutes}
                 leaderboardEntries={data ?? []}
             />
         </div>

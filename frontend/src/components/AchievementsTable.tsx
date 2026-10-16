@@ -19,16 +19,13 @@ type LeaderEntry = {
  * Renders the achievements leaderboard as a responsive list of cards.
  *
  * @param achievements - Achievement records to display
- * @param serverOffsetMinutes - Server time offset used to calculate achievement metrics and titles
  * @param leaderboardEntries - Leaderboard players matched to achievement winners
  */
 export default function AchievementsTable({
     achievements,
-    serverOffsetMinutes,
     leaderboardEntries,
 }: {
     achievements: UserAchievement[];
-    serverOffsetMinutes: number;
     leaderboardEntries: LeaderEntry[];
 }) {
     if (!achievements || achievements.length === 0) return null;
@@ -45,9 +42,9 @@ export default function AchievementsTable({
                     const entry = entryBySteamId.get(achievement.steamId);
                     if (!entry) return null;
 
-                    const metricText = achievementMetricText(key, achievement, serverOffsetMinutes);
+                    const metricText = achievementMetricText(key, achievement);
                     const icon = ACHIEVEMENT_ICONS[key] ?? '';
-                    const title = getAchievementTitle(key, achievement, serverOffsetMinutes);
+                    const title = getAchievementTitle(key, achievement);
 
                     return (
                         <li key={key} className="achievements-list__item">
