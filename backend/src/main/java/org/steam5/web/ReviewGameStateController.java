@@ -699,6 +699,15 @@ public class ReviewGameStateController {
         } catch (java.time.format.DateTimeParseException e) {
             return ResponseEntity.badRequest().build();
         }
+        // The response is cached under the raw from/to pair, so an unbounded EXplicit span lets a
+        // caller mint one cache entry per enumerated range in the shared review-game cache.
+        // An absent range is the all-time view (its key is the 'min'/'max' literal pair, so it
+        // stays a single entry) and is left alone; an explicit span wider than ~10 years is
+        // refused. The UI asks for one day at a time.
+        final boolean explicitRange = from != null && !from.isBlank() && to != null && !to.isBlank();
+        if (explicitRange && java.time.temporal.ChronoUnit.DAYS.between(start, end) > 3650) {
+            return ResponseEntity.badRequest().build();
+        }
         if (end.isBefore(start)) return ResponseEntity.badRequest().build();
         final var result = computeAlwaysPickForRange(start, end);
         return ResponseEntity.ok()
