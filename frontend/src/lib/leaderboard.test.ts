@@ -1,26 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import {formatRefreshedAt, parseServerOffsetHeader} from './leaderboard';
-
-describe('parseServerOffsetHeader', () => {
-    it('parses a signed numeric offset', () => {
-        const headers = new Headers({'X-Server-Timezone-Offset': '-120'});
-        expect(parseServerOffsetHeader(headers)).toBe(-120);
-    });
-
-    it('falls back to 0 when the header is absent', () => {
-        expect(parseServerOffsetHeader(new Headers())).toBe(0);
-    });
-
-    it('falls back to 0 for a non-numeric header instead of yielding NaN', () => {
-        const headers = new Headers({'X-Server-Timezone-Offset': 'not-a-number'});
-        expect(parseServerOffsetHeader(headers)).toBe(0);
-    });
-
-    it('falls back to 0 for an empty header value', () => {
-        const headers = new Headers({'X-Server-Timezone-Offset': ''});
-        expect(parseServerOffsetHeader(headers)).toBe(0);
-    });
-});
+import {formatRefreshedAt} from './leaderboard';
 
 describe('formatRefreshedAt', () => {
     it('formats a valid ISO timestamp into a non-empty localized string', () => {

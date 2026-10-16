@@ -60,13 +60,18 @@ export function formatDuration(seconds: number): string {
     return `${hours}h ${mins}m`;
 }
 
-export function formatTimeOfDay(minutesSinceMidnightServer: number, serverOffsetMinutes = 0): string {
-    const utcMinutesSinceMidnight = minutesSinceMidnightServer - serverOffsetMinutes;
-    // Round the total first, then normalize into [0, 1440) — early-morning times in
-    // positive-offset timezones produce negative totals, and fractional averages can
-    // round to 60 minutes; both must carry into the hour instead of rendering
-    // "10:-30 PM" / "4:60 PM".
-    const total = Math.round(utcMinutesSinceMidnight);
+/**
+ * Formats the average submission time the backend reports.
+ *
+ * The value is already UTC wall-clock minutes: `GuessRepository` averages
+ * `EXTRACT(HOUR FROM (created_at AT TIME ZONE 'UTC'))`, so applying the server's own timezone
+ * offset to it double-converted and showed times shifted by that offset (2 h early on a
+ * Europe/Berlin instance).
+ */
+export function formatTimeOfDay(minutesSinceMidnightUtc: number): string {
+    // Round first, then normalize into [0, 1440): fractional averages must carry into the
+    // hour instead of rendering "3:60".
+    const total = Math.round(minutesSinceMidnightUtc);
     const normalized = ((total % 1440) + 1440) % 1440;
     const hours = Math.floor(normalized / 60);
     const minutes = normalized % 60;
@@ -78,7 +83,6 @@ export function formatTimeOfDay(minutesSinceMidnightServer: number, serverOffset
 export function getAchievementTitle(
     key: string | null | undefined,
     achievement?: UserAchievement,
-    serverOffsetMinutes = 0,
 ): string | undefined {
     if (!key) return undefined;
     const baseTitle = ACHIEVEMENT_TITLES[key];
@@ -87,7 +91,7 @@ export function getAchievementTitle(
         case 'EARLY_BIRD':
         case 'NIGHT_OWL':
             return achievement.avgMinutes != null
-                ? `${baseTitle} (avg: ${formatTimeOfDay(achievement.avgMinutes, serverOffsetMinutes)})`
+                ? `${baseTitle} (avg: ${formatTimeOfDay(achievement.avgMinutes)})`
                 : baseTitle;
         case 'SHARPSHOOTER':
             return achievement.avgPoints != null
@@ -111,12 +115,12 @@ export function getAchievementTitle(
     }
 }
 
-export function achievementMetricText(key: string, achievement: UserAchievement, serverOffsetMinutes: number): string | null {
+export function achievementMetricText(key: string, achievement: UserAchievement): string | null {
     switch (key) {
         case 'EARLY_BIRD':
         case 'NIGHT_OWL':
             if (achievement.avgMinutes != null) {
-                try { return formatTimeOfDay(achievement.avgMinutes, serverOffsetMinutes); }
+                try { return formatTimeOfDay(achievement.avgMinutes); }
                 catch { return `${Math.round(achievement.avgMinutes)} min`; }
             }
             return null;

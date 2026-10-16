@@ -49,14 +49,17 @@ describe('formatTimeOfDay (TZ pinned to UTC)', () => {
         expect(formatTimeOfDay(9 * 60 + 5)).toBe('9:05 AM');
     });
 
-    it('applies the server timezone offset', () => {
-        // Server reports 60 minutes past midnight with a +60min offset → UTC midnight.
-        expect(formatTimeOfDay(60, 60)).toBe('12:00 AM');
+    it('renders the UTC value the backend reports, with no offset applied', () => {
+        // GuessRepository averages the UTC hour/minute, so a value of 60 is 1 AM UTC. The
+        // function used to subtract the server's own offset from it a second time, which showed
+        // 12:00 AM on a +60min instance.
+        expect(formatTimeOfDay(60)).toBe('1:00 AM');
+        expect(formatTimeOfDay(22 * 60 + 30)).toBe('10:30 PM');
     });
 
-    it('normalizes negative totals from positive-offset timezones', () => {
-        // Server 00:30 with a +120min offset → UTC 22:30 the previous day.
-        expect(formatTimeOfDay(30, 120)).toBe('10:30 PM');
+    it('wraps past midnight rather than printing a negative time', () => {
+        expect(formatTimeOfDay(23 * 60 + 40)).toBe('11:40 PM');
+        expect(formatTimeOfDay(5 * 60)).toBe('5:00 AM');
     });
 
     it('carries fractional minutes that round to 60 into the next hour', () => {
@@ -91,15 +94,16 @@ describe('achievementMetricText', () => {
     const base = {steamId: 'x', userAchievement: 'k'};
 
     it('formats per-category metrics', () => {
-        expect(achievementMetricText('SHARPSHOOTER', {...base, avgPoints: 3.456}, 0)).toBe('3.46 pts/guess');
-        expect(achievementMetricText('BULLSEYE', {...base, perfectRounds: 4}, 0)).toBe('4 rounds');
-        expect(achievementMetricText('PERFECT_DAY', {...base, perfectDays: 2}, 0)).toBe('2 days');
-        expect(achievementMetricText('CHEETAH', {...base, totalSeconds: 125}, 0)).toBe('2m 5s');
-        expect(achievementMetricText('EARLY_BIRD', {...base, avgMinutes: 13 * 60}, 0)).toBe('1:00 PM');
+        expect(achievementMetricText('SHARPSHOOTER', {...base, avgPoints: 3.456})).toBe('3.46 pts/guess');
+        expect(achievementMetricText('BULLSEYE', {...base, perfectRounds: 4})).toBe('4 rounds');
+        expect(achievementMetricText('PERFECT_DAY', {...base, perfectDays: 2})).toBe('2 days');
+        expect(achievementMetricText('CHEETAH', {...base, totalSeconds: 125})).toBe('2m 5s');
+        // 13:00 UTC as the backend reports it; the server's own offset is not applied again.
+        expect(achievementMetricText('EARLY_BIRD', {...base, avgMinutes: 13 * 60})).toBe('1:00 PM');
     });
 
     it('returns null when the metric is absent or the category is unknown', () => {
-        expect(achievementMetricText('SHARPSHOOTER', base, 0)).toBeNull();
-        expect(achievementMetricText('UNKNOWN', {...base, avgPoints: 1}, 0)).toBeNull();
+        expect(achievementMetricText('SHARPSHOOTER', base)).toBeNull();
+        expect(achievementMetricText('UNKNOWN', {...base, avgPoints: 1})).toBeNull();
     });
 });

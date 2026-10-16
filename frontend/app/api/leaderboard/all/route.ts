@@ -10,9 +10,9 @@ export async function GET(req: NextRequest) {
             headers: {"accept": "application/json", ...forwardedForHeaders(req)},
             next: { revalidate: 600 },
         });
-        // Pass through the leaderboard freshness header (mirrors the achievements route's
-        // X-Server-Timezone-Offset handling) — otherwise NextResponse.json below would silently
-        // drop it, and the frontend's "Last updated" line would never have anything to render.
+        // Pass through the leaderboard freshness header — otherwise NextResponse.json
+        // below would silently drop it, and the frontend's "Last updated" line would
+        // never have anything to render.
         const refreshedAtHeader = res.headers.get('X-Leaderboard-Refreshed-At');
         const headers: HeadersInit = {};
         if (refreshedAtHeader) {
