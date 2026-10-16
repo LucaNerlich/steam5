@@ -4,21 +4,12 @@ import "@/styles/components/leaderboard.css";
 import Link from "next/link";
 import useSWR from "swr";
 import {formatDeception, formatMostMissed, HardestGame} from "@/lib/hardestGames";
-import {formatRefreshedAt} from "@/lib/leaderboard";
+import {fetchRefreshedJson, formatRefreshedAt} from "@/lib/leaderboard";
 
 const ENDPOINT = "/api/stats/game/hardest";
 
-type HardestGamesFetchResult = { data: HardestGame[]; refreshedAt: string | null };
-
-const fetcher = async (url: string): Promise<HardestGamesFetchResult> => {
-    const r = await fetch(url, {
-        headers: {accept: "application/json"},
-        cache: "no-cache",
-    });
-    if (!r.ok) throw new Error(`Failed to load ${url}: ${r.status}`);
-    const data = await r.json();
-    return {data, refreshedAt: r.headers.get('X-Leaderboard-Refreshed-At')};
-};
+type Fetched = Awaited<ReturnType<typeof fetcher>>;
+const fetcher = (url: string) => fetchRefreshedJson<HardestGame[]>(url);
 
 export default function HardestGamesTable(props: {
     initialData?: HardestGame[] | null;
@@ -26,7 +17,7 @@ export default function HardestGamesTable(props: {
 }) {
     const refreshInterval = props.refreshMs ?? 3600000;
 
-    const {data: hardestGamesResult, error, isLoading} = useSWR<HardestGamesFetchResult>(ENDPOINT, fetcher, {
+    const {data: hardestGamesResult, error, isLoading} = useSWR<Fetched>(ENDPOINT, fetcher, {
         refreshInterval,
         revalidateOnFocus: true,
         focusThrottleInterval: refreshInterval,
