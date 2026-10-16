@@ -1,5 +1,5 @@
 import {NextRequest, NextResponse} from "next/server";
-import {BACKEND_ORIGIN, forwardedForHeaders} from "@/lib/backend";
+import {BACKEND_ORIGIN, BACKEND_TIMEOUT_MS} from "@/lib/backend";
 
 export const revalidate = 300;
 
@@ -9,7 +9,9 @@ export async function GET(req: NextRequest, {params}: { params: Promise<{ date: 
     try {
         const res = await fetch(`${BACKEND_ORIGIN}/api/review-game/day/${encodeURIComponent(date)}`, {
             next: {revalidate: 300},
-            headers: {"accept": "application/json", ...forwardedForHeaders(req)}
+            // Shared-cached: the caller's IP must not reach the fetch cache key.
+            headers: {"accept": "application/json"},
+            signal: AbortSignal.timeout(BACKEND_TIMEOUT_MS),
         });
         if (!res.ok) return NextResponse.json([], {status: res.status});
         const data = await res.json() as { picks: Array<{ appId: number; name: string }> };
