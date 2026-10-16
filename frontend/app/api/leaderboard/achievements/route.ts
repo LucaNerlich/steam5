@@ -12,7 +12,6 @@ export async function GET(request: NextRequest) {
     return proxyBackendJson(request, {
         path: `/api/stats/users/achievements?timeframe=${encodeURIComponent(timeframe)}`,
         revalidate: cacheTime,
-        passThroughHeaders: ["X-Server-Timezone-Offset"],
         errorMessage: "Failed to load achievements",
     });
 }

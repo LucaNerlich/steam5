@@ -11,7 +11,7 @@ import {
 } from "@/lib/achievements";
 import AchievementsTable from "@/components/AchievementsTable";
 import SortableTH from "@/components/SortableTH";
-import {fetchRefreshedJson, formatRefreshedAt, parseServerOffsetHeader} from "@/lib/leaderboard";
+import {fetchRefreshedJson, formatRefreshedAt} from "@/lib/leaderboard";
 
 type LeaderEntry = {
     steamId: string;
