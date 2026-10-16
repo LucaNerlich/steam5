@@ -15,6 +15,18 @@ function normalizeUrl(url: string | null | undefined): string {
     return url;
 }
 
+/**
+ * Builds a text-only caption node for Fancybox. Its default caption renderer assigns a
+ * string caption with `innerHTML`, and a movie name is publisher-supplied text that the
+ * backend stores verbatim — returning an element whose `textContent` carries the name
+ * keeps that text from ever becoming live markup.
+ */
+export function textCaption(caption: string | null | undefined): HTMLElement {
+    const el = document.createElement("div");
+    el.textContent = caption ?? "";
+    return el;
+}
+
 function resolveMovieSource(movie: SteamMovie): {
     src: string;
     type: string | undefined;
@@ -114,6 +126,11 @@ export default function GameInfoVideos({appId, movies}: {
 
             // @ts-ignore Fancybox global binding
             FancyboxInstance.bind(selector, {
+                Carousel: {
+                    // Movie names are third-party text; never let Fancybox's innerHTML path
+                    // render them (see textCaption).
+                    formatCaption: (_carousel: unknown, slide: { caption?: string }) => textCaption(slide?.caption),
+                },
                 Toolbar: {
                     display: {
                         left: ["infobar"],
