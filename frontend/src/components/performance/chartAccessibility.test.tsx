@@ -1,6 +1,7 @@
 import {describe, expect, it} from 'vitest';
 import {renderToStaticMarkup} from 'react-dom/server';
 import BucketAccuracyBars from './BucketAccuracyBars';
+import HitRateVsAverageCard from './HitRateVsAverageCard';
 import OutcomeMixBar from './OutcomeMixBar';
 
 /**
@@ -10,8 +11,10 @@ import OutcomeMixBar from './OutcomeMixBar';
  * label carries the data.
  *
  * Fixtures are dated in the future so the charts' "last N days" window filter is time-independent.
+ * Fixtures dated far in the past make the window empty for the same reason.
  */
 const DATED = '2099-01-01';
+const STALE = '2000-01-01';
 
 describe('performance charts expose their values', () => {
     it('BucketAccuracyBars names every bucket and its hit percentage', () => {
@@ -36,5 +39,16 @@ describe('performance charts expose their values', () => {
         );
 
         expect(html).toContain('aria-label="Outcome mix: Hit 2 (50%), Too High 1 (25%), Too Low 1 (25%)"');
+    });
+
+    it('HitRateVsAverageCard shows the no-data branch for an empty recent window', () => {
+        const html = renderToStaticMarkup(
+            <HitRateVsAverageCard rounds={[
+                {selectedBucket: '1-100', actualBucket: '1-100', date: STALE},
+            ]}/>,
+        );
+
+        expect(html).toContain('aria-label="Hit rate vs average: yours no data, global no data"');
+        expect(html).toContain('No data');
     });
 });
