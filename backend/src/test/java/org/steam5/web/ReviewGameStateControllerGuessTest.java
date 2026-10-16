@@ -180,10 +180,13 @@ public class ReviewGameStateControllerGuessTest {
         // Transaction-semantics guard (issue #203): a transaction around the
         // handler lets a caught duplicate-key violation mark it rollback-only,
         // turning the idempotent 200 into an UnexpectedRollbackException (500)
-        // at commit time.
+        // at commit time. Spring falls back to the declaring class' annotation,
+        // so pin both spellings.
         final Method method = ReviewGameStateController.class.getMethod(
                 "submitGuessAuthenticated", String.class, ReviewGameStateController.GuessRequest.class);
         assertNull(method.getAnnotation(Transactional.class),
                 "submitGuessAuthenticated must not run in an ambient transaction");
+        assertNull(ReviewGameStateController.class.getAnnotation(Transactional.class),
+                "a class-level @Transactional would wrap submitGuessAuthenticated too");
     }
 }
