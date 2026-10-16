@@ -3,6 +3,7 @@
 import React, {useEffect, useId, useRef, useState} from "react";
 import {SmileyIcon} from "@phosphor-icons/react/ssr";
 import {startSteamLogin} from "@/lib/steamLogin";
+import {focusWithinElement} from "@/lib/focusGuards";
 import {
     REACTION_EMOJI,
     REACTION_TYPES,
@@ -100,8 +101,11 @@ export default function ReactionBar(props: {
             if (event.key === "Escape") {
                 onPickerOpenChangeRef.current?.(false);
                 // The options unmount with the picker; without this, focus falls to <body>
-                // and the next Tab restarts from the top of the page.
-                triggerRef.current?.focus();
+                // and the next Tab restarts from the top of the page. Guarded so Escape
+                // pressed anywhere else on the page (e.g. the composer) can't yank focus.
+                if (focusWithinElement(rootRef.current, document.activeElement)) {
+                    triggerRef.current?.focus();
+                }
             }
         };
 

@@ -5,6 +5,7 @@ import Link from "next/link";
 import Form from "next/form";
 import {useFormStatus} from "react-dom";
 import useSWR from "swr";
+import {focusWithinElement} from "@/lib/focusGuards";
 import {ArchiveIcon, GameControllerIcon, PaperPlaneRightIcon} from "@phosphor-icons/react/ssr";
 import {useAuth} from "@/contexts/AuthContext";
 import {startSteamLogin} from "@/lib/steamLogin";
@@ -285,8 +286,12 @@ function GameLinkPicker(props: {
         const onKeyDown = (event: KeyboardEvent) => {
             if (event.key === "Escape") {
                 setOpen(false);
-                // The options unmount with the menu; keep the keyboard position on the trigger.
-                triggerRef.current?.focus();
+                // The options unmount with the menu; keep the keyboard position on the
+                // trigger. Guarded so Escape pressed anywhere else (e.g. the composer
+                // textarea while Tab-ing through) can't yank focus into the picker.
+                if (focusWithinElement(rootRef.current, document.activeElement)) {
+                    triggerRef.current?.focus();
+                }
             }
         };
 
