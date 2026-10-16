@@ -38,7 +38,10 @@ spring:
     hibernate:
       ddl-auto: update
     show-sql: false
-    defer-datasource-initialization: true
+    # Must stay false: true creates a circular depends-on between Flyway and the
+    # entity manager factory on Spring Boot 4, and there are no schema.sql/data.sql
+    # scripts in this project that would need deferring.
+    defer-datasource-initialization: false
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
@@ -46,6 +49,17 @@ spring:
         order_inserts: true
         order_updates: true
         default_batch_fetch_size: 16
+  flyway:
+    # Versioned schema migrations. Production runs `ddl-auto: validate` (see
+    # application-coolify.yml), so any schema change must ship as a new
+    # V<N>__description.sql file below; never edit an already-applied migration.
+    locations: classpath:db/migration
+    # Pre-Flyway databases (dev machines, production) are taken as-is: Flyway
+    # records a BASELINE row at version 1 instead of running DDL. V1__baseline.sql
+    # therefore only executes on empty databases (fresh setups and tests).
+    baseline-on-migrate: true
+    baseline-version: 1
+    baseline-description: "pre-Flyway baseline: schema as evolved by Hibernate ddl-auto"
   quartz:
     properties:
       org.quartz.scheduler.idleWaitTime: 1000 # 1000 is minimum
