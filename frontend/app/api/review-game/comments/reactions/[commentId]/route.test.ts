@@ -54,6 +54,7 @@ describe('POST', () => {
     });
 
     it('still rejects an untrusted origin before touching the body', async () => {
+        vi.spyOn(console, 'error').mockImplementation(() => undefined);
         const fetchMock = vi.fn();
         vi.stubGlobal('fetch', fetchMock);
 
