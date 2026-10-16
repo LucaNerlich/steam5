@@ -43,6 +43,11 @@ export type AchievementsResult = {
  * A missing or unparseable value falls back to 0 so NaN never reaches
  * the time-formatting helpers.
  */
+export function parseServerOffsetHeader(headers: Headers): number {
+  const raw = Number.parseInt(headers.get('X-Server-Timezone-Offset') ?? '', 10);
+  return Number.isFinite(raw) ? raw : 0;
+}
+
 /**
  * SWR fetcher for the leaderboard-style endpoints: unwraps `{data, refreshedAt}`, relays the
  * backend's freshness header, and throws on a non-ok response (so SWR keeps the previous data
@@ -59,11 +64,6 @@ export async function fetchRefreshedJson<T>(url: string): Promise<{data: T; refr
     if (!response.ok) throw new Error(`Failed to load ${url}: ${response.status}`);
     const data = (await response.json()) as T;
     return {data, refreshedAt: response.headers.get('X-Leaderboard-Refreshed-At')};
-}
-
-export function parseServerOffsetHeader(headers: Headers): number {
-  const raw = Number.parseInt(headers.get('X-Server-Timezone-Offset') ?? '', 10);
-  return Number.isFinite(raw) ? raw : 0;
 }
 
 /**
