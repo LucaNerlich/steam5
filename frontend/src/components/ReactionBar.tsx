@@ -2,7 +2,7 @@
 
 import React, {useEffect, useId, useRef, useState} from "react";
 import {SmileyIcon} from "@phosphor-icons/react/ssr";
-import {buildSteamLoginUrl} from "@/lib/steamLogin";
+import {startSteamLogin} from "@/lib/steamLogin";
 import {
     REACTION_EMOJI,
     REACTION_TYPES,
@@ -112,7 +112,7 @@ export default function ReactionBar(props: {
     const handleToggle = async (reactionType: ReactionType) => {
         if (readOnly || pending) return;
         if (!canReact) {
-            window.location.assign(buildSteamLoginUrl());
+            startSteamLogin();
             return;
         }
         setPending(reactionType);
@@ -137,7 +137,7 @@ export default function ReactionBar(props: {
     const handleOpenPicker = () => {
         if (readOnly) return;
         if (!canReact) {
-            window.location.assign(buildSteamLoginUrl());
+            startSteamLogin();
             return;
         }
         onPickerOpenChange?.(!open);
