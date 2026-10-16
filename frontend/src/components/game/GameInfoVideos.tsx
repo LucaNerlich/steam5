@@ -27,12 +27,17 @@ export function textCaption(caption: string | null | undefined): HTMLElement {
     return el;
 }
 
-function resolveMovieSource(movie: SteamMovie): {
+/** Streams the lightbox may play, ordered most-compatible first: progressive MP4/WebM
+ * need no player at all, a DASH H.264 stream needs dash.js to have loaded, HLS plays
+ * only where the browser supports it natively, and an AV1 DASH manifest additionally
+ * needs an AV1 decoder (Safari and pre-AV1 hardware cannot play it). Picking a stream
+ * the browser cannot decode left the slide black while a playable one was available. */
+export function resolveMovieSource(movie: SteamMovie): {
     src: string;
     type: string | undefined;
     format: string | undefined;
 } {
-    const ordered = [movie.dashAv1, movie.dashH264, movie.hlsH264, movie.mp4, movie.webm];
+    const ordered = [movie.mp4, movie.webm, movie.dashH264, movie.hlsH264, movie.dashAv1];
     const rawSrc = ordered.find((entry) => Boolean(entry));
     const normalizedSrc = normalizeUrl(rawSrc as string | null | undefined);
     if (!normalizedSrc) {
