@@ -20,9 +20,9 @@
 -- ============================================================================
 -- Already created automatically -- listed here for a complete picture only; no action needed.
 -- ============================================================================
--- * Hibernate (spring.jpa.hibernate.ddl-auto: update, active in every profile -- see
---   application.yml) auto-creates these from @Table(indexes = ...) on the owning entity, on
---   every app startup:
+-- * Hibernate (spring.jpa.hibernate.ddl-auto: update in dev; production validates instead --
+--   see application-coolify.yml) auto-creates these from @Table(indexes = ...) on the owning
+--   entity, on every app startup:
 --     ix_guess_steam_date_round   UNIQUE (guesses: steam_id, game_date, round_index)
 --     idx_comments_game_date      (comments: game_date, created_at DESC)
 --     ix_season_award_category    (season_award_results: season_id, category)

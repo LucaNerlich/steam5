@@ -69,7 +69,11 @@ Database (dev)
 - Create a database and credentials matching the defaults above, then set `SPRING_PROFILE` and
   `SPRING_DATASOURCE_PASSWORD` (required; the local setup password is `steam5_password`), `JDBC_URL`, etc., in
   `backend/.env`.
-- Hibernate is configured with `ddl-auto: update` for dev; schema will evolve automatically.
+- Hibernate is configured with `ddl-auto: update` for dev; schema evolves automatically while
+  developing. Production instead validates the schema (`ddl-auto: validate`) and Flyway owns it:
+  **for every schema change, add a new `V<N>__...sql` migration under
+  `backend/src/main/resources/db/migration/` — never edit an already-applied one.** See
+  `V1__baseline.sql` for how existing databases are handled (baselined, not recreated).
 
 ### Backend — run, test, build
 
