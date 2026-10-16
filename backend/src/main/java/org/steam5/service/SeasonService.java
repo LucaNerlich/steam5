@@ -150,13 +150,25 @@ public class SeasonService {
 
         return seasonRepository.findByStartDateLessThanEqualAndEndDateGreaterThanEqual(date, date)
                 .orElseGet(() -> {
+                    final Season created;
                     try {
-                        return seasonCreator.createSeasonsUntil(date);
+                        created = seasonCreator.createSeasonsUntil(date);
                     } catch (DataIntegrityViolationException e) {
                         return seasonRepository
                                 .findByStartDateLessThanEqualAndEndDateGreaterThanEqual(date, date)
                                 .orElseThrow(() -> new IllegalStateException("Season missing after conflict", e));
                     }
+                    // The creator only advances forward from the highest-numbered season, so a
+                    // season that starts after `date` (an operator back-filled the future, or the
+                    // numbering drifted) was served as "current" for as long as it took someone to
+                    // notice. Fail loudly instead of returning a non-covering window.
+                    if (created.getStartDate().isAfter(date) || created.getEndDate().isBefore(date)) {
+                        throw new IllegalStateException("Season " + created.getSeasonNumber()
+                                + " (" + created.getStartDate() + " .. " + created.getEndDate()
+                                + ") does not cover " + date
+                                + " — check the seasons table for a future-dated or inverted window");
+                    }
+                    return created;
                 });
     }
 
@@ -181,6 +193,12 @@ public class SeasonService {
         }
         if (startInclusive.isAfter(endInclusive)) {
             throw new IllegalArgumentException("startDate must be on or before endDate");
+        }
+        // A future start date stores a season that no date can be "current" for, and the creator
+        // only advances forward, so the site would serve a future season until an operator fixed
+        // the rows. The admin endpoint validates ordering only; refuse the range here.
+        if (startInclusive.isAfter(LocalDate.now(ZoneOffset.UTC))) {
+            throw new IllegalArgumentException("startDate must not be in the future");
         }
 
         final List<Season> created = new ArrayList<>();
