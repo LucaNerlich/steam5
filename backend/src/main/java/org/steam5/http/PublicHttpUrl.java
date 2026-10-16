@@ -55,6 +55,13 @@ public final class PublicHttpUrl {
         if (uri.getHost() == null || uri.getHost().isBlank() || uri.getUserInfo() != null) {
             return Optional.empty();
         }
+        // IPv6 literals arrive bracketed ("[2606:4700:4700::1111]"). Steam serves images from
+        // hostnames, and the pinned-connect path cannot build an SNI name for a literal, so
+        // refuse the shape instead of admitting a URL that can only fail (and, before this
+        // guard, abandoned a connected socket when SNI setup threw).
+        if (uri.getHost().startsWith("[")) {
+            return Optional.empty();
+        }
         final int port = uri.getPort();
         if (port != -1 && port != 80 && port != 443) {
             return Optional.empty();
@@ -243,28 +250,28 @@ public final class PublicHttpUrl {
 
         @Override
         public Socket createSocket() throws IOException {
-            return configure(createPlainSocket(), true);
+            return connectTls();
         }
 
         @Override
         public Socket createSocket(String host, int port) throws IOException {
-            return configure(createPlainSocket(), true);
+            return connectTls();
         }
 
         @Override
         public Socket createSocket(String host, int port, InetAddress localHost, int localPort) throws IOException {
-            return configure(createPlainSocket(), true);
+            return connectTls();
         }
 
         @Override
         public Socket createSocket(InetAddress host, int port) throws IOException {
-            return configure(createPlainSocket(), true);
+            return connectTls();
         }
 
         @Override
         public Socket createSocket(InetAddress address, int port, InetAddress localAddress, int localPort)
                 throws IOException {
-            return configure(createPlainSocket(), true);
+            return connectTls();
         }
 
         @Override
@@ -288,15 +295,52 @@ public final class PublicHttpUrl {
             return socket;
         }
 
+        /**
+         * Connects the pinned address and layers TLS on it. A failure between the connect
+         * and the returned socket (including an unchecked TLS-setup error) closes the plain
+         * socket, because the JDK only takes ownership once this method returns.
+         */
+        private Socket connectTls() throws IOException {
+            final Socket plain = createPlainSocket();
+            try {
+                return configure(plain, true);
+            } catch (IOException | RuntimeException ex) {
+                try {
+                    plain.close();
+                } catch (IOException ignored) {
+                    // the TLS failure is the one worth reporting
+                }
+                throw ex;
+            }
+        }
+
         private Socket configure(Socket socket, boolean autoClose) throws IOException {
             final SSLSocket ssl = (SSLSocket) delegate.createSocket(socket, hostname, port, autoClose);
-            final SSLParameters params = ssl.getSSLParameters();
-            params.setServerNames(List.of(new SNIHostName(hostname)));
-            ssl.setSSLParameters(params);
+            // SNI is optional: a bracketed IPv6 literal or a non-LDH hostname has no valid
+            // SNI name, and skipping it still leaves the default hostname verifier to check
+            // the certificate against the URL host.
+            sniNameFor(hostname).ifPresent(name -> {
+                final SSLParameters params = ssl.getSSLParameters();
+                params.setServerNames(List.of(name));
+                ssl.setSSLParameters(params);
+            });
             // HttpsURLConnection connects whatever this factory returned, but the
             // socket already is connected to the validated address and SSLSocketImpl
             // rejects a second connect() on a layered socket ("Already connected").
             return new PinnedSslSocket(ssl);
+        }
+    }
+
+    /**
+     * SNI name for a host, or empty when the host cannot carry one (an IPv6 literal with
+     * brackets, or a hostname outside LDH). The TLS certificate is still validated against
+     * the URL host either way; this only stops SNI setup from throwing after connect.
+     */
+    static Optional<SNIHostName> sniNameFor(String hostname) {
+        try {
+            return Optional.of(new SNIHostName(hostname));
+        } catch (IllegalArgumentException ex) {
+            return Optional.empty();
         }
     }
 }

@@ -62,6 +62,23 @@ class PublicHttpUrlTest {
     }
 
     @Test
+    void rejectsBracketedIpv6LiteralHosts() {
+        // The pinned-connect path cannot set SNI for a literal, so a literal URL used to
+        // connect and then fail with an unchecked error, abandoning the socket. Refuse the
+        // shape instead — public or private.
+        assertTrue(PublicHttpUrl.httpsTarget("https://[2606:4700:4700::1111]/img.png").isEmpty());
+        assertTrue(PublicHttpUrl.httpsTarget("https://[2001:4860:4860::8888]:443/img.png").isEmpty());
+        assertTrue(PublicHttpUrl.httpsTarget("https://[::1]/x").isEmpty());
+    }
+
+    @Test
+    void carriesSnionlyForNamesThatAllowIt() {
+        assertTrue(PublicHttpUrl.sniNameFor("shared.akamai.steamstatic.com").isPresent());
+        assertTrue(PublicHttpUrl.sniNameFor("[2606:4700:4700::1111]").isEmpty());
+        assertTrue(PublicHttpUrl.sniNameFor("weird_host.example").isEmpty());
+    }
+
+    @Test
     void classifiesReservedAddressesWithoutDns() throws UnknownHostException {
         assertTrue(PublicHttpUrl.isDisallowedAddress(InetAddress.getByName("127.0.0.1")));
         assertTrue(PublicHttpUrl.isDisallowedAddress(InetAddress.getByName("10.1.2.3")));
