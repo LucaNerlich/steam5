@@ -20,12 +20,21 @@ function resolveBackendOrigin(): string | null {
     return process.env.NODE_ENV === 'production' ? null : 'http://localhost:8080';
 }
 
-/** Loads the set of dates that actually have an archived challenge; empty on failure. */
+/**
+ * The set of archive dates from the most recent successful load. When a regeneration
+ * cannot reach the backend (transient five-second fetch timeout, brief outage), the
+ * generated sitemap falls back to this set instead of dropping all archive URLs until
+ * the next successful revalidation. null only before the first successful load.
+ */
+let lastGoodDates: Set<string> | null = null;
+
+/** Loads the set of dates that actually have an archived challenge; falls back to the
+ *  last successfully loaded set (empty before the first success) on any failure. */
 async function loadExistingArchiveDates(): Promise<Set<string>> {
     const backend = resolveBackendOrigin();
     if (!backend) {
         console.warn('[sitemap] archive dates unavailable: no https NEXT_PUBLIC_API_DOMAIN configured');
-        return new Set();
+        return lastGoodDates ?? new Set();
     }
     try {
         const res = await fetch(`${backend}/api/review-game/days?limit=5000`, {
@@ -34,17 +43,19 @@ async function loadExistingArchiveDates(): Promise<Set<string>> {
         });
         if (!res.ok) {
             console.warn(`[sitemap] archive dates unavailable: backend responded ${res.status}`);
-            return new Set();
+            return lastGoodDates ?? new Set();
         }
         const data: unknown = await res.json();
         if (!Array.isArray(data)) {
             console.warn('[sitemap] archive dates unavailable: unexpected payload shape');
-            return new Set();
+            return lastGoodDates ?? new Set();
         }
-        return new Set(data.filter((d): d is string => typeof d === 'string'));
+        const dates = new Set(data.filter((d): d is string => typeof d === 'string'));
+        lastGoodDates = dates;
+        return dates;
     } catch (error) {
         console.warn('[sitemap] archive dates unavailable: fetch to the backend failed', error);
-        return new Set();
+        return lastGoodDates ?? new Set();
     }
 }
 

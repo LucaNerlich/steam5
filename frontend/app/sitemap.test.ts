@@ -43,6 +43,31 @@ describe('sitemap', () => {
         vi.unstubAllGlobals();
     });
 
+    it('keeps serving the last good dates when backend access fails during a revalidation', async () => {
+        // Module-level date state survives between the regenerations of one process, like the
+        // ISR revalidations within one app instance. vi.resetModules() plus a dynamic import
+        // keeps this test off the statically imported module instance that the other tests
+        // share, so it starts from a clean cache.
+        vi.resetModules();
+        const primaryDate = '2026-09-15';
+        vi.stubGlobal('fetch', vi.fn(async () => NextResponse.json([primaryDate])));
+        vi.stubEnv('NEXT_PUBLIC_API_DOMAIN', 'https://api.example.com');
+
+        // First generation reaches the backend and learns the date...
+        const {default: isolated} = await import('./sitemap');
+        expect((await isolated()).map((entry) => entry.url))
+            .toContain(`${baseUrl}/review-guesser/archive/${primaryDate}`);
+
+        // ...while the next one falls into the failure path. The already-learned dates must
+        // stay in the served sitemap instead of all archive URLs vanishing for a revalidate
+        // window.
+        vi.stubGlobal('fetch', vi.fn(async () => {
+            throw new TypeError('fetch failed');
+        }));
+        expect((await isolated()).map((entry) => entry.url))
+            .toContain(`${baseUrl}/review-guesser/archive/${primaryDate}`);
+    });
+
     it('omits the redirecting routes', async () => {
         const urls = (await sitemap()).map((entry) => entry.url);
 
