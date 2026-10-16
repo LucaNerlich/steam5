@@ -1,6 +1,7 @@
 "use client";
 
 import React, {useEffect, useEffectEvent, useRef} from "react";
+import {isBackdropClick} from "@/lib/backdropClick";
 import "@/styles/components/authWarningModal.css";
 
 type AuthWarningModalProps = {
@@ -26,8 +27,7 @@ export default function AuthWarningModal({
     // Clicks on ::backdrop target the <dialog> element itself; attached in the
     // effect so the non-interactive <dialog> keeps no JSX interaction handler.
     const onBackdropClick = useEffectEvent((event: MouseEvent) => {
-        const content = contentRef.current;
-        if (event.target === dialogRef.current || (content && !content.contains(event.target as Node))) {
+        if (isBackdropClick(event.target, dialogRef.current, contentRef.current)) {
             onSkip("backdrop");
         }
     });
