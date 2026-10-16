@@ -123,6 +123,11 @@ export default function ReviewGuesserRound({
     // stored-day external store so readers re-render with the fresh snapshot.
     useEffect(() => {
         if (!state || !state.ok || !state.response || !submittedLabel || !gameDate) return;
+        // A submit that was in flight across a round change resolves with the previous
+        // pick's answer; persisting it under this round's appId would fabricate a result
+        // (this round's game paired with the old round's label and answer) and lock the
+        // round. The round page keeps the same component instance, so this can happen.
+        if (state.response.appId !== appId) return;
         saveRound(gameDate, roundIndex, totalRounds, {
             appId,
             pickName,
@@ -164,7 +169,7 @@ export default function ReviewGuesserRound({
         };
     })();
     const prefilledResponse = prefillToResponse(appId, computedPrefill);
-    const effectiveResponse = resolveEffectiveResponse(state, storedThisRound, prefilledResponse);
+    const effectiveResponse = resolveEffectiveResponse(state, storedThisRound, prefilledResponse, appId);
 
     // Effective selected label used for rendering, derived during render instead
     // of mirrored into state: the user's fresh pick wins, otherwise the restored
