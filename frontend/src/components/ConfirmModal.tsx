@@ -67,7 +67,7 @@ export default function ConfirmModal({
                 onCancel();
             }}
         >
-            <div ref={contentRef}>
+            <div ref={contentRef} className="confirm-modal__body">
             <h2 id="confirm-modal-title">{title}</h2>
             {message && <p className="text-muted">{message}</p>}
             <div className="confirm-modal__actions">

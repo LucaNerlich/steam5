@@ -1,7 +1,6 @@
 .auth-warning-modal__card {
     width: min(92vw, 480px);
     border: 1px solid var(--color-border);
-    padding: 16px;
     background: var(--color-surface);
     border-radius: var(--border-radius);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
@@ -40,4 +39,11 @@
 
 .auth-warning-modal__ignore-icon {
     flex-shrink: 0;
+}
+
+/* Padding lives on the tracked content element: the dialog's own padding ring had no child, so
+   a click there looked like a backdrop click and dismissed the modal (dropping a pending guess
+   in the auth warning). */
+.auth-warning-modal__body {
+    padding: 16px;
 }

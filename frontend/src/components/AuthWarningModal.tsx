@@ -60,7 +60,7 @@ export default function AuthWarningModal({
                 onSkip("escape");
             }}
         >
-            <div ref={contentRef}>
+            <div ref={contentRef} className="auth-warning-modal__body">
             <h2 id="auth-warning-title">Log in to join the leaderboard</h2>
             <p className="text-muted">
                 You can keep guessing, but your round results will not count
