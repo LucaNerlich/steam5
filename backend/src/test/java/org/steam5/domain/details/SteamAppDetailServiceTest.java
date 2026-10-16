@@ -1,8 +1,11 @@
 package org.steam5.domain.details;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.steam5.repository.details.CategoryRepository;
 import org.steam5.repository.details.DeveloperRepository;
 import org.steam5.repository.details.GenreRepository;
@@ -21,6 +24,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -29,17 +33,26 @@ class SteamAppDetailServiceTest {
     private static final long APP_ID = 1512830L;
 
     private SteamAppDetailRepository repository;
+    private DomainCacheEvictor cacheEvictor;
     private SteamAppDetailService service;
 
     @BeforeEach
     void setUp() {
         repository = mock(SteamAppDetailRepository.class);
+        cacheEvictor = mock(DomainCacheEvictor.class);
         service = new SteamAppDetailService(repository,
                 mock(DeveloperRepository.class),
                 mock(PublisherRepository.class),
                 mock(GenreRepository.class),
                 mock(CategoryRepository.class),
-                mock(DomainCacheEvictor.class));
+                cacheEvictor);
+    }
+
+    @AfterEach
+    void clearTransactionSynchronization() {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.clearSynchronization();
+        }
     }
 
     @Test
@@ -86,6 +99,29 @@ class SteamAppDetailServiceTest {
         verify(repository).save(saved.capture());
         assertEquals(APP_ID, saved.getValue().getAppId());
         assertEquals("New", saved.getValue().getName());
+    }
+
+    @Test
+    void defersTheCacheEvictionUntilAfterCommit() {
+        TransactionSynchronizationManager.initSynchronization();
+        try {
+            when(repository.findById(APP_ID)).thenReturn(Optional.empty());
+
+            service.upsertFromJson(APP_ID, json("{\"name\": \"Deferred\"}"));
+
+            // The eviction must not fire while the transaction is still open: a concurrent
+            // reader could miss the cache in the evict-to-commit window and re-populate it
+            // from pre-update rows. Production hands this to TransactionSynchronizationManager
+            // (mirrors CommentService.evictCommentsForDayAfterCommit); running the registered
+            // afterCommit callbacks stands in for the container committing the transaction.
+            verify(cacheEvictor, never()).evictAppDetail(APP_ID);
+            for (final TransactionSynchronization synchronization : TransactionSynchronizationManager.getSynchronizations()) {
+                synchronization.afterCommit();
+            }
+            verify(cacheEvictor, times(1)).evictAppDetail(APP_ID);
+        } finally {
+            TransactionSynchronizationManager.clearSynchronization();
+        }
     }
 
     @Test
