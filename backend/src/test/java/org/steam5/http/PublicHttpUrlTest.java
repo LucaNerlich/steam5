@@ -43,6 +43,16 @@ class PublicHttpUrlTest {
         assertTrue(PublicHttpUrl.httpsTarget("https://[::ffff:127.0.0.1]/img.png").isEmpty());
         assertTrue(PublicHttpUrl.httpsTarget("https://[::ffff:7f00:1]/img.png").isEmpty());
         assertTrue(PublicHttpUrl.httpsTarget("https://[::ffff:10.0.0.1]/img.png").isEmpty());
+        // IPv4-translated literals (RFC 6052) textually carry the private v4 address
+        // behind a ::ffff:0: prefix that used to pass the whole guard.
+        assertTrue(PublicHttpUrl.httpsTarget("https://[::ffff:0:127.0.0.1]/img.png").isEmpty());
+        assertTrue(PublicHttpUrl.httpsTarget("https://[::ffff:0:7f00:1]/img.png").isEmpty());
+        assertTrue(PublicHttpUrl.httpsTarget("https://[::ffff:0:10.0.0.1]/img.png").isEmpty());
+        assertTrue(PublicHttpUrl.httpsTarget("https://[::ffff:0:a00:1]/img.png").isEmpty());
+        // 240.0.0.0/4 and the limited broadcast address are reserved, not public.
+        assertTrue(PublicHttpUrl.httpsTarget("https://240.0.0.1/img.png").isEmpty());
+        assertTrue(PublicHttpUrl.httpsTarget("https://250.1.2.3/img.png").isEmpty());
+        assertTrue(PublicHttpUrl.httpsTarget("https://255.255.255.255/img.png").isEmpty());
     }
 
     @Test
@@ -67,6 +77,11 @@ class PublicHttpUrlTest {
         assertTrue(PublicHttpUrl.isDisallowedAddress(InetAddress.getByName("::a00:1")));
         assertTrue(PublicHttpUrl.isDisallowedAddress(InetAddress.getByName("::ffff:127.0.0.1")));
         assertTrue(PublicHttpUrl.isDisallowedAddress(InetAddress.getByName("::ffff:10.0.0.1")));
+        assertTrue(PublicHttpUrl.isDisallowedAddress(InetAddress.getByName("::ffff:0:127.0.0.1")));
+        assertTrue(PublicHttpUrl.isDisallowedAddress(InetAddress.getByName("::ffff:0:7f00:1")));
+        assertTrue(PublicHttpUrl.isDisallowedAddress(InetAddress.getByName("::ffff:0:a00:1")));
+        assertTrue(PublicHttpUrl.isDisallowedAddress(InetAddress.getByName("240.0.0.1")));
+        assertTrue(PublicHttpUrl.isDisallowedAddress(InetAddress.getByName("255.255.255.255")));
         final InetAddress mappedPublic = InetAddress.getByName("::ffff:8.8.8.8");
         if (mappedPublic instanceof Inet6Address inet6Address) {
             assertTrue(PublicHttpUrl.isIpv4EmbeddedAddress(inet6Address));
@@ -78,7 +93,12 @@ class PublicHttpUrlTest {
         assertFalse(PublicHttpUrl.isDisallowedAddress(compatiblePublic));
         assertFalse(PublicHttpUrl.isDisallowedAddress(InetAddress.getByName("8.8.8.8")));
         assertFalse(PublicHttpUrl.isDisallowedAddress(InetAddress.getByName("1.1.1.1")));
+        assertFalse(PublicHttpUrl.isDisallowedAddress(InetAddress.getByName("172.32.0.0")));
+        assertFalse(PublicHttpUrl.isDisallowedAddress(InetAddress.getByName("100.128.0.0")));
         assertFalse(PublicHttpUrl.isDisallowedAddress(InetAddress.getByName("2606:4700:4700::1111")));
+        // A translated literal that embeds a public address still resolves, so the
+        // normalization does not refuse the whole prefix.
+        assertFalse(PublicHttpUrl.isDisallowedAddress(InetAddress.getByName("::ffff:0:808:808")));
     }
 
     @Test

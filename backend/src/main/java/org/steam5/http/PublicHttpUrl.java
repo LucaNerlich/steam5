@@ -25,9 +25,9 @@ import java.util.Optional;
  *
  * <p>Only http(s) on ports 80/443 is allowed, http is upgraded to https, and
  * every resolved address must be a public unicast address (no loopback,
- * link-local, RFC1918, CGNAT, IPv6 ULA, multicast, 0.0.0.0/8, or
- * IPv4-compatible/mapped private literals). Resolved addresses are re-checked
- * immediately before connect to mitigate DNS rebinding.</p>
+ * link-local, RFC1918, CGNAT, IPv6 ULA, multicast, 0.0.0.0/8, 240.0.0.0/4, or
+ * IPv4-compatible/mapped/translated private literals). Resolved addresses are
+ * re-checked immediately before connect to mitigate DNS rebinding.</p>
  */
 public final class PublicHttpUrl {
 
@@ -137,16 +137,18 @@ public final class PublicHttpUrl {
                 || normalized.isMulticastAddress()) {
             return true;
         }
-        return isCarrierGradeNat(normalized) || isUniqueLocalIpv6(normalized);
+        return isCarrierGradeNat(normalized) || isUniqueLocalIpv6(normalized) || isReservedIpv4(normalized);
     }
 
     /**
-     * Treat IPv4-mapped ({@code ::ffff:a.b.c.d}) and IPv4-compatible
-     * ({@code ::a.b.c.d}) IPv6 literals as the IPv4 address they embed, so a
-     * single deny-list pass covers them. The JDK predicates already classify a
-     * mapped literal parsed by {@link InetAddress}, but not the compatible
-     * form: {@code ::7f00:1} reads as a public address there while Linux routes
-     * it to the local host.
+     * Treat IPv4-mapped ({@code ::ffff:a.b.c.d}), IPv4-compatible ({@code ::a.b.c.d})
+     * and IPv4-translated ({@code ::ffff:0:a.b.c.d}, RFC 6052) IPv6 literals as the IPv4
+     * address they embed, so a single deny-list pass covers them. The JDK predicates
+     * already classify a mapped literal parsed by {@link InetAddress}, but not the
+     * compatible form ({@code ::7f00:1} reads as a public address there while Linux routes
+     * it to the local host) nor the translated form (which textually carries
+     * {@code 127.0.0.1} / {@code 10.0.0.1} behind a {@code ::ffff:0:} prefix that no
+     * predicate unwraps).
      */
     private static InetAddress normalizeAddress(InetAddress address) {
         if (address instanceof Inet6Address v6 && isIpv4EmbeddedAddress(v6)) {
@@ -159,10 +161,13 @@ public final class PublicHttpUrl {
         return address;
     }
 
-    /** {@code ::ffff:0:0/96} (mapped) and {@code ::/96} (compatible) both embed an IPv4 address. */
+    /**
+     * {@code ::ffff:0:0/96} (mapped), {@code ::ffff:0:0:0/96} (translated, RFC 6052) and
+     * {@code ::/96} (compatible) all embed an IPv4 address in their last four octets.
+     */
     static boolean isIpv4EmbeddedAddress(Inet6Address v6) {
         final byte[] octets = v6.getAddress();
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 8; i++) {
             if (octets[i] != 0) {
                 return false;
             }
@@ -205,6 +210,19 @@ public final class PublicHttpUrl {
             return false;
         }
         return (v6.getAddress()[0] & 0xFE) == 0xFC;
+    }
+
+    /**
+     * 240.0.0.0/4 — reserved for future use (RFC 1112), including the
+     * 255.255.255.255 limited broadcast address. No {@link InetAddress}
+     * predicate classifies the block, so a route that sends it to the local
+     * host would otherwise be admitted.
+     */
+    private static boolean isReservedIpv4(InetAddress address) {
+        if (!(address instanceof Inet4Address v4)) {
+            return false;
+        }
+        return (v4.getAddress()[0] & 0xF0) == 0xF0;
     }
 
     /**
