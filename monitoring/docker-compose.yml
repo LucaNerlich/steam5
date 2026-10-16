@@ -1630,7 +1630,7 @@ configs:
             "id": 11, "type": "stat", "title": "Replication lag (s)",
             "gridPos": {"h": 4, "w": 12, "x": 0, "y": 28},
             "datasource": {"type": "prometheus", "uid": "prometheus"},
-            "fieldConfig": {"defaults": {"unit": "bytes"}, "overrides": []},
+            "fieldConfig": {"defaults": {"unit": "s"}, "overrides": []},
             "options": {"reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "colorMode": "value", "graphMode": "area"},
             "targets": [{"refId": "A", "expr": "max(pg_replication_lag_seconds) or vector(0)", "datasource": {"type": "prometheus", "uid": "prometheus"}}]
           },
