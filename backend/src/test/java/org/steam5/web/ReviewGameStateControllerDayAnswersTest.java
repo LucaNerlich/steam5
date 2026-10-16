@@ -5,7 +5,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.quartz.Scheduler;
 import org.springframework.http.ResponseEntity;
-import org.springframework.transaction.PlatformTransactionManager;
 import org.steam5.domain.GameDate;
 import org.steam5.domain.ReviewGamePick;
 import org.steam5.domain.details.SteamAppDetailService;
@@ -49,8 +48,7 @@ public class ReviewGameStateControllerDayAnswersTest {
                 mock(UserRepository.class),
                 pickRepository,
                 mock(Scheduler.class),
-                mock(MeterRegistry.class),
-                mock(PlatformTransactionManager.class));
+                mock(MeterRegistry.class));
     }
 
     @Test
