@@ -1,6 +1,7 @@
 "use client";
 
 import React, {useEffect, useEffectEvent, useRef} from "react";
+import {isBackdropClick} from "@/lib/backdropClick";
 import "@/styles/components/confirmModal.css";
 
 type ConfirmModalProps = {
@@ -33,8 +34,7 @@ export default function ConfirmModal({
     // Clicks on ::backdrop target the <dialog> element itself; attached in the
     // effect so the non-interactive <dialog> keeps no JSX interaction handler.
     const onBackdropClick = useEffectEvent((event: MouseEvent) => {
-        const content = contentRef.current;
-        if (event.target === dialogRef.current || (content && !content.contains(event.target as Node))) {
+        if (isBackdropClick(event.target, dialogRef.current, contentRef.current)) {
             onCancel();
         }
     });
@@ -67,7 +67,7 @@ export default function ConfirmModal({
                 onCancel();
             }}
         >
-            <div ref={contentRef}>
+            <div ref={contentRef} className="confirm-modal__body">
             <h2 id="confirm-modal-title">{title}</h2>
             {message && <p className="text-muted">{message}</p>}
             <div className="confirm-modal__actions">
