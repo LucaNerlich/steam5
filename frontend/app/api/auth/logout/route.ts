@@ -1,36 +1,20 @@
 import {revalidatePath, revalidateTag} from 'next/cache';
 import {NextRequest, NextResponse} from 'next/server';
-import {isLoopbackOrigin, rejectUntrustedOrigin} from '@/lib/requestOrigin';
+import {allowedBackendOrigin, rejectUntrustedOrigin} from '@/lib/requestOrigin';
 
 /** Trusted public origin of this site; never derived from client-supplied headers. */
 const SITE_ORIGIN = (process.env.NEXT_PUBLIC_DOMAIN || "").replace(/\/$/, "");
 
-function normalizedHttpOrigin(value: string): string | null {
-    try {
-        const url = new URL(value);
-        if ((url.protocol !== 'http:' && url.protocol !== 'https:')
-            || url.username || url.password || url.pathname !== '/' || url.search || url.hash) {
-            return null;
-        }
-        return url.origin;
-    } catch {
-        return null;
-    }
-}
-
+/**
+ * Kept as the route's name for the shared gate so existing callers/tests read the same; the
+ * policy itself lives in `@/lib/requestOrigin`.
+ */
 export function allowedLogoutBackendOrigin(
     configuredOrigin: string,
     production = process.env.NODE_ENV === 'production',
     trustedOrigins = process.env.ALLOWED_BACKEND_ORIGINS || '',
 ): string | null {
-    const origin = normalizedHttpOrigin(configuredOrigin);
-    if (!origin) return null;
-    if (!production || origin.startsWith('https://') || isLoopbackOrigin(origin)) return origin;
-
-    const trusted = trustedOrigins.split(',')
-        .map(value => normalizedHttpOrigin(value.trim()))
-        .filter((value): value is string => value !== null);
-    return trusted.includes(origin) ? origin : null;
+    return allowedBackendOrigin(configuredOrigin, production, trustedOrigins);
 }
 
 // POST (not GET): SameSite=Lax cookies are not sent on cross-site POSTs, so a

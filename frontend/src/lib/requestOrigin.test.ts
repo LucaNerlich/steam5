@@ -1,5 +1,5 @@
 import {afterEach, describe, expect, it, vi} from 'vitest';
-import {isLoopbackOrigin, isTrustedBrowserOrigin, rejectUntrustedOrigin, trustedSiteOrigin} from './requestOrigin';
+import {allowedBackendOrigin, isLoopbackOrigin, isTrustedBrowserOrigin, rejectUntrustedOrigin, trustedSiteOrigin} from './requestOrigin';
 
 describe('isTrustedBrowserOrigin', () => {
     afterEach(() => {
@@ -98,5 +98,34 @@ describe('isLoopbackOrigin', () => {
     it('rejects remote and malformed origins', () => {
         expect(isLoopbackOrigin('https://steam5.org')).toBe(false);
         expect(isLoopbackOrigin('not a URL')).toBe(false);
+    });
+});
+
+describe('allowedBackendOrigin', () => {
+    afterEach(() => {
+        vi.unstubAllEnvs();
+    });
+
+    it('accepts https, loopback and development origins', () => {
+        expect(allowedBackendOrigin('https://api.steam5.org', true, '')).toBe('https://api.steam5.org');
+        expect(allowedBackendOrigin('http://localhost:8080', true, '')).toBe('http://localhost:8080');
+        expect(allowedBackendOrigin('http://backend:8080', false, '')).toBe('http://backend:8080');
+    });
+
+    it('accepts a trusted origin written with a trailing slash or an explicit port', () => {
+        // The ws/ticket route compared raw strings and refused these, while logout accepted them:
+        // one gate, one notion of "the same origin".
+        expect(allowedBackendOrigin('http://backend:8080', true, 'http://backend:8080/')).toBe('http://backend:8080');
+        expect(allowedBackendOrigin('http://backend:8080', true, 'HTTP://BACKEND:8080')).toBe('http://backend:8080');
+    });
+
+    it('refuses an untrusted plain-http origin in production', () => {
+        expect(allowedBackendOrigin('http://backend:8080', true, 'https://other.example.com')).toBeNull();
+    });
+
+    it('refuses values that are not a bare http(s) origin', () => {
+        expect(allowedBackendOrigin('http://user:pass@backend:8080', true, 'http://user:pass@backend:8080')).toBeNull();
+        expect(allowedBackendOrigin('http://backend:8080/path', true, 'http://backend:8080/path')).toBeNull();
+        expect(allowedBackendOrigin('not a url', true, 'not a url')).toBeNull();
     });
 });
