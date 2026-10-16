@@ -32,6 +32,4 @@ public class PresenceProperties {
     /** Close sessions with no ping/pong activity for this many seconds. */
     private int idleTimeoutSeconds = 90;
 
-    /** How often to sweep for closed or idle sessions (milliseconds). */
-    private long sweepIntervalMs = 30_000L;
 }
