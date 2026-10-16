@@ -16,8 +16,6 @@ import type {StoredDay} from "@/lib/storage";
 // Keep in sync with storageKeyForDate() in lib/storage.ts.
 const STORAGE_KEY_PREFIX = "review-guesser:";
 
-const STORED_DAY_EVENT = "s5:stored-day-changed";
-
 // Map-based cache keyed by gameDate so multiple dates can have stable snapshots.
 const cache = new Map<string, {raw: string | null; value: StoredDay | null}>();
 
@@ -67,12 +65,10 @@ function subscribe(onStoreChange: () => void): () => void {
             for (const cb of subscribers) cb();
         }
     };
-    window.addEventListener(STORED_DAY_EVENT, notifySubscribers);
     window.addEventListener("storage", handleStorage);
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => {
         subscribers.delete(onStoreChange);
-        window.removeEventListener(STORED_DAY_EVENT, notifySubscribers);
         window.removeEventListener("storage", handleStorage);
         document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
@@ -85,7 +81,6 @@ function subscribe(onStoreChange: () => void): () => void {
 export function notifyStoredDayChanged(): void {
     if (typeof window === "undefined") return;
     notifySubscribers();
-    window.dispatchEvent(new Event(STORED_DAY_EVENT));
 }
 
 /**
