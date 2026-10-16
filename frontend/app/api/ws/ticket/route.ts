@@ -1,7 +1,7 @@
 import {NextRequest, NextResponse} from 'next/server';
 import {cookies} from 'next/headers';
 import {BACKEND_ORIGIN, forwardedForHeaders} from '@/lib/backend';
-import {isLoopbackOrigin} from '@/lib/requestOrigin';
+import {allowedBackendOrigin} from '@/lib/requestOrigin';
 
 const isDevelopment = process.env.NODE_ENV === 'development';
 // Explicitly trusted internal backend origins (e.g. 'http://backend:8080' in
@@ -48,10 +48,7 @@ export async function POST(request: NextRequest) {
     // backend never leaves the host, and explicitly allow-listed internal
     // origins (ALLOWED_BACKEND_ORIGINS) are trusted, so both are exempt from
     // the HTTPS requirement.
-    if (!isDevelopment
-        && !isLoopbackOrigin(BACKEND_ORIGIN)
-        && !BACKEND_ORIGIN.startsWith('https://')
-        && !ALLOWED_BACKEND_ORIGINS.includes(BACKEND_ORIGIN)) {
+    if (!isDevelopment && !allowedBackendOrigin(BACKEND_ORIGIN, !isDevelopment, ALLOWED_BACKEND_ORIGINS.join(','))) {
         console.error('[ws-ticket] Backend origin must use HTTPS in production (or be listed in ALLOWED_BACKEND_ORIGINS):', BACKEND_ORIGIN);
         return NextResponse.json({ticket: null}, {status: 200, headers: NO_STORE});
     }
