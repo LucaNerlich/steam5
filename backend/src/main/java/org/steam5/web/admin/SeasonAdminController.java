@@ -32,6 +32,12 @@ public class SeasonAdminController {
             if (effective.startDate().isAfter(effective.endDate())) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "startDate must be on or before endDate");
             }
+            // SeasonService refuses a future start with a bare IllegalArgumentException that
+            // the generic Exception handler turns into HTTP 500 "An internal error occurred"
+            // with a full stack trace. Reject it here so a client mistake presents as a 400.
+            if (effective.startDate().isAfter(GameDate.todayUtc())) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "startDate must not be in the future");
+            }
             created = seasonService.backfillRange(effective.startDate(), effective.endDate());
         } else if (effective.startDate() == null && effective.endDate() == null) {
             created = seasonService.backfillHistoricalSeasons();
