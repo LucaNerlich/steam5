@@ -11,7 +11,8 @@ export async function GET(req: NextRequest) {
     try {
         const res = await fetch(`${BACKEND_ORIGIN}/api/review-game/today`, {
             next: {revalidate: 60, tags: ['round-today']},
-            headers: {"accept": "application/json"}
+            headers: {"accept": "application/json"},
+            signal: AbortSignal.timeout(BACKEND_TIMEOUT_MS)
         });
         if (!res.ok) {
             // Backend error: pass the payload through with the upstream status,
