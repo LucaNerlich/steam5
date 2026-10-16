@@ -5,22 +5,13 @@ import Avatar from "@/components/Avatar";
 import Link from "next/link";
 import useSWR from "swr";
 import {PerfectDay} from "@/lib/perfectDays";
-import {formatRefreshedAt} from "@/lib/leaderboard";
+import {fetchRefreshedJson, formatRefreshedAt} from "@/lib/leaderboard";
 import {formatDate} from "@/lib/format";
 
 const ENDPOINT = "/api/stats/game/perfect-days";
 
-type PerfectDaysFetchResult = { data: PerfectDay[]; refreshedAt: string | null };
-
-const fetcher = async (url: string): Promise<PerfectDaysFetchResult> => {
-    const r = await fetch(url, {
-        headers: {accept: "application/json"},
-        cache: "no-cache",
-    });
-    if (!r.ok) throw new Error(`Failed to load ${url}: ${r.status}`);
-    const data = await r.json();
-    return {data, refreshedAt: r.headers.get('X-Leaderboard-Refreshed-At')};
-};
+type Fetched = Awaited<ReturnType<typeof fetcher>>;
+const fetcher = (url: string) => fetchRefreshedJson<PerfectDay[]>(url);
 
 /**
  * Displays perfect-day records and player rankings.
@@ -37,7 +28,7 @@ export default function PerfectDaysTable(props: {
 }) {
     const refreshInterval = props.refreshMs ?? 3600000;
 
-    const {data: perfectDaysResult, error, isLoading} = useSWR<PerfectDaysFetchResult>(ENDPOINT, fetcher, {
+    const {data: perfectDaysResult, error, isLoading} = useSWR<Fetched>(ENDPOINT, fetcher, {
         refreshInterval,
         revalidateOnFocus: true,
         focusThrottleInterval: refreshInterval,
