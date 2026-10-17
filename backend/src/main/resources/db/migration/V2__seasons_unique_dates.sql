@@ -1,0 +1,12 @@
+-- At most one season per identical (start_date, end_date) pair; overlapping windows with different bounds are still possible.
+--
+-- The invariant existed only in code: SeasonService.ensureSeasonForDate and
+-- SeasonRepository.findByStartDateLessThanEqualAndEndDateGreaterThanEqual both assume one row
+-- per window (the repository method is typed Optional), while ix_season_dates was a plain
+-- index. A second overlapping row therefore made every lookup throw
+-- IncorrectResultSizeDataAccessException (a 500 on guess submission) and let season-scoped
+-- leaderboard and award computations aggregate across two seasons for the same dates.
+--
+-- Pre-check that must return no rows before this migration is applied:
+--   SELECT start_date, end_date, count(*) FROM seasons GROUP BY start_date, end_date HAVING count(*) > 1;
+ALTER TABLE seasons ADD CONSTRAINT uq_seasons_dates UNIQUE (start_date, end_date);
