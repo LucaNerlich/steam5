@@ -1,4 +1,10 @@
+// @vitest-environment happy-dom
+// GameLinkPicker restores focus from a document-level Escape handler in an effect,
+// so this file runs with a DOM (Vitest 4 removed `environmentMatchGlobs`; the
+// per-file docblock is the supported hook). The other tests here are env-agnostic.
 import type {ReactNode} from 'react';
+import {act} from 'react';
+import {createRoot} from 'react-dom/client';
 import {describe, expect, it, vi} from 'vitest';
 import {renderToStaticMarkup} from 'react-dom/server';
 
@@ -13,7 +19,7 @@ vi.mock('next/link', () => ({
     ),
 }));
 
-import {CommentBodyText, insertMentionIntoBody, insertMentionReference} from './DayComments';
+import {CommentBodyText, GameLinkPicker, insertMentionIntoBody, insertMentionReference} from './DayComments';
 
 function render(body: string): string {
     return renderToStaticMarkup(<CommentBodyText body={body}/>);
@@ -150,5 +156,48 @@ describe('insertMentionReference', () => {
         expect(ta.value).toBe(`hello ${snippet}`);
         expect(focus).toHaveBeenCalled();
         expect(setSelectionRange).toHaveBeenCalledWith(`hello ${snippet}`.length, `hello ${snippet}`.length);
+    });
+});
+
+describe('GameLinkPicker Escape refocus', () => {
+    // React 19's act() only drives effects when the test environment is declared.
+    (globalThis as {IS_REACT_ACT_ENVIRONMENT?: boolean}).IS_REACT_ACT_ENVIRONMENT = true;
+
+    it('puts focus back on the trigger when Escape is pressed inside the open menu', async () => {
+        const container = document.createElement('div');
+        document.body.appendChild(container);
+        const root = createRoot(container);
+        try {
+            await act(async () => {
+                root.render(
+                    <GameLinkPicker
+                        games={[{appId: 220, name: 'Half-Life 2'}]}
+                        onPick={() => {}}
+                    />,
+                );
+            });
+
+            const trigger = container.querySelector<HTMLButtonElement>('button[aria-haspopup="menu"]');
+            if (!trigger) throw new Error('game link trigger did not render');
+
+            await act(async () => {
+                trigger.click();
+            });
+
+            const option = container.querySelector<HTMLButtonElement>('[role="menuitem"]');
+            if (!option) throw new Error('game link menu did not open');
+
+            option.focus();
+            expect(document.activeElement).toBe(option);
+
+            await act(async () => {
+                document.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape', bubbles: true}));
+            });
+
+            expect(document.activeElement).toBe(trigger);
+        } finally {
+            await act(async () => root.unmount());
+            container.remove();
+        }
     });
 });

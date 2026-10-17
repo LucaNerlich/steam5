@@ -1,3 +1,9 @@
+// @vitest-environment happy-dom
+// The Escape-refocus wiring runs in effects against a live document, so this file
+// needs a DOM; the static-markup tests here are env-agnostic and run under it too.
+// (Vitest 4 removed `environmentMatchGlobs`, so the per-file docblock is the hook.)
+import {act} from 'react';
+import {createRoot} from 'react-dom/client';
 import {describe, expect, it} from 'vitest';
 import {renderToStaticMarkup} from 'react-dom/server';
 import ReactionBar from './ReactionBar';
@@ -133,5 +139,46 @@ describe('ReactionBar reactor tooltip', () => {
         );
 
         expect(html).toContain('aria-label="👍 reaction, 5 — Alice, Bob and 3 more"');
+    });
+});
+
+describe('ReactionBar Escape refocus', () => {
+    // React 19's act() only drives effects when the test environment is declared.
+    (globalThis as {IS_REACT_ACT_ENVIRONMENT?: boolean}).IS_REACT_ACT_ENVIRONMENT = true;
+
+    it('puts focus back on the trigger when Escape is pressed inside the open picker', async () => {
+        const container = document.createElement('div');
+        document.body.appendChild(container);
+        const root = createRoot(container);
+        try {
+            await act(async () => {
+                root.render(
+                    <ReactionBar
+                        commentId={1}
+                        reactions={[]}
+                        canReact={true}
+                        onToggled={() => {}}
+                        open={true}
+                        onPickerOpenChange={() => {}}
+                    />,
+                );
+            });
+
+            const option = container.querySelector<HTMLButtonElement>('[role="menuitemcheckbox"]');
+            const trigger = container.querySelector<HTMLButtonElement>('button[aria-haspopup="menu"]');
+            if (!option || !trigger) throw new Error('reaction picker did not render');
+
+            option.focus();
+            expect(document.activeElement).toBe(option);
+
+            await act(async () => {
+                document.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape', bubbles: true}));
+            });
+
+            expect(document.activeElement).toBe(trigger);
+        } finally {
+            await act(async () => root.unmount());
+            container.remove();
+        }
     });
 });

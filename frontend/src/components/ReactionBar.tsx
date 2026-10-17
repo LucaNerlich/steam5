@@ -3,6 +3,7 @@
 import React, {useEffect, useId, useRef, useState} from "react";
 import {SmileyIcon} from "@phosphor-icons/react/ssr";
 import {startSteamLogin} from "@/lib/steamLogin";
+import {focusWithinElement} from "@/lib/focusGuards";
 import {
     REACTION_EMOJI,
     REACTION_TYPES,
@@ -53,6 +54,7 @@ export default function ReactionBar(props: {
     } = props;
     const [pending, setPending] = useState<ReactionType | null>(null);
     const rootRef = useRef<HTMLDivElement>(null);
+    const triggerRef = useRef<HTMLButtonElement | null>(null);
     const pickerId = useId();
 
     // Kept in a ref so the outside-click/Escape effect below only re-subscribes
@@ -96,7 +98,15 @@ export default function ReactionBar(props: {
             }
         };
         const onKeyDown = (event: KeyboardEvent) => {
-            if (event.key === "Escape") onPickerOpenChangeRef.current?.(false);
+            if (event.key === "Escape") {
+                onPickerOpenChangeRef.current?.(false);
+                // The options unmount with the picker; without this, focus falls to <body>
+                // and the next Tab restarts from the top of the page. Guarded so Escape
+                // pressed anywhere else on the page (e.g. the composer) can't yank focus.
+                if (focusWithinElement(rootRef.current, document.activeElement)) {
+                    triggerRef.current?.focus();
+                }
+            }
         };
 
         document.addEventListener("mousedown", onPointerDown);
@@ -200,6 +210,7 @@ export default function ReactionBar(props: {
             <div className="reaction-bar__picker-wrap">
                 <button
                     type="button"
+                    ref={triggerRef}
                     className={`reaction-bar__trigger${open ? " reaction-bar__trigger--open" : ""}`}
                     aria-haspopup="menu"
                     aria-expanded={open}
