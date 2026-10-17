@@ -5,6 +5,7 @@ import sitemap from './sitemap';
 afterEach(() => {
     vi.unstubAllGlobals();
     vi.unstubAllEnvs();
+    vi.restoreAllMocks();
 });
 
 /**
@@ -66,6 +67,30 @@ describe('sitemap', () => {
         }));
         expect((await isolated()).map((entry) => entry.url))
             .toContain(`${baseUrl}/review-guesser/archive/${primaryDate}`);
+    });
+
+    it('keeps the last good dates when a revalidation sees an empty 200 payload', async () => {
+        // A 200 with no usable dates — e.g. an instance serving an empty DB during a
+        // blue/green deploy — passes the shape guards but is not a successful load. It must
+        // not overwrite the learned dates (which would also destroy the fallback for every
+        // later failure) and must warn instead of silently emptying the archive section.
+        vi.resetModules();
+        const primaryDate = '2026-09-16';
+        vi.stubGlobal('fetch', vi.fn(async () => NextResponse.json([primaryDate])));
+        vi.stubEnv('NEXT_PUBLIC_API_DOMAIN', 'https://api.example.com');
+
+        const {default: isolated} = await import('./sitemap');
+        expect((await isolated()).map((entry) => entry.url))
+            .toContain(`${baseUrl}/review-guesser/archive/${primaryDate}`);
+
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        vi.stubGlobal('fetch', vi.fn(async () => NextResponse.json([])));
+        const urls = (await isolated()).map((entry) => entry.url);
+
+        expect(urls).toContain(`${baseUrl}/review-guesser/archive/${primaryDate}`);
+        expect(warn).toHaveBeenCalledWith(
+            '[sitemap] archive dates unavailable: backend returned no usable dates; keeping previous'
+        );
     });
 
     it('omits the redirecting routes', async () => {

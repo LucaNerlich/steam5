@@ -51,8 +51,15 @@ async function loadExistingArchiveDates(): Promise<Set<string>> {
             return lastGoodDates ?? new Set();
         }
         const dates = new Set(data.filter((d): d is string => typeof d === 'string'));
-        lastGoodDates = dates;
-        return dates;
+        // A 200 with no usable dates (e.g. an instance serving an empty DB during a
+        // blue/green deploy) is not a successful load: overwriting the last good set with an
+        // empty one would empty the sitemap and destroy the fallback for every later failure.
+        if (dates.size > 0) {
+            lastGoodDates = dates;
+            return dates;
+        }
+        console.warn('[sitemap] archive dates unavailable: backend returned no usable dates; keeping previous');
+        return lastGoodDates ?? dates;
     } catch (error) {
         console.warn('[sitemap] archive dates unavailable: fetch to the backend failed', error);
         return lastGoodDates ?? new Set();
