@@ -264,7 +264,8 @@ export function insertMentionReference(
 /**
  * Compact trigger that opens today's game picks for inserting Steam links.
  */
-function GameLinkPicker(props: {
+/** Exported for the Escape-refocus interaction test (the wiring lives in an effect). */
+export function GameLinkPicker(props: {
     games: CommentGameRef[];
     onPick: (game: CommentGameRef) => void;
 }): React.ReactElement {
