@@ -4,13 +4,6 @@ import {useEffect, useRef} from "react";
 import {useRouter} from "next/navigation";
 
 /**
- * Wires global ArrowLeft / ArrowRight keys to previous / next round navigation.
- *
- * No-ops while {@code disabled} is set (e.g. an auth modal is open), when modifier
- * keys are held, when the event originates from a text field or editable element, or
- * while a Fancybox lightbox owns the arrow keys.
- */
-/**
  * True while a modal dialog — the Fancybox lightbox or one of the app's own modals — is open.
  * `:modal` matches only dialogs opened with `showModal()`, so the inline, non-modal result card
  * does not suppress arrow-key navigation.
@@ -19,6 +12,13 @@ export function hasOpenModalDialog(): boolean {
     return typeof document !== "undefined" && document.querySelector("dialog:modal") !== null;
 }
 
+/**
+ * Wires global ArrowLeft / ArrowRight keys to previous / next round navigation.
+ *
+ * No-ops while {@code disabled} is set (e.g. an auth modal is open), when modifier
+ * keys are held, when the event originates from a text field or editable element, or
+ * while a Fancybox lightbox owns the arrow keys.
+ */
 export default function useRoundArrowNavigation(opts: {
     prevHref: string | null;
     nextHref: string | null;
