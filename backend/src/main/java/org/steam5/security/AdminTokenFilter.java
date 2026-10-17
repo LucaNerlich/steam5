@@ -63,7 +63,7 @@ public class AdminTokenFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws ServletException, IOException {
 
         if (!StringUtils.hasText(expectedToken)) {
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized");
+            rejectUnauthorized(response);
             return;
         }
 
@@ -76,7 +76,7 @@ public class AdminTokenFilter extends OncePerRequestFilter {
                 || !MessageDigest.isEqual(
                         expectedToken.getBytes(StandardCharsets.UTF_8),
                         providedToken.getBytes(StandardCharsets.UTF_8))) {
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized");
+            rejectUnauthorized(response);
             return;
         }
 
@@ -89,5 +89,18 @@ public class AdminTokenFilter extends OncePerRequestFilter {
         SecurityContextHolder.setContext(context);
 
         filterChain.doFilter(request, response);
+    }
+
+    /**
+     * Rejects with the documented 401 by writing the response directly, the same pattern
+     * the rate-limit filters use for their 429s. {@code sendError} triggers an ERROR
+     * dispatch to /error, which the app chain's {@code anyRequest().denyAll()} fallback
+     * denies in Boot 4.1.1 / Security 7.1.1 (error dispatches are authorization-checked),
+     * so a broken {@code X-Admin-Token} answered 403 without a challenge instead of 401.
+     */
+    private void rejectUnauthorized(HttpServletResponse response) throws IOException {
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        response.setContentType("application/json");
+        response.getWriter().write("{\"error\":\"unauthorized\"}");
     }
 }
