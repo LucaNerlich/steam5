@@ -41,4 +41,22 @@ class EtagsTest {
 
         assertTrue(etag != null && etag.matches("W/\"[0-9a-f]{64}\""), "unexpected ETag: " + etag);
     }
+
+    @Test
+    void groupBoundaryMakesDifferentSplitsHashApart() {
+        // /buckets etags [labels, titles] as two groups. Flattened, these two splits of the
+        // same concatenated fields hash identically, so a labels/titles move kept a stale 304.
+        final String labelsThenTitles = Etags.weakEtagForGroups(List.of(
+                List.of("Alpha", "Beta"), List.of("Gamma")));
+        final String oneLabelThenTwoTitles = Etags.weakEtagForGroups(List.of(
+                List.of("Alpha"), List.of("Beta", "Gamma")));
+
+        assertNotEquals(labelsThenTitles, oneLabelThenTwoTitles);
+    }
+
+    @Test
+    void groupBoundaryIsStableForTheSameGroups() {
+        assertEquals(Etags.weakEtagForGroups(List.of(List.of("Alpha"), List.of("Beta", "Gamma"))),
+                Etags.weakEtagForGroups(List.of(List.of("Alpha"), List.of("Beta", "Gamma"))));
+    }
 }

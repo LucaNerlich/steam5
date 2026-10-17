@@ -127,12 +127,7 @@ public class ReviewGameStateController {
     }
 
     private static String weakEtagForStringLists(List<? extends List<String>> lists) {
-        final List<String> fields = new java.util.ArrayList<>();
-        for (List<String> list : lists) {
-            if (list == null) continue;
-            fields.addAll(list);
-        }
-        return Etags.weakEtag(fields);
+        return Etags.weakEtagForGroups(new java.util.ArrayList<>(lists));
     }
 
     @GetMapping("/days")
