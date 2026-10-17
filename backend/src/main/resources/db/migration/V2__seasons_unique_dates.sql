@@ -1,4 +1,4 @@
--- At most one season per date window.
+-- At most one season per identical (start_date, end_date) pair; overlapping windows with different bounds are still possible.
 --
 -- The invariant existed only in code: SeasonService.ensureSeasonForDate and
 -- SeasonRepository.findByStartDateLessThanEqualAndEndDateGreaterThanEqual both assume one row

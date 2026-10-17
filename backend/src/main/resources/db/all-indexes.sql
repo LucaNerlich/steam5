@@ -29,6 +29,7 @@
 --     ix_season_award_player      (season_award_results: steam_id)
 --     ux_season_number            UNIQUE (seasons: season_number)
 --     ix_season_dates             (seasons: start_date, end_date)
+--     uq_seasons_dates            UNIQUE (seasons: start_date, end_date) [Flyway V2]
 --   Plus named/implicit unique constraints from @UniqueConstraint (users.steam_id,
 --   review_game_pick(pick_date, app_id) as uq_review_pick_date_app,
 --   comment_reactions(comment_id, steam_id, reaction_type) as uq_comment_reaction, and the
