@@ -88,53 +88,40 @@ public class SteamAppDetailController {
     }
 
     private static String weakEtagForDetail(SteamAppDetail d) {
-        try {
-            java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
-            java.util.function.Consumer<String> add = (s) -> {
-                if (s != null) md.update(s.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-                else md.update((byte) 0);
-            };
-            add.accept(String.valueOf(d.getAppId()));
-            add.accept(d.getName());
-            add.accept(d.getReleaseDate());
-            if (d.getPriceOverview() != null) {
-                add.accept(d.getPriceOverview().getCurrency());
-                add.accept(String.valueOf(d.getPriceOverview().getFinalAmount()));
-            }
-            if (d.getDevelopers() != null) d.getDevelopers().forEach(dev -> add.accept(dev.getName()));
-            if (d.getPublisher() != null) d.getPublisher().forEach(pub -> add.accept(pub.getName()));
-            if (d.getGenres() != null) d.getGenres().forEach(g -> add.accept(g.getDescription()));
-            if (d.getCategories() != null) d.getCategories().forEach(c -> add.accept(c.getDescription()));
-            if (d.getScreenshots() != null) {
-                int i = 0;
-                for (org.steam5.domain.details.Screenshot s : d.getScreenshots()) {
-                    if (i++ >= 5) break; // limit for speed
-                    add.accept(s.getPathThumbnail());
-                    add.accept(s.getPathFull());
-                }
-            }
-            if (d.getMovies() != null) {
-                int i = 0;
-                for (org.steam5.domain.details.Movie m : d.getMovies()) {
-                    if (i++ >= 3) break;
-                    add.accept(m.getThumbnail());
-                    add.accept(m.getWebm());
-                    add.accept(m.getMp4());
-                    add.accept(m.getDashAv1());
-                    add.accept(m.getDashH264());
-                    add.accept(m.getHlsH264());
-                }
-            }
-            byte[] digest = md.digest();
-            StringBuilder sb = new StringBuilder();
-            for (byte b : digest) sb.append(String.format("%02x", b));
-            return "W/\"" + sb + "\"";
-        } catch (Exception ignored) {
-            log.debug("ETag generation failed for detail", ignored);
-            return null;
+        final java.util.List<String> fields = new java.util.ArrayList<>();
+        fields.add(String.valueOf(d.getAppId()));
+        fields.add(d.getName());
+        fields.add(d.getReleaseDate());
+        if (d.getPriceOverview() != null) {
+            fields.add(d.getPriceOverview().getCurrency());
+            fields.add(String.valueOf(d.getPriceOverview().getFinalAmount()));
         }
+        if (d.getDevelopers() != null) d.getDevelopers().forEach(dev -> fields.add(dev.getName()));
+        if (d.getPublisher() != null) d.getPublisher().forEach(pub -> fields.add(pub.getName()));
+        if (d.getGenres() != null) d.getGenres().forEach(g -> fields.add(g.getDescription()));
+        if (d.getCategories() != null) d.getCategories().forEach(c -> fields.add(c.getDescription()));
+        if (d.getScreenshots() != null) {
+            int i = 0;
+            for (org.steam5.domain.details.Screenshot s : d.getScreenshots()) {
+                if (i++ >= 5) break; // limit for speed
+                fields.add(s.getPathThumbnail());
+                fields.add(s.getPathFull());
+            }
+        }
+        if (d.getMovies() != null) {
+            int i = 0;
+            for (org.steam5.domain.details.Movie m : d.getMovies()) {
+                if (i++ >= 3) break;
+                fields.add(m.getThumbnail());
+                fields.add(m.getWebm());
+                fields.add(m.getMp4());
+                fields.add(m.getDashAv1());
+                fields.add(m.getDashH264());
+                fields.add(m.getHlsH264());
+            }
+        }
+        return Etags.weakEtag(fields);
     }
-
     @GetMapping("/{appId}")
     @Transactional(readOnly = true)
     @Cacheable(value = "one-day", key = "#appId", unless = "#result == null || !#result.statusCode.is2xxSuccessful()")

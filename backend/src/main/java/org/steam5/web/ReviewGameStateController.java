@@ -107,55 +107,27 @@ public class ReviewGameStateController {
     }
 
     private static String weakEtagForPicks(List<SteamAppDetail> details) {
-        try {
-            java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
-            for (SteamAppDetail d : details) {
-                md.update(java.nio.charset.StandardCharsets.UTF_8.encode(String.valueOf(d.getAppId())));
-                if (d.getName() != null) md.update(d.getName().getBytes(java.nio.charset.StandardCharsets.UTF_8));
-                if (d.getReleaseDate() != null)
-                    md.update(d.getReleaseDate().getBytes(java.nio.charset.StandardCharsets.UTF_8));
-                if (d.getPriceOverview() != null) {
-                    if (d.getPriceOverview().getCurrency() != null)
-                        md.update(d.getPriceOverview().getCurrency().getBytes(java.nio.charset.StandardCharsets.UTF_8));
-                    md.update(Long.toString(d.getPriceOverview().getFinalAmount()).getBytes(java.nio.charset.StandardCharsets.UTF_8));
-                }
-                // screenshot paths influence visual content; limit sample for speed
-                int i = 0;
-                if (d.getScreenshots() != null) for (var s : d.getScreenshots()) {
-                    if (i++ >= 2) break;
-                    if (s.getPathFull() != null)
-                        md.update(s.getPathFull().getBytes(java.nio.charset.StandardCharsets.UTF_8));
-                }
+        final List<String> fields = new java.util.ArrayList<>();
+        for (SteamAppDetail d : details) {
+            fields.add(String.valueOf(d.getAppId()));
+            fields.add(d.getName());
+            fields.add(d.getReleaseDate());
+            if (d.getPriceOverview() != null) {
+                fields.add(d.getPriceOverview().getCurrency());
+                fields.add(Long.toString(d.getPriceOverview().getFinalAmount()));
             }
-            byte[] digest = md.digest();
-            StringBuilder sb = new StringBuilder();
-            for (byte b : digest) sb.append(String.format("%02x", b));
-            return "W/\"" + sb + "\"";
-        } catch (Exception ignored) {
-            log.debug("ETag generation failed for picks", ignored);
-            return null;
+            // screenshot paths influence visual content; limit sample for speed
+            int i = 0;
+            if (d.getScreenshots() != null) for (var s : d.getScreenshots()) {
+                if (i++ >= 2) break;
+                fields.add(s.getPathFull());
+            }
         }
+        return Etags.weakEtag(fields);
     }
 
     private static String weakEtagForStringLists(List<? extends List<String>> lists) {
-        try {
-            java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
-            for (List<String> l : lists) {
-                if (l == null) continue;
-                for (String s : l) {
-                    if (s != null) md.update(s.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-                    md.update((byte) '\n');
-                }
-                md.update((byte) '\u0000');
-            }
-            byte[] digest = md.digest();
-            StringBuilder sb = new StringBuilder();
-            for (byte b : digest) sb.append(String.format("%02x", b));
-            return "W/\"" + sb + "\"";
-        } catch (Exception ignored) {
-            log.debug("ETag generation failed for string lists", ignored);
-            return null;
-        }
+        return Etags.weakEtagForGroups(new java.util.ArrayList<>(lists));
     }
 
     @GetMapping("/days")
