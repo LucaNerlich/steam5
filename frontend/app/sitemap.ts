@@ -20,23 +20,57 @@ function resolveBackendOrigin(): string | null {
     return process.env.NODE_ENV === 'production' ? null : 'http://localhost:8080';
 }
 
-/** Loads the set of dates that actually have an archived challenge; empty on failure. */
+/**
+ * The set of archive dates from the most recent successful load. When a regeneration
+ * cannot reach the backend (transient five-second fetch timeout, brief outage), the
+ * generated sitemap falls back to this set instead of dropping all archive URLs until
+ * the next successful revalidation. null only before the first successful load.
+ */
+let lastGoodDates: Set<string> | null = null;
+
+/** Loads the set of dates that actually have an archived challenge; falls back to the
+ *  last successfully loaded set (empty before the first success) on any failure. */
 async function loadExistingArchiveDates(): Promise<Set<string>> {
     const backend = resolveBackendOrigin();
-    if (!backend) return new Set();
+    if (!backend) {
+        console.warn('[sitemap] archive dates unavailable: no https NEXT_PUBLIC_API_DOMAIN configured');
+        return lastGoodDates ?? new Set();
+    }
     try {
         const res = await fetch(`${backend}/api/review-game/days?limit=5000`, {
             headers: {accept: 'application/json'},
             signal: AbortSignal.timeout(5000),
         });
-        if (!res.ok) return new Set();
+        if (!res.ok) {
+            console.warn(`[sitemap] archive dates unavailable: backend responded ${res.status}`);
+            return lastGoodDates ?? new Set();
+        }
         const data: unknown = await res.json();
-        if (!Array.isArray(data)) return new Set();
-        return new Set(data.filter((d): d is string => typeof d === 'string'));
-    } catch {
-        return new Set();
+        if (!Array.isArray(data)) {
+            console.warn('[sitemap] archive dates unavailable: unexpected payload shape');
+            return lastGoodDates ?? new Set();
+        }
+        const dates = new Set(data.filter((d): d is string => typeof d === 'string'));
+        // A 200 with no usable dates (e.g. an instance serving an empty DB during a
+        // blue/green deploy) is not a successful load: overwriting the last good set with an
+        // empty one would empty the sitemap and destroy the fallback for every later failure.
+        if (dates.size > 0) {
+            lastGoodDates = dates;
+            return dates;
+        }
+        console.warn('[sitemap] archive dates unavailable: backend returned no usable dates; keeping previous');
+        return lastGoodDates ?? dates;
+    } catch (error) {
+        console.warn('[sitemap] archive dates unavailable: fetch to the backend failed', error);
+        return lastGoodDates ?? new Set();
     }
 }
+
+// Cached by default: without a revalidate window the route is generated once at build time,
+// so days archived after the deploy never appear and a build that could not reach the backend
+// silently shipped an empty archive section (production has ~430 dated URLs; one such build
+// shipped 0).
+export const revalidate = 3600;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const baseUrl = (process.env.NEXT_PUBLIC_DOMAIN || 'https://steam5.org').replace(/\/$/, '');
