@@ -1,7 +1,7 @@
 import type {GuessResponse} from "@/types/review-game";
 import type {RoundResult} from "@/lib/storage";
 
-type ActionState = { ok: boolean; response?: GuessResponse };
+type ActionState = { ok: boolean; appId?: number; error?: string; response?: GuessResponse };
 type Prefill = { selectedLabel: string; actualBucket?: string; totalReviews?: number };
 
 /**
@@ -41,6 +41,19 @@ export function isRoundSubmitted(
         || storedThisRound
         || prefilled,
     );
+}
+
+/**
+ * Whether an action state was produced for the given pick. `submitGuessAction`
+ * stamps every branch it returns — failures included — with the requested appId,
+ * so a previous round's error banner or sign-out notice cannot leak into the
+ * round the player has just moved to.
+ */
+export function isActionStateForPick(
+    state: ActionState | null | undefined,
+    appId: number,
+): boolean {
+    return state?.appId === appId;
 }
 
 /**

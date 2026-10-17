@@ -15,7 +15,7 @@ import type {CommentGameRef} from "@/lib/comments";
 import useServerGuesses from "@/lib/hooks/useServerGuesses";
 import useRoundArrowNavigation from "@/lib/hooks/useRoundArrowNavigation";
 import {saveRound, type RoundResult} from "@/lib/storage";
-import {isRoundSubmitted, prefillToResponse, resolveEffectiveResponse} from "@/lib/guessResolution";
+import {isActionStateForPick, isRoundSubmitted, prefillToResponse, resolveEffectiveResponse} from "@/lib/guessResolution";
 import {computeSignedOutDuringPlay} from "@/lib/authGuard";
 import {Routes} from "../../app/routes";
 import "@/styles/components/reviewGuesserRound.css";
@@ -231,7 +231,11 @@ export default function ReviewGuesserRound({
     // or the UI believed we were signed in but the guess was saved anonymously
     // (cookie was dropped while the SPA stayed open). In both cases the result did
     // not count, so re-sync the auth state and surface a clear notice.
-    const signedOutDuringPlay = computeSignedOutDuringPlay(signedIn, state);
+    // Only a state stamped for this pick counts: the round page reuses its component,
+    // so a stale failure from the previous round must neither show its banner here nor
+    // re-fire refreshAuth().
+    const stateForThisPick = isActionStateForPick(state, appId);
+    const signedOutDuringPlay = computeSignedOutDuringPlay(signedIn, stateForThisPick ? state : undefined);
     useEffect(() => {
         if (signedOutDuringPlay) refreshAuth();
     }, [signedOutDuringPlay, refreshAuth]);
@@ -257,7 +261,7 @@ export default function ReviewGuesserRound({
     } = useAuthWarningGate(signedIn, refreshAuth, submitGuess);
     useRoundArrowNavigation({prevHref, nextHref, hasNextRound, disabled: showAuthWarning});
 
-    const submitError = state && !state.ok ? state.error : undefined;
+    const submitError = state && !state.ok && stateForThisPick ? state.error : undefined;
     const shouldShowGuessControls = !(effectiveResponse || storedThisRound || prefilled);
     const shareResults = !serverGuessesLoading && hasServerResults ? serverResults : undefined;
     return (
