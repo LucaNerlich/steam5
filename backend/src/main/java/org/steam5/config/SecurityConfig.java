@@ -113,7 +113,6 @@ public class SecurityConfig {
                 // the filters' own OPTIONS exemptions were dead. See CorsConfig.
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/review-game/comments/**").permitAll()
                         .requestMatchers("/api/review-game/**").permitAll()
                         .requestMatchers("/api/details/**").permitAll()
                         // Operational data is gated behind the admin token (AdminTokenFilter);
