@@ -45,16 +45,6 @@ public final class BlurHash {
     }
 
     /**
-     * Calculates the blur hash from the given image with 4x4 components.
-     *
-     * @param bufferedImage the image
-     * @return the blur hash
-     */
-    public static String encode(BufferedImage bufferedImage) {
-        return encode(bufferedImage, 4, 4);
-    }
-
-    /**
      * Calculates the blur hash from the given image.
      *
      * @param bufferedImage the image
