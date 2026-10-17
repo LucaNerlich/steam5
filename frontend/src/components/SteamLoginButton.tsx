@@ -8,7 +8,7 @@ import {UserCheckIcon} from "@phosphor-icons/react/ssr";
 import Link from "next/link";
 import {useAuth} from "@/contexts/AuthContext";
 import Avatar from "@/components/Avatar";
-import {buildSteamLoginUrl} from "@/lib/steamLogin";
+import {startSteamLogin} from "@/lib/steamLogin";
 
 /**
  * Renders a Steam sign-in control or the signed-in user's profile link.
@@ -27,15 +27,7 @@ export default function SteamLoginButton(): React.ReactElement {
     }, [isSignedIn]);
 
     const onClick = () => {
-        // Fix #6: generate a random CSRF state token and store it in a short-lived
-        // client-side cookie.  The token is appended to the backend login URL; the
-        // backend embeds it in openid.return_to so Steam carries it back in the
-        // redirect.  The Next.js callback route then verifies the URL param matches
-        // the cookie before proceeding, preventing login-CSRF attacks.
-        const state = crypto.randomUUID().replace(/-/g, '');
-        const secure = location.protocol === 'https:' ? '; Secure' : '';
-        document.cookie = `s5_state=${state}; path=/; max-age=300; samesite=lax${secure}`;
-        window.location.href = `${buildSteamLoginUrl()}&state=${encodeURIComponent(state)}`;
+        startSteamLogin();
     };
 
     if (steamId) {
