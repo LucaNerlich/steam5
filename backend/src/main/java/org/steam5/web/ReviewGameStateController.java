@@ -684,7 +684,7 @@ public class ReviewGameStateController {
     }
 
     @GetMapping("/history/always-pick")
-    @Cacheable(value = "review-game", key = "'always-pick-hist:' + (#from != null ? #from : 'min') + ':' + (#to != null ? #to : 'max')", unless = CACHE_ONLY_2XX)
+    @Cacheable(value = "review-game", key = "'always-pick-hist:' + (#from != null && !#from.isBlank() ? #from : 'min') + ':' + (#to != null && !#to.isBlank() ? #to : 'max')", unless = CACHE_ONLY_2XX)
     public ResponseEntity<HistoricalAlwaysPickResponse> alwaysPickHistory(
             @RequestParam(value = "from", required = false) String from,
             @RequestParam(value = "to", required = false) String to) {
@@ -701,11 +701,11 @@ public class ReviewGameStateController {
         }
         // The response is cached under the raw from/to pair, so an unbounded EXplicit span lets a
         // caller mint one cache entry per enumerated range in the shared review-game cache.
-        // An absent range is the all-time view (its key is the 'min'/'max' literal pair, so it
-        // stays a single entry) and is left alone; any explicit span wider than ~10 years is
-        // refused — the check runs on the parsed dates, so a one-sided request (from-only or
-        // to-only) inherits the 1970/today default on the missing side and is bound like a
-        // fully explicit span. The UI asks for one day at a time.
+        // An absent-or-blank range is the all-time view (its key is the 'min'/'max' literal pair,
+        // so every blank spelling collapses onto it) and is left alone; any explicit span wider
+        // than ~10 years is refused — the check runs on the parsed dates, so a one-sided request
+        // (from-only or to-only) inherits the 1970/today default on the missing side and is bound
+        // like a fully explicit span. The UI asks for one day at a time.
         final boolean allTime = (from == null || from.isBlank()) && (to == null || to.isBlank());
         if (!allTime && java.time.temporal.ChronoUnit.DAYS.between(start, end) > 3650) {
             return ResponseEntity.badRequest().build();
