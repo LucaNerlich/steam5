@@ -214,28 +214,50 @@ function detectMentionQuery(value: string, caret: number): {start: number; query
 }
 
 /**
- * Replaces an in-progress `@query` token with a mention reference at the textarea caret.
+ * Replaces the in-progress `@query` token that ends at `caret` with `snippet`, returning the
+ * new body and caret position, or null when the caret is no longer inside a mention token
+ * (the suggestion menu is stale) or the result would exceed `maxLength`.
+ *
+ * The token is derived from the live caret rather than the one the menu captured: Home/End
+ * and arrow keys move the caret without firing an input event, so the stored token start can
+ * point somewhere else than the caret the insertion replaces from.
  */
-function insertMentionReference(
+export function insertMentionIntoBody(
+    value: string,
+    caret: number,
+    snippet: string,
+    maxLength: number,
+): {value: string; caret: number} | null {
+    const token = detectMentionQuery(value, caret);
+    if (token === null) return null;
+    const before = value.slice(0, token.start);
+    const after = value.slice(caret);
+    const padAfter = after.length > 0 && !/^\s/.test(after) ? " " : "";
+    const insertion = `${snippet}${padAfter}`;
+    const next = before + insertion + after;
+    if (next.length > maxLength) return null;
+    return {value: next, caret: (before + insertion).length};
+}
+
+/**
+ * Replaces an in-progress `@query` token with a mention reference at the textarea
+ * caret. Exported so the live-textarea call path (menu pick → caret read from
+ * `selectionStart`) is testable without a DOM.
+ */
+export function insertMentionReference(
     textarea: HTMLTextAreaElement,
     candidate: MentionCandidate,
-    mentionStart: number,
     maxLength: number,
 ): number | null {
     const label = sanitizeMentionLabel(candidate.personaName);
     const snippet = `[@${label}](mention:${candidate.steamId})`;
     const caret = textarea.selectionStart ?? textarea.value.length;
-    const before = textarea.value.slice(0, mentionStart);
-    const after = textarea.value.slice(caret);
-    const padAfter = after.length > 0 && !/^\s/.test(after) ? " " : "";
-    const insertion = `${snippet}${padAfter}`;
-    const next = before + insertion + after;
-    if (next.length > maxLength) return null;
-    textarea.value = next;
-    const nextCaret = (before + insertion).length;
+    const inserted = insertMentionIntoBody(textarea.value, caret, snippet, maxLength);
+    if (inserted === null) return null;
+    textarea.value = inserted.value;
     textarea.focus();
-    textarea.setSelectionRange(nextCaret, nextCaret);
-    return next.length;
+    textarea.setSelectionRange(inserted.caret, inserted.caret);
+    return inserted.value.length;
 }
 
 /**
@@ -522,9 +544,10 @@ function CommentComposer(props: {
 
     const handlePickMention = (candidate: MentionCandidate) => {
         const ta = textareaRef.current;
-        if (!ta || composer.mention === null) return;
-        const nextLength = insertMentionReference(ta, candidate, composer.mention.start, MAX_BODY_LENGTH);
-        if (nextLength !== null) dispatch({type: "insertionLength", bodyLength: nextLength});
+        if (ta) {
+            const nextLength = insertMentionReference(ta, candidate, MAX_BODY_LENGTH);
+            if (nextLength !== null) dispatch({type: "insertionLength", bodyLength: nextLength});
+        }
         closeMentionMenu();
     };
 
