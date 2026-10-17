@@ -1,50 +1,6 @@
-/* ── Swap slot ──
-   Holds the guess card and the (client-only) result dialog, exactly one of which
-   is shown at a time. Until the client resolves whether this round is already
-   answered, the slot shows a neutral placeholder (review-round__skeleton) so the
-   guess card never flashes before swapping to the result. Reserving a
-   per-breakpoint min-height keeps the content below (NewsBox / GameInfoSection)
-   from reflowing across these swaps. Sized to fit the tallest realistic dialog
-   (signed-out: share + summary + nudge). */
-.review-round__slot {
-    min-height: 390px; /* mobile */
-}
-
-/* Placeholder shown in the slot before result-vs-guess-card is resolved. Mirrors
-   the Suspense fallback in the round page for a consistent loading look. */
-.review-round__skeleton {
-    height: 220px;
-    border-radius: var(--border-radius);
-    background: var(--color-border);
-    animation: review-round__skeleton-pulse 1.2s ease-in-out infinite;
-}
-
-@keyframes review-round__skeleton-pulse {
-    0%, 100% { opacity: 0.4; }
-    50% { opacity: 0.7; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .review-round__skeleton {
-        animation: none;
-    }
-}
-
-@media (min-width: 641px) {
-    .review-round__slot {
-        min-height: 310px; /* tablet */
-    }
-}
-
-@media (min-width: 769px) {
-    .review-round__slot {
-        min-height: 280px; /* desktop */
-    }
-}
-
 /* ── Result card wrapper ── */
-/* Rendered as a native NON-modal <dialog open> so it stays an inline card in
-   the swap slot; reset the UA dialog styles that would pull it out of flow. */
+/* Rendered as a native NON-modal <dialog open> so it stays an inline card;
+   reset the UA dialog styles that would pull it out of flow. */
 dialog.review-round__result {
     position: static;
     width: auto;
@@ -184,13 +140,8 @@ dialog.review-round__result {
     text-overflow: ellipsis;
 }
 
-.result-chip--correct {
-    border-color: color-mix(in srgb, var(--color-success) 50%, var(--color-border));
-    background: color-mix(in srgb, var(--color-success) 8%, var(--color-surface));
-    color: var(--color-success);
-}
-
-.result-chip--exact {
+.result-chip--exact,
+.result-chip--actual {
     border-color: color-mix(in srgb, var(--color-success) 50%, var(--color-border));
     background: color-mix(in srgb, var(--color-success) 8%, var(--color-surface));
     color: var(--color-text);
@@ -211,18 +162,6 @@ dialog.review-round__result {
 .result-chip--far {
     border-color: color-mix(in srgb, var(--color-error) 40%, var(--color-border));
     background: color-mix(in srgb, var(--color-error) 6%, var(--color-surface));
-    color: var(--color-text);
-}
-
-.result-chip--incorrect {
-    border-color: color-mix(in srgb, var(--color-error) 40%, var(--color-border));
-    background: color-mix(in srgb, var(--color-error) 6%, var(--color-surface));
-    color: var(--color-error);
-}
-
-.result-chip--actual {
-    border-color: color-mix(in srgb, var(--color-success) 50%, var(--color-border));
-    background: color-mix(in srgb, var(--color-success) 8%, var(--color-surface));
     color: var(--color-text);
 }
 
@@ -263,12 +202,6 @@ dialog.review-round__result {
 .review-round__actions {
     margin-top: 0;
     padding: 0.25rem 0.875rem 0.75rem;
-}
-
-.review-round__actions-inner {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
 }
 
 /* ── Mobile ── */
