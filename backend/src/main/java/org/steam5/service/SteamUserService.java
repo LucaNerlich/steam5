@@ -1,22 +1,13 @@
 package org.steam5.service;
 
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.steam5.config.SteamAppsConfig;
-import org.steam5.domain.User;
 import org.steam5.http.SteamHttpClient;
-import org.steam5.job.blurhash.BlurhashEnqueueListener;
-import org.steam5.job.events.BlurhashEncodeRequested;
-import org.steam5.repository.UserRepository;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
-
-import java.util.Objects;
 
 
 @Service
@@ -24,8 +15,7 @@ import java.util.Objects;
 @Slf4j
 public class SteamUserService {
 
-    private final ApplicationEventPublisher eventPublisher;
-    private final UserRepository userRepository;
+    private final SteamUserProfileWriter profileWriter;
     private final SteamHttpClient steamHttpClient;
     private final SteamAppsConfig steamAppsConfig;
     // Fix #10: inject the Spring-managed ObjectMapper so it inherits all registered
@@ -33,14 +23,15 @@ public class SteamUserService {
     private final ObjectMapper objectMapper;
 
     // Fix #11: run the Steam API call asynchronously so profile enrichment no longer
-    // blocks the login response.  The method is still @Transactional; each async
-    // invocation gets its own transaction in a separate thread-pool thread.
+    // blocks the login response.
+    //
+    // No @Transactional here on purpose: the HTTP client retries with backoff at a 120 s
+    // per-attempt timeout, so a login burst used to hold up to 8 of the 20 pooled Hikari
+    // connections for minutes and stall unrelated endpoints. The fetch runs outside any
+    // transaction and the write happens in SteamUserProfileWriter's own short transaction.
     @Async
-    @Transactional
     public void updateUserProfile(String steamId) {
         try {
-            final User existing = userRepository.findById(steamId).orElse(null);
-
             final String apiKey = steamAppsConfig.getApiKey();
             if (apiKey == null || apiKey.isBlank()) {
                 log.warn("Steam API key not configured; skipping persona fetch");
@@ -53,37 +44,7 @@ public class SteamUserService {
             final JsonNode root = objectMapper.readTree(body);
             final JsonNode players = root.path("response").path("players");
             if (players.isArray() && !players.isEmpty()) {
-                final JsonNode player = players.get(0);
-                // Capture previous avatar values (if any) to detect changes in this update run
-                final String previousAvatar = existing != null ? existing.getAvatar() : null;
-                final String previousAvatarFull = existing != null ? existing.getAvatarFull() : null;
-
-                final User user = existing != null ? existing : new User();
-                user.setSteamId(steamId);
-                user.setPersonaName(player.path("personaname").asText(null));
-                user.setProfileUrl(player.path("profileurl").asText(null));
-                user.setAvatar(player.path("avatar").asText(null));
-                user.setAvatarMedium(player.path("avatarmedium").asText(null));
-                user.setAvatarFull(player.path("avatarfull").asText(null));
-                user.setAvatarHash(player.path("avatarhash").asText(null));
-                user.setLastLogoffSec(player.path("lastlogoff").isNumber() ? player.path("lastlogoff").asLong() : null);
-                user.setPersonaState(player.path("personastate").isNumber() ? player.path("personastate").asInt() : null);
-                user.setPrimaryClanId(player.path("primaryclanid").asText(null));
-                user.setTimeCreatedSec(player.path("timecreated").isNumber() ? player.path("timecreated").asLong() : null);
-                user.setCountryCode(player.path("loccountrycode").asText(null));
-                // Fix #12 (dead code removed): createdAt is set by @PrePersist on the entity;
-                // the null guard here was never reachable for new User() instances.
-                userRepository.save(user);
-
-                // Determine whether avatar values changed during this update run
-                final boolean avatarChanged = !Objects.equals(previousAvatar, user.getAvatar());
-                final boolean avatarFullChanged = !Objects.equals(previousAvatarFull, user.getAvatarFull());
-
-                if (StringUtils.isBlank(user.getBlurdataAvatarFull()) || avatarChanged || avatarFullChanged) {
-                    log.info("User {} avatar changed, trigger blurhash generation: avatarChanged={} avatarFullChanged={}", steamId, avatarChanged, avatarFullChanged);
-                    // Publish an event to enqueue Blurhash Avatar job only when avatar fields changed
-                    eventPublisher.publishEvent(new BlurhashEncodeRequested(null, steamId, BlurhashEnqueueListener.Type.AVATAR));
-                }
+                profileWriter.apply(steamId, players.get(0));
             }
         } catch (Exception e) {
             log.warn("Failed to fetch persona name for {}", steamId, e);
@@ -91,5 +52,3 @@ public class SteamUserService {
     }
 
 }
-
-
