@@ -57,6 +57,47 @@ export function isActionStateForPick(
 }
 
 /**
+ * The identity captured when a guess was submitted. It travels with the label so a
+ * response that resolves after the player moved on is still persisted for the round
+ * actually guessed — the round-scope reset clears the live selection, never this.
+ */
+export type RoundSubmission = {
+    gameDate?: string;
+    roundIndex: number;
+    totalRounds: number;
+    appId: number;
+    pickName?: string;
+    label: string;
+};
+
+/**
+ * Resolves the day/round a successful response must be persisted to, or null when
+ * the response was graded for a different submission or no round identity exists.
+ * Pairing the label with its round identity atomically makes a fabricated entry
+ * impossible: the response only saves where the guess was actually made.
+ */
+export function resolveSubmissionTarget(
+    state: ActionState | null | undefined,
+    submission: RoundSubmission | null | undefined,
+): { gameDate: string; roundIndex: number; totalRounds: number; result: RoundResult } | null {
+    if (!state?.ok || !state.response || !submission?.gameDate) return null;
+    if (state.response.appId !== submission.appId) return null;
+    return {
+        gameDate: submission.gameDate,
+        roundIndex: submission.roundIndex,
+        totalRounds: submission.totalRounds,
+        result: {
+            appId: submission.appId,
+            pickName: submission.pickName,
+            selectedLabel: submission.label,
+            actualBucket: state.response.actualBucket,
+            totalReviews: state.response.totalReviews,
+            correct: state.response.correct,
+        },
+    };
+}
+
+/**
  * Priority order for the result to display for a completed round:
  *   1. Live action state (just submitted this session)
  *   2. Stored result from localStorage or server (authenticated restore)
