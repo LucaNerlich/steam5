@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import {isRoundSubmitted, prefillToResponse, resolveEffectiveResponse} from './guessResolution';
+import {isActionStateForPick, isRoundSubmitted, prefillToResponse, resolveEffectiveResponse} from './guessResolution';
 import type {RoundResult} from './storage';
 
 describe('prefillToResponse', () => {
@@ -51,6 +51,26 @@ describe('isRoundSubmitted', () => {
         expect(isRoundSubmitted({ok: false}, 10, undefined, false)).toBe(false);
         expect(isRoundSubmitted(null, 10, undefined, false)).toBe(false);
         expect(isRoundSubmitted(undefined, 10, undefined, false)).toBe(false);
+    });
+});
+
+describe('isActionStateForPick', () => {
+    it('accepts a state stamped for the same pick, failure or success', () => {
+        expect(isActionStateForPick({ok: true, appId: 10, response: {appId: 10, totalReviews: 1, actualBucket: 'A', correct: true}}, 10)).toBe(true);
+        expect(isActionStateForPick({ok: false, appId: 10, error: 'Upstream error 500'}, 10)).toBe(true);
+    });
+
+    it('rejects a failed state stamped for another pick', () => {
+        // The round changed while the submit was in flight: the previous round's error
+        // banner and sign-out notice must not be attributed to the new round.
+        const stale = {ok: false, appId: 11, unauthorized: true, error: 'unauthorized'};
+        expect(isActionStateForPick(stale, 10)).toBe(false);
+    });
+
+    it('rejects unstamped states (initial state, pre-stamp action results)', () => {
+        expect(isActionStateForPick({ok: false}, 10)).toBe(false);
+        expect(isActionStateForPick(null, 10)).toBe(false);
+        expect(isActionStateForPick(undefined, 10)).toBe(false);
     });
 });
 
