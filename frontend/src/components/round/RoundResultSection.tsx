@@ -68,14 +68,12 @@ export default function RoundResultSection({
                 {canShowShare && (
                     <>
                         <ShareControls
-                            inline
                             buckets={buckets}
                             gameDate={gameDate}
                             totalRounds={totalRounds}
                             latestRound={latestRound}
                             latest={latest}
                             results={shareResults}
-                            signedIn={signedIn}
                         />
                         <RoundSummary
                             buckets={buckets}

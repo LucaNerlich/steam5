@@ -46,7 +46,6 @@ export default function RoundResultDialog(props: {
             className={`review-round__result review-round__result--${tier}`}
         >
             <RoundResult
-                result={props.result}
                 selectedLabel={props.selectedLabel ?? null}
                 actualBucket={props.result.actualBucket}
                 headerText={headerText}
