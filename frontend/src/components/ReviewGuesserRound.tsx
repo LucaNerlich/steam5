@@ -15,7 +15,7 @@ import type {CommentGameRef} from "@/lib/comments";
 import useServerGuesses from "@/lib/hooks/useServerGuesses";
 import useRoundArrowNavigation from "@/lib/hooks/useRoundArrowNavigation";
 import {saveRound, type RoundResult} from "@/lib/storage";
-import {prefillToResponse, resolveEffectiveResponse} from "@/lib/guessResolution";
+import {isActionStateForPick, isRoundSubmitted, prefillToResponse, resolveEffectiveResponse, resolveSubmissionTarget, type RoundSubmission} from "@/lib/guessResolution";
 import {computeSignedOutDuringPlay} from "@/lib/authGuard";
 import {Routes} from "../../app/routes";
 import "@/styles/components/reviewGuesserRound.css";
@@ -86,10 +86,12 @@ export default function ReviewGuesserRound({
     const [state, formAction] = useActionState<GuessActionState, FormData>(submitGuessAction, initial);
     const [isPending, startTransition] = useTransition();
     const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
-    // The label actually submitted for the in-flight guess. The save effect used the live
-    // `selectedLabel`, so a click during the submit window persisted a pair made of two
-    // different guesses (that label with the previous guess's response).
-    const [submittedLabel, setSubmittedLabel] = useState<string | null>(null);
+    // The identity of the guess that is currently in flight, captured at submit time.
+    // The label travelled with the live `selectedLabel` before, so navigating away
+    // mid-submit (which clears the selection) dropped a genuinely graded response:
+    // it rendered but was never persisted, leaving the round re-guessable after a
+    // reload. Capturing gameDate/round/appId/label atomically keeps the save honest.
+    const [submission, setSubmission] = useState<RoundSubmission | null>(null);
     const disableClientFetch = Boolean(prefilled) || (allResults && Object.keys(allResults).length >= totalRounds);
     const {guesses: serverGuesses, loading: serverGuessesLoading} = useServerGuesses(disableClientFetch);
 
@@ -104,12 +106,12 @@ export default function ReviewGuesserRound({
     // Reset the fresh selection when the round scope changes. This guarded
     // render-phase update is React's documented pattern for adjusting state
     // when a prop changes; it converges because the previous-scope marker is
-    // updated in the same branch.
+    // updated in the same branch. An in-flight submission is deliberately kept —
+    // it must still persist for the round it was made on when it resolves.
     const [prevScopeKey, setPrevScopeKey] = useState<string | null>(null);
     if (prevScopeKey !== scopeKey) {
         setPrevScopeKey(scopeKey);
         if (selectedLabel !== null) setSelectedLabel(null);
-        if (submittedLabel !== null) setSubmittedLabel(null);
     }
 
     const nextRound = roundIndex + 1;
@@ -122,17 +124,12 @@ export default function ReviewGuesserRound({
     // Persist this round's result for the current game date, then notify the
     // stored-day external store so readers re-render with the fresh snapshot.
     useEffect(() => {
-        if (!state || !state.ok || !state.response || !submittedLabel || !gameDate) return;
-        saveRound(gameDate, roundIndex, totalRounds, {
-            appId,
-            pickName,
-            selectedLabel: submittedLabel,
-            actualBucket: state.response.actualBucket,
-            totalReviews: state.response.totalReviews,
-            correct: state.response.correct,
-        });
+        const target = resolveSubmissionTarget(state, submission);
+        if (!target) return;
+        saveRound(target.gameDate, target.roundIndex, target.totalRounds, target.result);
         notifyStoredDayChanged();
-    }, [state, submittedLabel, gameDate, totalRounds, roundIndex, appId, pickName]);
+        setSubmission(null);
+    }, [state, submission]);
 
     // Live mirror of the stored day in localStorage (see useStoredDay).
     const stored = useStoredDay(gameDate);
@@ -164,7 +161,7 @@ export default function ReviewGuesserRound({
         };
     })();
     const prefilledResponse = prefillToResponse(appId, computedPrefill);
-    const effectiveResponse = resolveEffectiveResponse(state, storedThisRound, prefilledResponse);
+    const effectiveResponse = resolveEffectiveResponse(state, storedThisRound, prefilledResponse, appId);
 
     // Effective selected label used for rendering, derived during render instead
     // of mirrored into state: the user's fresh pick wins, otherwise the restored
@@ -208,7 +205,7 @@ export default function ReviewGuesserRound({
     // Submitted flag: either current state submitted, or restored from storage, or authenticated prefilled for this round.
     // Note: state.error alone does not mark the round as submitted — a failed submission
     // must keep the guess buttons enabled so the player can retry without a page reload.
-    const submittedFlag = Boolean(state?.ok) || Boolean(storedThisRound) || Boolean(prefilled);
+    const submittedFlag = isRoundSubmitted(state, appId, storedThisRound, Boolean(prefilled));
 
     // Single source of truth: when to show ShareControls
     const hasServerResults = Object.keys(serverResults).length > 0;
@@ -226,17 +223,23 @@ export default function ReviewGuesserRound({
     // or the UI believed we were signed in but the guess was saved anonymously
     // (cookie was dropped while the SPA stayed open). In both cases the result did
     // not count, so re-sync the auth state and surface a clear notice.
-    const signedOutDuringPlay = computeSignedOutDuringPlay(signedIn, state);
+    // Only a state stamped for this pick counts: the round page reuses its component,
+    // so a stale failure from the previous round must neither show its banner here nor
+    // re-fire refreshAuth().
+    const stateForThisPick = isActionStateForPick(state, appId);
+    const signedOutDuringPlay = computeSignedOutDuringPlay(signedIn, stateForThisPick ? state : undefined);
     useEffect(() => {
         if (signedOutDuringPlay) refreshAuth();
     }, [signedOutDuringPlay, refreshAuth]);
 
     const submitGuess = (formData: FormData) => {
-        // Record the label being submitted (also for the deferred modal paths) so the save
-        // effect pairs it with this response instead of whatever is selected by the time the
-        // action resolves.
+        // Capture the whole submission identity (also for the deferred modal paths) so the
+        // resolving response is persisted for the round actually guessed, even when the
+        // player has moved on and the round-scope reset has cleared the live selection.
         const label = formData.get('bucketGuess');
-        if (typeof label === 'string' && label) setSubmittedLabel(label);
+        if (typeof label === 'string' && label) {
+            setSubmission({gameDate, roundIndex, totalRounds, appId, pickName, label});
+        }
         startTransition(() => {
             formAction(formData);
         });
@@ -252,7 +255,7 @@ export default function ReviewGuesserRound({
     } = useAuthWarningGate(signedIn, refreshAuth, submitGuess);
     useRoundArrowNavigation({prevHref, nextHref, hasNextRound, disabled: showAuthWarning});
 
-    const submitError = state && !state.ok ? state.error : undefined;
+    const submitError = state && !state.ok && stateForThisPick ? state.error : undefined;
     const shouldShowGuessControls = !(effectiveResponse || storedThisRound || prefilled);
     const shareResults = !serverGuessesLoading && hasServerResults ? serverResults : undefined;
     return (

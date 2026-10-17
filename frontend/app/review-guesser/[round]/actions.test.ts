@@ -1,4 +1,5 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
+import {isActionStateForPick} from '@/lib/guessResolution';
 
 // cookies() is read by getAuth(). Keep a hostile headers() mock available to
 // prove the action never consults or relays caller-controlled forwarding data.
@@ -79,13 +80,13 @@ describe('submitGuessAction input validation', () => {
 
     it('rejects a missing bucketGuess', async () => {
         const res = await submitGuessAction(undefined, form(10, undefined));
-        expect(res).toEqual({ok: false, error: 'Invalid input'});
+        expect(res).toEqual({ok: false, appId: 10, error: 'Invalid input'});
         expect(fetchMock).not.toHaveBeenCalled();
     });
 
     it('rejects an oversized bucketGuess', async () => {
         const res = await submitGuessAction(undefined, form(10, 'x'.repeat(51)));
-        expect(res).toEqual({ok: false, error: 'Invalid input'});
+        expect(res).toEqual({ok: false, appId: 10, error: 'Invalid input'});
         expect(fetchMock).not.toHaveBeenCalled();
     });
 
@@ -94,7 +95,7 @@ describe('submitGuessAction input validation', () => {
 
         const res = await submitGuessAction(undefined, form(10, '0+'));
 
-        expect(res).toEqual({ok: false, error: 'Invalid input'});
+        expect(res).toEqual({ok: false, appId: 10, error: 'Invalid input'});
         expect(fetchMock).toHaveBeenCalledTimes(1);
     });
 
@@ -103,7 +104,7 @@ describe('submitGuessAction input validation', () => {
 
         const res = await submitGuessAction(undefined, form(10, 'Positive'));
 
-        expect(res).toEqual({ok: false, error: 'Could not load today’s game — please try again'});
+        expect(res).toEqual({ok: false, appId: 10, error: 'Could not load today’s game — please try again'});
         expect(fetchMock).toHaveBeenCalledTimes(1);
     });
 });
@@ -119,7 +120,7 @@ describe('submitGuessAction with a session cookie (authenticated)', () => {
         const [url, init] = fetchMock.mock.calls[1];
         expect(url).toBe(`${BACKEND}/api/review-game/guess-auth`);
         expect((init.headers as Record<string, string>).authorization).toBe('Bearer jwt-token');
-        expect(res).toEqual({ok: true, response: okBody, persisted: true});
+        expect(res).toEqual({ok: true, appId: 10, response: okBody, persisted: true});
     });
 
     it('flags a 401 as unauthorized (cookie present but invalid — the silent-logout case)', async () => {
@@ -127,7 +128,7 @@ describe('submitGuessAction with a session cookie (authenticated)', () => {
 
         const res = await submitGuessAction(undefined, form(10, 'Positive'));
 
-        expect(res).toEqual({ok: false, unauthorized: true, error: 'unauthorized'});
+        expect(res).toEqual({ok: false, appId: 10, unauthorized: true, error: 'unauthorized'});
     });
 
     it('returns a generic upstream error for non-401 failures', async () => {
@@ -135,7 +136,7 @@ describe('submitGuessAction with a session cookie (authenticated)', () => {
 
         const res = await submitGuessAction(undefined, form(10, 'Positive'));
 
-        expect(res).toEqual({ok: false, error: 'Upstream error 500'});
+        expect(res).toEqual({ok: false, appId: 10, error: 'Upstream error 500'});
         expect(res.unauthorized).toBeUndefined();
     });
 });
@@ -151,7 +152,7 @@ describe('submitGuessAction without a session cookie (anonymous)', () => {
         const [url, init] = fetchMock.mock.calls[1];
         expect(url).toBe(`${BACKEND}/api/review-game/guess`);
         expect((init.headers as Record<string, string>).authorization).toBeUndefined();
-        expect(res).toEqual({ok: true, response: okBody, persisted: false});
+        expect(res).toEqual({ok: true, appId: 10, response: okBody, persisted: false});
     });
 
     it('does not flag anonymous failures as unauthorized', async () => {
@@ -159,7 +160,7 @@ describe('submitGuessAction without a session cookie (anonymous)', () => {
 
         const res = await submitGuessAction(undefined, form(10, 'Positive'));
 
-        expect(res).toEqual({ok: false, error: 'Upstream error 500'});
+        expect(res).toEqual({ok: false, appId: 10, error: 'Upstream error 500'});
     });
 
     it('does not relay a caller-controlled x-forwarded-for value', async () => {
@@ -190,8 +191,55 @@ describe('submitGuessAction without a session cookie (anonymous)', () => {
 
         const res = await submitGuessAction(undefined, form(10, 'Positive'));
 
-        expect(res).toEqual({ok: false, error: 'Could not reach the game server — try again'});
+        expect(res).toEqual({ok: false, appId: 10, error: 'Could not reach the game server — try again'});
         expect(JSON.stringify(res)).not.toContain('127.0.0.1');
         consoleError.mockRestore();
+    });
+});
+
+describe('submitGuessAction appId stamp (round scoping)', () => {
+    beforeEach(() => cookieGet.mockReturnValue(undefined));
+
+    it('stamps every failure branch with the requested appId', async () => {
+        stubCalls(mockResponse(500, {}));
+        expect(await submitGuessAction(undefined, form(10, 'Positive')))
+            .toMatchObject({ok: false, appId: 10});
+
+        fetchMock.mockReset();
+        stubCalls(mockResponse(401, {error: 'nope'}));
+        cookieGet.mockReturnValue({value: 'jwt-token'});
+        expect(await submitGuessAction(undefined, form(10, 'Positive')))
+            .toMatchObject({ok: false, appId: 10, unauthorized: true});
+
+        fetchMock.mockReset();
+        fetchMock.mockResolvedValueOnce(mockResponse(500, {}));
+        expect(await submitGuessAction(undefined, form(10, 'Positive')))
+            .toMatchObject({ok: false, appId: 10});
+
+        cookieGet.mockReturnValue(undefined);
+        const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+        fetchMock.mockReset();
+        fetchMock.mockResolvedValueOnce(mockResponse(200, todayBody));
+        fetchMock.mockRejectedValue(new Error('connect ECONNREFUSED'));
+        expect(await submitGuessAction(undefined, form(10, 'Positive')))
+            .toMatchObject({ok: false, appId: 10});
+        consoleError.mockRestore();
+    });
+
+    it('does not stamp a branch whose requested appId never parsed', async () => {
+        const res = await submitGuessAction(undefined, form('10abc', 'Positive'));
+        expect(res.appId).toBeUndefined();
+    });
+
+    it('keeps a failed state for round N from being attributed to round N+1', async () => {
+        // The round page reuses its component: after the player moves on, the retained
+        // state must fail the pick gate, or the previous round's banner would render here.
+        stubCalls(mockResponse(500, {}));
+
+        const res = await submitGuessAction(undefined, form(10, 'Positive'));
+
+        expect(res).toMatchObject({ok: false, appId: 10, error: 'Upstream error 500'});
+        expect(isActionStateForPick(res, 11)).toBe(false);
+        expect(isActionStateForPick(res, 10)).toBe(true);
     });
 });
