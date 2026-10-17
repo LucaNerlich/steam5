@@ -684,7 +684,7 @@ public class ReviewGameStateController {
     }
 
     @GetMapping("/history/always-pick")
-    @Cacheable(value = "review-game", key = "'always-pick-hist:' + (#from != null ? #from : 'min') + ':' + (#to != null ? #to : 'max')", unless = CACHE_ONLY_2XX)
+    @Cacheable(value = "review-game", key = "'always-pick-hist:' + (#from != null && !#from.isBlank() ? #from : 'min') + ':' + (#to != null && !#to.isBlank() ? #to : 'max')", unless = CACHE_ONLY_2XX)
     public ResponseEntity<HistoricalAlwaysPickResponse> alwaysPickHistory(
             @RequestParam(value = "from", required = false) String from,
             @RequestParam(value = "to", required = false) String to) {
@@ -697,6 +697,17 @@ public class ReviewGameStateController {
             start = from == null || from.isBlank() ? java.time.LocalDate.of(1970, 1, 1) : java.time.LocalDate.parse(from);
             end = to == null || to.isBlank() ? GameDate.todayUtc() : java.time.LocalDate.parse(to);
         } catch (java.time.format.DateTimeParseException e) {
+            return ResponseEntity.badRequest().build();
+        }
+        // The response is cached under the raw from/to pair, so an unbounded EXplicit span lets a
+        // caller mint one cache entry per enumerated range in the shared review-game cache.
+        // An absent-or-blank range is the all-time view (its key is the 'min'/'max' literal pair,
+        // so every blank spelling collapses onto it) and is left alone; any explicit span wider
+        // than ~10 years is refused — the check runs on the parsed dates, so a one-sided request
+        // (from-only or to-only) inherits the 1970/today default on the missing side and is bound
+        // like a fully explicit span. The UI asks for one day at a time.
+        final boolean allTime = (from == null || from.isBlank()) && (to == null || to.isBlank());
+        if (!allTime && java.time.temporal.ChronoUnit.DAYS.between(start, end) > 3650) {
             return ResponseEntity.badRequest().build();
         }
         if (end.isBefore(start)) return ResponseEntity.badRequest().build();

@@ -2,7 +2,6 @@ package org.steam5.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -316,7 +315,10 @@ public class ReviewGameStateService {
         return labels;
     }
 
-    @Cacheable(value = "review-game", key = "#appId + 'review-count'")
+    // Deliberately not @Cacheable: this is a primary-key lookup, and caching it under a
+    // client-supplied appId let anonymous /guess calls mint one entry per id in the shared
+    // 500-entry `review-game` cache, evicting the page entries (today-picks, days, answers)
+    // and forcing every later visitor through full regeneration.
     public int getTotalReviewCountForApp(Long appId) {
         return reviewsRepository.findById(appId).map(r -> r.getTotalPositive() + r.getTotalNegative()).orElse(0);
     }
