@@ -38,7 +38,10 @@ const fetcher = (url: string) => fetch(url, {headers: {accept: 'application/json
 export default function HitRateVsAverageCard({rounds}: { rounds: Round[] }): React.ReactElement {
     const cutoff = cutoffDateString(DAYS_WINDOW);
 
-    const myHitRate = (() => {
+    // null (not 0) when nothing falls inside the window: the card's own "No data" branches are
+    // for exactly that state, and collapsing it to 0 reported a measured 0% for a player who
+    // simply has no rounds in the last 30 days.
+    const myHitRate = ((): number | null => {
         let eligible = 0;
         let hits = 0;
         for (const r of rounds) {
@@ -47,7 +50,7 @@ export default function HitRateVsAverageCard({rounds}: { rounds: Round[] }): Rea
                 if (r.selectedBucket === r.actualBucket) hits++;
             }
         }
-        return eligible === 0 ? 0 : (hits / eligible) * 100;
+        return eligible === 0 ? null : (hits / eligible) * 100;
     })();
 
     const {data: leaders} = useSWR<Array<{
