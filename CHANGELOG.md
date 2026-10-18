@@ -2,6 +2,48 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.20.2] - 2026-10-18
+
+### Fixed
+
+- Fixed share/social cards failing on every request — the card is now rendered by a route handler, with correct guess-bucket ordering and play links built from the site's own origin
+- Fixed trailer playback by preferring the most compatible stream and resetting the player whenever a game slide is detached
+- Fixed low-contrast button, chip and tier-label fills so every action stays readable in both themes and after a link has been visited
+- Fixed modal cards: clicking their padding no longer closes the dialog or drops a pending guess, and arrow-key navigation is only paused by true modal dialogs
+- Fixed the sitemap: it now follows the live archive, warns when archive data is unavailable, and never advertises noindex routes
+- Fixed season back-fill numbering order, refused non-covering and future-dated back-fills with a clear 400, and added the seasons date-window uniqueness constraint
+- Fixed presence reconnecting from hidden tabs, stopped pruning sessions that are still open, and serialized presence sends
+- Fixed the archive page reading local storage during render and the offline archive failing to notify stored-day listeners
+- Fixed the stats and leaderboard tables to share one refreshed-JSON fetcher, keyed rows by Steam ID, kept the score cache free of client-supplied input, and bulk-loaded always-pick review counts
+- Fixed guess grading to use one bucket-membership rule and to pair a guess's label with its own response, and closed a duplicate-guess race that could poison the handler's transaction
+- Fixed guess responses leaking into the next round — a submission is now scoped to the round that started it — and the app-detail cache is evicted only after the ingestion transaction commits
+- Fixed @-mention insertion in comments to insert at the live caret, and picker pop-ups now return focus to their trigger on Escape without ever stealing it from elsewhere
+- Fixed all backend JSON API routes to share one proxy helper with bounded timeouts and cache-key rules, and malformed reaction bodies now answer 400 instead of 502
+- Fixed the hit-rate card showing a fabricated 0% — an empty measurement window now shows "No data"
+- Fixed the avatar blurhash pipeline (persisted screenshot cursor, missing results treated as skips, a reachable batch-limit log) and the perfect-day name join/split
+- Fixed the next-challenge line rendering with an unparseable timestamp, the welcome-back spotlight's skipped-day count, and the error boundary's missing props
+- Fixed Spring MVC client errors being reported as 500s, admin path matching, server timezone header validation, and the client IP relay on the layout's auth check
+- Fixed monitoring: ports bind to loopback, the Prometheus lifecycle endpoint is off, and the documented image/data-path environment variables are wired
+- Fixed Docker build hygiene (`.dockerignore` patterns matching at any depth, the image building with the pinned Gradle wrapper and shipping a JRE runtime, exposed port declared in the stage that uses it) and the local DB setup script's commented-out SUPERUSER grant
+
+### Changed
+
+- Provisioned the nine Grafana dashboards from the compose stack and kept a single copy of the Prometheus entrypoint and template
+- Reintroduced Flyway with a baseline captured from production and schema validation in production
+- Unified the duplicated plumbing: one fixed-window counter for request limiters, one CORS origin parser, one current-user resolver, one season factory, one trusted-origin gate, and one weak-ETag helper for the API controllers
+- Switched rounded UI to squircle corners site-wide
+- Replaced the duplicated /season route with a redirect, replaced the fake mention listbox with a labelled button group, and surfaced archive failures in the comment UI
+- Deleted dead code across the backend and frontend: unused configuration, collection joins from a hot entity graph, an unreachable security matcher, a redundant stored-day event, unused share/result component props, the unreachable metadata on the review-guesser entry route, skeleton/sticky-header/duplicate-selector CSS, an unused chart gradient, Suspense wrappers, six unused API proxy routes, and more
+- Updated dependencies (Spring Boot minor group, Caffeine, frontend packages)
+
+### Security
+
+- Hardened the outbound-fetch guard against IPv4-translated, reserved, and IPv4-compatible IPv6 literals, shared the IPv6-loopback check, removed a tautological TLS hostname verifier, and stopped leaking the pinned socket when TLS setup fails
+- Kept Steam-provided movie names out of Fancybox's HTML caption path
+- Gated WebSocket tickets and logout behind one trusted-backend-origin check, rejected cross-site logouts before clearing the session, recorded the logout token cutoff even when the user row is missing, and routed every Steam sign-in CTA through one helper so all include the CSRF state check
+- Moved CORS handling into the security chains, keyed the metrics guard on its credentials with a fail-closed app chain, and capped the Steam API response body instead of buffering it unbounded
+- Required the datasource password to be provided instead of falling back to a committed default, and gave the admin HTTP fixtures the token their endpoints require
+
 ## [1.20.1] - 2026-08-27
 
 ### Fixed
