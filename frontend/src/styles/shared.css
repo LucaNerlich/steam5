@@ -48,7 +48,7 @@ button:disabled {
     gap: 0.35rem;
     padding: 0.5rem 0.8rem;
     background: var(--color-primary);
-    color: #fff;
+    color: var(--color-on-primary, #fff);
     border: 1px solid var(--color-primary);
     border-radius: var(--border-radius);
     text-decoration: none;
@@ -64,9 +64,9 @@ button:disabled {
     align-items: center;
     gap: 0.35rem;
     padding: 0.5rem 0.8rem;
-    background: #16a34a; /* green-600 */
+    background: #15803d; /* green-700: white text clears AA (5.02:1) */
     color: #fff;
-    border: 1px solid #16a34a;
+    border: 1px solid #15803d;
     border-radius: var(--border-radius);
     text-decoration: none;
     white-space: nowrap;

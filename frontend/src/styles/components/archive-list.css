@@ -46,8 +46,12 @@
     text-decoration: none;
 }
 
-.archive-list__month-chip--active {
-    background: var(--color-primary, rgba(255, 255, 255, 0.16));
+/* Scoped through the list so the rule (0,2,0) outranks a:visited (0,1,1); the active chip
+   previously inherited the anchor colour, which is the same blue as its fill (1.00:1). */
+.archive-list__month-chips .archive-list__month-chip--active {
+    background: color-mix(in srgb, var(--color-primary) 12%, var(--color-surface));
+    border-color: var(--color-primary);
+    color: var(--color-text);
 }
 
 .archive-list__toc ol {

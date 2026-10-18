@@ -33,9 +33,18 @@ a:visited {
 }
 
 /* Ensure button-like links keep their intended contrast even when visited */
-a.btn-cta:visited,
+a.btn-cta:visited {
+    color: var(--color-on-primary, #fff);
+}
+
 a.btn-success:visited {
     color: #fff;
+}
+
+/* The 404 CTA targets "/", so a returning visitor would hit a:visited (0,1,1)
+   beating .not-found__button (0,1,0) and leaving light-on-light in dark theme. */
+a.not-found__button:visited {
+    color: var(--color-on-accent);
 }
 
 h1, h2, h3, h4, h5, h6, p {

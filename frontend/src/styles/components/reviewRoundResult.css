@@ -107,22 +107,22 @@ dialog.review-round__result {
 
 .result-header--exact {
     background: color-mix(in srgb, var(--color-success) 12%, var(--color-surface));
-    color: var(--color-success);
+    color: var(--color-text);
 }
 
 .result-header--close {
     background: color-mix(in srgb, var(--color-score-close) 14%, var(--color-surface));
-    color: var(--color-score-close);
+    color: var(--color-text);
 }
 
 .result-header--near {
     background: color-mix(in srgb, var(--color-score-near) 14%, var(--color-surface));
-    color: var(--color-score-near);
+    color: var(--color-text);
 }
 
 .result-header--far {
     background: color-mix(in srgb, var(--color-error) 10%, var(--color-surface));
-    color: var(--color-error);
+    color: var(--color-text);
 }
 
 .result-header__icon {
@@ -193,25 +193,25 @@ dialog.review-round__result {
 .result-chip--exact {
     border-color: color-mix(in srgb, var(--color-success) 50%, var(--color-border));
     background: color-mix(in srgb, var(--color-success) 8%, var(--color-surface));
-    color: var(--color-success);
+    color: var(--color-text);
 }
 
 .result-chip--close {
     border-color: color-mix(in srgb, var(--color-score-close) 45%, var(--color-border));
     background: color-mix(in srgb, var(--color-score-close) 10%, var(--color-surface));
-    color: var(--color-score-close);
+    color: var(--color-text);
 }
 
 .result-chip--near {
     border-color: color-mix(in srgb, var(--color-score-near) 45%, var(--color-border));
     background: color-mix(in srgb, var(--color-score-near) 10%, var(--color-surface));
-    color: var(--color-score-near);
+    color: var(--color-text);
 }
 
 .result-chip--far {
     border-color: color-mix(in srgb, var(--color-error) 40%, var(--color-border));
     background: color-mix(in srgb, var(--color-error) 6%, var(--color-surface));
-    color: var(--color-error);
+    color: var(--color-text);
 }
 
 .result-chip--incorrect {
@@ -223,7 +223,7 @@ dialog.review-round__result {
 .result-chip--actual {
     border-color: color-mix(in srgb, var(--color-success) 50%, var(--color-border));
     background: color-mix(in srgb, var(--color-success) 8%, var(--color-surface));
-    color: var(--color-success);
+    color: var(--color-text);
 }
 
 /* ── Footer row: reviews (left) + points (right) ── */

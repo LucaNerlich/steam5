@@ -9,6 +9,10 @@
     --color-border-subtle: oklch(0.967 0.0029 264.54);
     --color-primary: oklch(0.5461 0.2152 262.88);
     --color-accent: oklch(0.7686 0.1647 70.08);
+    /* Ink for the light accent fill: the accent is light in both themes. */
+    --color-on-accent: oklch(0.182 0 0);
+    /* Ink for the primary fill; the dark theme's primary is a light blue. */
+    --color-on-primary: oklch(1 0 0);
     --color-success: oklch(0.6271 0.1699 149.21);
     --color-score-close: oklch(0.78 0.16 90);
     --color-score-near: oklch(0.7 0.16 55);
@@ -25,6 +29,7 @@ html[data-theme='dark'] {
     --color-border: oklch(0.3729 0.0306 259.73);
     --color-border-subtle: oklch(0.2781 0.0296 256.85);
     --color-primary: oklch(0.7137 0.1434 254.62);
+    --color-on-primary: oklch(0.182 0 0);
     --color-accent: oklch(0.8369 0.1644 84.43);
     --color-success: oklch(0.7227 0.192 149.58);
     --color-score-close: oklch(0.84 0.14 95);
