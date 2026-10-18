@@ -2,7 +2,11 @@ import type {NextConfig} from "next";
 
 const nextConfig: NextConfig = {
     compiler: {
-        removeConsole: process.env.NODE_ENV === 'production',
+        // Strip only the noisy log levels, not every console.* call: keep error/warn so
+        // server-side failure paths (e.g. the sitemap's "archive dates unavailable" warnings)
+        // remain visible in compiled production output.
+        removeConsole:
+            process.env.NODE_ENV === 'production' ? {exclude: ['error', 'warn']} : false,
     },
     reactCompiler: true,
     experimental: {
