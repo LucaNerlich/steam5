@@ -610,36 +610,54 @@ Key design decisions:
 @Bean
 public SecurityFilterChain securityFilterChain(HttpSecurity http,
                                                AdminTokenFilter adminTokenFilter,
-                                               AuthRateLimitFilter authRateLimitFilter) {
+                                               AuthRateLimitFilter authRateLimitFilter,
+                                               PresenceRateLimitFilter presenceRateLimitFilter,
+                                               UserSearchRateLimitFilter userSearchRateLimitFilter,
+                                               ProfileRateLimitFilter profileRateLimitFilter) {
     http
             .csrf(AbstractHttpConfigurer::disable)  // SameSite=Lax + stateless JWT replaces CSRF tokens
+            .cors(Customizer.withDefaults())        // in-chain, so preflights are authorized before CORS headers
             .authorizeHttpRequests(auth -> auth
+                    .requestMatchers("/api/review-game/comments/**").permitAll()
                     .requestMatchers("/api/review-game/**").permitAll()
                     .requestMatchers("/api/details/**").permitAll()
-                    .requestMatchers("/api/metrics/**").permitAll()
-                    .requestMatchers("/api/cache/**").permitAll()
+                    .requestMatchers("/api/metrics/picks/summary").permitAll()  // public statistics UI
+                    .requestMatchers("/api/metrics/**").hasRole("ADMIN")        // ROLE_ADMIN via AdminTokenFilter
+                    .requestMatchers("/api/cache/**").hasRole("ADMIN")
                     .requestMatchers("/api/leaderboard/**").permitAll()
                     .requestMatchers("/api/profile/**").permitAll()
-                    .requestMatchers("/api/admin/**").authenticated()     // requires ROLE_ADMIN via AdminTokenFilter
+                    .requestMatchers(HttpMethod.GET, "/api/users/search").permitAll()
+                    .requestMatchers("/api/admin/**").hasRole("ADMIN")          // ROLE_ADMIN via AdminTokenFilter
                     .requestMatchers("/api/seasons/**").permitAll()
                     .requestMatchers("/api/stats/**").permitAll()
-                    .requestMatchers("/api/auth/**").permitAll()          // auth endpoints are public
-                    .anyRequest().authenticated()
+                    .requestMatchers("/api/auth/**").permitAll()                // auth endpoints are public
+                    .requestMatchers("/api/ws/ticket").permitAll()
+                    .requestMatchers("/ws/presence").permitAll()
+                    // Fail closed: no form login and no basic auth on this chain, so nothing
+                    // unmatched can fall back to the shared metrics scraper account.
+                    .anyRequest().denyAll()
             )
-            // Both custom filters anchor to BasicAuthenticationFilter — the only
+            // All custom filters anchor to BasicAuthenticationFilter — the only
             // registered Spring Security filter we can legally use as a reference.
             // Custom filters (like AdminTokenFilter itself) have no registered order
             // and cannot be used as anchor points; doing so throws at startup.
-            // Registering authRateLimitFilter first places it earlier in the chain:
-            //   AuthRateLimitFilter → AdminTokenFilter → BasicAuthenticationFilter → …
+            // addFilterBefore inserts each filter directly before the anchor, so the
+            // first registration ends up earliest in the chain:
+            //   AuthRateLimit → PresenceRateLimit → UserSearchRateLimit → ProfileRateLimit
+            //   → AdminTokenFilter → BasicAuthenticationFilter → …
             .addFilterBefore(authRateLimitFilter, BasicAuthenticationFilter.class)
+            .addFilterBefore(presenceRateLimitFilter, BasicAuthenticationFilter.class)
+            .addFilterBefore(userSearchRateLimitFilter, BasicAuthenticationFilter.class)
+            .addFilterBefore(profileRateLimitFilter, BasicAuthenticationFilter.class)
             .addFilterBefore(adminTokenFilter, BasicAuthenticationFilter.class)
-            .httpBasic(basic -> {
-            })
             .formLogin(AbstractHttpConfigurer::disable);
     return http.build();
 }
 ```
+
+HTTP Basic now lives only on the `@Order(1)` actuator chain (`securityMatcher(EndpointRequest.toAnyEndpoint())`), which
+authenticates the single in-memory `METRICS` account and permits only the health endpoint anonymously. The application
+chain above has no `httpBasic(...)`, so `X-Admin-Token` is the only way to obtain `ROLE_ADMIN`.
 
 **Filter execution order on a request to `/api/auth/**`:**
 
@@ -699,7 +717,7 @@ unbounded memory growth during a distributed IP flood.
 @Override
 protected void doFilterInternal(...) {
     if (!StringUtils.hasText(expectedToken)) {
-        response.sendError(SC_UNAUTHORIZED, "Unauthorized");
+        rejectUnauthorized(response);
         return;
     }
 
@@ -711,7 +729,7 @@ protected void doFilterInternal(...) {
             || !MessageDigest.isEqual(
             expectedToken.getBytes(StandardCharsets.UTF_8),
             providedToken.getBytes(StandardCharsets.UTF_8))) {
-        response.sendError(SC_UNAUTHORIZED, "Unauthorized");
+        rejectUnauthorized(response);
         return;
     }
 
@@ -722,6 +740,15 @@ protected void doFilterInternal(...) {
     ));
     SecurityContextHolder.setContext(context);
     filterChain.doFilter(request, response);
+}
+
+// 401 + JSON body written directly, like the rate-limit filters' 429s. sendError()
+// re-dispatches to /error, which the app chain's anyRequest().denyAll() fallback
+// denies (Boot 4.1.1 / Security 7.1.1), so a bad token answered 403 instead of 401.
+private void rejectUnauthorized(HttpServletResponse response) throws IOException {
+    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+    response.setContentType("application/json");
+    response.getWriter().write("{\"error\":\"unauthorized\"}");
 }
 ```
 
