@@ -29,10 +29,6 @@ spring:
     serialization:
       indent-output: true
       order-map-entries-by-keys: true
-  sql:
-    init:
-      mode: always
-      platform: postgres
   jpa:
     open-in-view: false
     hibernate:
