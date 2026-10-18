@@ -1,6 +1,6 @@
 import {NextRequest, NextResponse} from "next/server";
 import {cookies} from "next/headers";
-import {BACKEND_ORIGIN, forwardedForHeaders} from "@/lib/backend";
+import {BACKEND_ORIGIN, BACKEND_TIMEOUT_MS, forwardedForHeaders} from "@/lib/backend";
 
 const CACHE_LIVE = {"Cache-Control": "private, max-age=30, must-revalidate"} as const;
 const CACHE_HISTORICAL = {"Cache-Control": "private, max-age=300, must-revalidate"} as const;
@@ -31,7 +31,9 @@ export async function GET(
 ) {
     const {date} = await params;
     const token = (await cookies()).get("s5_token")?.value;
-    const headers: Record<string, string> = {accept: "application/json", ...forwardedForHeaders(req)};
+    // Only the per-user (token) call relays the caller's IP: the anonymous call is
+    // shared-cached, and a per-client header would turn one cache entry into one per visitor.
+    const headers: Record<string, string> = {accept: "application/json", ...(token ? forwardedForHeaders(req) : {})};
     if (token) {
         headers.authorization = `Bearer ${token}`;
     }
@@ -46,6 +48,7 @@ export async function GET(
                 ...(token
                     ? {cache: "no-store" as const}
                     : {next: {revalidate: today ? 30 : 300}}),
+                signal: AbortSignal.timeout(BACKEND_TIMEOUT_MS),
             },
         );
         if (!res.ok) {

@@ -1,4 +1,4 @@
-import {BACKEND_ORIGIN, forwardedForHeaders} from "@/lib/backend";
+import {BACKEND_ORIGIN} from "@/lib/backend";
 import {NextRequest, NextResponse} from "next/server";
 
 export const revalidate = 600;
@@ -6,14 +6,12 @@ const FETCH_TIMEOUT_MS = 30_000;
 
 export async function GET(req: NextRequest) {
     try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-
-        try {
+        {
             const res = await fetch(`${BACKEND_ORIGIN}/api/stats/game/perfect-days`, {
-                headers: {"accept": "application/json", ...forwardedForHeaders(req)},
+                // Shared-cached: the caller's IP must not reach the fetch cache key.
+                headers: {"accept": "application/json"},
                 next: {revalidate, tags: ["stats-perfect-days"]},
-                signal: controller.signal,
+                signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
             });
 
             const refreshedAtHeader = res.headers.get('X-Leaderboard-Refreshed-At');
@@ -36,8 +34,6 @@ export async function GET(req: NextRequest) {
 
             const data = await res.json();
             return NextResponse.json(data, {status: res.status, headers});
-        } finally {
-            clearTimeout(timeout);
         }
     } catch (error) {
         console.error('[Perfect Days API] Error:', error);
