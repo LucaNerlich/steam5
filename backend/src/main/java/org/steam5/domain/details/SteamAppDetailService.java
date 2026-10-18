@@ -2,6 +2,8 @@ package org.steam5.domain.details;
 
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.transaction.annotation.Transactional;
 import org.steam5.repository.details.*;
 import org.steam5.service.DomainCacheEvictor;
@@ -285,7 +287,23 @@ public class SteamAppDetailService {
             repository.save(detail);
         }
 
-        // Evict caches impacted by details updates
-        cacheEvictor.evictAppDetail(appId);
+        // Evict caches impacted by details updates — after commit, not inline: evicting while
+        // the transaction is still open lets a concurrent reader miss the cache in the
+        // evict-to-commit window and re-populate it from the pre-update rows, which then stick
+        // for the cache's full TTL. Mirrors CommentService.evictCommentsForDayAfterCommit.
+        evictAppDetailAfterCommit(appId);
+    }
+
+    private void evictAppDetailAfterCommit(long appId) {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    cacheEvictor.evictAppDetail(appId);
+                }
+            });
+        } else {
+            cacheEvictor.evictAppDetail(appId);
+        }
     }
 }
