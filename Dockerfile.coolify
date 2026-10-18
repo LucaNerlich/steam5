@@ -10,11 +10,15 @@ WORKDIR /app
 # path starts in repo root
 ADD ./backend .
 
-# build .jar in /build/libs with name from settings.gradle and build.gradle
-RUN gradle bootJar -Dorg.springframework.boot.devinfo=true
+# Build with the wrapper so the image uses the Gradle the repository pins
+# (backend/gradle/wrapper/gradle-wrapper.properties) instead of whatever the base image ships —
+# they had drifted (image 9.4.1 vs wrapper 9.8.1) and nothing watched the tag.
+RUN ./gradlew bootJar -Dorg.springframework.boot.devinfo=true
 
 # Stage 2: Run
-FROM eclipse-temurin:21-jdk-alpine as run
+# JRE, not JDK: nothing in this stage compiles or runs a JDK tool (the healthcheck uses curl and
+# the CMD runs `java -jar`), so the compiler and its bundled tools need not ship to production.
+FROM eclipse-temurin:21-jre-alpine as run
 
 WORKDIR /app
 
