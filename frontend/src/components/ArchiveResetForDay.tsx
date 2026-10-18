@@ -1,8 +1,15 @@
 "use client";
 
-import React from "react";
+import React, {useSyncExternalStore} from "react";
 import {clearAll, clearDay, hasAny} from "@/lib/storage";
 import useStoredDay, {notifyStoredDayChanged} from "@/components/round/useStoredDay";
+
+// localStorage cannot be read on the server, so the "any stored day" flag is an external
+// store with a `false` server snapshot: reading it during render made the server emit no
+// reset controls while the client added them for every returning player (hydration error).
+const emptySubscribe = () => () => {};
+const hasAnyStoredDay = () => hasAny();
+const noStoredDayOnServer = () => false;
 
 /**
  * Reset controls for the offline archive.
@@ -15,7 +22,7 @@ import useStoredDay, {notifyStoredDayChanged} from "@/components/round/useStored
 export default function ArchiveResetForDay({date}: { date: string }): React.ReactElement | null {
     const stored = useStoredDay(date);
     const hasAnyDay = Boolean(stored?.results && Object.keys(stored.results).length > 0);
-    const hasAnyGlobal = hasAny();
+    const hasAnyGlobal = useSyncExternalStore(emptySubscribe, hasAnyStoredDay, noStoredDayOnServer);
 
     const resetDay = () => {
         clearDay(date);
