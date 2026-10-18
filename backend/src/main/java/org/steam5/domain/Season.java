@@ -11,7 +11,7 @@ import java.time.OffsetDateTime;
 @Entity
 @Table(name = "seasons", indexes = {
         @Index(name = "ux_season_number", columnList = "season_number", unique = true),
-        @Index(name = "ix_season_dates", columnList = "start_date,end_date")
+        @Index(name = "ix_season_dates", columnList = "start_date,end_date", unique = true)
 })
 @Data
 @NoArgsConstructor
