@@ -199,7 +199,12 @@ public class SeasonService {
                 seasonRepository.shiftSeasonNumbersUpBy(1_000_000);
                 seasonRepository.shiftSeasonNumbersUpBy(missing - 1_000_000);
                 for (int number = missing; number >= 1; number--) {
-                    final LocalDate start = earliest.get().getStartDate().minusDays((long) number * SeasonCreatorService.seasonLengthDays(seasonProperties));
+                    // Offset counts backwards from the existing season: #1 covers the earliest
+                    // window. Using `number * length` here gave the largest number the largest
+                    // offset, so the numbers ran anti-correlated with their start dates
+                    // whenever more than one season had to be created.
+                    final long offsetDays = (long) (missing - number + 1) * SeasonCreatorService.seasonLengthDays(seasonProperties);
+                    final LocalDate start = earliest.get().getStartDate().minusDays(offsetDays);
                     created.add(seasonRepository.save(SeasonCreatorService.buildSeason(number, start, SeasonStatus.ACTIVE, seasonProperties)));
                 }
             }
