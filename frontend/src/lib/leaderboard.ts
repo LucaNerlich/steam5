@@ -49,6 +49,24 @@ export function parseServerOffsetHeader(headers: Headers): number {
 }
 
 /**
+ * SWR fetcher for the leaderboard-style endpoints: unwraps `{data, refreshedAt}`, relays the
+ * backend's freshness header, and throws on a non-ok response (so SWR keeps the previous data
+ * and reports the error instead of rendering an empty table).
+ *
+ * @param url - the route to fetch
+ * @returns the payload and the `X-Leaderboard-Refreshed-At` value when the backend sent one
+ */
+export async function fetchRefreshedJson<T>(url: string): Promise<{data: T; refreshedAt: string | null}> {
+    const response = await fetch(url, {
+        headers: {accept: 'application/json'},
+        cache: 'no-cache', // revalidate with the server, but let the browser reuse a fresh copy
+    });
+    if (!response.ok) throw new Error(`Failed to load ${url}: ${response.status}`);
+    const data = (await response.json()) as T;
+    return {data, refreshedAt: response.headers.get('X-Leaderboard-Refreshed-At')};
+}
+
+/**
  * Fetch user achievements for a given timeframe
  * @param timeframe - The achievement timeframe query parameter
  * @param revalidate - Next.js ISR revalidation interval in seconds

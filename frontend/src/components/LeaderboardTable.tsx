@@ -11,7 +11,7 @@ import {
 } from "@/lib/achievements";
 import AchievementsTable from "@/components/AchievementsTable";
 import SortableTH from "@/components/SortableTH";
-import {formatRefreshedAt, parseServerOffsetHeader} from "@/lib/leaderboard";
+import {fetchRefreshedJson, formatRefreshedAt, parseServerOffsetHeader} from "@/lib/leaderboard";
 
 type LeaderEntry = {
     steamId: string;
@@ -28,17 +28,8 @@ type LeaderEntry = {
     profileUrl?: string | null;
 };
 
-type LeaderboardFetchResult = { data: LeaderEntry[]; refreshedAt: string | null };
-
-const fetcher = async (url: string): Promise<LeaderboardFetchResult> => {
-    const r = await fetch(url, {
-        headers: {accept: 'application/json'},
-        cache: 'no-cache' // Revalidate with server but allow caching for performance
-    });
-    if (!r.ok) throw new Error(`Failed to load ${url}: ${r.status}`);
-    const data = await r.json();
-    return {data, refreshedAt: r.headers.get('X-Leaderboard-Refreshed-At')};
-};
+type Fetched = Awaited<ReturnType<typeof fetcher>>;
+const fetcher = (url: string) => fetchRefreshedJson<LeaderEntry[]>(url);
 
 /**
  * Displays a sortable leaderboard with player statistics, achievements, and average points.
@@ -81,7 +72,7 @@ export default function LeaderboardTable(props: {
 
     const refreshInterval = props.refreshMs ?? (props.mode === 'today' ? 60000 : 120000);
 
-    const {data: leaderboardResult, error, isLoading} = useSWR<LeaderboardFetchResult>(endpoint, fetcher, {
+    const {data: leaderboardResult, error, isLoading} = useSWR<Fetched>(endpoint, fetcher, {
         refreshInterval,
         revalidateOnFocus: true,
         focusThrottleInterval: refreshInterval,
