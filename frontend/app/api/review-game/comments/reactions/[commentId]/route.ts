@@ -26,8 +26,16 @@ export async function POST(
             {status: 401, headers: NO_STORE},
         );
     }
+    let body: unknown;
     try {
-        const body = await req.json();
+        body = await req.json();
+    } catch {
+        // A malformed client body is a client error: parsing it inside the gateway try made the
+        // 502 branch answer for it, so clients showed a server-failure message and 502 counters
+        // logged phantom backend errors.
+        return NextResponse.json({error: "bad_request"}, {status: 400, headers: NO_STORE});
+    }
+    try {
         const res = await fetch(
             `${BACKEND_ORIGIN}/api/review-game/comments/${encodeURIComponent(commentId)}/reactions`,
             {
