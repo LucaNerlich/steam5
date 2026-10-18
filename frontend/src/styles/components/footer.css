@@ -24,8 +24,7 @@ footer .container {
     font-size: 0.85rem;
 }
 
-.footer__meta-links,
-.footer__nav ul {
+.footer__meta-links {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -34,18 +33,6 @@ footer .container {
 }
 
 .footer__meta-links a {
-    text-decoration: underline;
-    text-underline-offset: 2px;
-}
-
-.footer__nav ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-
-.footer__nav a {
-    color: var(--color-text);
     text-decoration: underline;
     text-underline-offset: 2px;
 }
