@@ -5,6 +5,7 @@ import Link from "next/link";
 import Form from "next/form";
 import {useFormStatus} from "react-dom";
 import useSWR from "swr";
+import {focusWithinElement} from "@/lib/focusGuards";
 import {ArchiveIcon, GameControllerIcon, PaperPlaneRightIcon} from "@phosphor-icons/react/ssr";
 import {useAuth} from "@/contexts/AuthContext";
 import {startSteamLogin} from "@/lib/steamLogin";
@@ -263,13 +264,15 @@ export function insertMentionReference(
 /**
  * Compact trigger that opens today's game picks for inserting Steam links.
  */
-function GameLinkPicker(props: {
+/** Exported for the Escape-refocus interaction test (the wiring lives in an effect). */
+export function GameLinkPicker(props: {
     games: CommentGameRef[];
     onPick: (game: CommentGameRef) => void;
 }): React.ReactElement {
     const {games, onPick} = props;
     const [open, setOpen] = useState(false);
     const rootRef = useRef<HTMLDivElement>(null);
+    const triggerRef = useRef<HTMLButtonElement | null>(null);
     const pickerId = useId();
 
     useEffect(() => {
@@ -282,7 +285,15 @@ function GameLinkPicker(props: {
             }
         };
         const onKeyDown = (event: KeyboardEvent) => {
-            if (event.key === "Escape") setOpen(false);
+            if (event.key === "Escape") {
+                setOpen(false);
+                // The options unmount with the menu; keep the keyboard position on the
+                // trigger. Guarded so Escape pressed anywhere else (e.g. the composer
+                // textarea while Tab-ing through) can't yank focus into the picker.
+                if (focusWithinElement(rootRef.current, document.activeElement)) {
+                    triggerRef.current?.focus();
+                }
+            }
         };
 
         document.addEventListener("mousedown", onPointerDown);
@@ -299,6 +310,7 @@ function GameLinkPicker(props: {
         <div className="comment-composer__game-picker" ref={rootRef}>
             <button
                 type="button"
+                ref={triggerRef}
                 className={`comment-composer__game-trigger${open ? " comment-composer__game-trigger--open" : ""}`}
                 aria-haspopup="menu"
                 aria-expanded={open}
@@ -351,8 +363,10 @@ function MentionMenu(props: {
     candidates: MentionCandidate[];
     onPick: (candidate: MentionCandidate) => void;
     onClose: () => void;
+    /** Control that opened the menu; gets focus back on Escape, which the composer relies on. */
+    focusOnClose?: React.RefObject<HTMLElement | null>;
 }): React.ReactElement {
-    const {id, candidates, onPick, onClose} = props;
+    const {id, candidates, onPick, onClose, focusOnClose} = props;
     const rootRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -363,7 +377,12 @@ function MentionMenu(props: {
             }
         };
         const onKeyDown = (event: KeyboardEvent) => {
-            if (event.key === "Escape") onClose();
+            if (event.key === "Escape") {
+                onClose();
+                // The suggestions unmount with the menu; put the caret back in the composer
+                // instead of dropping focus to <body>.
+                focusOnClose?.current?.focus();
+            }
         };
 
         document.addEventListener("mousedown", onPointerDown);
@@ -586,6 +605,7 @@ function CommentComposer(props: {
                         candidates={visibleMentionCandidates}
                         onPick={handlePickMention}
                         onClose={closeMentionMenu}
+                        focusOnClose={textareaRef}
                     />
                 ) : (composer.mention !== null && composer.mentionRateLimited && (
                     <p className="comment-composer__mention-status" role="status">
