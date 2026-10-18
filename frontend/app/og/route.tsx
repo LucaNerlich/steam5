@@ -1,57 +1,47 @@
 import {ImageResponse} from "next/og";
+import {readFile} from "node:fs/promises";
+import {join} from "node:path";
+import {sanitizeAvatarUrl} from "@/lib/ogAvatar";
 
-// Depends on per-request search params (variant/steamId/gameDate) and live
-// backend fetches, so it can't be statically prerendered at build time.
-export const dynamic = "force-dynamic";
-export const size = {width: 1200, height: 630};
-export const contentType = "image/png";
+/**
+ * Renders the shared social card for the site.
+ *
+ * The card used to live in a file-convention `opengraph-image` module, where the convention
+ * passes only `{params}` — never a `Request` — so `new URL(req.url)` threw on every request
+ * and the route answered 500. A Route Handler owns the request, so the variant/steamId/gameDate
+ * query API works and the metadata entries can point at `/og`.
+ */
 
-// next/og's renderer fetches any non-data-URI <img src> server-side with no
-// host allow-list of its own. avatarSrc comes from the backend's stored Steam
-// avatar URL, which should always be a Steam CDN address but is not otherwise
-// validated before reaching that fetch — restrict it here so this endpoint can
-// never be turned into a server-side fetch of an arbitrary URL.
-const ALLOWED_AVATAR_HOSTS = [/(^|\.)steamstatic\.com$/i, /(^|\.)akamaihd\.net$/i];
+// Cached per process: the fallback icon is read from disk rather than fetched,
+// because `fetch` has no file:// support in the Node runtime.
+let iconDataUriCache: string | null = null;
 
-export function sanitizeAvatarUrl(raw: string | null | undefined): string | null {
-    if (!raw) return null;
-    try {
-        const parsed = new URL(raw);
-        return parsed.protocol === "https:" && ALLOWED_AVATAR_HOSTS.some((re) => re.test(parsed.hostname))
-            ? raw
-            : null;
-    } catch {
-        return null;
+async function iconDataUri(): Promise<string> {
+    if (iconDataUriCache === null) {
+        const svg = await readFile(join(process.cwd(), "public/icon-full.svg"));
+        iconDataUriCache = `data:image/svg+xml;base64,${svg.toString("base64")}`;
     }
+    return iconDataUriCache;
 }
 
-function arrayBufferToBase64(buffer: ArrayBuffer): string {
-    let binary = "";
-    const bytes = new Uint8Array(buffer);
-    const len = bytes.byteLength;
-    for (let i = 0; i < len; i++) {
-        binary += String.fromCharCode(bytes[i]);
-    }
-    return btoa(binary);
-}
+type ProfileResponse = {
+    steamId: string;
+    personaName?: string | null;
+    avatar?: string | null;
+    profileUrl?: string | null;
+    stats: { totalPoints: number; rounds: number; hits: number; tooHigh: number; tooLow: number; avgPoints: number };
+    days: Array<{ date: string; rounds: Array<{ points: number; selectedBucket: string; actualBucket: string }> }>;
+};
 
-export default async function Image(req: Request) {
+type Leader = { steamId: string; personaName?: string; totalPoints: number; rounds: number; hits: number; tooHigh: number; tooLow: number; avgPoints: number };
+
+export async function GET(req: Request): Promise<ImageResponse> {
     const url = new URL(req.url);
     const variant = (url.searchParams.get("variant") || "profile").toLowerCase();
     const steamId = url.searchParams.get("steamId");
     const gameDate = url.searchParams.get("gameDate");
 
     const backend = process.env.NEXT_PUBLIC_API_DOMAIN || "http://localhost:8080";
-
-    // Fonts (cached)
-    const [fontRegular, fontBold] = await Promise.all([
-        fetch("https://og-playground.vercel.app/font/Inter-Regular.ttf", { next: { revalidate: 86400 } })
-            .then(r => (r.ok ? r.arrayBuffer() : null))
-            .catch(() => null),
-        fetch("https://og-playground.vercel.app/font/Inter-Bold.ttf", { next: { revalidate: 86400 } })
-            .then(r => (r.ok ? r.arrayBuffer() : null))
-            .catch(() => null),
-    ]);
 
     const bg = "#0b1220";
     const panelBg = "#0f172a";
@@ -66,19 +56,7 @@ export default async function Image(req: Request) {
     }
 
     // Default icon for fallback
-    const iconArrayBuffer = await fetch(new URL("../public/icon-full.svg", import.meta.url)).then(r => r.arrayBuffer());
-    const iconDataUri = `data:image/svg+xml;base64,${arrayBufferToBase64(iconArrayBuffer)}`;
-
-    type ProfileResponse = {
-        steamId: string;
-        personaName?: string | null;
-        avatar?: string | null;
-        profileUrl?: string | null;
-        stats: { totalPoints: number; rounds: number; hits: number; tooHigh: number; tooLow: number; avgPoints: number };
-        days: Array<{ date: string; rounds: Array<{ points: number; selectedBucket: string; actualBucket: string }> }>;
-    };
-
-    type Leader = { steamId: string; personaName?: string; totalPoints: number; rounds: number; hits: number; tooHigh: number; tooLow: number; avgPoints: number };
+    const iconDataUriValue = await iconDataUri();
 
     async function fetchProfile(id: string): Promise<ProfileResponse | null> {
         try {
@@ -180,6 +158,23 @@ export default async function Image(req: Request) {
 
     const accent = primary;
     const accentDim = "rgba(255,255,255,0.08)";
+    const statBox = {
+        width: "48%",
+        display: "flex",
+        flexDirection: "column" as const,
+        background: "#0b1220",
+        border: `1px solid ${panelBorder}`,
+        borderRadius: 12,
+        padding: 12,
+    };
+    const sideBox = {
+        display: "flex",
+        flexDirection: "column" as const,
+        background: "#0b1220",
+        border: `1px solid ${panelBorder}`,
+        borderRadius: 12,
+        padding: 12,
+    };
 
     const panel = (
         <div
@@ -209,18 +204,19 @@ export default async function Image(req: Request) {
             >
                 <div style={{ position: "absolute", inset: 0, borderRadius: 24, boxShadow: `inset 0 0 0 4px ${accentDim}` }} />
                 <div style={{ display: "flex", gap: 24, alignItems: "center" }}>
-                    <div style={{ width: 128, height: 128, borderRadius: 16, overflow: "hidden", background: "#111827", border: `2px solid ${accent}` }}>
+                    <div style={{ width: 128, height: 128, borderRadius: 16, overflow: "hidden", display: "flex", background: "#111827", border: `2px solid ${accent}` }}>
                         {avatarSrc ? (
                             <img src={avatarSrc} alt="avatar" width={128} height={128} style={{ objectFit: "cover", width: "100%", height: "100%" }} />
                         ) : (
-                            <img src={iconDataUri} alt="Steam5" width={128} height={128} />
+                            <img src={iconDataUriValue} alt="Steam5" width={128} height={128} />
                         )}
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: 8, flex: 1 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                            <div style={{ fontSize: 48, fontWeight: 700 }}>{title}</div>
+                            <div style={{ display: "flex", fontSize: 48, fontWeight: 700 }}>{title}</div>
                             {badge && (
                                 <div style={{
+                                    display: "flex",
                                     padding: "6px 10px",
                                     background: badge.color,
                                     color: "#0b1220",
@@ -230,30 +226,30 @@ export default async function Image(req: Request) {
                                 }}>{badge.label}</div>
                             )}
                         </div>
-                        <div style={{ color: "#9ca3af", fontSize: 24 }}>{subtitle}</div>
+                        <div style={{ display: "flex", color: "#9ca3af", fontSize: 24 }}>{subtitle}</div>
                     </div>
                 </div>
 
                 <div style={{ display: "flex", gap: 24, marginTop: 24 }}>
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 12, flex: 1 }}>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 12, flex: 1 }}>
                         {statsLines.map((s) => (
-                            <div key={s.label} style={{ background: "#0b1220", border: `1px solid ${panelBorder}`, borderRadius: 12, padding: 12 }}>
-                                <div style={{ color: "#9ca3af", fontSize: 18 }}>{s.label}</div>
-                                <div style={{ fontSize: 28, fontWeight: 700 }}>{s.value}</div>
+                            <div key={s.label} style={statBox}>
+                                <div style={{ display: "flex", color: "#9ca3af", fontSize: 18 }}>{s.label}</div>
+                                <div style={{ display: "flex", fontSize: 28, fontWeight: 700 }}>{s.value}</div>
                             </div>
                         ))}
                     </div>
                     <div style={{ width: 280, display: "flex", flexDirection: "column", gap: 12 }}>
-                        <div style={{ background: "#0b1220", border: `1px solid ${panelBorder}`, borderRadius: 12, padding: 12 }}>
-                            <div style={{ color: "#9ca3af", fontSize: 18 }}>Recent KDA</div>
-                            <div style={{ fontSize: 36, fontWeight: 700, color: accent }}>{kdaText || "—"}</div>
+                        <div style={sideBox}>
+                            <div style={{ display: "flex", color: "#9ca3af", fontSize: 18 }}>Recent KDA</div>
+                            <div style={{ display: "flex", fontSize: 36, fontWeight: 700, color: accent }}>{kdaText || "—"}</div>
                         </div>
-                        <div style={{ background: "#0b1220", border: `1px solid ${panelBorder}`, borderRadius: 12, padding: 12 }}>
-                            <div style={{ color: "#9ca3af", fontSize: 18 }}>Team</div>
+                        <div style={sideBox}>
+                            <div style={{ display: "flex", color: "#9ca3af", fontSize: 18 }}>Team</div>
                             <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
-                                <div style={{ width: 20, height: 20, background: accent, borderRadius: 4 }} />
-                                <div style={{ width: 20, height: 20, background: panelBorder, borderRadius: 4 }} />
-                                <div style={{ width: 20, height: 20, background: "#e5e7eb", borderRadius: 4 }} />
+                                <div style={{ display: "flex", width: 20, height: 20, background: accent, borderRadius: 4 }} />
+                                <div style={{ display: "flex", width: 20, height: 20, background: panelBorder, borderRadius: 4 }} />
+                                <div style={{ display: "flex", width: 20, height: 20, background: "#e5e7eb", borderRadius: 4 }} />
                             </div>
                         </div>
                     </div>
@@ -262,14 +258,11 @@ export default async function Image(req: Request) {
         </div>
     );
 
+    // No `fonts` option: next/og's bundled default is used. Passing an empty array
+    // overrides that default and satori then rejects the render, and the previous
+    // Inter URLs 404 today.
     return new ImageResponse(panel, {
-        width: size.width,
-        height: size.height,
-        fonts: [
-            ...(fontRegular ? [{ name: "Inter", data: fontRegular, weight: 400 as const, style: "normal" as const }] : []),
-            ...(fontBold ? [{ name: "Inter", data: fontBold, weight: 700 as const, style: "normal" as const }] : []),
-        ],
+        width: 1200,
+        height: 630,
     });
 }
-
-

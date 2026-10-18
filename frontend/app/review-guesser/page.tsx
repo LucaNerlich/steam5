@@ -22,13 +22,13 @@ export const metadata: Metadata = {
         title: 'Review Guesser',
         description: 'Play the Steam review guessing game — five daily rounds. Guess the review bucket and climb the leaderboard.',
         url: '/review-guesser',
-        images: ['/opengraph-image'],
+        images: ['/og'],
     },
     twitter: {
         card: 'summary_large_image',
         title: 'Review Guesser',
         description: 'Play the Steam review guessing game — five daily rounds. Guess the review bucket and climb the leaderboard.',
-        images: ['/opengraph-image'],
+        images: ['/og'],
     },
 };
 

@@ -53,12 +53,12 @@ export const metadata: Metadata = {
         title: 'Leaderboard — Season',
         description: 'Current season rankings and high scores for Steam Review Guesser.',
         url: '/review-guesser/leaderboard/season',
-        images: ['/opengraph-image'],
+        images: ['/og'],
     },
     twitter: {
         card: 'summary_large_image',
         title: 'Leaderboard — Season',
         description: 'Current season rankings and high scores for Steam Review Guesser.',
-        images: ['/opengraph-image'],
+        images: ['/og'],
     },
 };

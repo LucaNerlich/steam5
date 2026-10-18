@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import {sanitizeAvatarUrl} from './opengraph-image';
+import {sanitizeAvatarUrl} from './ogAvatar';
 
 describe('sanitizeAvatarUrl', () => {
     it('allows a real Steam CDN avatar URL', () => {

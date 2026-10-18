@@ -230,13 +230,13 @@ export const metadata: Metadata = {
         title: 'Archive',
         description: 'Browse previous daily challenges for Steam Review Guesser.',
         url: '/review-guesser/archive',
-        images: ['/opengraph-image'],
+        images: ['/og'],
     },
     twitter: {
         card: 'summary_large_image',
         title: 'Archive',
         description: 'Browse previous daily challenges for Steam Review Guesser.',
-        images: ['/opengraph-image'],
+        images: ['/og'],
     },
 };
 

@@ -17,7 +17,7 @@ export const metadata: Metadata = {
         title: 'How to Play',
         description: 'Learn how Steam5 works: guessing review buckets, scoring, streaks, achievements, and the Player Spotlight.',
         url: '/how-to-play',
-        images: ['/opengraph-image'],
+        images: ['/og'],
     },
 };
 

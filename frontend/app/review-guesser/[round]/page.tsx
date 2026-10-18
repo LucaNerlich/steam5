@@ -143,7 +143,7 @@ export async function generateMetadata({params}: { params: Promise<{ round: stri
         const title = `Review Guesser`;
         const description = `Play today's Steam Review guessing game.`;
         const ogUrl = new URL((process.env.NEXT_PUBLIC_DOMAIN || 'https://steam5.org').replace(/\/$/, ''));
-        ogUrl.pathname = '/opengraph-image';
+        ogUrl.pathname = '/og';
         return {
             title,
             description,
@@ -179,7 +179,7 @@ export async function generateMetadata({params}: { params: Promise<{ round: stri
     const description = `${pick.name} — Can you guess how many Steam reviews it has?`;
     const base = (process.env.NEXT_PUBLIC_DOMAIN || 'https://steam5.org').replace(/\/$/, '');
     const firstShot = pick.screenshots?.[0];
-    const rawImg = firstShot?.pathFull || firstShot?.pathThumbnail || '/opengraph-image';
+    const rawImg = firstShot?.pathFull || firstShot?.pathThumbnail || '/og';
     let imageUrl: string;
     try {
         imageUrl = new URL(rawImg).toString();
