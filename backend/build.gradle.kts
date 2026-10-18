@@ -32,7 +32,7 @@ dependencies {
     compileOnly("org.projectlombok:lombok")
     developmentOnly("org.springframework.boot:spring-boot-devtools")
     implementation("org.springframework.boot:spring-boot-starter-cache")
-    implementation("com.github.ben-manes.caffeine:caffeine:3.3.0")
+    implementation("com.github.ben-manes.caffeine:caffeine:3.3.1")
     implementation("io.jsonwebtoken:jjwt-api:0.13.0")
     implementation("me.paulschwarz:springboot4-dotenv:5.1.0")
     implementation("org.apache.commons:commons-lang3")
