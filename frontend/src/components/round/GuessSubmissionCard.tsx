@@ -2,7 +2,7 @@
 
 import GuessButtons from "@/components/GuessButtons";
 import OtherPlayersNow from "@/components/OtherPlayersNow";
-import {buildSteamLoginUrl} from "@/lib/steamLogin";
+import {startSteamLogin} from "@/lib/steamLogin";
 
 type GuessSubmissionCardProps = {
     appId: number;
@@ -56,7 +56,7 @@ export default function GuessSubmissionCard({
                 <p className="text-muted review-round__error">
                     You&apos;ve been signed out, so this result wasn&apos;t saved.{" "}
                     <button type="button" className="btn-link" onClick={() => {
-                        window.location.href = buildSteamLoginUrl();
+                        startSteamLogin();
                     }}>Sign in with Steam</button>
                     &nbsp;to save your results.
                 </p>

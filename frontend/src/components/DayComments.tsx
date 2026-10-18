@@ -7,7 +7,7 @@ import {useFormStatus} from "react-dom";
 import useSWR from "swr";
 import {ArchiveIcon, GameControllerIcon, PaperPlaneRightIcon} from "@phosphor-icons/react/ssr";
 import {useAuth} from "@/contexts/AuthContext";
-import {buildSteamLoginUrl} from "@/lib/steamLogin";
+import {startSteamLogin} from "@/lib/steamLogin";
 import ReactionBar from "@/components/ReactionBar";
 import Avatar from "@/components/Avatar";
 import ConfirmModal from "@/components/ConfirmModal";
@@ -807,7 +807,7 @@ export default function DayComments(props: {
                         type="button"
                         className="btn-link"
                         onClick={() => {
-                            window.location.assign(buildSteamLoginUrl());
+                            startSteamLogin();
                         }}
                     >
                         Sign in with Steam
