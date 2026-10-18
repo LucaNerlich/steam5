@@ -49,6 +49,46 @@ function isNonProduction(): boolean {
     return process.env.NODE_ENV !== "production";
 }
 
+/**
+ * Normalizes an absolute http(s) origin, or null when the value is not one (credentials, a
+ * path, a query, a hash or a non-http scheme). Both callers must agree on what "the same
+ * origin" means before comparing against the trusted list.
+ */
+export function normalizedHttpOrigin(value: string): string | null {
+    try {
+        const url = new URL(value);
+        if ((url.protocol !== 'http:' && url.protocol !== 'https:')
+            || url.username || url.password || url.pathname !== '/' || url.search || url.hash) {
+            return null;
+        }
+        return url.origin;
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Returns the normalized backend origin when a bearer token may cross plain HTTP to it, or null
+ * when it may not: https always qualifies, as do loopback and any origin listed in
+ * `ALLOWED_BACKEND_ORIGINS` outside production. Comparison is normalized on both sides, so a
+ * trailing slash, an upper-case scheme or an explicit default port cannot make the same origin
+ * look untrusted in one route and trusted in another.
+ */
+export function allowedBackendOrigin(
+    configuredOrigin: string,
+    production = process.env.NODE_ENV === 'production',
+    trustedOrigins = process.env.ALLOWED_BACKEND_ORIGINS || '',
+): string | null {
+    const origin = normalizedHttpOrigin(configuredOrigin);
+    if (!origin) return null;
+    if (!production || origin.startsWith('https://') || isLoopbackOrigin(origin)) return origin;
+
+    const trusted = trustedOrigins.split(',')
+        .map(value => normalizedHttpOrigin(value.trim()))
+        .filter((value): value is string => value !== null);
+    return trusted.includes(origin) ? origin : null;
+}
+
 function isAllowedOrigin(candidate: string, trusted: string): boolean {
     if (originsMatch(candidate, trusted)) return true;
     if (!isNonProduction()) return false;
