@@ -35,18 +35,7 @@ export async function fetchLeaderboardData(
 /** Shape returned by fetchAchievements */
 export type AchievementsResult = {
   data: unknown[];
-  serverOffsetMinutes: number;
 };
-
-/**
- * Parse the X-Server-Timezone-Offset response header into minutes.
- * A missing or unparseable value falls back to 0 so NaN never reaches
- * the time-formatting helpers.
- */
-export function parseServerOffsetHeader(headers: Headers): number {
-  const raw = Number.parseInt(headers.get('X-Server-Timezone-Offset') ?? '', 10);
-  return Number.isFinite(raw) ? raw : 0;
-}
 
 /**
  * SWR fetcher for the leaderboard-style endpoints: unwraps `{data, refreshedAt}`, relays the
@@ -70,7 +59,7 @@ export async function fetchRefreshedJson<T>(url: string): Promise<{data: T; refr
  * Fetch user achievements for a given timeframe
  * @param timeframe - The achievement timeframe query parameter
  * @param revalidate - Next.js ISR revalidation interval in seconds
- * @returns An object with achievements data and server timezone offset
+ * @returns An object with the achievements data
  */
 export async function fetchAchievements(
   timeframe: AchievementTimeframe,
@@ -84,12 +73,11 @@ export async function fetchAchievements(
         next: { revalidate },
       }
     );
-    if (!res.ok) return { data: [], serverOffsetMinutes: 0 };
+    if (!res.ok) return { data: [] };
     const data = await res.json();
-    const serverOffsetMinutes = parseServerOffsetHeader(res.headers);
-    return { data, serverOffsetMinutes };
+    return { data };
   } catch {
-    return { data: [], serverOffsetMinutes: 0 };
+    return { data: [] };
   }
 }
 
