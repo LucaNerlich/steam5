@@ -49,11 +49,21 @@ type PresenceCallbacks = {
 };
 
 /**
+ * True while the document exists and is hidden. A tab that is already hidden when the page
+ * loads never receives the `visibilitychange` event that `pause()` listens for, so both the
+ * initial state and the reconnect guard have to read the document directly.
+ */
+function isDocumentHidden(): boolean {
+    return typeof document !== "undefined" && document.visibilityState === "hidden";
+}
+
+/**
  * Owns a single presence socket connection: ticket fetch, WebSocket, keepalive
  * ping, and reconnect backoff. {@link PresenceConnection.destroy} releases every
  * resource the connection allocated, so the effect that started it stays leak-free.
  */
-class PresenceConnection {
+// Exported for the reconnect-guard test; the hook below is the production entry point.
+export class PresenceConnection {
     private ws: WebSocket | null = null;
     private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
     private pingTimer: ReturnType<typeof setInterval> | null = null;
@@ -74,6 +84,9 @@ class PresenceConnection {
 
     /** Opens the first connection. */
     start(): void {
+        // A tab that loads already hidden gets no visibilitychange event, so `pause()` never
+        // runs and every idle sweep used to be answered with a fresh reconnect (~2 min cycle).
+        this.paused = isDocumentHidden();
         void this.connect();
     }
 
@@ -260,7 +273,7 @@ class PresenceConnection {
         // Don't burn reconnect attempts while the tab is backgrounded overnight: pings stop
         // while hidden, so the server's idle sweep closes the socket, and without this guard
         // onclose would immediately reopen it — forever, from every hidden tab.
-        if (this.disposed || this.closedByUser || this.paused) return;
+        if (this.disposed || this.closedByUser || this.paused || isDocumentHidden()) return;
         this.callbacks.onReconnectingChange(true);
         const attempt = this.retryCount++;
         const delay = Math.min(BASE_DELAY_MS * Math.pow(2, attempt), MAX_DELAY_MS)
