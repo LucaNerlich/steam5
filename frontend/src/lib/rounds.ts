@@ -50,3 +50,34 @@ export function leadingBucketOrder(label: string): number {
     const m = label?.match(/^(\d+)/);
     return m ? parseInt(m[1], 10) : -1;
 }
+
+/**
+ * How a guess landed, compared by bucket order — never by label text, where
+ * "14-111" sorts after "112-855" and inverts the verdict. "unknown" when a label
+ * carries no leading number.
+ */
+export function bucketOutcome(selected: string, actual: string): "hit" | "high" | "low" | "unknown" {
+    const selectedOrder = leadingBucketOrder(selected);
+    const actualOrder = leadingBucketOrder(actual);
+    if (selectedOrder < 0 || actualOrder < 0) return "unknown";
+    if (selectedOrder === actualOrder) return "hit";
+    return selectedOrder > actualOrder ? "high" : "low";
+}
+
+/** Hits / too-high / too-low counts for a set of rounds, in bucket order. */
+export function outcomeCounts(rounds: Array<{selectedBucket: string; actualBucket: string}>): {
+    hits: number;
+    tooHigh: number;
+    tooLow: number;
+} {
+    let hits = 0;
+    let tooHigh = 0;
+    let tooLow = 0;
+    for (const round of rounds) {
+        const outcome = bucketOutcome(round.selectedBucket, round.actualBucket);
+        if (outcome === "hit") hits++;
+        else if (outcome === "high") tooHigh++;
+        else if (outcome === "low") tooLow++;
+    }
+    return {hits, tooHigh, tooLow};
+}

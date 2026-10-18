@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import {flattenDayRounds} from './rounds';
+import {bucketOutcome, flattenDayRounds, outcomeCounts} from './rounds';
 
 const round = (roundIndex: number, appId: number) => ({
     roundIndex,
@@ -37,5 +37,41 @@ describe('flattenDayRounds', () => {
             {date: '2024-01-01', rounds: [round(1, 11), {...round(0, 10), roundIndex: undefined as unknown as number}]},
         ]);
         expect(flat.map(r => r.appId)).toEqual([10, 11]);
+    });
+});
+
+describe('bucketOutcome', () => {
+    it('treats equal labels as a hit', () => {
+        expect(bucketOutcome('112-855', '112-855')).toBe('hit');
+    });
+
+    it('compares by bucket order, not by label text', () => {
+        // Lexicographically "14-111" sorts AFTER "112-855", which inverted the verdict.
+        expect(bucketOutcome('14-111', '112-855')).toBe('low');
+        expect(bucketOutcome('112-855', '14-111')).toBe('high');
+        expect(bucketOutcome('856-6467', '14-111')).toBe('high');
+        expect(bucketOutcome('14-111', '856-6467')).toBe('low');
+    });
+
+    it('reports unknown when a label has no bucket order', () => {
+        expect(bucketOutcome('', '112-855')).toBe('unknown');
+        expect(bucketOutcome('112-855', 'n/a')).toBe('unknown');
+    });
+});
+
+describe('outcomeCounts', () => {
+    it('counts hits, too-high and too-low in bucket order', () => {
+        expect(outcomeCounts([
+            {selectedBucket: '112-855', actualBucket: '112-855'},
+            {selectedBucket: '112-855', actualBucket: '14-111'},
+            {selectedBucket: '14-111', actualBucket: '112-855'},
+            {selectedBucket: '1-13', actualBucket: '14-111'},
+            {selectedBucket: '856-6467', actualBucket: '1-13'},
+        ])).toEqual({hits: 1, tooHigh: 2, tooLow: 2});
+    });
+
+    it('ignores rounds with an unparseable label', () => {
+        expect(outcomeCounts([{selectedBucket: '', actualBucket: ''}]))
+            .toEqual({hits: 0, tooHigh: 0, tooLow: 0});
     });
 });
