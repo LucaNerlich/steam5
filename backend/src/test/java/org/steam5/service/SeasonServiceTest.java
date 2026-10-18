@@ -122,6 +122,26 @@ class SeasonServiceTest {
     }
 
     @Test
+    void ensureSeasonForDate_throwsWhenTheCreatorReturnsANonCoveringSeason() {
+        // A future-dated season (operator back-fill) is the highest-numbered one, so the creator
+        // returns it for every date; it must not be served as "current".
+        LocalDate date = LocalDate.of(2026, 10, 16);
+        Season future = seasonWith(1, LocalDate.of(2027, 1, 1), LocalDate.of(2027, 1, 30), SeasonStatus.ACTIVE);
+        when(seasonRepository.findByStartDateLessThanEqualAndEndDateGreaterThanEqual(date, date))
+                .thenReturn(Optional.empty());
+        when(seasonCreator.createSeasonsUntil(date)).thenReturn(future);
+
+        assertThrows(IllegalStateException.class, () -> service.ensureSeasonForDate(date));
+    }
+
+    @Test
+    void backfillRange_rejectsAFutureStartDate() {
+        LocalDate future = LocalDate.now(java.time.ZoneOffset.UTC).plusDays(1);
+
+        assertThrows(IllegalArgumentException.class, () -> service.backfillRange(future, future.plusDays(30)));
+    }
+
+    @Test
     void ensureSeasonForDate_throwsOnNullDate() {
         assertThrows(NullPointerException.class, () -> service.ensureSeasonForDate(null));
     }
