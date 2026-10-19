@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.20.3] - 2026-10-19
+
+### Fixed
+
+- Fixed the achievement average time being converted twice — leaderboard times are now formatted in UTC only
+- Fixed the frontend production build failing in environments that set `NODE_ENV=production` (the test suite no longer inherits deployment environment variables)
+
 ## [1.20.2] - 2026-10-18
 
 ### Fixed
