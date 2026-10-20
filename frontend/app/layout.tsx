@@ -1,13 +1,11 @@
 import type {Metadata} from "next";
 import Script from "next/script";
-import { cookies, headers } from "next/headers";
 import "@/styles/globals.css";
 import UmamiAnalytics from "@/components/UmamiAnalytics";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { serializeJsonLd } from "@/lib/seo";
-import { forwardedForHeaderValue } from "@/lib/backend";
 import localFont from "next/font/local";
 
 const krypton = localFont({
@@ -179,79 +177,20 @@ export const metadata: Metadata = {
 
 const BACKEND_ORIGIN = process.env.NEXT_PUBLIC_API_DOMAIN || "http://localhost:8080";
 
-async function resolveAuth() {
-    try {
-        const cookieStore = await cookies();
-        const token = cookieStore.get('s5_token')?.value;
-
-        if (!token) {
-            return { isSignedIn: false };
-        }
-
-        // Fix #4: send the JWT in an Authorization header rather than a URL query
-        // parameter — tokens in query strings end up in access logs, browser history,
-        // and Referer headers.
-        // Fix #7: do not cache the validation result; a stale positive response after
-        // logout would leave the server-rendered HTML showing the user as authenticated.
-        const res = await fetch(
-            `${BACKEND_ORIGIN}/api/auth/validate`,
-            {
-                headers: {
-                    'accept': 'application/json',
-                    'authorization': `Bearer ${token}`,
-                    // Relay the edge-supplied client IP so the backend's per-IP auth rate
-                    // limit buckets by the real caller instead of this server's address,
-                    // which every visitor otherwise shares.
-                    ...forwardedForHeaderValue((await headers()).get('x-forwarded-for')),
-                },
-                cache: 'no-store',
-                signal: AbortSignal.timeout(3000),
-            }
-        );
-
-        if (res.status === 401) {
-            return { isSignedIn: false };
-        }
-
-        if (!res.ok) {
-            return { isSignedIn: false };
-        }
-
-        const data = await res.json();
-        return {
-            isSignedIn: Boolean(data?.valid),  // Changed from data?.signedIn
-            steamId: data?.steamId || null,
-        };
-    } catch (error) {
-        // During build, connection refused is expected
-        if (error && typeof error === 'object' && 'cause' in error) {
-            const cause = error.cause as any;
-            if (cause?.code === 'ECONNREFUSED') {
-                // Silently return false during build
-                return { isSignedIn: false };
-            }
-        }
-        console.error('Auth resolution error:', error);
-        return { isSignedIn: false };
-    }
-}
-
-export default async function RootLayout({
+export default function RootLayout({
                                        children,
                                    }: Readonly<{
     children: React.ReactNode;
 }>) {
-    const authState = await resolveAuth();
-    const cookieStore = await cookies();
-    const themeCookie = cookieStore.get('theme')?.value;
-    const serverTheme = themeCookie === 'dark' ? 'dark' : themeCookie === 'light' ? 'light' : null;
+    // Signed-out initial state: reading cookies/headers here opted every route into dynamic
+    // rendering and neutralized each page's `revalidate`. AuthProvider revalidates
+    // /api/auth/me on mount, and theme-init.js applies the theme cookie before hydration.
     return (
         <html
             data-scroll-behavior="smooth"
             lang="en"
             className={`${krypton.variable} ${neon.variable} ${argon.variable} ${radon.variable} ${xenon.variable} ${space.variable} ${pixelSquare.variable}`}
             suppressHydrationWarning
-            {...(serverTheme === 'dark' ? { 'data-theme': 'dark' } : {})}
         >
         <body>
         <Script src="/theme-init.js" strategy="beforeInteractive"/>
@@ -265,7 +204,7 @@ export default async function RootLayout({
         />
         <link rel="preconnect" href={origin}/>
         <link rel="dns-prefetch" href={origin}/>
-        <AuthProvider initialAuth={authState}>
+        <AuthProvider initialAuth={{isSignedIn: false}}>
             <Header/>
             <main>
                 {children}
