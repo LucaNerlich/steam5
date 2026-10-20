@@ -561,7 +561,7 @@ public class ReviewGameStateController {
     }
 
     @GetMapping("/archive/month")
-    @Cacheable(value = "review-game", key = "'archive-month:' + #month", unless = CACHE_ONLY_2XX)
+    @Cacheable(value = "review-game", key = "'archive-month:' + #month", unless = CACHE_ONLY_2XX_NONEMPTY_LIST)
     public ResponseEntity<List<ArchiveMonthDay>> archiveMonth(@RequestParam("month") String month) {
         final YearMonth ym;
         try {
