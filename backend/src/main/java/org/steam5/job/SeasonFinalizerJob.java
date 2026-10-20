@@ -54,7 +54,7 @@ public class SeasonFinalizerJob implements Job {
             // which /season could serve the previous season's standings under the new
             // season's cache key (LeaderboardController#season keys its manual cache by
             // season number, which already flipped above).
-            leaderboardRefreshService.refreshSeason();
+            leaderboardRefreshService.refresh(org.steam5.domain.LeaderboardType.SEASON);
         } catch (Exception ex) {
             log.error("Season finalization failed", ex);
             // Rethrow so Quartz records the failure: a failed season rollover

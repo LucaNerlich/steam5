@@ -44,16 +44,16 @@ import java.util.Optional;
 @Slf4j
 public class LeaderboardMvBootstrapConfig {
 
-    private record MvDefinition(LeaderboardType type, String viewName, String indexName, String resourcePath) {
+    private record MvDefinition(LeaderboardType type, String indexName, String resourcePath) {
     }
 
     private static final List<MvDefinition> MV_DEFINITIONS = List.of(
-            new MvDefinition(LeaderboardType.ALL_TIME, "mv_leaderboard_all_time", "ux_mv_leaderboard_all_time_steam_id", "db/mv-leaderboard-all-time.sql"),
-            new MvDefinition(LeaderboardType.MONTHLY, "mv_leaderboard_monthly", "ux_mv_leaderboard_monthly_steam_id", "db/mv-leaderboard-monthly.sql"),
-            new MvDefinition(LeaderboardType.WEEKLY, "mv_leaderboard_weekly", "ux_mv_leaderboard_weekly_steam_id", "db/mv-leaderboard-weekly.sql"),
-            new MvDefinition(LeaderboardType.SEASON, "mv_leaderboard_season", "ux_mv_leaderboard_season_steam_id", "db/mv-leaderboard-season.sql"),
-            new MvDefinition(LeaderboardType.HARDEST_GAMES, "mv_hardest_games", "ux_mv_hardest_games_app_id", "db/mv-hardest-games.sql"),
-            new MvDefinition(LeaderboardType.PERFECT_DAYS, "mv_perfect_days", "ux_mv_perfect_days_entry", "db/mv-perfect-days.sql")
+            new MvDefinition(LeaderboardType.ALL_TIME, "ux_mv_leaderboard_all_time_steam_id", "db/mv-leaderboard-all-time.sql"),
+            new MvDefinition(LeaderboardType.MONTHLY, "ux_mv_leaderboard_monthly_steam_id", "db/mv-leaderboard-monthly.sql"),
+            new MvDefinition(LeaderboardType.WEEKLY, "ux_mv_leaderboard_weekly_steam_id", "db/mv-leaderboard-weekly.sql"),
+            new MvDefinition(LeaderboardType.SEASON, "ux_mv_leaderboard_season_steam_id", "db/mv-leaderboard-season.sql"),
+            new MvDefinition(LeaderboardType.HARDEST_GAMES, "ux_mv_hardest_games_app_id", "db/mv-hardest-games.sql"),
+            new MvDefinition(LeaderboardType.PERFECT_DAYS, "ux_mv_perfect_days_entry", "db/mv-perfect-days.sql")
     );
 
     @Bean
@@ -64,7 +64,7 @@ public class LeaderboardMvBootstrapConfig {
                 try {
                     bootstrapOne(dataSource, mv);
                 } catch (Exception e) {
-                    log.error("Failed to bootstrap materialized view {}", mv.viewName(), e);
+                    log.error("Failed to bootstrap materialized view {}", mv.type().viewName(), e);
                 }
             }
         };
@@ -82,14 +82,14 @@ public class LeaderboardMvBootstrapConfig {
         try (Connection connection = dataSource.getConnection()) {
             connection.setAutoCommit(true);
 
-            final Optional<Boolean> existingPopulatedState = queryIsPopulated(connection, mv.viewName());
+            final Optional<Boolean> existingPopulatedState = queryIsPopulated(connection, mv.type().viewName());
             if (existingPopulatedState.isPresent()) {
-                log.info("Materialized view {} already exists — skipping creation", mv.viewName());
+                log.info("Materialized view {} already exists — skipping creation", mv.type().viewName());
             } else {
                 try (Statement statement = connection.createStatement()) {
                     statement.execute(createViewSql);
                 }
-                log.info("Created materialized view {} (WITH NO DATA)", mv.viewName());
+                log.info("Created materialized view {} (WITH NO DATA)", mv.type().viewName());
             }
 
             if (indexExists(connection, mv.indexName())) {
@@ -103,12 +103,12 @@ public class LeaderboardMvBootstrapConfig {
 
             final boolean populated = existingPopulatedState.orElse(false);
             if (!populated) {
-                log.info("Materialized view {} not yet populated — running initial REFRESH", mv.viewName());
+                log.info("Materialized view {} not yet populated — running initial REFRESH", mv.type().viewName());
                 try (Statement statement = connection.createStatement()) {
-                    statement.execute("REFRESH MATERIALIZED VIEW " + mv.viewName());
+                    statement.execute("REFRESH MATERIALIZED VIEW " + mv.type().viewName());
                 }
                 recordRefreshState(connection, mv.type());
-                log.info("Populated materialized view {}", mv.viewName());
+                log.info("Populated materialized view {}", mv.type().viewName());
             }
         }
     }

@@ -42,14 +42,7 @@ public class LeaderboardRefreshJob implements Job {
         Exception caughtException = null;
         log.info("LeaderboardRefreshJob[{}] starting", type);
         try {
-            switch (type) {
-                case ALL_TIME -> refreshService.refreshAllTime();
-                case MONTHLY -> refreshService.refreshMonthly();
-                case WEEKLY -> refreshService.refreshWeekly();
-                case SEASON -> refreshService.refreshSeason();
-                case HARDEST_GAMES -> refreshService.refreshHardestGames();
-                case PERFECT_DAYS -> refreshService.refreshPerfectDays();
-            }
+            refreshService.refresh(type);
         } catch (Exception e) {
             log.error("LeaderboardRefreshJob[{}] failed", type, e);
             caughtException = e;

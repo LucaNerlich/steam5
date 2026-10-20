@@ -2,6 +2,7 @@ package org.steam5.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.steam5.domain.LeaderboardRefreshState;
@@ -22,36 +23,7 @@ public class LeaderboardRefreshService {
 
     private final LeaderboardMvRepository leaderboardMvRepository;
     private final LeaderboardRefreshStateRepository refreshStateRepository;
-
-    @Transactional
-    public void refreshAllTime() {
-        refresh(LeaderboardType.ALL_TIME, "mv_leaderboard_all_time", leaderboardMvRepository::refreshAllTimeConcurrently, leaderboardMvRepository::refreshAllTimeFull);
-    }
-
-    @Transactional
-    public void refreshMonthly() {
-        refresh(LeaderboardType.MONTHLY, "mv_leaderboard_monthly", leaderboardMvRepository::refreshMonthlyConcurrently, leaderboardMvRepository::refreshMonthlyFull);
-    }
-
-    @Transactional
-    public void refreshWeekly() {
-        refresh(LeaderboardType.WEEKLY, "mv_leaderboard_weekly", leaderboardMvRepository::refreshWeeklyConcurrently, leaderboardMvRepository::refreshWeeklyFull);
-    }
-
-    @Transactional
-    public void refreshSeason() {
-        refresh(LeaderboardType.SEASON, "mv_leaderboard_season", leaderboardMvRepository::refreshSeasonConcurrently, leaderboardMvRepository::refreshSeasonFull);
-    }
-
-    @Transactional
-    public void refreshHardestGames() {
-        refresh(LeaderboardType.HARDEST_GAMES, "mv_hardest_games", leaderboardMvRepository::refreshHardestGamesConcurrently, leaderboardMvRepository::refreshHardestGamesFull);
-    }
-
-    @Transactional
-    public void refreshPerfectDays() {
-        refresh(LeaderboardType.PERFECT_DAYS, "mv_perfect_days", leaderboardMvRepository::refreshPerfectDaysConcurrently, leaderboardMvRepository::refreshPerfectDaysFull);
-    }
+    private final JdbcTemplate jdbcTemplate;
 
     /**
      * Guards against concurrent REFRESH attempts on the same view from any source — not just
@@ -69,7 +41,9 @@ public class LeaderboardRefreshService {
      * to a plain REFRESH so the job self-heals instead of failing forever. On success, records
      * the refresh timestamp so LeaderboardController can report data freshness.</p>
      */
-    private void refresh(final LeaderboardType type, final String viewName, final Runnable concurrentRefresh, final Runnable fullRefresh) {
+    @Transactional
+    public void refresh(final LeaderboardType type) {
+        final String viewName = type.viewName();
         final long lockKey = ADVISORY_LOCK_BASE + type.ordinal();
         if (!Boolean.TRUE.equals(leaderboardMvRepository.tryAdvisoryXactLock(lockKey))) {
             log.info("Another session is already refreshing {} — skipping this run", viewName);
@@ -77,12 +51,11 @@ public class LeaderboardRefreshService {
         }
 
         final boolean populated = Boolean.TRUE.equals(leaderboardMvRepository.isPopulated(viewName));
-        if (populated) {
-            concurrentRefresh.run();
-        } else {
+        if (!populated) {
             log.info("{} not yet populated — running non-concurrent initial REFRESH", viewName);
-            fullRefresh.run();
         }
+        // viewName comes from the enum's whitelist, never from a caller-supplied string.
+        jdbcTemplate.execute("REFRESH MATERIALIZED VIEW " + (populated ? "CONCURRENTLY " : "") + viewName);
         refreshStateRepository.save(new LeaderboardRefreshState(type, OffsetDateTime.now()));
     }
 }
