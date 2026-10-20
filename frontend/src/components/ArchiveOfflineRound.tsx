@@ -24,6 +24,17 @@ type Props = {
     offlineAnswer: { actualBucket: string; totalReviews: number } | null;
 };
 
+/** Selection restored from the shared stored day; empty when the day was reset. */
+export function storedSelection(
+    stored: {results?: Record<number, {selectedLabel?: string}>} | null,
+    roundIndex: number,
+): {selectedLabel: string | null; submitted: boolean} {
+    const existing = stored?.results?.[roundIndex];
+    return existing?.selectedLabel
+        ? {selectedLabel: existing.selectedLabel, submitted: true}
+        : {selectedLabel: null, submitted: false};
+}
+
 export default function ArchiveOfflineRound(props: Readonly<Props>): React.ReactElement {
     const {appId, buckets, bucketTitles, roundIndex, totalRounds, pickName, gameDate, offlineAnswer} = props;
 
@@ -35,14 +46,9 @@ export default function ArchiveOfflineRound(props: Readonly<Props>): React.React
     const stored = useStoredDay(gameDate);
 
     useEffect(() => {
-        const existing = stored?.results?.[roundIndex];
-        if (existing?.selectedLabel) {
-            setSelectedLabel(existing.selectedLabel);
-            setSubmitted(true);
-        } else {
-            setSelectedLabel(null);
-            setSubmitted(false);
-        }
+        const next = storedSelection(stored, roundIndex);
+        setSelectedLabel(next.selectedLabel);
+        setSubmitted(next.submitted);
     }, [stored, roundIndex]);
 
     const prevHref = roundIndex > 1 ? `#round-${roundIndex - 1}` : null;
