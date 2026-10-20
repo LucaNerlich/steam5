@@ -1,7 +1,7 @@
 "use client";
 
 import React, {useEffect, useRef} from "react";
-import {clearAll} from "@/lib/storage";
+import {clearDay} from "@/lib/storage";
 import Image from "next/image";
 import SignInImage from "../../public/sign-in-through-steam.png"
 import {UserCheckIcon} from "@phosphor-icons/react/ssr";
@@ -22,7 +22,9 @@ export default function SteamLoginButton(): React.ReactElement {
     useEffect(() => {
         if (isSignedIn && !clearedRef.current) {
             clearedRef.current = true;
-            try { clearAll(); } catch { /* ignore */ }
+            // Clear only today's guest copy: the server now owns today's guesses, while
+            // archive progress is local-only and must survive a reload.
+            try { clearDay(new Date().toISOString().slice(0, 10)); } catch { /* ignore */ }
         }
     }, [isSignedIn]);
 
