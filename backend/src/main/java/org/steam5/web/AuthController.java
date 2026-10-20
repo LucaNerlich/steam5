@@ -162,6 +162,7 @@ public class AuthController {
                     .header(HttpHeaders.ACCEPT, "text/plain")
                     .header(HttpHeaders.ACCEPT_ENCODING, "identity")
                     .header(HttpHeaders.USER_AGENT, "steam5-auth/1.0")
+                    .timeout(Duration.ofSeconds(10))
                     .POST(HttpRequest.BodyPublishers.ofString(body))
                     .build();
             final HttpResponse<String> res = HTTP_CLIENT.send(req, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
