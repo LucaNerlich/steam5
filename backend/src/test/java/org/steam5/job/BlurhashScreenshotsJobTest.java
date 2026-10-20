@@ -10,7 +10,6 @@ import org.quartz.JobDetail;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobKey;
 import org.slf4j.LoggerFactory;
-import org.springframework.cache.CacheManager;
 import org.springframework.data.domain.PageRequest;
 import org.steam5.config.JobsConfig;
 import org.steam5.domain.IngestState;
@@ -52,7 +51,6 @@ class BlurhashScreenshotsJobTest {
     @BeforeEach
     void setUp() {
         final BlurhashService service = mock(BlurhashService.class);
-        final CacheManager cacheManager = mock(CacheManager.class);
         screenshotRepository = mock(ScreenshotRepository.class);
         final DomainCacheEvictor cacheEvictor = mock(DomainCacheEvictor.class);
         final JobsConfig jobsConfig = mock(JobsConfig.class);
@@ -60,7 +58,7 @@ class BlurhashScreenshotsJobTest {
         when(jobsConfig.getBlurhash()).thenReturn(blurhashConfig);
         when(blurhashConfig.getBatchLimit()).thenReturn(100);
         ingestStateRepository = mock(IngestStateRepository.class);
-        job = new BlurhashScreenshotsJob(service, cacheManager, screenshotRepository, cacheEvictor,
+        job = new BlurhashScreenshotsJob(service, screenshotRepository, cacheEvictor,
                 jobsConfig, ingestStateRepository);
     }
 
