@@ -91,7 +91,7 @@ public class StatisticsService {
         };
     }
 
-    @Cacheable(value = "one-day", key = "'stats-user-labels'", unless = "#result == null")
+    @Cacheable(value = "stats-daily", key = "'stats-user-labels'", unless = "#result == null")
     public List<UserLabel> getUserAchievements() {
         return getUserAchievementsForTimeframe(Timeframe.ALL_TIME);
     }
