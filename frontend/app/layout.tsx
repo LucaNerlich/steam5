@@ -1,5 +1,4 @@
 import type {Metadata} from "next";
-import Script from "next/script";
 import "@/styles/globals.css";
 import UmamiAnalytics from "@/components/UmamiAnalytics";
 import Header from "@/components/Header";
@@ -175,7 +174,10 @@ export const metadata: Metadata = {
     },
 }
 
-const BACKEND_ORIGIN = process.env.NEXT_PUBLIC_API_DOMAIN || "http://localhost:8080";
+// Classic blocking script in <head>: next/script beforeInteractive is queued behind the
+// async runtime, so dark-mode users painted light first. Reads localStorage, then the
+// theme cookie, then the OS preference.
+const THEME_BOOTSTRAP = `(function(){try{var t=localStorage.getItem('theme');if(t!=='light'&&t!=='dark'){var m=document.cookie.match(/(?:^|; )theme=(dark|light)/);t=m?m[1]:(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');}if(t==='dark'){document.documentElement.setAttribute('data-theme','dark');}else{document.documentElement.removeAttribute('data-theme');}}catch(e){if(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches){document.documentElement.setAttribute('data-theme','dark');}}})();`;
 
 export default function RootLayout({
                                        children,
@@ -192,8 +194,10 @@ export default function RootLayout({
             className={`${krypton.variable} ${neon.variable} ${argon.variable} ${radon.variable} ${xenon.variable} ${space.variable} ${pixelSquare.variable}`}
             suppressHydrationWarning
         >
+        <head>
+            <script dangerouslySetInnerHTML={{__html: THEME_BOOTSTRAP}}/>
+        </head>
         <body>
-        <Script src="/theme-init.js" strategy="beforeInteractive"/>
         <script
             type="application/ld+json"
             dangerouslySetInnerHTML={{__html: serializeJsonLd(websiteSchema)}}
