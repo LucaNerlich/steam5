@@ -2,6 +2,9 @@ package org.steam5.security;
 
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.util.StringUtils;
+import org.springframework.web.util.UriUtils;
+
+import java.nio.charset.StandardCharsets;
 
 /**
  * Path matching helper shared by servlet filters that must agree with Spring MVC.
@@ -21,6 +24,9 @@ public final class RequestPathNormalizer {
         if (StringUtils.hasText(contextPath) && path.startsWith(contextPath)) {
             path = path.substring(contextPath.length());
         }
+        // getRequestURI() is undecoded per the Servlet spec; redirects and MVC match the
+        // decoded path, so decode before comparing (e.g. /api/users/%73earch).
+        path = UriUtils.decode(path, StandardCharsets.UTF_8);
         final StringBuilder normalized = new StringBuilder(path.length());
         final String[] segments = path.split("/", -1);
         for (int i = 0; i < segments.length; i++) {

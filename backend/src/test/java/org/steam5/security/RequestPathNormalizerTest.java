@@ -23,6 +23,13 @@ class RequestPathNormalizerTest {
         req.setRequestURI("/steam5/api/profile/1");
         assertEquals("/api/profile/1", RequestPathNormalizer.normalizedPath(req));
     }
+
+    @Test
+    void decodesPercentEncodedSegments() {
+        final MockHttpServletRequest req = new MockHttpServletRequest("GET", "/api/users/%73earch");
+        req.setRequestURI("/api/users/%73earch");
+        assertEquals("/api/users/search", RequestPathNormalizer.normalizedPath(req));
+    }
 }
 
 class ProfileRateLimitFilterTest {
@@ -41,5 +48,17 @@ class ProfileRateLimitFilterTest {
         final MockHttpServletRequest req = new MockHttpServletRequest("GET", "/api/review-game/today");
         req.setRequestURI("/api/review-game/today");
         assertTrue(filter.shouldNotFilter(req));
+    }
+}
+
+class UserSearchRateLimitFilterTest {
+
+    private final UserSearchRateLimitFilter filter = new UserSearchRateLimitFilter();
+
+    @Test
+    void percentEncodedPathDoesNotBypassTheLimiter() {
+        final MockHttpServletRequest req = new MockHttpServletRequest("GET", "/api/users/%73earch");
+        req.setRequestURI("/api/users/%73earch");
+        assertFalse(filter.shouldNotFilter(req));
     }
 }
