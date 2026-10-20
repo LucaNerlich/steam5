@@ -7,6 +7,7 @@ import org.springframework.data.domain.PageRequest;
 import org.steam5.config.ReviewGameConfig;
 import org.steam5.domain.GameDate;
 import org.steam5.domain.ReviewGamePick;
+import org.steam5.domain.SteamAppReviews;
 import org.steam5.http.SteamApiException;
 import org.steam5.job.events.BlurhashEncodeRequested;
 import org.steam5.repository.DailyPickLockRepository;
@@ -19,6 +20,9 @@ import org.steam5.service.SteamAppDetailsFetcher;
 import org.steam5.service.SteamAppReviewsFetcher;
 
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -112,6 +116,28 @@ public class ReviewGameStateServiceTest {
         final List<ReviewGamePick> picks = service.generateDailyPicks();
         assertFalse(picks.isEmpty());
         verify(cacheEvictor).evictReviewGameState();
+    }
+
+    @Test
+    void enrichmentReRecordsTheAnswerAfterRefreshingStaleReviews() throws Exception {
+        config.setMinReviewsFreshDays(1);
+        final SteamAppReviews stale = new SteamAppReviews(1L, 100, 0, OffsetDateTime.now().minusDays(10));
+        final SteamAppReviews fresh = new SteamAppReviews(1L, 800, 0, OffsetDateTime.now());
+        final AtomicBoolean refreshed = new AtomicBoolean(false);
+        when(reviewsRepository.findById(anyLong()))
+                .thenAnswer(invocation -> Optional.of(refreshed.get() ? fresh : stale));
+        when(reviewsFetcher.fetchForAppId(anyLong())).thenAnswer(invocation -> {
+            refreshed.set(true);
+            return true;
+        });
+
+        final List<ReviewGamePick> picks = service.generateDailyPicks();
+
+        // The refreshed app's stored answer must match what /guess now scores (800 -> 101-1000),
+        // not the stale snapshot recorded before enrichment.
+        assertTrue(picks.stream().anyMatch(p -> Integer.valueOf(800).equals(p.getTotalReviews())
+                && "101-1000".equals(p.getActualBucket())));
+        verify(pickRepository, atLeastOnce()).save(any(ReviewGamePick.class));
     }
 
     @Test
