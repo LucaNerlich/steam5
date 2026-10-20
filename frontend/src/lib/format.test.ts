@@ -1,4 +1,4 @@
-import {describe, expect, it} from 'vitest';
+import {describe, expect, it, vi} from 'vitest';
 import {formatDate, formatPrice, formatRelativeTime, ordinal, placementTier} from './format';
 
 describe('ordinal', () => {
@@ -37,6 +37,16 @@ describe('formatDate', () => {
         expect(formatDate('2024-01-15', 'en-US')).toBe('Jan 15, 2024');
         // Default is pinned for SSR/hydration parity, independent of the host locale.
         expect(formatDate('2024-01-15')).toBe('Jan 15, 2024');
+    });
+
+    it('passes en-US explicitly for the default locale', () => {
+        const spy = vi.spyOn(Date.prototype, 'toLocaleDateString');
+        try {
+            formatDate('2024-01-15');
+            expect(spy).toHaveBeenCalledWith('en-US', expect.anything());
+        } finally {
+            spy.mockRestore();
+        }
     });
 
     it('keeps date-only strings on their calendar day in a negative-offset timezone', () => {
