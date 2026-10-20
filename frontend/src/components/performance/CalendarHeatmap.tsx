@@ -58,7 +58,7 @@ function heatmapSummary(cells: {dateStr: string; avg: number | null}[]): string 
     // Comparing daily averages: the best day is the one with the highest average, not
     // the most plays, and an unweighted mean of daily means is not "pts/round".
     const best = played.reduce((a, b) => ((b.avg as number) > (a.avg as number) ? b : a));
-    return `${played.length} active days, best day ${best.dateStr} at ${(best.avg as number).toFixed(1)} pts/round`;
+    return `${played.length} active ${played.length === 1 ? "day" : "days"}, best day ${best.dateStr} at ${(best.avg as number).toFixed(1)} pts/round`;
 }
 
 export default function CalendarHeatmap({rounds}: { rounds: Round[] }): React.ReactElement {

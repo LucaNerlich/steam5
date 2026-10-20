@@ -92,6 +92,16 @@ describe('performance charts expose their values', () => {
         expect(html).toContain('2 active days');
         expect(html).toContain('best day');
         expect(html).not.toContain('busiest');
-        expect(html).not.toContain('pts/round, average');
+        expect(html).toContain('2 active days, best day');
+        expect(html).not.toContain('active days, average');
+    });
+
+    it('CalendarHeatmap pluralises a single active day', () => {
+        const today = new Date().toISOString().slice(0, 10);
+        const html = renderToStaticMarkup(
+            <CalendarHeatmap rounds={[{date: today, points: 5}]}/>,
+        );
+
+        expect(html).toContain('1 active day,');
     });
 });
