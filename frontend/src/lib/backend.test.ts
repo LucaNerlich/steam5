@@ -1,6 +1,6 @@
 import {afterEach, describe, expect, it, vi} from 'vitest';
 import {NextRequest, NextResponse} from 'next/server';
-import {bearerAuthHeaders, fetchBackendJson, forwardedForHeaderValue, proxyBackendJson} from './backend';
+import {BACKEND_TIMEOUT_MS, bearerAuthHeaders, fetchBackendJson, forwardedForHeaderValue, proxyBackendJson} from './backend';
 
 describe('forwardedForHeaderValue', () => {
     it('relays the client IP the trusted edge proxy set', () => {
@@ -53,6 +53,24 @@ describe('fetchBackendJson', () => {
 
         expect(result.data).toEqual({ok: true});
         expect(fetchMock.mock.calls[0]?.[1]?.signal).toBeInstanceOf(AbortSignal);
+    });
+
+    it('bounds the call with BACKEND_TIMEOUT_MS', async () => {
+        const timeoutSpy = vi.spyOn(AbortSignal, 'timeout');
+        vi.stubGlobal('fetch', vi.fn(async () => NextResponse.json({ok: true})));
+
+        await fetchBackendJson('/api/x');
+
+        expect(timeoutSpy).toHaveBeenCalledWith(BACKEND_TIMEOUT_MS);
+    });
+
+    it('returns null data when the upstream stalls and the signal aborts', async () => {
+        vi.spyOn(AbortSignal, 'timeout').mockReturnValue(AbortSignal.abort());
+        vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('aborted'); }));
+
+        const result = await fetchBackendJson('/api/x');
+
+        expect(result.data).toBeNull();
     });
 
     it('returns null data on a non-ok response instead of throwing', async () => {
