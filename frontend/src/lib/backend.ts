@@ -65,6 +65,8 @@ export type ProxyOptions = {
     privateNoStore?: boolean;
     /** `Cache-Control` for an error response; defaults to `no-store`. */
     errorCacheControl?: string;
+    /** Emit an RFC 9457 problem+json body on upstream errors (perfect-days contract). */
+    problemJsonOnError?: boolean;
 };
 
 /**
@@ -88,6 +90,7 @@ export async function proxyBackendJson(req: NextRequest, options: ProxyOptions):
         bearerToken,
         privateNoStore,
         errorCacheControl = "no-store",
+        problemJsonOnError,
     } = options;
 
     const headers: Record<string, string> = {accept: "application/json"};
@@ -124,6 +127,12 @@ export async function proxyBackendJson(req: NextRequest, options: ProxyOptions):
             const errorBody: unknown = await res.json().catch(() => null);
             console.error(`[proxy] ${path} responded ${res.status}`);
             relayed["Cache-Control"] = privateNoStore ? "private, no-store" : errorCacheControl;
+            if (problemJsonOnError) {
+                return NextResponse.json(
+                    {type: "about:blank", title: "Bad Gateway", status: res.status, detail: errorMessage},
+                    {status: res.status, headers: {...relayed, "content-type": "application/problem+json"}},
+                );
+            }
             return NextResponse.json(errorBody ?? {error: errorMessage}, {status: res.status, headers: relayed});
         }
 
@@ -133,6 +142,13 @@ export async function proxyBackendJson(req: NextRequest, options: ProxyOptions):
         return NextResponse.json(data, {status: res.status, headers: relayed});
     } catch (error) {
         console.error(`[proxy] ${path} failed`, error);
-        return NextResponse.json({error: errorMessage}, {status: 502});
+        const headers = {"Cache-Control": privateNoStore ? "private, no-store" : errorCacheControl};
+        if (problemJsonOnError) {
+            return NextResponse.json(
+                {type: "about:blank", title: "Bad Gateway", status: 502, detail: errorMessage},
+                {status: 502, headers: {...headers, "content-type": "application/problem+json"}},
+            );
+        }
+        return NextResponse.json({error: errorMessage}, {status: 502, headers});
     }
 }

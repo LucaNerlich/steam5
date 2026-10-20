@@ -11,5 +11,6 @@ export async function GET(req: NextRequest) {
         passThroughHeaders: ["X-Leaderboard-Refreshed-At"],
         timeoutMs: 30_000,
         errorMessage: "Failed to load perfect days",
+        problemJsonOnError: true,
     });
 }
