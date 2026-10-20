@@ -70,34 +70,38 @@ public class SteamAppDetailsFetcher implements Fetcher {
         Long cursor = effectiveLastAppId;
         final int pageSize = 500; // single HTTP call per app, moderate batch size
         boolean more = true;
-        while (more && processed < batchLimit) {
-            final Page<SteamAppIndex> page = appIndexRepository.findByAppIdGreaterThan(cursor, PageRequest.of(0, pageSize, Sort.by("appId").ascending()));
-            if (page.isEmpty()) {
-                break;
-            }
-            for (SteamAppIndex idx : page) {
-                if (processed >= batchLimit) {
+        try {
+            while (more && processed < batchLimit) {
+                final Page<SteamAppIndex> page = appIndexRepository.findByAppIdGreaterThan(cursor, PageRequest.of(0, pageSize, Sort.by("appId").ascending()));
+                if (page.isEmpty()) {
                     break;
                 }
-                final Long appId = idx.getAppId();
-                if (appId == null) continue;
-                // Bail out immediately on any HTTP error such as 429: the cursor is
-                // deliberately NOT advanced (see the upsert below), so the failed app is
-                // retried on the next run instead of being skipped forever.
-                // Bulk path: skip the aggregate cache clear per app (it would thrash the
-                // whole review-game cache up to batchLimit times per run); the cache is
-                // cleared once after the loop below.
-                fetchForAppId(appId, false);
-                // advance cursor only on success so transient failures are retried
-                ingestStateRepository.upsert("steam_app_details", appId, OffsetDateTime.now());
-                processed++;
-                cursor = appId;
+                for (SteamAppIndex idx : page) {
+                    if (processed >= batchLimit) {
+                        break;
+                    }
+                    final Long appId = idx.getAppId();
+                    if (appId == null) continue;
+                    // Bail out immediately on any HTTP error such as 429: the cursor is
+                    // deliberately NOT advanced (see the upsert below), so the failed app is
+                    // retried on the next run instead of being skipped forever.
+                    // Bulk path: skip the aggregate cache clear per app (it would thrash the
+                    // whole review-game cache up to batchLimit times per run); the cache is
+                    // cleared once after the loop below.
+                    fetchForAppId(appId, false);
+                    // advance cursor only on success so transient failures are retried
+                    ingestStateRepository.upsert("steam_app_details", appId, OffsetDateTime.now());
+                    processed++;
+                    cursor = appId;
+                }
+                more = page.hasNext() && processed < batchLimit;
             }
-            more = page.hasNext() && processed < batchLimit;
-        }
-
-        if (processed > 0) {
-            cacheEvictor.evictReviewGameState();
+        } finally {
+            // Clear even when a mid-loop HTTP error aborts the batch: the apps already
+            // upserted are visible, so serving the pre-ingest aggregates for 24h is wrong.
+            if (processed > 0) {
+                cacheEvictor.evictReviewGameState();
+            }
         }
         log.info("Details ingestion finished. processed={} batchLimit={} starting_after={}", processed, batchLimit, effectiveLastAppId);
     }

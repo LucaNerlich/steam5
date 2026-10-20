@@ -123,6 +123,7 @@ public class SteamAppDetailService {
      *                                  commit (single-app path). A bulk ingest passes false and
      *                                  clears once after the loop instead of once per app.
      */
+    @Transactional
     public void upsertFromJson(final Long appId, final JsonNode data, final boolean clearReviewGameAggregates) {
         final Optional<SteamAppDetail> existing = repository.findById(appId);
         SteamAppDetail detail = existing.orElseGet(SteamAppDetail::new);
