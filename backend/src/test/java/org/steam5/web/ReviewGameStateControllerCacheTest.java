@@ -4,7 +4,11 @@ import io.micrometer.core.instrument.MeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.quartz.Scheduler;
+import org.springframework.aop.framework.ProxyFactory;
+import org.springframework.cache.annotation.AnnotationCacheOperationSource;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.concurrent.ConcurrentMapCacheManager;
+import org.springframework.cache.interceptor.CacheInterceptor;
 import org.springframework.expression.Expression;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
@@ -286,5 +290,28 @@ public class ReviewGameStateControllerCacheTest {
                 "two different limits must not share one cache entry");
         assertEquals("days:3650", evalCacheKeyWithVars("listDays", Map.of("limit", 9999), signature),
                 "an over-large limit must key on the clamped value the method actually uses");
+    }
+
+    @Test
+    void buckets_cachesOnlyThe200Body() {
+        final ConcurrentMapCacheManager cacheManager = new ConcurrentMapCacheManager("one-day");
+        final CacheInterceptor interceptor = new CacheInterceptor();
+        interceptor.setCacheManager(cacheManager);
+        interceptor.setCacheOperationSource(new AnnotationCacheOperationSource());
+        interceptor.afterSingletonsInstantiated();
+        final ProxyFactory proxyFactory = new ProxyFactory(controller);
+        proxyFactory.addAdvice(interceptor);
+        final ReviewGameStateController cachingController = (ReviewGameStateController) proxyFactory.getProxy();
+
+        when(service.getBucketLabels()).thenReturn(List.of("1-13"));
+        when(service.getBucketTitles()).thenReturn(List.of("0-13 reviews"));
+
+        assertEquals(200, cachingController.buckets().getStatusCode().value());
+        final ResponseEntity<?> cached =
+                (ResponseEntity<?>) cacheManager.getCache("one-day").get("buckets").get();
+        // A cached 304 would replay a bodyless response to clients that never sent the ETag.
+        assertEquals(200, cached.getStatusCode().value());
+        assertNotNull(cached.getBody());
+        assertEquals(200, cachingController.buckets().getStatusCode().value());
     }
 }

@@ -77,10 +77,9 @@ public class ReviewGameStateController {
     private static final String PRIVATE_LIVE = "private, max-age=60, must-revalidate";
     private static final String PRIVATE_HISTORICAL = "private, max-age=31536000, immutable";
 
-    // Cache only successful 200 bodies. These handlers build a 304 (or 4xx) that is
-    // specific to the *current* request's If-None-Match; caching that ResponseEntity
-    // would replay a bodyless 304 to clients that never sent a matching ETag. The
-    // 200 body is request-independent, so it remains safe to cache.
+    // Cache only successful 200 bodies: a request-specific 4xx/null result must never
+    // occupy a shared key. Conditional 304s are answered by Spring MVC from the returned
+    // 200 (see Etags), so the cached value stays request-independent.
     private static final String CACHE_ONLY_2XX =
             "#result == null || !#result.statusCode.is2xxSuccessful()";
 
