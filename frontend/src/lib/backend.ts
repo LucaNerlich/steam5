@@ -44,6 +44,37 @@ export function forwardedForHeaderValue(xff: string | null | undefined): Record<
 /** Default bound for an upstream proxy call: a stalled backend must not hold the route open. */
 export const BACKEND_TIMEOUT_MS = 10_000;
 
+export type BackendFetchOptions = {
+    /** `next.revalidate` window; omit for an uncached per-request read. */
+    revalidate?: number;
+    /** Cache tags for a revalidating fetch. */
+    tags?: string[];
+};
+
+/**
+ * Server-side backend GET for page prefetches: bounded, JSON, null on any failure.
+ * Returns the response headers too, since some pages relay a freshness header.
+ */
+export async function fetchBackendJson<T>(
+    path: string,
+    options: BackendFetchOptions = {},
+): Promise<{data: T | null; headers: Headers}> {
+    try {
+        const res = await fetch(`${BACKEND_ORIGIN}${path}`, {
+            headers: {accept: "application/json"},
+            ...(options.revalidate === undefined
+                ? {}
+                : {next: {revalidate: options.revalidate, ...(options.tags ? {tags: options.tags} : {})}}),
+            signal: AbortSignal.timeout(BACKEND_TIMEOUT_MS),
+        });
+        if (!res.ok) return {data: null, headers: res.headers};
+        return {data: await res.json() as T, headers: res.headers};
+    } catch {
+        // Build-time or backend outage: callers render their fallback.
+        return {data: null, headers: new Headers()};
+    }
+}
+
 export type ProxyOptions = {
     /** Backend path, query string included (e.g. `/api/leaderboard/all`). */
     path: string;

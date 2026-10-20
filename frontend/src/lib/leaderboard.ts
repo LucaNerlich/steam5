@@ -3,7 +3,7 @@
  * Used in Next.js server components to pre-fetch data with ISR caching.
  */
 
-import {BACKEND_ORIGIN} from "@/lib/backend";
+import {BACKEND_ORIGIN, fetchBackendJson} from "@/lib/backend";
 export {BACKEND_ORIGIN};
 
 /** Valid timeframe values for the achievements API */
@@ -19,17 +19,8 @@ export async function fetchLeaderboardData(
   endpoint: string,
   revalidate: number
 ): Promise<unknown | null> {
-  try {
-    const res = await fetch(`${BACKEND_ORIGIN}/api/leaderboard/${endpoint}`, {
-      headers: {"accept": "application/json"},
-      next: { revalidate },
-    });
-    if (!res.ok) return null;
-    return res.json();
-  } catch {
-    // Silently return null during build when backend is not available
-    return null;
-  }
+  const {data} = await fetchBackendJson<unknown>(`/api/leaderboard/${endpoint}`, {revalidate});
+  return data;
 }
 
 /** Shape returned by fetchAchievements */
@@ -65,20 +56,11 @@ export async function fetchAchievements(
   timeframe: AchievementTimeframe,
   revalidate: number
 ): Promise<AchievementsResult> {
-  try {
-    const res = await fetch(
-      `${BACKEND_ORIGIN}/api/stats/users/achievements?timeframe=${timeframe}`,
-      {
-        headers: {"accept": "application/json"},
-        next: { revalidate },
-      }
-    );
-    if (!res.ok) return { data: [] };
-    const data = await res.json();
-    return { data };
-  } catch {
-    return { data: [] };
-  }
+  const {data} = await fetchBackendJson<unknown[]>(
+    `/api/stats/users/achievements?timeframe=${timeframe}`,
+    {revalidate},
+  );
+  return {data: data ?? []};
 }
 
 /**
