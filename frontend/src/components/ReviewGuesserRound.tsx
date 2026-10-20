@@ -257,7 +257,17 @@ export default function ReviewGuesserRound({
 
     const submitError = state && !state.ok && stateForThisPick ? state.error : undefined;
     const shouldShowGuessControls = !(effectiveResponse || storedThisRound || prefilled);
-    const shareResults = !serverGuessesLoading && hasServerResults ? serverResults : undefined;
+    // A result only counts toward completion when it belongs to one of today's picks:
+    // after a regenerated pick set, round-index keys from the old games must not unlock
+    // comments or leak into the shared score.
+    const currentDayAppIds = new Set((dayGames ?? []).map(g => g.appId));
+    const validatedResults = Object.fromEntries(
+        Object.entries({...storedResults, ...mergedServerResults})
+            .filter(([, r]) => currentDayAppIds.size === 0 || currentDayAppIds.has((r as StoredRoundResult).appId))
+    ) as Record<number, StoredRoundResult>;
+    const shareResults = !serverGuessesLoading && Object.keys(validatedResults).length > 0
+        ? validatedResults
+        : undefined;
     return (
         <>
             {shouldShowGuessControls && (
