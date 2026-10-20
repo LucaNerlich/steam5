@@ -25,8 +25,8 @@ export default async function LeaderboardTodayPage() {
             <LeaderboardTable
                 mode="today"
                 refreshMs={60000}
-                initialData={leaderboardData as any}
-                initialAchievements={achievementsData as any}
+                initialData={leaderboardData}
+                initialAchievements={achievementsData}
             />
         </>
     );

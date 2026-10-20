@@ -12,21 +12,7 @@ import {
 import AchievementsTable from "@/components/AchievementsTable";
 import SortableTH from "@/components/SortableTH";
 import {fetchRefreshedJson, formatRefreshedAt} from "@/lib/leaderboard";
-
-type LeaderEntry = {
-    steamId: string;
-    personaName: string;
-    totalPoints: number;
-    rounds: number;
-    hits: number;
-    flops: number;
-    tooHigh: number;
-    tooLow: number;
-    avgPoints: number;
-    streak: number;
-    avatar?: string | null;
-    profileUrl?: string | null;
-};
+import type {LeaderEntry} from "@/lib/leaderboard";
 
 type Fetched = Awaited<ReturnType<typeof fetcher>>;
 const fetcher = (url: string) => fetchRefreshedJson<LeaderEntry[]>(url);
