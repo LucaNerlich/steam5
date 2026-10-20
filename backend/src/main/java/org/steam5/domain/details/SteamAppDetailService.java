@@ -115,6 +115,15 @@ public class SteamAppDetailService {
 
     @Transactional
     public void upsertFromJson(final Long appId, final JsonNode data) {
+        upsertFromJson(appId, data, true);
+    }
+
+    /**
+     * @param clearReviewGameAggregates when true, clears the whole {@code review-game} cache after
+     *                                  commit (single-app path). A bulk ingest passes false and
+     *                                  clears once after the loop instead of once per app.
+     */
+    public void upsertFromJson(final Long appId, final JsonNode data, final boolean clearReviewGameAggregates) {
         final Optional<SteamAppDetail> existing = repository.findById(appId);
         SteamAppDetail detail = existing.orElseGet(SteamAppDetail::new);
         detail.setAppId(appId);
@@ -291,19 +300,25 @@ public class SteamAppDetailService {
         // the transaction is still open lets a concurrent reader miss the cache in the
         // evict-to-commit window and re-populate it from the pre-update rows, which then stick
         // for the cache's full TTL. Mirrors CommentService.evictCommentsForDayAfterCommit.
-        evictAppDetailAfterCommit(appId);
+        evictAppDetailAfterCommit(appId, clearReviewGameAggregates);
     }
 
-    private void evictAppDetailAfterCommit(long appId) {
+    private void evictAppDetailAfterCommit(long appId, boolean clearReviewGameAggregates) {
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override
                 public void afterCommit() {
-                    cacheEvictor.evictAppDetail(appId);
+                    if (clearReviewGameAggregates) {
+                        cacheEvictor.evictAppDetail(appId);
+                    } else {
+                        cacheEvictor.evictAppDetailEntry(appId);
+                    }
                 }
             });
-        } else {
+        } else if (clearReviewGameAggregates) {
             cacheEvictor.evictAppDetail(appId);
+        } else {
+            cacheEvictor.evictAppDetailEntry(appId);
         }
     }
 }

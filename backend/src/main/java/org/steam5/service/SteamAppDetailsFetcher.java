@@ -28,14 +28,16 @@ public class SteamAppDetailsFetcher implements Fetcher {
     private final IngestStateRepository ingestStateRepository;
     private final SteamAppIndexRepository appIndexRepository;
     private final SteamAppDetailService service;
+    private final DomainCacheEvictor cacheEvictor;
     private final JobsConfig jobsConfig;
 
-    public SteamAppDetailsFetcher(final SteamAppsConfig properties, final JsonHttpClient jsonHttpClient, final IngestStateRepository ingestStateRepository, final SteamAppIndexRepository appIndexRepository, final SteamAppDetailService service, final JobsConfig jobsConfig) {
+    public SteamAppDetailsFetcher(final SteamAppsConfig properties, final JsonHttpClient jsonHttpClient, final IngestStateRepository ingestStateRepository, final SteamAppIndexRepository appIndexRepository, final SteamAppDetailService service, final DomainCacheEvictor cacheEvictor, final JobsConfig jobsConfig) {
         this.properties = properties;
         this.jsonHttpClient = jsonHttpClient;
         this.ingestStateRepository = ingestStateRepository;
         this.appIndexRepository = appIndexRepository;
         this.service = service;
+        this.cacheEvictor = cacheEvictor;
         this.jobsConfig = jobsConfig;
     }
 
@@ -82,7 +84,10 @@ public class SteamAppDetailsFetcher implements Fetcher {
                 // Bail out immediately on any HTTP error such as 429: the cursor is
                 // deliberately NOT advanced (see the upsert below), so the failed app is
                 // retried on the next run instead of being skipped forever.
-                fetchForAppId(appId);
+                // Bulk path: skip the aggregate cache clear per app (it would thrash the
+                // whole review-game cache up to batchLimit times per run); the cache is
+                // cleared once after the loop below.
+                fetchForAppId(appId, false);
                 // advance cursor only on success so transient failures are retried
                 ingestStateRepository.upsert("steam_app_details", appId, OffsetDateTime.now());
                 processed++;
@@ -91,10 +96,22 @@ public class SteamAppDetailsFetcher implements Fetcher {
             more = page.hasNext() && processed < batchLimit;
         }
 
+        if (processed > 0) {
+            cacheEvictor.evictReviewGameState();
+        }
         log.info("Details ingestion finished. processed={} batchLimit={} starting_after={}", processed, batchLimit, effectiveLastAppId);
     }
 
     public boolean fetchForAppId(final Long appId) throws IOException {
+        return fetchForAppId(appId, true);
+    }
+
+    /**
+     * @param clearReviewGameAggregates when true, clears the whole {@code review-game} cache after
+     *                                  the upsert (single-app path). The bulk ingest passes false
+     *                                  and clears once after the loop.
+     */
+    public boolean fetchForAppId(final Long appId, final boolean clearReviewGameAggregates) throws IOException {
         final String url = UriComponentsBuilder.fromUriString("https://store.steampowered.com/api/appdetails")
                 .queryParam("appids", appId)
                 .queryParam("key", properties.getApiKey())
@@ -114,7 +131,7 @@ public class SteamAppDetailsFetcher implements Fetcher {
             return false;
         }
 
-        service.upsertFromJson(appId, data);
+        service.upsertFromJson(appId, data, clearReviewGameAggregates);
         return true;
     }
 }
