@@ -17,16 +17,15 @@ import {BACKEND_ORIGIN as backend} from "@/lib/backend";
 export const revalidate = 31536000;
 
 async function loadArchived(date: string): Promise<ReviewGameState | null> {
-    try {
-        const res = await fetch(`${backend}/api/review-game/day/${encodeURIComponent(date)}`, {
-            headers: {"accept": "application/json"},
-            next: {revalidate: 31536000},
-        });
-        if (!res.ok) return null;
-        return res.json();
-    } catch {
-        return null;
-    }
+    const res = await fetch(`${backend}/api/review-game/day/${encodeURIComponent(date)}`, {
+        headers: {"accept": "application/json"},
+        next: {revalidate: 31536000},
+    });
+    // Only a real 404 means the day does not exist; a 5xx/timeout must reach the error
+    // boundary instead of teaching crawlers that a valid archive URL is gone.
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error(`Failed to load archive day ${date} (${res.status})`);
+    return res.json();
 }
 
 type DayAnswer = { appId: number; totalReviews: number; actualBucket: string };

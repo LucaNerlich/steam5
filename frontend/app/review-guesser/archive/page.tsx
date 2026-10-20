@@ -11,18 +11,16 @@ const ARCHIVE_DAY_LIST_LIMIT = 5000;
 export const revalidate = 86400;
 
 async function loadDays(): Promise<string[]> {
-    try {
-        const res = await fetch(`${backend}/api/review-game/days?limit=${ARCHIVE_DAY_LIST_LIMIT}`, {
-            headers: {'accept': 'application/json'},
-            next: {revalidate: ONE_DAY_REVALIDATE_SECONDS},
-        });
-        if (!res.ok) return [];
-        const data: unknown = await res.json();
-        if (!Array.isArray(data)) return [];
-        return data.filter((date): date is string => typeof date === "string");
-    } catch {
-        return [];
-    }
+    const res = await fetch(`${backend}/api/review-game/days?limit=${ARCHIVE_DAY_LIST_LIMIT}`, {
+        headers: {'accept': 'application/json'},
+        next: {revalidate: ONE_DAY_REVALIDATE_SECONDS},
+    });
+    // An outage is not "no archive days": throwing renders the error boundary instead
+    // of a permanent empty state that a crawler would cache.
+    if (!res.ok) throw new Error(`Failed to load archive days (${res.status})`);
+    const data: unknown = await res.json();
+    if (!Array.isArray(data)) throw new Error('Unexpected archive days payload');
+    return data.filter((date): date is string => typeof date === "string");
 }
 
 async function loadBuckets(): Promise<{ buckets: string[]; bucketTitles: string[] }> {

@@ -24,26 +24,17 @@ const decimalFormatter = new Intl.NumberFormat(undefined, {maximumFractionDigits
 const percentFormatter = new Intl.NumberFormat(undefined, {style: "percent", maximumFractionDigits: 1});
 
 async function fetchSeasonDetail(seasonNumber: string): Promise<SeasonDetailResponse | null> {
-    try {
-        const res = await fetch(`${backend}/api/seasons/${encodeURIComponent(seasonNumber)}`, {
-            headers: {"accept": "application/json"},
-            next: {
-                revalidate: 600,
-                tags: [`season-detail-${seasonNumber}`]
-            }
-        });
-        if (res.status === 404) {
-            return null;
+    const res = await fetch(`${backend}/api/seasons/${encodeURIComponent(seasonNumber)}`, {
+        headers: {"accept": "application/json"},
+        next: {
+            revalidate: 600,
+            tags: [`season-detail-${seasonNumber}`]
         }
-        if (!res.ok) {
-            console.error(`Failed to load season ${seasonNumber} (${res.status})`);
-            return null;
-        }
-        return res.json() as Promise<SeasonDetailResponse>;
-    } catch (error) {
-        console.error(`Error fetching season ${seasonNumber}`, error);
-        return null;
-    }
+    });
+    // null is reserved for a missing season; an outage must render the error boundary.
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error(`Failed to load season ${seasonNumber} (${res.status})`);
+    return res.json() as Promise<SeasonDetailResponse>;
 }
 
 type MetadataParams = {
