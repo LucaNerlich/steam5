@@ -6,6 +6,15 @@ type FontChoice = "krypton" | "neon" | 'argon' | 'radon' | 'xenon' | 'space' | '
 
 const emptySubscribe = () => () => {};
 
+function readStoredFont(): string | null {
+    try {
+        return window.localStorage.getItem('font-family-choice');
+    } catch {
+        // Site data blocked: fall back to the default font instead of aborting hydration.
+        return null;
+    }
+}
+
 export default function FontToggle() {
     // Gate rendering on hydration without a synchronous setState in an effect (which
     // the React Compiler can't optimize): useSyncExternalStore serves the server
@@ -13,7 +22,7 @@ export default function FontToggle() {
     const mounted = useSyncExternalStore(emptySubscribe, () => true, () => false);
     const [font, setFont] = useState<FontChoice>(() => {
         if (typeof window === 'undefined') return 'krypton';
-        const stored = window.localStorage.getItem('font-family-choice');
+        const stored = readStoredFont();
         switch (stored) {
             case 'neon':
             case 'argon':
@@ -34,9 +43,13 @@ export default function FontToggle() {
         if (font === 'krypton') root.removeAttribute('data-font');
         else root.setAttribute('data-font', font);
         // persist only when actually changed
-        const current = window.localStorage.getItem('font-family-choice');
+        const current = readStoredFont();
         if (current !== font) {
-            window.localStorage.setItem('font-family-choice', font);
+            try {
+                window.localStorage.setItem('font-family-choice', font);
+            } catch {
+                // Persistence unavailable; the selected font still applies for this visit.
+            }
         }
     }, [font]);
 
