@@ -1,12 +1,12 @@
 "use client";
 
 import React, {useEffect, useState} from "react";
+import useStoredDay, {notifyStoredDayChanged} from "@/components/round/useStoredDay";
 import Link from "next/link";
 import RoundResultDialog from "@/components/RoundResultDialog";
 import RoundResultActions from "@/components/RoundResultActions";
 import type {GuessResponse} from "@/types/review-game";
-import {loadDay, saveRound, type StoredDay} from "@/lib/storage";
-import {notifyStoredDayChanged} from "@/components/round/useStoredDay";
+import {saveRound} from "@/lib/storage";
 import {QuestionIcon} from "@phosphor-icons/react/ssr";
 import {Routes} from "../../app/routes";
 import "@/styles/components/reviewGuesserRound.css";
@@ -31,28 +31,19 @@ export default function ArchiveOfflineRound(props: Readonly<Props>): React.React
     // persisted local progress is loaded after mount to avoid a hydration mismatch.
     const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
     const [submitted, setSubmitted] = useState<boolean>(false);
-    const [stored, setStored] = useState<StoredDay | null>(null);
+    // Shared store: a reset elsewhere clears it, so this card learns about the reset too.
+    const stored = useStoredDay(gameDate);
 
     useEffect(() => {
-        // localStorage isn't available during SSR, and reading it during render would
-        // mismatch the server HTML — so load after mount. The updates are deferred to
-        // a microtask so the effect doesn't synchronously cascade an extra render.
-        let cancelled = false;
-        queueMicrotask(() => {
-            if (cancelled) return;
-            const d = loadDay(gameDate);
-            if (!d) return;
-            setStored(d);
-            const existing = d.results?.[roundIndex];
-            if (existing?.selectedLabel) {
-                setSelectedLabel(existing.selectedLabel);
-                setSubmitted(true);
-            }
-        });
-        return () => {
-            cancelled = true;
-        };
-    }, [gameDate, roundIndex]);
+        const existing = stored?.results?.[roundIndex];
+        if (existing?.selectedLabel) {
+            setSelectedLabel(existing.selectedLabel);
+            setSubmitted(true);
+        } else {
+            setSelectedLabel(null);
+            setSubmitted(false);
+        }
+    }, [stored, roundIndex]);
 
     const prevHref = roundIndex > 1 ? `#round-${roundIndex - 1}` : null;
     const nextHref = roundIndex < totalRounds ? `#round-${roundIndex + 1}` : null;
@@ -80,8 +71,7 @@ export default function ArchiveOfflineRound(props: Readonly<Props>): React.React
             totalReviews: offlineAnswer.totalReviews,
             correct: offlineAnswer.actualBucket === label,
         };
-        const updated = saveRound(gameDate, roundIndex, totalRounds, result);
-        if (updated) setStored(updated);
+        saveRound(gameDate, roundIndex, totalRounds, result);
         // The shared store backs the reset controls on this page; without this notification they
         // still showed "no progress" until a reload or navigation.
         notifyStoredDayChanged();
