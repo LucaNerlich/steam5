@@ -22,19 +22,19 @@ export default function BiasBadge({rounds}: { rounds: Round[] }): React.ReactEle
         if (hp > 45) return {
             message: "You tend to guess too high",
             detail: `${hp}% of guesses overshoot the actual price range`,
-            color: "var(--color-warning, #f59e0b)",
+            color: "var(--color-warning)",
             kind: "high", highPct: hp, lowPct: lp, hitPct: htp,
         };
         if (lp > 45) return {
             message: "You tend to guess too low",
             detail: `${lp}% of guesses undershoot the actual price range`,
-            color: "var(--color-danger, #ef4444)",
+            color: "var(--color-danger)",
             kind: "low", highPct: hp, lowPct: lp, hitPct: htp,
         };
         return {
             message: "Your guesses are well balanced",
             detail: `${htp}% hit rate across ${total} rounds`,
-            color: "var(--color-success, #16a34a)",
+            color: "var(--color-success-text)",
             kind: "balanced", highPct: hp, lowPct: lp, hitPct: htp,
         };
     })();
@@ -66,20 +66,20 @@ export default function BiasBadge({rounds}: { rounds: Round[] }): React.ReactEle
                           fill="var(--color-border)" fillOpacity="0.3"/>
                     {/* Stacked segments */}
                     <rect x={barX} y={barY} width={hW} height={barH} rx={3}
-                          fill="var(--color-warning, #f59e0b)" fillOpacity="0.85"/>
+                          fill="var(--color-warning)" fillOpacity="0.85"/>
                     <rect x={barX + hW} y={barY} width={htW} height={barH}
-                          fill="var(--color-success, #16a34a)" fillOpacity="0.85"/>
+                          fill="var(--color-success)" fillOpacity="0.85"/>
                     <rect x={barX + hW + htW} y={barY} width={lW} height={barH}
-                          fill="var(--color-danger, #ef4444)" fillOpacity="0.85"
+                          fill="var(--color-danger)" fillOpacity="0.85"
                           style={{borderRadius: "0 3px 3px 0"}}/>
                     {/* Labels */}
-                    <text x={2} y={barY - 4} fontSize="9" fill="var(--color-warning, #f59e0b)">
+                    <text x={2} y={barY - 4} fontSize="9" fill="var(--color-warning)">
                         Too high {highPct}%
                     </text>
-                    <text x={WIDTH / 2} y={barY - 4} fontSize="9" fill="var(--color-success, #16a34a)" textAnchor="middle">
+                    <text x={WIDTH / 2} y={barY - 4} fontSize="9" fill="var(--color-success-text)" textAnchor="middle">
                         Hit {hitPct}%
                     </text>
-                    <text x={WIDTH - 2} y={barY - 4} fontSize="9" fill="var(--color-danger, #ef4444)" textAnchor="end">
+                    <text x={WIDTH - 2} y={barY - 4} fontSize="9" fill="var(--color-danger)" textAnchor="end">
                         Too low {lowPct}%
                     </text>
                 </svg>

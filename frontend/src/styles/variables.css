@@ -14,6 +14,10 @@
     /* Ink for the primary fill; the dark theme's primary is a light blue. */
     --color-on-primary: oklch(1 0 0);
     --color-success: oklch(0.6271 0.1699 149.21);
+    /* Text-safe status inks: fills above are too light to read on the surface. */
+    --color-success-text: oklch(0.52 0.15 149.21);
+    --color-danger: var(--color-error);
+    --color-warning: oklch(0.55 0.16 55);
     --color-score-close: oklch(0.78 0.16 90);
     --color-score-near: oklch(0.7 0.16 55);
     --color-error: oklch(0.5771 0.2152 27.33);
@@ -32,6 +36,9 @@ html[data-theme='dark'] {
     --color-on-primary: oklch(0.182 0 0);
     --color-accent: oklch(0.8369 0.1644 84.43);
     --color-success: oklch(0.7227 0.192 149.58);
+    --color-success-text: var(--color-success);
+    --color-danger: var(--color-error);
+    --color-warning: oklch(0.82 0.16 70);
     --color-score-close: oklch(0.84 0.14 95);
     --color-score-near: oklch(0.78 0.15 60);
     --color-error: oklch(0.6368 0.2078 25.33);

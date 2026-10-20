@@ -265,11 +265,11 @@
 }
 
 .bucket-callout__label--success {
-    color: var(--color-success, #16a34a);
+    color: var(--color-success-text);
 }
 
 .bucket-callout__label--danger {
-    color: var(--color-danger, #ef4444);
+    color: var(--color-danger);
 }
 
 .bucket-callout__rounds {
@@ -286,8 +286,9 @@
     flex: 1;
     height: 0.75rem;
     border-radius: 2px;
-    background: var(--color-border);
-    opacity: 0.3;
+    /* Mix the track instead of setting opacity on the parent: parent opacity would also
+       multiply the child fill's own opacity. */
+    background: color-mix(in srgb, var(--color-border) 30%, transparent);
     overflow: hidden;
     min-width: 0;
 }
