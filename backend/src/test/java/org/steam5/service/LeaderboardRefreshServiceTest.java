@@ -71,6 +71,16 @@ class LeaderboardRefreshServiceTest {
     }
 
     @Test
+    void enumViewNamesAreTheExpectedLiterals() {
+        assertEquals("mv_leaderboard_all_time", LeaderboardType.ALL_TIME.viewName());
+        assertEquals("mv_leaderboard_monthly", LeaderboardType.MONTHLY.viewName());
+        assertEquals("mv_leaderboard_weekly", LeaderboardType.WEEKLY.viewName());
+        assertEquals("mv_leaderboard_season", LeaderboardType.SEASON.viewName());
+        assertEquals("mv_hardest_games", LeaderboardType.HARDEST_GAMES.viewName());
+        assertEquals("mv_perfect_days", LeaderboardType.PERFECT_DAYS.viewName());
+    }
+
+    @Test
     void everyTypeUsesItsWhitelistedViewName() {
         when(leaderboardMvRepository.isPopulated(anyString())).thenReturn(true);
 

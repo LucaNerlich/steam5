@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.quartz.*;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
+import org.steam5.domain.LeaderboardType;
 import org.steam5.domain.Season;
 import org.steam5.service.DomainCacheEvictor;
 import org.steam5.service.LeaderboardRefreshService;
@@ -54,7 +55,7 @@ public class SeasonFinalizerJob implements Job {
             // which /season could serve the previous season's standings under the new
             // season's cache key (LeaderboardController#season keys its manual cache by
             // season number, which already flipped above).
-            leaderboardRefreshService.refresh(org.steam5.domain.LeaderboardType.SEASON);
+            leaderboardRefreshService.refresh(LeaderboardType.SEASON);
         } catch (Exception ex) {
             log.error("Season finalization failed", ex);
             // Rethrow so Quartz records the failure: a failed season rollover
@@ -63,7 +64,7 @@ public class SeasonFinalizerJob implements Job {
             throw new JobExecutionException(ex, false);
         } finally {
             // Unconditional, matching LeaderboardRefreshJob's pattern: cheap and harmless even
-            // if refreshSeason() above failed or wasn't reached, and prevents a request that
+            // if the season refresh above failed or wasn't reached, and prevents a request that
             // populated the leaderboard-static cache from an overnight-stale MV (e.g. just
             // before this job fired) from pairing stale entries with a fresher
             // X-Leaderboard-Refreshed-At header until the cache's own TTL clears it.
