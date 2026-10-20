@@ -1,31 +1,14 @@
 import {NextRequest, NextResponse} from "next/server";
 import {cookies} from "next/headers";
-import {BACKEND_ORIGIN, BACKEND_TIMEOUT_MS, bearerAuthHeaders, forwardedForHeaders} from "@/lib/backend";
-
+import {proxyBackendJson} from "@/lib/backend";
 
 export async function GET(req: NextRequest) {
     const token = (await cookies()).get('s5_token')?.value;
     if (!token) return NextResponse.json([], {status: 200, headers: {"Cache-Control": "private, no-store"}});
-    const auth = bearerAuthHeaders(token);
-    if (!auth) return NextResponse.json({error: "Backend origin not allowed"}, {status: 503, headers: {"Cache-Control": "private, no-store"}});
-    try {
-        const res = await fetch(`${BACKEND_ORIGIN}/api/review-game/my/today`, {
-            headers: {"accept": "application/json", ...auth, ...forwardedForHeaders(req)},
-            cache: 'no-store',
-            signal: AbortSignal.timeout(BACKEND_TIMEOUT_MS)
-        });
-        if (!res.ok) {
-            // Backend error: pass the payload through with the upstream status,
-            // falling back to a generic error body when it isn't JSON.
-            const errorBody: unknown = await res.json().catch(() => null);
-            return NextResponse.json(errorBody ?? {error: "Failed to load today's guesses"}, {status: res.status, headers: {"Cache-Control": "private, no-store"}});
-        }
-        const data = await res.json();
-        return NextResponse.json(data, {status: res.status, headers: {"Cache-Control": "private, no-store"}});
-    } catch (e) {
-        console.error(e);
-        return NextResponse.json({error: "Failed to load today's guesses"}, {status: 502, headers: {"Cache-Control": "private, no-store"}});
-    }
+    return proxyBackendJson(req, {
+        path: "/api/review-game/my/today",
+        bearerToken: token,
+        privateNoStore: true,
+        errorMessage: "Failed to load today's guesses",
+    });
 }
-
-

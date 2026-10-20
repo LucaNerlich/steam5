@@ -98,7 +98,7 @@ describe('proxyBackendJson', () => {
         });
 
         expect(res.status).toBe(500);
-        expect(res.headers.get('cache-control')).toBeNull();
+        expect(res.headers.get('cache-control')).toBe('no-store');
     });
 
     it('applies the route Cache-Control to a successful response', async () => {

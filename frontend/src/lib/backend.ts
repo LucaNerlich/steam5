@@ -59,6 +59,12 @@ export type ProxyOptions = {
     cacheControl?: string;
     /** Bound for the upstream call; defaults to {@link BACKEND_TIMEOUT_MS}. */
     timeoutMs?: number;
+    /** Session token to send as a bearer header; the trusted-origin gate runs first. */
+    bearerToken?: string;
+    /** Send `Cache-Control: private, no-store` on both success and error. */
+    privateNoStore?: boolean;
+    /** `Cache-Control` for an error response; defaults to `no-store`. */
+    errorCacheControl?: string;
 };
 
 /**
@@ -79,9 +85,22 @@ export async function proxyBackendJson(req: NextRequest, options: ProxyOptions):
         errorMessage,
         cacheControl,
         timeoutMs = BACKEND_TIMEOUT_MS,
+        bearerToken,
+        privateNoStore,
+        errorCacheControl = "no-store",
     } = options;
 
     const headers: Record<string, string> = {accept: "application/json"};
+    if (bearerToken) {
+        const auth = bearerAuthHeaders(bearerToken);
+        if (!auth) {
+            return NextResponse.json({error: errorMessage}, {
+                status: 503,
+                headers: {"Cache-Control": "private, no-store"},
+            });
+        }
+        Object.assign(headers, auth);
+    }
     if (revalidate === undefined) {
         Object.assign(headers, forwardedForHeaders(req));
     }
@@ -104,11 +123,13 @@ export async function proxyBackendJson(req: NextRequest, options: ProxyOptions):
             // when it is not JSON. Errors are logged once and never publicly cacheable.
             const errorBody: unknown = await res.json().catch(() => null);
             console.error(`[proxy] ${path} responded ${res.status}`);
+            relayed["Cache-Control"] = privateNoStore ? "private, no-store" : errorCacheControl;
             return NextResponse.json(errorBody ?? {error: errorMessage}, {status: res.status, headers: relayed});
         }
 
         const data = await res.json();
-        if (cacheControl) relayed["Cache-Control"] = cacheControl;
+        if (privateNoStore) relayed["Cache-Control"] = "private, no-store";
+        else if (cacheControl) relayed["Cache-Control"] = cacheControl;
         return NextResponse.json(data, {status: res.status, headers: relayed});
     } catch (error) {
         console.error(`[proxy] ${path} failed`, error);
