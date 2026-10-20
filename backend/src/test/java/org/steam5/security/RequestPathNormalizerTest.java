@@ -1,11 +1,14 @@
 package org.steam5.security;
 
+import jakarta.servlet.FilterChain;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpServletResponse;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
 
 class RequestPathNormalizerTest {
 
@@ -75,5 +78,50 @@ class UserSearchRateLimitFilterTest {
         final MockHttpServletRequest req = new MockHttpServletRequest("GET", "/api/users/%73earch");
         req.setRequestURI("/api/users/%73earch");
         assertFalse(filter.shouldNotFilter(req));
+    }
+}
+
+
+class PathRateLimitFilterTest {
+
+    private final PathRateLimitFilter filter = new PathRateLimitFilter();
+    private final FilterChain chain = mock(FilterChain.class);
+
+    private static MockHttpServletRequest req(String path, String method) {
+        final MockHttpServletRequest request = new MockHttpServletRequest(method, path);
+        request.setRequestURI(path);
+        request.setRemoteAddr("203.0.113.7");
+        return request;
+    }
+
+    @Test
+    void skipsOptionsPreflightsForEveryRule() {
+        assertTrue(filter.shouldNotFilter(req("/api/users/search", "OPTIONS")));
+        assertTrue(filter.shouldNotFilter(req("/api/profile/1", "OPTIONS")));
+        assertTrue(filter.shouldNotFilter(req("/api/auth/validate", "OPTIONS")));
+    }
+
+    @Test
+    void searchIsLimitedToThirtyPerMinuteWithTheShared429Body() throws Exception {
+        for (int i = 0; i < 30; i++) {
+            filter.doFilterInternal(req("/api/users/search", "GET"), new MockHttpServletResponse(), chain);
+        }
+        final MockHttpServletResponse limited = new MockHttpServletResponse();
+        filter.doFilterInternal(req("/api/users/search", "GET"), limited, chain);
+
+        assertEquals(429, limited.getStatus());
+        assertEquals("application/json", limited.getContentType());
+        assertEquals("{\"error\":\"rate_limit_exceeded\"}", limited.getContentAsString());
+    }
+
+    @Test
+    void exhaustingOneRuleDoesNotLimitAnother() throws Exception {
+        for (int i = 0; i < 31; i++) {
+            filter.doFilterInternal(req("/api/users/search", "GET"), new MockHttpServletResponse(), chain);
+        }
+        final MockHttpServletResponse profile = new MockHttpServletResponse();
+        filter.doFilterInternal(req("/api/profile/76561198000000000", "GET"), profile, chain);
+
+        assertEquals(200, profile.getStatus());
     }
 }
