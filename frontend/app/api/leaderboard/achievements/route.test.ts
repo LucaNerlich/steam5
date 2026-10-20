@@ -22,6 +22,27 @@ describe('GET achievements timeframe', () => {
         expect((init.next as {revalidate: number}).revalidate).toBe(3600);
     });
 
+    it('maps the backend today alias to daily', async () => {
+        const fetchMock = vi.fn(async () => NextResponse.json([]));
+        vi.stubGlobal('fetch', fetchMock);
+
+        await GET(req('today'));
+
+        const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+        expect(url).toContain('timeframe=daily');
+        expect((init.next as {revalidate: number}).revalidate).toBe(300);
+    });
+
+    it('lowercases a case variant', async () => {
+        const fetchMock = vi.fn(async () => NextResponse.json([]));
+        vi.stubGlobal('fetch', fetchMock);
+
+        await GET(req('DAILY'));
+
+        const [url] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+        expect(url).toContain('timeframe=daily');
+    });
+
     it('normalizes an unknown timeframe to all-time instead of minting a 24h key', async () => {
         const fetchMock = vi.fn(async () => NextResponse.json([]));
         vi.stubGlobal('fetch', fetchMock);

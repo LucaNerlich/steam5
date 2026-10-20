@@ -5,9 +5,10 @@ import {proxyBackendJson} from "@/lib/backend";
 export const revalidate = 300;
 
 export async function GET(request: NextRequest) {
-    const requested = request.nextUrl.searchParams.get('timeframe') || 'all';
-    // Unknown values must not become unbounded 24h cache keys; backend maps them to all-time.
-    const timeframe = ['daily', 'weekly', 'season', 'monthly', 'all'].includes(requested) ? requested : 'all';
+    const requested = (request.nextUrl.searchParams.get('timeframe') || 'all').toLowerCase();
+    // The backend's "today" alias means daily; unknown values must not mint unbounded 24h keys.
+    const normalized = requested === 'today' ? 'daily' : requested;
+    const timeframe = ['daily', 'weekly', 'season', 'monthly', 'all'].includes(normalized) ? normalized : 'all';
     // Match backend Caffeine TTLs: 5min daily, 1hr weekly/season/monthly, 24hr all-time
     const cacheTime = timeframe === 'daily'
         ? 300
