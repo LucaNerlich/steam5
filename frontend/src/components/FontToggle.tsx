@@ -6,7 +6,7 @@ type FontChoice = "krypton" | "neon" | 'argon' | 'radon' | 'xenon' | 'space' | '
 
 const emptySubscribe = () => () => {};
 
-function readStoredFont(): string | null {
+export function readStoredFont(): string | null {
     try {
         return window.localStorage.getItem('font-family-choice');
     } catch {

@@ -6,7 +6,7 @@ type Theme = "light" | "dark";
 
 let currentTheme: Theme = "light";
 
-function readStoredTheme(): string | null {
+export function readStoredTheme(): string | null {
     try {
         return window.localStorage.getItem("theme");
     } catch {
@@ -15,9 +15,9 @@ function readStoredTheme(): string | null {
     }
 }
 
-function writeStoredTheme(theme: Theme): void {
+export function writeStoredTheme(theme: Theme): void {
     try {
-        writeStoredTheme(theme);
+        window.localStorage.setItem("theme", theme);
     } catch {
         // Keep the in-memory theme; only persistence is unavailable.
     }
