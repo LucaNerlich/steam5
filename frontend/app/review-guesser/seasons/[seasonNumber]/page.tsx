@@ -23,7 +23,7 @@ const numberFormatter = new Intl.NumberFormat();
 const decimalFormatter = new Intl.NumberFormat(undefined, {maximumFractionDigits: 2});
 const percentFormatter = new Intl.NumberFormat(undefined, {style: "percent", maximumFractionDigits: 1});
 
-async function fetchSeasonDetail(seasonNumber: string): Promise<SeasonDetailResponse | null> {
+export async function fetchSeasonDetail(seasonNumber: string): Promise<SeasonDetailResponse | null> {
     const res = await fetch(`${backend}/api/seasons/${encodeURIComponent(seasonNumber)}`, {
         headers: {"accept": "application/json"},
         next: {
