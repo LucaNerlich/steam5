@@ -10,6 +10,9 @@ import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.steam5.domain.GameDate;
 import org.steam5.domain.Guess;
 import org.steam5.domain.ReviewGamePick;
@@ -36,15 +39,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
  * Covers the cache-safety fixes:
  * <ul>
  *   <li>Per-user endpoints (/my/today, /my/day) must return {@code private} so a
  *       shared/CDN cache can never serve one user's guesses to another.</li>
- *   <li>The conditional handlers must compute 304/200 per request, and the
+ *   <li>Spring MVC must compute 304/200 per request from the returned ETag, and the
  *       {@code @Cacheable(unless = ...)} expression must skip caching any non-2xx
- *       response so a bodyless 304 is never replayed to a non-conditional client.</li>
+ *       response so a bodyless 304 can never enter the cache.</li>
  * </ul>
  */
 public class ReviewGameStateControllerCacheTest {
@@ -140,31 +145,43 @@ public class ReviewGameStateControllerCacheTest {
         assertFalse(cc.contains("public"));
     }
 
-    // --- Finding 1: per-request 304/200 negotiation ---
+    // --- Finding 1: Spring MVC answers 304 from the returned 200, so no handler
+    // variant can ever be stored by the cache interceptor ---
 
     @Test
-    void todayDetails_negotiates304PerRequest() {
+    void todayDetails_alwaysReturns200WithEtag() {
         final SteamAppDetail detail = mock(SteamAppDetail.class);
         when(detail.getAppId()).thenReturn(42L);
         when(service.generateDailyPicks())
                 .thenReturn(List.of(new ReviewGamePick(1L, LocalDate.now(), 42L, OffsetDateTime.now())));
         when(detailService.findAllByAppIdIn(anyList())).thenReturn(List.of(detail));
 
-        // No If-None-Match -> 200 with body + ETag + live (public) cache header.
-        final ResponseEntity<List<SteamAppDetail>> ok = controller.getTodayDetails(new HttpHeaders());
+        final ResponseEntity<List<SteamAppDetail>> ok = controller.getTodayDetails();
         assertEquals(200, ok.getStatusCode().value());
         assertNotNull(ok.getBody());
         assertEquals(1, ok.getBody().size());
         assertEquals("public, s-maxage=1800, max-age=60, must-revalidate", ok.getHeaders().getCacheControl());
-        final String etag = ok.getHeaders().getETag();
+        assertNotNull(ok.getHeaders().getETag());
+    }
+
+    @Test
+    void buckets_negotiates304PerRequestViaMvc() throws Exception {
+        when(service.getBucketLabels()).thenReturn(List.of("1-13"));
+        when(service.getBucketTitles()).thenReturn(List.of("0-13 reviews"));
+        final MockMvc mvc = MockMvcBuilders.standaloneSetup(controller).build();
+
+        final MvcResult first = mvc.perform(get("/api/review-game/buckets"))
+                .andExpect(status().isOk())
+                .andReturn();
+        final String etag = first.getResponse().getHeader(HttpHeaders.ETAG);
         assertNotNull(etag);
 
-        // Matching If-None-Match -> 304 with no body (built fresh from the request).
-        final HttpHeaders conditional = new HttpHeaders();
-        conditional.set(HttpHeaders.IF_NONE_MATCH, etag);
-        final ResponseEntity<List<SteamAppDetail>> notModified = controller.getTodayDetails(conditional);
-        assertEquals(304, notModified.getStatusCode().value());
-        assertNull(notModified.getBody());
+        mvc.perform(get("/api/review-game/buckets").header(HttpHeaders.IF_NONE_MATCH, etag))
+                .andExpect(status().isNotModified());
+
+        // A plain request after the conditional one still gets the body.
+        mvc.perform(get("/api/review-game/buckets"))
+                .andExpect(status().isOk());
     }
 
     // --- Finding 1: the @Cacheable(unless) expression must skip caching non-2xx ---
@@ -231,14 +248,14 @@ public class ReviewGameStateControllerCacheTest {
     @Test
     void getToday_cacheKeyEmbedsTodayUtcDate() throws Exception {
         assertEquals("today-picks:" + GameDate.todayUtc(),
-                evalCacheKey("getToday", HttpHeaders.class),
+                evalCacheKey("getToday"),
                 "the /today cache key must be scoped to the UTC date, not a static 'picks' key");
     }
 
     @Test
     void getTodayDetails_cacheKeyEmbedsTodayUtcDate() throws Exception {
         assertEquals("today-details:" + GameDate.todayUtc(),
-                evalCacheKey("getTodayDetails", HttpHeaders.class),
+                evalCacheKey("getTodayDetails"),
                 "the /today/details cache key must be scoped to the UTC date");
     }
 
@@ -260,7 +277,7 @@ public class ReviewGameStateControllerCacheTest {
 
     @Test
     void listDays_cacheKeyIncludesTheClampedLimit() throws Exception {
-        final Class<?>[] signature = {int.class, HttpHeaders.class};
+        final Class<?>[] signature = {int.class};
 
         assertEquals("days:5", evalCacheKeyWithVars("listDays", Map.of("limit", 5), signature));
         assertNotEquals(

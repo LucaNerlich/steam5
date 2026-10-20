@@ -7,7 +7,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -134,18 +133,11 @@ public class ReviewGameStateController {
     // The body depends on `limit`, so the clamped limit is part of the key; a constant
     // key let a 5-day request and a 3650-day request (the sitemap) share one entry.
     @Cacheable(value = "review-game", key = "'days:' + T(Math).max(1, T(Math).min(#limit, 3650))", unless = CACHE_ONLY_2XX)
-    public ResponseEntity<List<String>> listDays(@RequestParam(value = "limit", defaultValue = "60") int limit,
-                                                 @RequestHeader HttpHeaders headers) {
+    public ResponseEntity<List<String>> listDays(@RequestParam(value = "limit", defaultValue = "60") int limit) {
         final int capped = Math.max(1, Math.min(limit, 3650));
         final List<LocalDate> dates = pickRepository.listDistinctPickDates(PageRequest.of(0, capped));
         final List<String> out = dates.stream().map(LocalDate::toString).toList();
         final String etag = weakEtagForStringLists(java.util.List.of(out));
-        if (etag != null && headers.getIfNoneMatch().contains(etag)) {
-            return ResponseEntity.status(304)
-                    .eTag(etag)
-                    .header("Cache-Control", "public, s-maxage=600, max-age=60")
-                    .build();
-        }
         return ResponseEntity.ok()
                 .eTag(etag)
                 .header("Cache-Control", "public, s-maxage=600, max-age=60")
@@ -178,17 +170,11 @@ public class ReviewGameStateController {
 
     @GetMapping("/today/details")
     @Cacheable(value = "review-game", key = "'today-details:' + T(org.steam5.domain.GameDate).todayUtc()", unless = CACHE_ONLY_2XX_NONEMPTY_LIST)
-    public ResponseEntity<List<SteamAppDetail>> getTodayDetails(@RequestHeader HttpHeaders headers) {
+    public ResponseEntity<List<SteamAppDetail>> getTodayDetails() {
         final List<ReviewGamePick> picks = service.generateDailyPicks();
         final List<Long> appIds = picks.stream().map(ReviewGamePick::getAppId).toList();
         final List<SteamAppDetail> details = detailService.findAllByAppIdIn(appIds);
         final String etag = weakEtagForPicks(details);
-        if (etag != null && headers.getIfNoneMatch().contains(etag)) {
-            return ResponseEntity.status(304)
-                    .eTag(etag)
-                    .header("Cache-Control", CACHE_LIVE)
-                    .build();
-        }
         return ResponseEntity.ok()
                 .eTag(etag)
                 .header("Cache-Control", CACHE_LIVE)
@@ -294,7 +280,7 @@ public class ReviewGameStateController {
 
     @GetMapping("/today")
     @Cacheable(value = "review-game", key = "'today-picks:' + T(org.steam5.domain.GameDate).todayUtc()", unless = CACHE_ONLY_2XX_NONEMPTY_PICKS)
-    public ResponseEntity<ReviewGameStateDto> getToday(@RequestHeader HttpHeaders headers) {
+    public ResponseEntity<ReviewGameStateDto> getToday() {
         final List<ReviewGamePick> picks = service.generateDailyPicks();
         final List<Long> appIds = picks.stream().map(ReviewGamePick::getAppId).toList();
         final List<SteamAppDetail> fetched = detailService.findAllByAppIdIn(appIds).stream().toList();
@@ -314,12 +300,6 @@ public class ReviewGameStateController {
 
         final LocalDate date = picks.isEmpty() ? GameDate.todayUtc() : picks.getFirst().getPickDate();
         final String etag = weakEtagForPicks(details);
-        if (etag != null && headers.getIfNoneMatch().contains(etag)) {
-            return ResponseEntity.status(304)
-                    .eTag(etag)
-                    .header("Cache-Control", CACHE_LIVE)
-                    .build();
-        }
         return ResponseEntity.ok()
                 .eTag(etag)
                 .header("Cache-Control", CACHE_LIVE)
@@ -483,8 +463,7 @@ public class ReviewGameStateController {
 
     @GetMapping("/day/{date}")
     @Cacheable(value = "review-game", key = "'picks:' + #date", unless = CACHE_ONLY_2XX)
-    public ResponseEntity<ReviewGameStateDto> getByDate(@PathVariable("date") String date,
-                                                        @RequestHeader HttpHeaders headers) {
+    public ResponseEntity<ReviewGameStateDto> getByDate(@PathVariable("date") String date) {
         final java.time.LocalDate day;
         try {
             day = java.time.LocalDate.parse(date);
@@ -508,13 +487,6 @@ public class ReviewGameStateController {
         }
         final boolean isToday = day.equals(GameDate.todayUtc());
         final String etag = weakEtagForPicks(details);
-        if (etag != null && headers.getIfNoneMatch().contains(etag)) {
-            final String cc = isToday ? CACHE_LIVE : CACHE_HISTORICAL;
-            return ResponseEntity.status(304)
-                    .eTag(etag)
-                    .header("Cache-Control", cc)
-                    .build();
-        }
         final String cc = isToday ? CACHE_LIVE : CACHE_HISTORICAL;
         return ResponseEntity.ok()
                 .eTag(etag)
@@ -562,16 +534,10 @@ public class ReviewGameStateController {
 
     @GetMapping("/buckets")
     @Cacheable(value = "one-day", key = "'buckets'")
-    public ResponseEntity<BucketMeta> buckets(@RequestHeader HttpHeaders headers) {
+    public ResponseEntity<BucketMeta> buckets() {
         final List<String> labels = service.getBucketLabels();
         final List<String> titles = service.getBucketTitles();
         final String etag = weakEtagForStringLists(java.util.List.of(labels, titles));
-        if (etag != null && headers.getIfNoneMatch().contains(etag)) {
-            return ResponseEntity.status(304)
-                    .eTag(etag)
-                    .header("Cache-Control", CACHE_CONFIG)
-                    .build();
-        }
         return ResponseEntity.ok()
                 .eTag(etag)
                 .header("Cache-Control", CACHE_CONFIG)
@@ -586,8 +552,7 @@ public class ReviewGameStateController {
 
     @GetMapping("/archive/month")
     @Cacheable(value = "review-game", key = "'archive-month:' + #month", unless = CACHE_ONLY_2XX)
-    public ResponseEntity<List<ArchiveMonthDay>> archiveMonth(@RequestParam("month") String month,
-                                                              @RequestHeader HttpHeaders headers) {
+    public ResponseEntity<List<ArchiveMonthDay>> archiveMonth(@RequestParam("month") String month) {
         final YearMonth ym;
         try {
             ym = YearMonth.parse(month);
@@ -626,12 +591,6 @@ public class ReviewGameStateController {
                         })
                         .toList()
         );
-        if (etag != null && headers.getIfNoneMatch().contains(etag)) {
-            return ResponseEntity.status(304)
-                    .eTag(etag)
-                    .header("Cache-Control", cacheControl)
-                    .build();
-        }
         return ResponseEntity.ok()
                 .eTag(etag)
                 .header("Cache-Control", cacheControl)
