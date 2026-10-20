@@ -10,7 +10,7 @@ import {genericCardLines} from "@/lib/seo";
  *
  * The card used to live in a file-convention `opengraph-image` module, where the convention
  * passes only `{params}` — never a `Request` — so `new URL(req.url)` threw on every request
- * and the route answered 500. A Route Handler owns the request, so the variant/steamId/gameDate
+ * and the route answered 500. A Route Handler owns the request, so the variant/steamId
  * query API works and the metadata entries can point at `/og`.
  */
 
@@ -41,7 +41,6 @@ export async function GET(req: Request): Promise<ImageResponse> {
     const url = new URL(req.url);
     const variant = (url.searchParams.get("variant") || "profile").toLowerCase();
     const steamId = url.searchParams.get("steamId");
-    const gameDate = url.searchParams.get("gameDate");
 
     const backend = process.env.NEXT_PUBLIC_API_DOMAIN || "http://localhost:8080";
 
@@ -126,26 +125,6 @@ export async function GET(req: Request): Promise<ImageResponse> {
             kdaText = recent.length > 0 ? `${hits} / ${tooHigh} / ${tooLow}` : null;
             // Show explicit breakdown
             statsLines.push({ label: "Recent H/H/L", value: `${hits}/${tooHigh}/${tooLow}` });
-        }
-    } else if (variant === "match" && steamId && gameDate) {
-        const profile = await fetchProfile(steamId);
-        if (profile) {
-            const day = profile.days.find(d => d.date === gameDate);
-            const name = profile.personaName?.trim() || profile.steamId;
-            title = `${name} — ${gameDate}`;
-            subtitle = "Match Share";
-            avatarSrc = sanitizeAvatarUrl(profile.avatar);
-            primary = pickAccent(profile.steamId);
-            if (day) {
-                const total = day.rounds.reduce((a, r) => a + r.points, 0);
-                const {hits, tooHigh, tooLow} = outcomeCounts(day.rounds);
-                statsLines = [
-                    { label: "Points", value: String(total) },
-                    { label: "Rounds", value: String(day.rounds.length) },
-                    { label: "H/H/L", value: `${hits}/${tooHigh}/${tooLow}` },
-                ];
-                kdaText = `${hits} / ${tooHigh} / ${tooLow}`;
-            }
         }
     } else {
         // Fallback generic card
