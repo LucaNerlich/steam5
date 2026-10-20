@@ -1,19 +1,13 @@
 "use client";
 
 import React from "react";
-import {leadingBucketOrder} from "@/lib/rounds";
+import {outcomeCounts} from "@/lib/rounds";
 
 type Round = { selectedBucket: string; actualBucket: string };
 
 export default function BiasBadge({rounds}: { rounds: Round[] }): React.ReactElement {
     const {message, detail, color, kind, highPct, lowPct, hitPct} = (() => {
-        let high = 0, low = 0, hit = 0;
-        for (const r of rounds) {
-            if (!r.selectedBucket || !r.actualBucket) continue;
-            if (r.selectedBucket === r.actualBucket) hit++;
-            else if (leadingBucketOrder(r.selectedBucket) > leadingBucketOrder(r.actualBucket)) high++;
-            else low++;
-        }
+        const {hits: hit, tooHigh: high, tooLow: low} = outcomeCounts(rounds);
         const total = high + low + hit;
         if (total === 0) return {message: "No data yet", detail: "", color: "var(--color-muted)", kind: "neutral", highPct: 0, lowPct: 0, hitPct: 0};
         const hp = Math.round((high / total) * 100);
