@@ -119,7 +119,9 @@ export async function GET(req: Request): Promise<ImageResponse> {
                 { label: "Rounds", value: String(profile.stats.rounds) },
                 { label: "Top Rank", value: `Top ${totalPct}%` },
             ];
-            const recent = profile.days.flatMap(d => d.rounds).slice(-10);
+            // days are newest-first; the box says "Recent", so take the head and skip
+            // today's still-ungraded rounds (the backend omits actualBucket for them).
+            const recent = profile.days.flatMap(d => d.rounds).filter(r => r.actualBucket).slice(0, 10);
             const {hits, tooHigh, tooLow} = outcomeCounts(recent);
             kdaText = recent.length > 0 ? `${hits} / ${tooHigh} / ${tooLow}` : null;
             // Show explicit breakdown
