@@ -95,9 +95,13 @@ export default function RollingHitRateSpark({rounds}: { rounds: Round[] }): Reac
                     </clipPath>
                 </defs>
                 <g clipPath="url(#sparkClip)">
-                    {segments.map((points, i) => (
-                        <polyline key={i} fill="none" stroke="var(--color-primary, #6366f1)" strokeWidth="2" points={points} />
-                    ))}
+                    {segments.map((points, i) => {
+                        if (!points.includes(' ')) {
+                            const [cx, cy] = points.split(',');
+                            return <circle key={i} cx={cx} cy={cy} r="2.5" fill="var(--color-primary, #6366f1)" />;
+                        }
+                        return <polyline key={i} fill="none" stroke="var(--color-primary, #6366f1)" strokeWidth="2" points={points} />;
+                    })}
                 </g>
                 {(() => {
                     const len = Math.max(2, series.length);

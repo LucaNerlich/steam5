@@ -73,5 +73,7 @@ describe('performance charts expose their values', () => {
         );
 
         expect(html).toContain('min 100%, max 100%, latest 100%');
+        // A one-point run must still paint (a single-point polyline is invisible).
+        expect(html).toContain('<circle');
     });
 });
