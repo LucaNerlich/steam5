@@ -1,5 +1,5 @@
 import {afterEach, beforeEach, describe, expect, it} from 'vitest';
-import {clearAll, clearDay, hasAny, hasAnyForDay, loadDay, saveRound, type RoundResult} from './storage';
+import {clearAll, clearDay, hasAny, loadDay, saveRound, type RoundResult} from './storage';
 
 // Minimal in-memory Storage stand-in. storage.ts reads both window.localStorage
 // and the bare localStorage global, so we point both at the same instance.
@@ -60,13 +60,10 @@ describe('saveRound / loadDay', () => {
     });
 });
 
-describe('hasAnyForDay / hasAny', () => {
-    it('reports presence per day and globally', () => {
+describe('hasAny', () => {
+    it('reports presence globally', () => {
         expect(hasAny()).toBe(false);
-        expect(hasAnyForDay('2024-01-01')).toBe(false);
         saveRound('2024-01-01', 1, 5, result);
-        expect(hasAnyForDay('2024-01-01')).toBe(true);
-        expect(hasAnyForDay('2024-01-02')).toBe(false);
         expect(hasAny()).toBe(true);
     });
 });
