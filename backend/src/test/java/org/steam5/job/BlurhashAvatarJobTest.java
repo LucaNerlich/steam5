@@ -10,6 +10,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -36,9 +37,9 @@ class BlurhashAvatarJobTest {
         final int encoded = job.encodeForSteamId("steam-1");
 
         assertEquals(1, encoded, "only the successful encode is counted");
-        assertEquals("FULL-HASH", user.getBlurhashAvatarFull());
-        assertNull(user.getBlurhashAvatar(), "a failed thumbnail encode must not be written");
-        verify(userRepository, times(1)).save(user);
+        verify(userRepository, times(1)).updateAvatarFullBlurhash("steam-1", "FULL-HASH", "data:image/png;base64,AA");
+        verify(userRepository, never()).updateAvatarBlurhash(org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
     }
 
     @Test
@@ -53,9 +54,9 @@ class BlurhashAvatarJobTest {
         final int encoded = job.encodeForSteamId("steam-1");
 
         assertEquals(2, encoded);
-        assertEquals("THUMB-HASH", user.getBlurhashAvatar());
-        assertEquals("FULL-HASH", user.getBlurhashAvatarFull());
-        verify(userRepository, times(2)).save(user);
+        verify(userRepository, times(1)).updateAvatarBlurhash("steam-1", "THUMB-HASH", null);
+        verify(userRepository, times(1)).updateAvatarFullBlurhash("steam-1", "FULL-HASH", null);
+        verify(userRepository, never()).save(user);
     }
 
     private static User userWithAvatars() {
