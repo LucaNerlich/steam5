@@ -87,7 +87,9 @@ public class SeasonController {
     }
 
     @GetMapping("/{seasonIdentifier}")
-    @Cacheable(value = "season-detail-response", key = "#seasonIdentifier", unless = "#result == null || #result.body == null")
+    @Cacheable(value = "season-detail-response",
+            key = "T(org.steam5.web.SeasonController).canonicalSeasonKey(#seasonIdentifier)",
+            unless = "#result == null || #result.body == null")
     public ResponseEntity<SeasonDetailView> seasonDetail(@PathVariable String seasonIdentifier) {
         Season season = resolveSeason(seasonIdentifier);
         List<SeasonAwardResult> awards = season.getStatus() == SeasonStatus.FINALIZED
@@ -118,6 +120,23 @@ public class SeasonController {
         return ResponseEntity.ok()
                 .header("Cache-Control", "public, s-maxage=3600, max-age=900")
                 .body(mapper.mapAwards(awards));
+    }
+
+    /**
+     * Collapses every spelling of the same numeric identifier ({@code 1}, {@code 01},
+     * {@code +1}) to one cache key. Non-numeric identifiers stay as-is; the request
+     * then fails in {@link #resolveSeason} rather than in the key expression.
+     */
+    static String canonicalSeasonKey(String identifier) {
+        if (identifier == null) {
+            return "";
+        }
+        final String trimmed = identifier.trim();
+        try {
+            return String.valueOf(Integer.parseInt(trimmed));
+        } catch (NumberFormatException e) {
+            return trimmed;
+        }
     }
 
     private Season resolveSeason(String identifier) {
