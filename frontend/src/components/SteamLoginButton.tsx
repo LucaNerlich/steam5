@@ -10,6 +10,15 @@ import {useAuth} from "@/contexts/AuthContext";
 import Avatar from "@/components/Avatar";
 import {startSteamLogin} from "@/lib/steamLogin";
 
+/** Clears only today's guest copy; archive days are local-only and must survive. */
+export function clearTodayGuestProgress(now: Date = new Date()): void {
+    try {
+        clearDay(now.toISOString().slice(0, 10));
+    } catch {
+        // Storage unavailable: nothing to clear.
+    }
+}
+
 /**
  * Renders a Steam sign-in control or the signed-in user's profile link.
  *
@@ -22,9 +31,7 @@ export default function SteamLoginButton(): React.ReactElement {
     useEffect(() => {
         if (isSignedIn && !clearedRef.current) {
             clearedRef.current = true;
-            // Clear only today's guest copy: the server now owns today's guesses, while
-            // archive progress is local-only and must survive a reload.
-            try { clearDay(new Date().toISOString().slice(0, 10)); } catch { /* ignore */ }
+            clearTodayGuestProgress();
         }
     }, [isSignedIn]);
 
