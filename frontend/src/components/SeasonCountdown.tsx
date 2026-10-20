@@ -25,7 +25,7 @@ export default async function SeasonCountdown() {
 
     return (
         <Link href={Routes.seasonDetail(season.seasonNumber)} className="footer__season-countdown">
-            {label} · Ends {new Date(season.endDate).toLocaleDateString(undefined, {
+            {label} · Ends {new Date(season.endDate).toLocaleDateString('en-US', {
                 month: "short",
                 day: "numeric",
             })}
