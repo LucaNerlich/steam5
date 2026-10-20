@@ -56,8 +56,8 @@ public class SteamAppReviewsRefreshJob implements Job {
             final List<Long> ids = reviewsRepository.findIdsOrderByUpdatedAtAsc(org.springframework.data.domain.PageRequest.of(0, limit));
             for (Long appId : ids) {
                 try {
-                    // Per-app cache eviction only; avoid clearing review-game aggregates on every
-                    // app (that thrash forces DB reloads while this job is already heavy).
+                    // No per-app eviction here; the aggregate review-game cache is cleared once
+                    // after the loop instead of once per app.
                     final boolean success = fetcher.fetchForAppId(appId, false);
                     if (success) {
                         refreshed++;
