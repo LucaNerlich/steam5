@@ -81,3 +81,25 @@ export function outcomeCounts(rounds: Array<{selectedBucket: string; actualBucke
     }
     return {hits, tooHigh, tooLow};
 }
+
+/**
+ * Keeps only results whose appId matches the pick served at that round index.
+ * A result at the right index for the wrong (regenerated) app must not count
+ * toward completion or leak into the shared score.
+ */
+export function validatedResultsForDay<T extends {appId: number}>(
+    dayGames: Array<{appId: number}> | undefined,
+    stored: Record<number, T>,
+    server: Record<number, T>,
+    totalRounds: number,
+): Record<number, T> {
+    const validated: Record<number, T> = {};
+    for (let i = 1; i <= totalRounds; i++) {
+        const result = server[i] ?? stored[i];
+        const expectedAppId = dayGames?.[i - 1]?.appId;
+        if (result && (expectedAppId === undefined || result.appId === expectedAppId)) {
+            validated[i] = result;
+        }
+    }
+    return validated;
+}

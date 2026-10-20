@@ -728,11 +728,8 @@ export default function DayComments(props: {
     // round for this day (same completion check as RoundSummary/ShareControls).
     // Readonly (archive) views and anonymous visitors are exempt from this gate.
     if (!readOnly && isSignedIn === true && totalRounds !== undefined && latestRound !== undefined && latest) {
-        const merged: Record<number, RoundResult> = {
-            ...(stored?.results || {}),
-            ...(results || {}),
-            [latestRound]: latest,
-        };
+        const merged: Record<number, RoundResult> = results
+            ?? {...(stored?.results || {}), [latestRound]: latest};
         const isComplete = Object.keys(merged).length >= totalRounds;
         if (!isComplete) return null;
     }

@@ -21,11 +21,13 @@ export default function ShareControls(props: {
         totalReviews: number;
         correct: boolean
     },
-    // Optional: provide full results when user is authenticated (server-provided),
-    // so we don't rely on localStorage
+    // Optional: an authoritative, pick-validated map from the round page. When present it
+    // replaces localStorage as the completion source (no stale-key top-ups).
     results?: Record<number, RoundResult>,
+    /** True when the results above came from the server, not only localStorage. */
+    hasServerResults?: boolean,
 }) {
-    const {buckets, gameDate, totalRounds, latestRound, latest, results} = props;
+    const {buckets, gameDate, totalRounds, latestRound, latest, results, hasServerResults} = props;
     const [copied, setCopied] = useState(false);
     const isLocalhost = typeof window !== 'undefined' && (location.hostname === 'localhost' || location.hostname === '127.0.0.1');
 
@@ -55,17 +57,16 @@ export default function ShareControls(props: {
     })();
 
     const stored = useStoredDay(gameDate);
-    let data: StoredDay | null = null;
-    if (results && Object.keys(results).length > 0) {
-        data = {totalRounds, results};
-    } else {
-        data = stored;
-    }
+    const data: StoredDay | null = results !== undefined
+        ? {totalRounds, results}
+        : stored;
 
     const indices = new Set<number>(
         data?.results ? Object.keys(data.results).map(n => parseInt(n, 10)) : []
     );
-    indices.add(latestRound);
+    // An authoritative map already contains the current round only when it is valid for
+    // today's pick; adding the index unconditionally would resurrect a stale result.
+    if (!results) indices.add(latestRound);
     const isComplete = Boolean(data?.results) && indices.size >= totalRounds;
 
     // Best-effort dev-only sync of local guesses to the backend.
@@ -88,8 +89,7 @@ export default function ShareControls(props: {
         try {
             if (!isLocalhost) return;
             // Only attempt when we do NOT have server results
-            const hasServer = results && Object.keys(results).length > 0;
-            if (hasServer) return;
+            if (hasServerResults) return;
             const backend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
             await Promise.all(Array.from(indices).map(async (i) => {
                 const r = (i === latestRound ? latest : data!.results[i]);

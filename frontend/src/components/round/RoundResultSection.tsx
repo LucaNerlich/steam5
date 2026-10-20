@@ -26,6 +26,8 @@ type RoundResultSectionProps = {
     latest: RoundResult;
     /** Full per-round results when available (server-provided); else undefined. */
     shareResults?: Record<number, RoundResult>;
+    /** True when shareResults came from the server, not only localStorage. */
+    hasServerResults: boolean;
     signedIn: boolean | null;
     /** True when the session was lost mid-round (result did not count). */
     signedOutDuringPlay: boolean;
@@ -49,6 +51,7 @@ export default function RoundResultSection({
                                                latestRound,
                                                latest,
                                                shareResults,
+                                               hasServerResults,
                                                signedIn,
                                                signedOutDuringPlay
                                            }: RoundResultSectionProps) {
@@ -74,6 +77,7 @@ export default function RoundResultSection({
                             latestRound={latestRound}
                             latest={latest}
                             results={shareResults}
+                            hasServerResults={hasServerResults}
                         />
                         <RoundSummary
                             buckets={buckets}
