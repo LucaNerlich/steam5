@@ -2,7 +2,7 @@ import {ImageResponse} from "next/og";
 import {readFile} from "node:fs/promises";
 import {join} from "node:path";
 import {sanitizeAvatarUrl} from "@/lib/ogAvatar";
-import {outcomeCounts} from "@/lib/rounds";
+import {outcomeCounts, recentRounds} from "@/lib/rounds";
 import {genericCardLines} from "@/lib/seo";
 
 /**
@@ -121,7 +121,7 @@ export async function GET(req: Request): Promise<ImageResponse> {
             ];
             // days are newest-first; the box says "Recent", so take the head and skip
             // today's still-ungraded rounds (the backend omits actualBucket for them).
-            const recent = profile.days.flatMap(d => d.rounds).filter(r => r.actualBucket).slice(0, 10);
+            const recent = recentRounds(profile.days);
             const {hits, tooHigh, tooLow} = outcomeCounts(recent);
             kdaText = recent.length > 0 ? `${hits} / ${tooHigh} / ${tooLow}` : null;
             // Show explicit breakdown
