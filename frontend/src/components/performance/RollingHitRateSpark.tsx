@@ -41,7 +41,7 @@ export default function RollingHitRateSpark({rounds}: { rounds: Round[] }): Reac
     })();
 
     const series = (() => {
-        const values: number[] = [];
+        const values: Array<number | null> = [];
         const ROLLING_WINDOW_DAYS = 7;
         // Rolling window: for each day, calculate hit rate over trailing 7 days
         for (let i = 0; i < daily.length; i++) {
@@ -49,7 +49,7 @@ export default function RollingHitRateSpark({rounds}: { rounds: Round[] }): Reac
             const slice = daily.slice(s, i + 1);
             const total = slice.reduce((sum, day) => sum + day.total, 0);
             const hits = slice.reduce((sum, day) => sum + day.hits, 0);
-            values.push(total === 0 ? 0 : Math.round((hits / total) * 100));
+            values.push(total === 0 ? null : Math.round((hits / total) * 100));
         }
         return values;
     })();
@@ -60,12 +60,29 @@ export default function RollingHitRateSpark({rounds}: { rounds: Round[] }): Reac
         return height - 6 - t * (height - 12);
     };
 
-    const points = series.map((v, i) => `${padding + (i / Math.max(1, series.length - 1)) * (width - padding * 2)},${y(v)}`).join(' ');
+    const dataValues = series.filter((v): v is number => v !== null);
+    const hasData = dataValues.length > 0;
+    // One polyline per contiguous run of windows that actually have rounds; a null
+    // window is a gap, not a measured 0%.
+    const segments: string[] = [];
+    let current: string[] = [];
+    series.forEach((v, i) => {
+        if (v === null) {
+            if (current.length > 0) segments.push(current.join(' '));
+            current = [];
+            return;
+        }
+        current.push(`${padding + (i / Math.max(1, series.length - 1)) * (width - padding * 2)},${y(v)}`);
+    });
+    if (current.length > 0) segments.push(current.join(' '));
 
     return (
         <div className="perf-card">
             <div className="perf-card__title">Hit rate (rolling last {DAYS_WINDOW} days)</div>
-            <svg viewBox={`0 0 ${width} ${height}`} className="perf-spark" role="img" aria-label={`Rolling hit rate over the last ${DAYS_WINDOW} days: ${series.length === 0 ? "no data" : `min ${Math.min(...series)}%, max ${Math.max(...series)}%, latest ${series[series.length - 1]}%`}`}>
+            {!hasData ? (
+                <p className="text-muted">No data</p>
+            ) : (
+            <svg viewBox={`0 0 ${width} ${height}`} className="perf-spark" role="img" aria-label={`Rolling hit rate over the last ${DAYS_WINDOW} days: min ${Math.min(...dataValues)}%, max ${Math.max(...dataValues)}%, latest ${dataValues[dataValues.length - 1]}%`}>
                 {([0,25,50,75,100] as const).map(p => (
                     <g key={p}>
                         <line x1={padding} x2={width - padding} y1={y(p)} y2={y(p)} stroke="var(--color-border)" strokeOpacity="0.5" strokeWidth="1" />
@@ -78,7 +95,9 @@ export default function RollingHitRateSpark({rounds}: { rounds: Round[] }): Reac
                     </clipPath>
                 </defs>
                 <g clipPath="url(#sparkClip)">
-                    <polyline fill="none" stroke="var(--color-primary, #6366f1)" strokeWidth="2" points={points} />
+                    {segments.map((points, i) => (
+                        <polyline key={i} fill="none" stroke="var(--color-primary, #6366f1)" strokeWidth="2" points={points} />
+                    ))}
                 </g>
                 {(() => {
                     const len = Math.max(2, series.length);
@@ -91,6 +110,7 @@ export default function RollingHitRateSpark({rounds}: { rounds: Round[] }): Reac
                     ));
                 })()}
             </svg>
+            )}
         </div>
     );
 }

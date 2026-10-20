@@ -3,6 +3,7 @@ import {renderToStaticMarkup} from 'react-dom/server';
 import BucketAccuracyBars from './BucketAccuracyBars';
 import HitRateVsAverageCard from './HitRateVsAverageCard';
 import OutcomeMixBar from './OutcomeMixBar';
+import RollingHitRateSpark from './RollingHitRateSpark';
 
 /**
  * `role="img"` collapses a chart to a single accessible object described only by its label, so a
@@ -50,5 +51,27 @@ describe('performance charts expose their values', () => {
 
         expect(html).toContain('aria-label="Hit rate vs average: yours no data, global no data"');
         expect(html).toContain('No data');
+    });
+
+    it('RollingHitRateSpark shows the no-data branch for an empty recent window', () => {
+        const html = renderToStaticMarkup(
+            <RollingHitRateSpark rounds={[
+                {selectedBucket: '1-100', actualBucket: '1-100', date: STALE},
+            ]}/>,
+        );
+
+        expect(html).toContain('No data');
+        expect(html).not.toContain('latest 0%');
+    });
+
+    it('RollingHitRateSpark still names the measured values when the window has rounds', () => {
+        const today = new Date().toISOString().slice(0, 10);
+        const html = renderToStaticMarkup(
+            <RollingHitRateSpark rounds={[
+                {selectedBucket: '1-100', actualBucket: '1-100', date: today},
+            ]}/>,
+        );
+
+        expect(html).toContain('min 100%, max 100%, latest 100%');
     });
 });
