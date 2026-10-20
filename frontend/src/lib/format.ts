@@ -24,7 +24,7 @@ export function placementTier(level: number): 'gold' | 'silver' | 'bronze' | 'ne
     return 'neutral';
 }
 
-export function formatDate(date: string | Date, locale?: string): string {
+export function formatDate(date: string | Date, locale: string = 'en-US'): string {
     let d: Date;
     if (typeof date === 'string') {
         // Date-only game-day identifiers (YYYY-MM-DD) are parsed as UTC midnight by the
@@ -71,7 +71,7 @@ export function formatRelativeTime(
     return formatDate(d, locale);
 }
 
-export function formatPrice(amountCents: number, currency: string = 'USD', locale?: string): string {
+export function formatPrice(amountCents: number, currency: string = 'USD', locale: string = 'en-US'): string {
     const amount = (amountCents ?? 0) / 100;
     try {
         return new Intl.NumberFormat(locale, {style: 'currency', currency, currencyDisplay: 'symbol'}).format(amount);

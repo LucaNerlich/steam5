@@ -7,7 +7,8 @@ type AwardGroup = {
     awards: AwardView[];
 };
 
-const numberFormatter = new Intl.NumberFormat();
+// Pinned so a server render and a browser hydration agree regardless of host locale.
+const numberFormatter = new Intl.NumberFormat('en-US');
 
 export function groupAwardsByCategory(awards: AwardView[]): AwardGroup[] {
     if (!Array.isArray(awards) || awards.length === 0) {

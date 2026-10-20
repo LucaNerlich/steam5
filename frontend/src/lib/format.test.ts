@@ -35,6 +35,8 @@ describe('placementTier', () => {
 describe('formatDate', () => {
     it('formats an ISO date string (TZ pinned to UTC in config)', () => {
         expect(formatDate('2024-01-15', 'en-US')).toBe('Jan 15, 2024');
+        // Default is pinned for SSR/hydration parity, independent of the host locale.
+        expect(formatDate('2024-01-15')).toBe('Jan 15, 2024');
     });
 
     it('keeps date-only strings on their calendar day in a negative-offset timezone', () => {
