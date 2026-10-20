@@ -1,6 +1,6 @@
 import {NextRequest, NextResponse} from "next/server";
 import {cookies} from "next/headers";
-import {BACKEND_ORIGIN, BACKEND_TIMEOUT_MS, forwardedForHeaders} from "@/lib/backend";
+import {BACKEND_ORIGIN, BACKEND_TIMEOUT_MS, bearerAuthHeaders, forwardedForHeaders} from "@/lib/backend";
 
 const CACHE_LIVE = {"Cache-Control": "private, max-age=30, must-revalidate"} as const;
 const CACHE_HISTORICAL = {"Cache-Control": "private, max-age=300, must-revalidate"} as const;
@@ -35,7 +35,9 @@ export async function GET(
     // shared-cached, and a per-client header would turn one cache entry into one per visitor.
     const headers: Record<string, string> = {accept: "application/json", ...(token ? forwardedForHeaders(req) : {})};
     if (token) {
-        headers.authorization = `Bearer ${token}`;
+        const auth = bearerAuthHeaders(token);
+        if (!auth) return NextResponse.json({error: "Backend origin not allowed"}, {status: 503, headers: NO_STORE});
+        Object.assign(headers, auth);
     }
     const today = isUtcToday(date);
     // Authenticated bodies include reactedByViewer — never long-cache them.

@@ -1,7 +1,17 @@
 import {NextResponse} from "next/server";
 import type {NextRequest} from "next/server";
+import {allowedBackendOrigin} from "./requestOrigin";
 
 export const BACKEND_ORIGIN = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
+
+/**
+ * Authorization header for the session token, or null when BACKEND_ORIGIN may not
+ * receive a bearer token (plain HTTP outside loopback/allow-list in production).
+ * Every route that sends the token must use this instead of formatting the header itself.
+ */
+export function bearerAuthHeaders(token: string): {authorization: string} | null {
+    return allowedBackendOrigin(BACKEND_ORIGIN) ? {authorization: `Bearer ${token}`} : null;
+}
 
 /**
  * Relays the forwarded client IP set by the trusted edge proxy (Traefik/Coolify)

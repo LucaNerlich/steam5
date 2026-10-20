@@ -1,6 +1,6 @@
 import {NextRequest, NextResponse} from "next/server";
 import {cookies} from "next/headers";
-import {BACKEND_ORIGIN, BACKEND_TIMEOUT_MS, forwardedForHeaders} from "@/lib/backend";
+import {BACKEND_ORIGIN, BACKEND_TIMEOUT_MS, bearerAuthHeaders, forwardedForHeaders} from "@/lib/backend";
 import {rejectUntrustedOrigin} from "@/lib/requestOrigin";
 
 const NO_STORE = {"Cache-Control": "private, no-store"} as const;
@@ -26,6 +26,8 @@ export async function POST(
             {status: 401, headers: NO_STORE},
         );
     }
+    const auth = bearerAuthHeaders(token);
+    if (!auth) return NextResponse.json({error: "Backend origin not allowed"}, {status: 503, headers: NO_STORE});
     let body: unknown;
     try {
         body = await req.json();
@@ -43,7 +45,7 @@ export async function POST(
                 headers: {
                     accept: "application/json",
                     "content-type": "application/json",
-                    authorization: `Bearer ${token}`,
+                    ...auth,
                     ...forwardedForHeaders(req),
                 },
                 body: JSON.stringify(body),
