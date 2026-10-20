@@ -129,7 +129,10 @@ public class ReviewGameStateService {
         // round labels match the order actually served to players.
         Collections.shuffle(picks);
         for (int i = 0; i < picks.size(); i++) {
-            picks.get(i).setRoundIndex(i + 1);
+            final ReviewGamePick pick = picks.get(i);
+            pick.setRoundIndex(i + 1);
+            final int totalReviews = getTotalReviewCountForApp(pick.getAppId());
+            pick.recordAnswer(totalReviews, inferBucket(totalReviews));
         }
         final List<ReviewGamePick> saved = pickRepository.saveAll(picks);
         pickLockRepository.save(new DailyPickLock(today, OffsetDateTime.now()));
