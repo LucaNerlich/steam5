@@ -127,15 +127,14 @@ public class SeasonController {
      * {@code +1}) to one cache key. Non-numeric identifiers stay as-is; the request
      * then fails in {@link #resolveSeason} rather than in the key expression.
      */
-    static String canonicalSeasonKey(String identifier) {
+    public static String canonicalSeasonKey(String identifier) {
         if (identifier == null) {
             return "";
         }
-        final String trimmed = identifier.trim();
         try {
-            return String.valueOf(Integer.parseInt(trimmed));
+            return String.valueOf(Integer.parseInt(identifier));
         } catch (NumberFormatException e) {
-            return trimmed;
+            return identifier;
         }
     }
 
