@@ -20,13 +20,19 @@ public final class RequestPathNormalizer {
 
     public static String normalizedPath(HttpServletRequest request) {
         String path = request.getRequestURI();
+        // getRequestURI() is undecoded per the Servlet spec; redirects and MVC match the
+        // decoded path, so decode before comparing (e.g. /api/users/%73earch) and before
+        // stripping the context path (which may itself contain an escape).
+        try {
+            path = UriUtils.decode(path, StandardCharsets.UTF_8);
+        } catch (IllegalArgumentException malformedEscape) {
+            // Keep the raw path: a malformed escape must not turn a rate-limited route into
+            // a 500, and the container rejects/does not route such a URI anyway.
+        }
         final String contextPath = request.getContextPath();
         if (StringUtils.hasText(contextPath) && path.startsWith(contextPath)) {
             path = path.substring(contextPath.length());
         }
-        // getRequestURI() is undecoded per the Servlet spec; redirects and MVC match the
-        // decoded path, so decode before comparing (e.g. /api/users/%73earch).
-        path = UriUtils.decode(path, StandardCharsets.UTF_8);
         final StringBuilder normalized = new StringBuilder(path.length());
         final String[] segments = path.split("/", -1);
         for (int i = 0; i < segments.length; i++) {
