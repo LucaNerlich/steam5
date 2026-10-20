@@ -49,7 +49,7 @@ class RequestPathNormalizerTest {
 
 class ProfileRateLimitFilterTest {
 
-    private final ProfileRateLimitFilter filter = new ProfileRateLimitFilter();
+    private final PathRateLimitFilter filter = new PathRateLimitFilter();
 
     @Test
     void semicolonPathParametersDoNotBypassTheLimiter() {
@@ -68,7 +68,7 @@ class ProfileRateLimitFilterTest {
 
 class UserSearchRateLimitFilterTest {
 
-    private final UserSearchRateLimitFilter filter = new UserSearchRateLimitFilter();
+    private final PathRateLimitFilter filter = new PathRateLimitFilter();
 
     @Test
     void percentEncodedPathDoesNotBypassTheLimiter() {

@@ -22,10 +22,8 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 import org.springframework.util.StringUtils;
 import org.steam5.security.AdminTokenFilter;
-import org.steam5.security.AuthRateLimitFilter;
+import org.steam5.security.PathRateLimitFilter;
 import org.steam5.security.PresenceRateLimitFilter;
-import org.steam5.security.ProfileRateLimitFilter;
-import org.steam5.security.UserSearchRateLimitFilter;
 
 import java.util.Arrays;
 
@@ -101,10 +99,8 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http,
                                                    AdminTokenFilter adminTokenFilter,
-                                                   AuthRateLimitFilter authRateLimitFilter,
-                                                   PresenceRateLimitFilter presenceRateLimitFilter,
-                                                   UserSearchRateLimitFilter userSearchRateLimitFilter,
-                                                   ProfileRateLimitFilter profileRateLimitFilter) throws Exception {
+                                                   PathRateLimitFilter pathRateLimitFilter,
+                                                   PresenceRateLimitFilter presenceRateLimitFilter) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 // CORS inside the chain, before authorization: as a standalone CorsFilter bean it
@@ -143,10 +139,8 @@ public class SecurityConfig {
                 // The rate limiter is registered first so it runs before AdminTokenFilter —
                 // addFilterBefore inserts each filter directly before the anchor, so the
                 // first registration ends up earliest in the chain.
-                .addFilterBefore(authRateLimitFilter, BasicAuthenticationFilter.class)
+                .addFilterBefore(pathRateLimitFilter, BasicAuthenticationFilter.class)
                 .addFilterBefore(presenceRateLimitFilter, BasicAuthenticationFilter.class)
-                .addFilterBefore(userSearchRateLimitFilter, BasicAuthenticationFilter.class)
-                .addFilterBefore(profileRateLimitFilter, BasicAuthenticationFilter.class)
                 .addFilterBefore(adminTokenFilter, BasicAuthenticationFilter.class)
                 .formLogin(AbstractHttpConfigurer::disable);
         return http.build();

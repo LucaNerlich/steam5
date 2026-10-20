@@ -15,7 +15,7 @@ import java.util.List;
 
 /**
  * Read-only user search for the comment composer's @mention autocomplete.
- * Public (permitAll) and rate-limited per IP by {@link org.steam5.security.UserSearchRateLimitFilter},
+ * Public (permitAll) and rate-limited per IP by {@link org.steam5.security.PathRateLimitFilter},
  * since a search-by-name endpoint enables user enumeration.
  */
 @RestController
