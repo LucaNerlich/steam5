@@ -4,6 +4,7 @@ import BucketAccuracyBars from './BucketAccuracyBars';
 import HitRateVsAverageCard from './HitRateVsAverageCard';
 import OutcomeMixBar from './OutcomeMixBar';
 import RollingHitRateSpark from './RollingHitRateSpark';
+import CalendarHeatmap from './CalendarHeatmap';
 
 /**
  * `role="img"` collapses a chart to a single accessible object described only by its label, so a
@@ -75,5 +76,32 @@ describe('performance charts expose their values', () => {
         expect(html).toContain('min 100%, max 100%, latest 100%');
         // A one-point run must still paint (a single-point polyline is invisible).
         expect(html).toContain('<circle');
+    });
+
+    it('CalendarHeatmap names the best day without an unweighted daily average', () => {
+        const today = new Date().toISOString().slice(0, 10);
+        const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
+        const html = renderToStaticMarkup(
+            <CalendarHeatmap rounds={[
+                {date: today, points: 5},
+                {date: today, points: 5},
+                {date: yesterday, points: 1},
+            ]}/>,
+        );
+
+        expect(html).toContain('2 active days');
+        expect(html).toContain('best day');
+        expect(html).not.toContain('busiest');
+        expect(html).toContain('2 active days, best day');
+        expect(html).not.toContain('active days, average');
+    });
+
+    it('CalendarHeatmap pluralises a single active day', () => {
+        const today = new Date().toISOString().slice(0, 10);
+        const html = renderToStaticMarkup(
+            <CalendarHeatmap rounds={[{date: today, points: 5}]}/>,
+        );
+
+        expect(html).toContain('1 active day,');
     });
 });
