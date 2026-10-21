@@ -247,12 +247,13 @@ describe('css colour tokens', () => {
             }
         }
         // TSX renders inline styles too; the same hung reference is invisible to a CSS-only walk.
-        for (const path of filesWithExtension(join(STYLES_DIR, '..'), '.tsx')) {
+        const tsxRoots = [join(STYLES_DIR, '..'), join(STYLES_DIR, '..', '..', 'app')];
+        for (const root of tsxRoots) for (const path of filesWithExtension(root, '.tsx')) {
             const source = readFileSync(path, 'utf8');
             for (const m of source.matchAll(/var\(--color-[a-z0-9-]+/g)) {
                 const {name, fallback} = parseVarCall(varCallFrom(source, m.index));
                 if (allDefinedTokens.has(name) || fallback) continue;
-                hung.push(`${path.slice(join(STYLES_DIR, '..').length)}: ${name}`);
+                hung.push(`${path}: ${name}`);
             }
         }
         expect(hung, 'var() references without definition or fallback').toEqual([]);
