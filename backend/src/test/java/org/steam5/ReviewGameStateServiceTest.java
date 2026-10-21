@@ -3,7 +3,6 @@ package org.steam5;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationEventPublisher;
-import org.mockito.InOrder;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.SimpleTransactionStatus;
 import org.springframework.data.domain.PageRequest;
@@ -25,6 +24,11 @@ import org.steam5.service.SteamAppReviewsFetcher;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.Optional;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.HashSet;
 import java.util.List;
@@ -33,7 +37,6 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
-import static org.mockito.Mockito.inOrder;
 
 public class ReviewGameStateServiceTest {
 
@@ -146,6 +149,36 @@ public class ReviewGameStateServiceTest {
         assertTrue(picks.stream().anyMatch(p -> Integer.valueOf(800).equals(p.getTotalReviews())
                 && "101-1000".equals(p.getActualBucket())));
         verify(pickRepository, atLeastOnce()).save(any(ReviewGamePick.class));
+    }
+
+    @Test
+    void concurrentCallersDoNotRepeatTheSteamSelection() throws Exception {
+        final CountDownLatch validationStarted = new CountDownLatch(1);
+        final CountDownLatch release = new CountDownLatch(1);
+        final java.util.Set<String> selectingThreads = java.util.concurrent.ConcurrentHashMap.newKeySet();
+        final String callerThread = Thread.currentThread().getName();
+        doAnswer(invocation -> {
+            selectingThreads.add(Thread.currentThread().getName());
+            if (validationStarted.getCount() > 0) {
+                validationStarted.countDown();
+                release.await(2, TimeUnit.SECONDS);
+            }
+            return true;
+        }).when(detailsFetcher).fetchForAppId(anyLong());
+
+        final ExecutorService executor = Executors.newSingleThreadExecutor();
+        try {
+            final Future<List<ReviewGamePick>> first = executor.submit(service::generateDailyPicks);
+            assertTrue(validationStarted.await(2, TimeUnit.SECONDS));
+            // The second caller must not start another Steam selection.
+            service.generateDailyPicks();
+            release.countDown();
+            assertFalse(first.get(3, TimeUnit.SECONDS).isEmpty());
+            assertFalse(selectingThreads.contains(callerThread));
+        } finally {
+            release.countDown();
+            executor.shutdownNow();
+        }
     }
 
     @Test
