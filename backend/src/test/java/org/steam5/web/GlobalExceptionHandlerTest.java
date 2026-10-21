@@ -1,6 +1,10 @@
 package org.steam5.web;
 
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -18,6 +22,8 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -32,6 +38,25 @@ class GlobalExceptionHandlerTest {
                 "notanumber", Long.class, "appId", null, null);
         final ResponseEntity<ApiError> res = handler.handleTypeMismatch(ex, request);
         assertEquals(400, res.getStatusCode().value());
+    }
+
+    @Test
+    void typeMismatch_doesNotLogTheRawValue() {
+        final Logger logger = (Logger) LoggerFactory.getLogger(GlobalExceptionHandler.class);
+        final ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+        try {
+            final MethodArgumentTypeMismatchException ex = new MethodArgumentTypeMismatchException(
+                    "x\n2026-10-20 ERROR forged", Long.class, "limit", null, null);
+            handler.handleTypeMismatch(ex, request);
+            assertFalse(appender.list.stream()
+                    .anyMatch(event -> event.getFormattedMessage().contains("forged")));
+            assertTrue(appender.list.stream()
+                    .anyMatch(event -> event.getFormattedMessage().contains("limit")));
+        } finally {
+            logger.detachAppender(appender);
+        }
     }
 
     @Test

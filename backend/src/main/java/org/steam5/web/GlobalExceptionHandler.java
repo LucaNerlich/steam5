@@ -63,7 +63,9 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<ApiError> handleTypeMismatch(MethodArgumentTypeMismatchException ex,
                                                        HttpServletRequest request) {
-        log.warn("Type mismatch on {}={}: {}", ex.getName(), ex.getValue(), ex.getMessage());
+        // The value is raw client input and Tomcat decodes %0A/%0D, so logging it would
+        // let a caller forge log lines. The parameter name and expected type are enough.
+        log.warn("Type mismatch on parameter {} (expected {})", ex.getName(), ex.getRequiredType());
         return ResponseEntity.status(400).body(
             ApiError.of(400, "Invalid request parameter: " + ex.getName(), request.getRequestURI())
         );
