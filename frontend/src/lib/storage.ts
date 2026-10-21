@@ -55,15 +55,6 @@ export function clearDay(gameDate: string): void {
     }
 }
 
-export function hasAnyForDay(gameDate: string): boolean {
-    try {
-        const data = loadDay(gameDate);
-        return Boolean(data && data.results && Object.keys(data.results).length > 0);
-    } catch {
-        return false;
-    }
-}
-
 export function hasAny(): boolean {
     try {
         for (let i = 0; i < localStorage.length; i++) {
