@@ -35,6 +35,34 @@ beforeEach(() => {
 
 afterEach(() => {
     vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+});
+
+describe('postCommentAction backend origin', () => {
+    it('fails closed on a plain-http remote backend in production', async () => {
+        vi.stubEnv('NODE_ENV', 'production');
+        process.env.NEXT_PUBLIC_API_DOMAIN = 'http://evil.example:8080';
+        cookieGet.mockReturnValue({value: 'token'});
+
+        const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
+        const res = await postCommentAction(undefined, form('2026-07-31', 'hi'));
+
+        expect(res).toEqual({ok: false, error: 'Could not reach the comment service — please try again.'});
+        expect(fetchMock).not.toHaveBeenCalled();
+        expect(errorSpy).toHaveBeenCalled();
+    });
+
+    it('proceeds for an https backend in production', async () => {
+        vi.stubEnv('NODE_ENV', 'production');
+        process.env.NEXT_PUBLIC_API_DOMAIN = 'https://api.example.com';
+        cookieGet.mockReturnValue({value: 'token'});
+        fetchMock.mockResolvedValueOnce(mockResponse(200, {id: 1}));
+
+        await postCommentAction(undefined, form('2026-07-31', 'hi'));
+
+        expect(fetchMock.mock.calls[0][0]).toBe('https://api.example.com/api/review-game/comments/2026-07-31');
+    });
 });
 
 describe('postCommentAction input validation', () => {

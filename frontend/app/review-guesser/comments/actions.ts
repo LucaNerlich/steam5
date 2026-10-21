@@ -1,6 +1,7 @@
 'use server';
 
 import {getAuth} from '@/lib/serverAuth';
+import {allowedBackendOrigin} from '@/lib/requestOrigin';
 
 const MAX_BODY_LENGTH = 1000;
 
@@ -63,7 +64,12 @@ export async function postCommentAction(
     }
 
     try {
-        const backend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
+        const configuredBackend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
+        const backend = allowedBackendOrigin(configuredBackend);
+        if (!backend) {
+            console.error('Blocked comment bearer egress: untrusted backend origin', configuredBackend);
+            return {ok: false, error: 'Could not reach the comment service — please try again.'};
+        }
         const res = await fetch(
             `${backend}/api/review-game/comments/${encodeURIComponent(gameDate)}`,
             {

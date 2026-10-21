@@ -45,6 +45,7 @@ beforeEach(() => {
 
 afterEach(() => {
     vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
 });
 
 /** Resolves the today-buckets fetch and the guess submission fetch in order. */
@@ -52,6 +53,34 @@ function stubCalls(...guessResponses: Response[]) {
     fetchMock.mockResolvedValueOnce(mockResponse(200, todayBody));
     for (const r of guessResponses) fetchMock.mockResolvedValueOnce(r);
 }
+
+describe('submitGuessAction backend origin', () => {
+    it('fails closed on a plain-http remote backend in production', async () => {
+        vi.stubEnv('NODE_ENV', 'production');
+        process.env.NEXT_PUBLIC_API_DOMAIN = 'http://evil.example:8080';
+        cookieGet.mockReturnValue({value: 'token'});
+
+        const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
+        const res = await submitGuessAction(undefined, form(10, 'Positive'));
+
+        expect(res).toEqual({ok: false, appId: 10, error: 'Could not reach the game service — please try again.'});
+        expect(fetchMock).not.toHaveBeenCalled();
+        expect(errorSpy).toHaveBeenCalled();
+    });
+
+    it('proceeds for an https backend in production', async () => {
+        vi.stubEnv('NODE_ENV', 'production');
+        process.env.NEXT_PUBLIC_API_DOMAIN = 'https://api.example.com';
+        cookieGet.mockReturnValue(undefined);
+        fetchMock.mockResolvedValueOnce(mockResponse(200, todayBody));
+        fetchMock.mockResolvedValueOnce(mockResponse(200, okBody));
+
+        await submitGuessAction(undefined, form(10, 'Positive'));
+
+        expect(fetchMock.mock.calls[0][0]).toBe('https://api.example.com/api/review-game/today');
+    });
+});
 
 describe('submitGuessAction input validation', () => {
     it('rejects a missing/invalid appId', async () => {
