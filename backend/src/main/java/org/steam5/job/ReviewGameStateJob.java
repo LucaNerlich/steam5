@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.quartz.*;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
+import org.steam5.repository.ReviewGamePickRepository;
 import org.steam5.service.ReviewGameStateService;
 
 import java.util.concurrent.TimeUnit;
@@ -19,14 +20,18 @@ import java.util.concurrent.atomic.AtomicLong;
 public class ReviewGameStateJob implements Job {
 
     private final ReviewGameStateService service;
+    private final ReviewGamePickRepository pickRepository;
     private final MeterRegistry meterRegistry;
     // Quartz hands each firing a fresh job bean, so these must be static for the
     // gauges registered from the startup singleton to observe execute()'s writes.
     private static final AtomicLong lastSuccessEpochSeconds = new AtomicLong(0L);
     private static final AtomicLong lastSuccessSize = new AtomicLong(0L);
 
-    public ReviewGameStateJob(ReviewGameStateService service, MeterRegistry meterRegistry) {
+    public ReviewGameStateJob(ReviewGameStateService service,
+                              ReviewGamePickRepository pickRepository,
+                              MeterRegistry meterRegistry) {
         this.service = service;
+        this.pickRepository = pickRepository;
         this.meterRegistry = meterRegistry;
     }
 
@@ -43,6 +48,18 @@ public class ReviewGameStateJob implements Job {
         Gauge.builder("steam5.daily.picks.last.success.size", lastSuccessSize, AtomicLong::doubleValue)
                 .description("Number of picks produced by the last successful daily-picks generation")
                 .register(meterRegistry);
+
+        // A restart starts both counters at 0, so the missing-picks alert fires even when
+        // today's picks already exist. Seed from the newest generated day; execute() keeps
+        // them current afterwards. Every per-fire bean also runs this, so skip once seeded.
+        if (lastSuccessEpochSeconds.get() == 0L) {
+            pickRepository.findTopByOrderByCreatedAtDesc().ifPresent(latest -> {
+                if (latest.getCreatedAt() != null) {
+                    lastSuccessEpochSeconds.set(latest.getCreatedAt().toEpochSecond());
+                    lastSuccessSize.set(pickRepository.findByPickDate(latest.getPickDate()).size());
+                }
+            });
+        }
     }
 
     @Override
