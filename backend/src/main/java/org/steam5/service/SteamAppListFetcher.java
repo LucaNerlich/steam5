@@ -3,6 +3,8 @@ package org.steam5.service;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.steam5.config.JobsConfig;
 import org.steam5.config.SteamAppsConfig;
@@ -15,6 +17,8 @@ import tools.jackson.databind.JsonNode;
 
 import java.io.IOException;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Slf4j
 @Service
@@ -28,17 +32,20 @@ public class SteamAppListFetcher implements Fetcher {
     private final SteamAppIndexRepository appIndexRepository;
     private final IngestStateRepository ingestStateRepository;
     private final JobsConfig jobsConfig;
+    private final TransactionTemplate transactionTemplate;
 
     public SteamAppListFetcher(SteamAppsConfig properties,
                                SteamAppIndexRepository appIndexRepository,
                                IngestStateRepository ingestStateRepository,
                                JsonHttpClient jsonHttpClient,
-                               JobsConfig jobsConfig) {
+                               JobsConfig jobsConfig,
+                               PlatformTransactionManager transactionManager) {
         this.properties = properties;
         this.appIndexRepository = appIndexRepository;
         this.ingestStateRepository = ingestStateRepository;
         this.jsonHttpClient = jsonHttpClient;
         this.jobsConfig = jobsConfig;
+        this.transactionTemplate = new TransactionTemplate(transactionManager);
     }
 
     @Override
@@ -64,26 +71,32 @@ public class SteamAppListFetcher implements Fetcher {
 
             int batchCount = 0;
             if (apps.isArray()) {
+                final List<SteamAppIndex> pageRows = new ArrayList<>();
                 for (JsonNode app : apps) {
                     final long appId = app.path("appid").asLong();
                     final String name = app.path("name").asText("");
                     if (appId <= 0 || name.isEmpty()) {
                         continue;
                     }
-                    final String safeName = name.length() > MAX_NAME_LENGTH
+                    pageRows.add(new SteamAppIndex(appId, name.length() > MAX_NAME_LENGTH
                             ? name.substring(0, MAX_NAME_LENGTH)
-                            : name;
-                    try {
-                        appIndexRepository.save(new SteamAppIndex(appId, safeName));
-                        batchCount++;
-                    } catch (DataIntegrityViolationException e) {
-                        // A single row Postgres rejects must not abort the page: the cursor is
-                        // persisted after the loop, so the same row would fail every retry and
-                        // wedge all later pages forever.
-                        log.warn("Skipping appId {} rejected by steam_app_index: {}", appId, e.getMessage());
-                    }
+                            : name));
+                    batchCount++;
                 }
                 totalApps += apps.size();
+                // One transaction per page instead of one per app: without it, save() commits
+                // each row on its own (and, for an assigned id, merges with a SELECT first),
+                // so a 50k-app page is 50k commits.
+                try {
+                    transactionTemplate.executeWithoutResult(status -> appIndexRepository.saveAll(pageRows));
+                } catch (DataIntegrityViolationException batchFailure) {
+                    // One rejected row must not wedge the page: retry row by row so the cursor
+                    // still advances. Logged because a batch failure that does not reproduce per
+                    // row silently degrades every page to single-row transactions.
+                    log.warn("Page batch of {} rows failed ({}); retrying row by row",
+                            pageRows.size(), batchFailure.getMessage());
+                    persistRowByRow(pageRows);
+                }
             }
 
             haveMore = response.path("have_more_results").asBoolean(false);
@@ -102,6 +115,16 @@ public class SteamAppListFetcher implements Fetcher {
         }
 
         log.info("Steam app list ingestion finished. pages={} pageLimit={} total_apps_seen={}", page, pageLimit, totalApps);
+    }
+
+    private void persistRowByRow(List<SteamAppIndex> rows) {
+        for (SteamAppIndex row : rows) {
+            try {
+                appIndexRepository.save(row);
+            } catch (DataIntegrityViolationException e) {
+                log.warn("Skipping appId {} rejected by steam_app_index: {}", row.getAppId(), e.getMessage());
+            }
+        }
     }
 
     private String buildUrl(long lastAppId) {
