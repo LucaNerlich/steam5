@@ -169,14 +169,18 @@ function withoutComments(css: string): string {
     return css.replace(/\/\*[\s\S]*?\*\//g, '');
 }
 
-function cssFiles(dir: string): string[] {
+function filesWithExtension(dir: string, extension: string): string[] {
     const files: string[] = [];
     for (const entry of readdirSync(dir, {withFileTypes: true})) {
         const path = join(dir, entry.name);
-        if (entry.isDirectory()) files.push(...cssFiles(path));
-        else if (entry.name.endsWith('.css')) files.push(path);
+        if (entry.isDirectory()) files.push(...filesWithExtension(path, extension));
+        else if (entry.name.endsWith(extension)) files.push(path);
     }
     return files;
+}
+
+function cssFiles(dir: string): string[] {
+    return filesWithExtension(dir, '.css');
 }
 
 // Body of the first {...} block whose opening brace follows `from`.
@@ -240,6 +244,15 @@ describe('css colour tokens', () => {
                 const {name, fallback} = parseVarCall(varCallFrom(css, m.index));
                 if (allDefinedTokens.has(name) || fallback) continue;
                 hung.push(`${path.slice(STYLES_DIR.length)}: ${name}`);
+            }
+        }
+        // TSX renders inline styles too; the same hung reference is invisible to a CSS-only walk.
+        for (const path of filesWithExtension(join(STYLES_DIR, '..'), '.tsx')) {
+            const source = readFileSync(path, 'utf8');
+            for (const m of source.matchAll(/var\(--color-[a-z0-9-]+/g)) {
+                const {name, fallback} = parseVarCall(varCallFrom(source, m.index));
+                if (allDefinedTokens.has(name) || fallback) continue;
+                hung.push(`${path.slice(join(STYLES_DIR, '..').length)}: ${name}`);
             }
         }
         expect(hung, 'var() references without definition or fallback').toEqual([]);
