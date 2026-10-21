@@ -34,16 +34,18 @@ public class ReviewGameStateControllerDayAnswersTest {
 
     private ReviewGameStateService service;
     private ReviewGamePickRepository pickRepository;
+    private GuessRepository guessRepository;
     private ReviewGameStateController controller;
 
     @BeforeEach
     void setUp() {
         service = mock(ReviewGameStateService.class);
         pickRepository = mock(ReviewGamePickRepository.class);
+        guessRepository = mock(GuessRepository.class);
         controller = new ReviewGameStateController(
                 service,
                 mock(SteamAppDetailService.class),
-                mock(GuessRepository.class),
+                guessRepository,
                 mock(SteamAppReviewsRepository.class),
                 mock(UserRepository.class),
                 pickRepository,
@@ -72,6 +74,45 @@ public class ReviewGameStateControllerDayAnswersTest {
         assertEquals(500, res.getBody().getFirst().totalReviews());
         assertEquals("101-1000", res.getBody().getFirst().actualBucket());
         assertEquals("public, max-age=31536000, immutable", res.getHeaders().getCacheControl());
+    }
+
+    @Test
+    void getDayAnswers_usesStoredAnswerNotCurrentReviews() {
+        final LocalDate past = GameDate.todayUtc().minusDays(1);
+        final ReviewGamePick pick = new ReviewGamePick(1L, past, 42L, OffsetDateTime.now());
+        pick.recordAnswer(855, "112-855");
+        when(pickRepository.findByPickDate(past)).thenReturn(List.of(pick));
+        // The live snapshot has moved past the boundary since the round was played.
+        when(service.getTotalReviewCountForApp(42L)).thenReturn(856);
+
+        final ResponseEntity<List<ReviewGameStateController.DayAnswer>> res =
+                controller.getDayAnswers(past.toString());
+
+        assertEquals(200, res.getStatusCode().value());
+        assertNotNull(res.getBody());
+        assertEquals(855, res.getBody().getFirst().totalReviews());
+        assertEquals("112-855", res.getBody().getFirst().actualBucket());
+    }
+
+    @Test
+    void myDay_usesTheRecordedTotalNotTheCurrentSnapshot() {
+        final LocalDate past = GameDate.todayUtc().minusDays(1);
+        final ReviewGamePick pick = new ReviewGamePick(1L, past, 42L, OffsetDateTime.now());
+        pick.recordAnswer(855, "112-855");
+        when(pickRepository.findByPickDate(past)).thenReturn(List.of(pick));
+        when(guessRepository.findAllForDay("u1", past)).thenReturn(List.of(
+                new org.steam5.domain.Guess(1L, "u1", past, 1, 42L, "112-855", "112-855", 5, OffsetDateTime.now())));
+        // The live snapshot has moved past the boundary since the round was played.
+        when(service.getTotalReviewCountForApp(42L)).thenReturn(856);
+
+        final ResponseEntity<?> res = controller.myDay(past.toString(), "u1");
+
+        assertEquals(200, res.getStatusCode().value());
+        final List<?> body = (List<?>) res.getBody();
+        assertNotNull(body);
+        final ReviewGameStateController.MyGuessDto guess = (ReviewGameStateController.MyGuessDto) body.getFirst();
+        assertEquals(855, guess.totalReviews());
+        assertEquals("112-855", guess.actualBucket());
     }
 
     @Test

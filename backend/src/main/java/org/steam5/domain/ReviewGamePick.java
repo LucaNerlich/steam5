@@ -37,6 +37,18 @@ public class ReviewGamePick {
     @Column(name = "round_index")
     private Integer roundIndex;
 
+    /**
+     * The review count and bucket the round was created with. Recorded so a
+     * finished day's answer does not drift when the mutable steam_app_reviews
+     * snapshot changes later. Null for rows created before the answer columns
+     * existed; readers fall back to the current snapshot for those.
+     */
+    @Column(name = "total_reviews")
+    private Integer totalReviews;
+
+    @Column(name = "actual_bucket", length = 32)
+    private String actualBucket;
+
     public ReviewGamePick(Long id, LocalDate pickDate, Long appId, OffsetDateTime createdAt) {
         this(id, pickDate, appId, createdAt, null);
     }
@@ -51,5 +63,10 @@ public class ReviewGamePick {
 
     public void setRoundIndex(Integer roundIndex) {
         this.roundIndex = roundIndex;
+    }
+
+    public void recordAnswer(Integer totalReviews, String actualBucket) {
+        this.totalReviews = totalReviews;
+        this.actualBucket = actualBucket;
     }
 }

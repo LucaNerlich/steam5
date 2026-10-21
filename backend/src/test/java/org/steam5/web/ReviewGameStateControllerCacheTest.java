@@ -128,6 +128,7 @@ public class ReviewGameStateControllerCacheTest {
     void myDay_today_returnsPrivateLiveCacheControl() {
         final LocalDate today = LocalDate.now();
         when(guessRepository.findAllForDay("u1", today)).thenReturn(List.of());
+        when(pickRepository.findByPickDate(today)).thenReturn(List.of());
 
         final ResponseEntity<?> res = controller.myDay(today.toString(), "u1");
 
@@ -140,6 +141,7 @@ public class ReviewGameStateControllerCacheTest {
     @Test
     void myDay_pastDate_returnsPrivateImmutableCacheControl() {
         when(guessRepository.findAllForDay("u1", LocalDate.parse("2020-01-01"))).thenReturn(List.of());
+        when(pickRepository.findByPickDate(LocalDate.parse("2020-01-01"))).thenReturn(List.of());
 
         final ResponseEntity<?> res = controller.myDay("2020-01-01", "u1");
 

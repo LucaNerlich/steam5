@@ -129,7 +129,10 @@ public class ReviewGameStateService {
         // round labels match the order actually served to players.
         Collections.shuffle(picks);
         for (int i = 0; i < picks.size(); i++) {
-            picks.get(i).setRoundIndex(i + 1);
+            final ReviewGamePick pick = picks.get(i);
+            pick.setRoundIndex(i + 1);
+            final int totalReviews = getTotalReviewCountForApp(pick.getAppId());
+            pick.recordAnswer(totalReviews, inferBucket(totalReviews));
         }
         final List<ReviewGamePick> saved = pickRepository.saveAll(picks);
         pickLockRepository.save(new DailyPickLock(today, OffsetDateTime.now()));
@@ -277,7 +280,14 @@ public class ReviewGameStateService {
                         || existingReviews.getUpdatedAt().isBefore(cutoff);
                 if (needsRefresh) {
                     log.info("Refreshing reviews for picked appId {} (cutoff={}, existingAt={})", p.getAppId(), cutoff, existingReviews != null ? existingReviews.getUpdatedAt() : null);
-                    reviewsFetcher.fetchForAppId(p.getAppId());
+                    if (reviewsFetcher.fetchForAppId(p.getAppId())) {
+                        // The refresh rewrote the snapshot the review count is read from, so
+                        // re-record the answer: guesses are scored against the new count and the
+                        // stored answer must not disagree with them.
+                        final int total = getTotalReviewCountForApp(p.getAppId());
+                        p.recordAnswer(total, inferBucket(total));
+                        pickRepository.save(p);
+                    }
                 }
             }
         } catch (Exception e) {

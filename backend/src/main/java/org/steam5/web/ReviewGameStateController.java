@@ -198,7 +198,8 @@ public class ReviewGameStateController {
                 .filter(g -> currentAppIds.contains(g.getAppId()))
                 .toList();
 
-        final Map<Long, Integer> totalReviewsByAppId = lookupTotalReviewsByAppId(guesses);
+        final Map<Long, Integer> totalReviewsByAppId = new HashMap<>(lookupTotalReviewsByAppId(guesses));
+        totalReviewsByAppId.putAll(recordedTotalsByAppId(picks));
         final var dtos = guesses.stream().map(g -> new MyGuessDto(
                 g.getRoundIndex(),
                 g.getAppId(),
@@ -226,7 +227,8 @@ public class ReviewGameStateController {
         }
 
         final var guesses = guessRepository.findAllForDay(steamId, day);
-        final Map<Long, Integer> totalReviewsByAppId = lookupTotalReviewsByAppId(guesses);
+        final Map<Long, Integer> totalReviewsByAppId = new HashMap<>(lookupTotalReviewsByAppId(guesses));
+        totalReviewsByAppId.putAll(recordedTotalsByAppId(pickRepository.findByPickDate(day)));
         final var dtos = guesses.stream().map(g -> new MyGuessDto(
                 g.getRoundIndex(),
                 g.getAppId(),
@@ -264,12 +266,16 @@ public class ReviewGameStateController {
 
         final var guesses = guessRepository.findBySteamIdBetween(steamId, start, end);
         final Map<Long, Integer> totalReviewsByAppId = lookupTotalReviewsByAppId(guesses);
+        final Map<String, Integer> recordedByDayApp =
+                recordedTotalsByDayApp(pickRepository.findByPickDateBetween(start, end));
         final var dtos = guesses.stream().map(g -> new MyGuessDto(
                 g.getRoundIndex(),
                 g.getAppId(),
                 g.getSelectedBucket(),
                 g.getActualBucket(),
-                totalReviewsByAppId.getOrDefault(g.getAppId(), 0)
+                recordedByDayApp.getOrDefault(
+                        g.getGameDate() + "|" + g.getAppId(),
+                        totalReviewsByAppId.getOrDefault(g.getAppId(), 0))
         )).toList();
 
         return ResponseEntity.ok()
@@ -522,6 +528,11 @@ public class ReviewGameStateController {
         }
         final List<DayAnswer> answers = picks.stream()
                 .map(p -> {
+                    if (p.getTotalReviews() != null && p.getActualBucket() != null) {
+                        return new DayAnswer(p.getAppId(), p.getTotalReviews(), p.getActualBucket());
+                    }
+                    // Legacy row: the answer was never recorded, so the current snapshot is
+                    // the best available (same drift, frozen from the first generation on).
                     final int total = service.getTotalReviewCountForApp(p.getAppId());
                     return new DayAnswer(p.getAppId(), total, service.inferBucket(total));
                 })
@@ -699,6 +710,28 @@ public class ReviewGameStateController {
             out.add(new AlwaysPickScore(i + 1, selected, avg, rounds));
         }
         return new AlwaysPickComputation(rounds, out);
+    }
+
+    /** Recorded totals for one day's picks, keyed by app id; legacy null answers are skipped. */
+    private Map<Long, Integer> recordedTotalsByAppId(List<org.steam5.domain.ReviewGamePick> picks) {
+        final Map<Long, Integer> totals = new HashMap<>();
+        for (org.steam5.domain.ReviewGamePick p : picks) {
+            if (p.getTotalReviews() != null) {
+                totals.put(p.getAppId(), p.getTotalReviews());
+            }
+        }
+        return totals;
+    }
+
+    /** Recorded totals across days, keyed by {@code pickDate|appId}; null answers are skipped. */
+    private Map<String, Integer> recordedTotalsByDayApp(List<org.steam5.domain.ReviewGamePick> picks) {
+        final Map<String, Integer> totals = new HashMap<>();
+        for (org.steam5.domain.ReviewGamePick p : picks) {
+            if (p.getTotalReviews() != null) {
+                totals.put(p.getPickDate() + "|" + p.getAppId(), p.getTotalReviews());
+            }
+        }
+        return totals;
     }
 
     private Map<Long, Integer> lookupTotalReviewsByAppId(List<org.steam5.domain.Guess> guesses) {
