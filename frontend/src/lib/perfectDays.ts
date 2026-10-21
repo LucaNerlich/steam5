@@ -1,4 +1,4 @@
-import {BACKEND_ORIGIN} from "@/lib/backend";
+import {fetchBackendJson} from "@/lib/backend";
 
 export type PerfectDay = {
     steamId: string;
@@ -12,15 +12,10 @@ export type PerfectDay = {
 export type PerfectDaysFetchResult = { data: PerfectDay[]; refreshedAt: string | null };
 
 export async function fetchPerfectDays(): Promise<PerfectDaysFetchResult | null> {
-    try {
-        const res = await fetch(`${BACKEND_ORIGIN}/api/stats/game/perfect-days`, {
-            headers: {"accept": "application/json"},
-            next: {revalidate: 3600, tags: ["stats-perfect-days"]},
-        });
-        if (!res.ok) return null;
-        const data = await res.json() as PerfectDay[];
-        return {data, refreshedAt: res.headers.get('X-Leaderboard-Refreshed-At')};
-    } catch {
-        return null;
-    }
+    const {data, headers} = await fetchBackendJson<PerfectDay[]>(
+        '/api/stats/game/perfect-days',
+        {revalidate: 3600, tags: ["stats-perfect-days"]},
+    );
+    if (!data) return null;
+    return {data, refreshedAt: headers.get('X-Leaderboard-Refreshed-At')};
 }

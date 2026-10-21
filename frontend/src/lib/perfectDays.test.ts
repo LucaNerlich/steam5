@@ -1,8 +1,6 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 import {fetchPerfectDays, PerfectDay} from './perfectDays';
 
-vi.mock('@/lib/backend', () => ({BACKEND_ORIGIN: 'http://localhost:8080'}));
-
 function mockResponse(ok: boolean, body: unknown, headers: Record<string, string> = {}) {
     return {
         ok,
@@ -32,7 +30,8 @@ describe('fetchPerfectDays', () => {
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
         const [url, init] = fetchMock.mock.calls[0];
-        expect(url).toBe('http://localhost:8080/api/stats/game/perfect-days');
+        const origin = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
+        expect(url).toBe(`${origin}/api/stats/game/perfect-days`);
         expect(init.headers).toEqual({accept: 'application/json'});
         expect(init.next).toEqual({revalidate: 3600, tags: ['stats-perfect-days']});
     });

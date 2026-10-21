@@ -3,7 +3,7 @@
  * Server-side prefetch helper mirrors the shared leaderboard fetch pattern.
  */
 
-import {BACKEND_ORIGIN} from "@/lib/backend";
+import {fetchBackendJson} from "@/lib/backend";
 
 export type DeceptionDirection = "over" | "under" | "none";
 
@@ -25,16 +25,11 @@ export type HardestGame = {
  * or backend failure so callers can render a fallback UI.
  */
 export async function fetchHardestGames(): Promise<HardestGame[] | null> {
-    try {
-        const res = await fetch(`${BACKEND_ORIGIN}/api/stats/game/hardest`, {
-            headers: {"accept": "application/json"},
-            next: {revalidate: 3600, tags: ["stats-hardest-games"]},
-        });
-        if (!res.ok) return null;
-        return await res.json() as HardestGame[];
-    } catch {
-        return null;
-    }
+    const {data} = await fetchBackendJson<HardestGame[]>(
+        '/api/stats/game/hardest',
+        {revalidate: 3600, tags: ["stats-hardest-games"]},
+    );
+    return data;
 }
 
 export function formatDeception(game: HardestGame): string {
