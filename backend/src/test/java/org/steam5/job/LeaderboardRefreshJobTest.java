@@ -54,7 +54,7 @@ class LeaderboardRefreshJobTest {
         job.execute(contextFor("ALL_TIME"));
 
         InOrder order = inOrder(refreshService, cacheEvictor);
-        order.verify(refreshService).refreshAllTime();
+        order.verify(refreshService).refresh(LeaderboardType.ALL_TIME);
         order.verify(cacheEvictor).evictLeaderboardStatic();
         verify(cacheEvictor, never()).evictStatsHourly();
     }
@@ -62,28 +62,28 @@ class LeaderboardRefreshJobTest {
     @Test
     void execute_monthly_refreshesThenEvicts() throws JobExecutionException {
         job.execute(contextFor("MONTHLY"));
-        verify(refreshService).refreshMonthly();
+        verify(refreshService).refresh(LeaderboardType.MONTHLY);
         verify(cacheEvictor).evictLeaderboardStatic();
     }
 
     @Test
     void execute_weekly_refreshesThenEvicts() throws JobExecutionException {
         job.execute(contextFor("WEEKLY"));
-        verify(refreshService).refreshWeekly();
+        verify(refreshService).refresh(LeaderboardType.WEEKLY);
         verify(cacheEvictor).evictLeaderboardStatic();
     }
 
     @Test
     void execute_season_refreshesThenEvicts() throws JobExecutionException {
         job.execute(contextFor("SEASON"));
-        verify(refreshService).refreshSeason();
+        verify(refreshService).refresh(LeaderboardType.SEASON);
         verify(cacheEvictor).evictLeaderboardStatic();
     }
 
     @Test
     void execute_hardestGames_refreshesThenEvictsBothCaches() throws JobExecutionException {
         job.execute(contextFor("HARDEST_GAMES"));
-        verify(refreshService).refreshHardestGames();
+        verify(refreshService).refresh(LeaderboardType.HARDEST_GAMES);
         verify(cacheEvictor).evictLeaderboardStatic();
         verify(cacheEvictor).evictStatsHourly();
     }
@@ -91,7 +91,7 @@ class LeaderboardRefreshJobTest {
     @Test
     void execute_perfectDays_refreshesThenEvictsBothCaches() throws JobExecutionException {
         job.execute(contextFor("PERFECT_DAYS"));
-        verify(refreshService).refreshPerfectDays();
+        verify(refreshService).refresh(LeaderboardType.PERFECT_DAYS);
         verify(cacheEvictor).evictLeaderboardStatic();
         // perfect-days reads through "stats-hourly" (StatisticsService#getPerfectDays), just
         // like hardest-games, so it must also evict that cache — not only leaderboard-static.
@@ -100,7 +100,7 @@ class LeaderboardRefreshJobTest {
 
     @Test
     void execute_perfectDaysFails_stillEvictsBothCachesThenWrapsException() {
-        doThrow(new RuntimeException("boom")).when(refreshService).refreshPerfectDays();
+        doThrow(new RuntimeException("boom")).when(refreshService).refresh(LeaderboardType.PERFECT_DAYS);
         JobExecutionContext context = contextFor("PERFECT_DAYS");
 
         assertThrows(JobExecutionException.class, () -> job.execute(context));
@@ -111,7 +111,7 @@ class LeaderboardRefreshJobTest {
 
     @Test
     void execute_refreshFails_stillEvictsThenWrapsException() {
-        doThrow(new RuntimeException("boom")).when(refreshService).refreshSeason();
+        doThrow(new RuntimeException("boom")).when(refreshService).refresh(LeaderboardType.SEASON);
         JobExecutionContext context = contextFor("SEASON");
 
         assertThrows(JobExecutionException.class, () -> job.execute(context));

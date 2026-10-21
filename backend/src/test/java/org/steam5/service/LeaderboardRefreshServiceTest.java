@@ -3,6 +3,7 @@ package org.steam5.service;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.steam5.domain.LeaderboardRefreshState;
 import org.steam5.domain.LeaderboardType;
 import org.steam5.repository.LeaderboardMvRepository;
@@ -22,184 +23,92 @@ class LeaderboardRefreshServiceTest {
 
     private LeaderboardMvRepository leaderboardMvRepository;
     private LeaderboardRefreshStateRepository refreshStateRepository;
+    private JdbcTemplate jdbcTemplate;
     private LeaderboardRefreshService service;
 
     @BeforeEach
     void setUp() {
         leaderboardMvRepository = mock(LeaderboardMvRepository.class);
         refreshStateRepository = mock(LeaderboardRefreshStateRepository.class);
-        service = new LeaderboardRefreshService(leaderboardMvRepository, refreshStateRepository);
-        // Default: lock acquired, so existing tests exercise the populated-check/refresh path
-        // unchanged; tests for the "lock not acquired" branch override this per-case.
+        jdbcTemplate = mock(JdbcTemplate.class);
+        service = new LeaderboardRefreshService(leaderboardMvRepository, refreshStateRepository, jdbcTemplate);
         when(leaderboardMvRepository.tryAdvisoryXactLock(anyLong())).thenReturn(true);
     }
 
     @Test
-    void refreshAllTime_whenPopulated_usesConcurrentRefreshAndRecordsState() {
+    void whenPopulated_usesConcurrentRefreshAndRecordsState() {
         when(leaderboardMvRepository.isPopulated("mv_leaderboard_all_time")).thenReturn(true);
 
-        service.refreshAllTime();
+        service.refresh(LeaderboardType.ALL_TIME);
 
-        verify(leaderboardMvRepository).refreshAllTimeConcurrently();
-        verify(leaderboardMvRepository, never()).refreshAllTimeFull();
-
-        ArgumentCaptor<LeaderboardRefreshState> captor = ArgumentCaptor.forClass(LeaderboardRefreshState.class);
+        verify(jdbcTemplate).execute("REFRESH MATERIALIZED VIEW CONCURRENTLY mv_leaderboard_all_time");
+        final ArgumentCaptor<LeaderboardRefreshState> captor = ArgumentCaptor.forClass(LeaderboardRefreshState.class);
         verify(refreshStateRepository).save(captor.capture());
         assertEquals(LeaderboardType.ALL_TIME, captor.getValue().getLeaderboardType());
         assertNotNull(captor.getValue().getRefreshedAt());
     }
 
     @Test
-    void refreshAllTime_whenNotPopulated_fallsBackToFullRefreshAndRecordsState() {
+    void whenNotPopulated_fallsBackToFullRefreshAndRecordsState() {
         when(leaderboardMvRepository.isPopulated("mv_leaderboard_all_time")).thenReturn(false);
 
-        service.refreshAllTime();
+        service.refresh(LeaderboardType.ALL_TIME);
 
-        verify(leaderboardMvRepository).refreshAllTimeFull();
-        verify(leaderboardMvRepository, never()).refreshAllTimeConcurrently();
-
-        ArgumentCaptor<LeaderboardRefreshState> captor = ArgumentCaptor.forClass(LeaderboardRefreshState.class);
+        verify(jdbcTemplate).execute("REFRESH MATERIALIZED VIEW mv_leaderboard_all_time");
+        final ArgumentCaptor<LeaderboardRefreshState> captor = ArgumentCaptor.forClass(LeaderboardRefreshState.class);
         verify(refreshStateRepository).save(captor.capture());
         assertEquals(LeaderboardType.ALL_TIME, captor.getValue().getLeaderboardType());
     }
 
     @Test
-    void refreshSeason_whenIsPopulatedReturnsNull_fallsBackToFullRefreshAndRecordsState() {
-        // A null result (e.g. the view row is missing from pg_matviews) must not NPE —
-        // treat it the same as "not populated" so the failure surfaces from the REFRESH
-        // statement itself (missing relation) rather than a silent skip.
+    void whenIsPopulatedReturnsNull_fallsBackToFullRefresh() {
+        // A missing pg_matviews row must not NPE; the REFRESH surfaces the missing relation.
         when(leaderboardMvRepository.isPopulated("mv_leaderboard_season")).thenReturn(null);
 
-        service.refreshSeason();
+        service.refresh(LeaderboardType.SEASON);
 
-        verify(leaderboardMvRepository).refreshSeasonFull();
-        verify(leaderboardMvRepository, never()).refreshSeasonConcurrently();
-
-        ArgumentCaptor<LeaderboardRefreshState> captor = ArgumentCaptor.forClass(LeaderboardRefreshState.class);
-        verify(refreshStateRepository).save(captor.capture());
-        assertEquals(LeaderboardType.SEASON, captor.getValue().getLeaderboardType());
+        verify(jdbcTemplate).execute("REFRESH MATERIALIZED VIEW mv_leaderboard_season");
     }
 
     @Test
-    void refreshMonthly_whenPopulated_usesConcurrentRefreshAndRecordsState() {
-        when(leaderboardMvRepository.isPopulated("mv_leaderboard_monthly")).thenReturn(true);
-
-        service.refreshMonthly();
-
-        verify(leaderboardMvRepository).refreshMonthlyConcurrently();
-        verify(leaderboardMvRepository, never()).refreshMonthlyFull();
-
-        ArgumentCaptor<LeaderboardRefreshState> captor = ArgumentCaptor.forClass(LeaderboardRefreshState.class);
-        verify(refreshStateRepository).save(captor.capture());
-        assertEquals(LeaderboardType.MONTHLY, captor.getValue().getLeaderboardType());
+    void enumViewNamesAreTheExpectedLiterals() {
+        assertEquals("mv_leaderboard_all_time", LeaderboardType.ALL_TIME.viewName());
+        assertEquals("mv_leaderboard_monthly", LeaderboardType.MONTHLY.viewName());
+        assertEquals("mv_leaderboard_weekly", LeaderboardType.WEEKLY.viewName());
+        assertEquals("mv_leaderboard_season", LeaderboardType.SEASON.viewName());
+        assertEquals("mv_hardest_games", LeaderboardType.HARDEST_GAMES.viewName());
+        assertEquals("mv_perfect_days", LeaderboardType.PERFECT_DAYS.viewName());
     }
 
     @Test
-    void refreshWeekly_whenPopulated_usesConcurrentRefreshAndRecordsState() {
-        when(leaderboardMvRepository.isPopulated("mv_leaderboard_weekly")).thenReturn(true);
+    void everyTypeUsesItsWhitelistedViewName() {
+        when(leaderboardMvRepository.isPopulated(anyString())).thenReturn(true);
 
-        service.refreshWeekly();
+        for (final LeaderboardType type : LeaderboardType.values()) {
+            service.refresh(type);
+        }
 
-        verify(leaderboardMvRepository).refreshWeeklyConcurrently();
-        verify(leaderboardMvRepository, never()).refreshWeeklyFull();
-
-        ArgumentCaptor<LeaderboardRefreshState> captor = ArgumentCaptor.forClass(LeaderboardRefreshState.class);
-        verify(refreshStateRepository).save(captor.capture());
-        assertEquals(LeaderboardType.WEEKLY, captor.getValue().getLeaderboardType());
+        for (final LeaderboardType type : LeaderboardType.values()) {
+            verify(jdbcTemplate).execute("REFRESH MATERIALIZED VIEW CONCURRENTLY " + type.viewName());
+        }
     }
 
     @Test
-    void refreshHardestGames_whenPopulated_usesConcurrentRefreshAndRecordsState() {
-        when(leaderboardMvRepository.isPopulated("mv_hardest_games")).thenReturn(true);
-
-        service.refreshHardestGames();
-
-        verify(leaderboardMvRepository).refreshHardestGamesConcurrently();
-        verify(leaderboardMvRepository, never()).refreshHardestGamesFull();
-
-        ArgumentCaptor<LeaderboardRefreshState> captor = ArgumentCaptor.forClass(LeaderboardRefreshState.class);
-        verify(refreshStateRepository).save(captor.capture());
-        assertEquals(LeaderboardType.HARDEST_GAMES, captor.getValue().getLeaderboardType());
-    }
-
-    @Test
-    void refreshHardestGames_whenNotPopulated_fallsBackToFullRefresh() {
-        when(leaderboardMvRepository.isPopulated("mv_hardest_games")).thenReturn(false);
-
-        service.refreshHardestGames();
-
-        verify(leaderboardMvRepository).refreshHardestGamesFull();
-        verify(leaderboardMvRepository, never()).refreshHardestGamesConcurrently();
-    }
-
-    @Test
-    void refreshPerfectDays_whenPopulated_usesConcurrentRefreshAndRecordsState() {
-        when(leaderboardMvRepository.isPopulated("mv_perfect_days")).thenReturn(true);
-
-        service.refreshPerfectDays();
-
-        verify(leaderboardMvRepository).refreshPerfectDaysConcurrently();
-        verify(leaderboardMvRepository, never()).refreshPerfectDaysFull();
-
-        ArgumentCaptor<LeaderboardRefreshState> captor = ArgumentCaptor.forClass(LeaderboardRefreshState.class);
-        verify(refreshStateRepository).save(captor.capture());
-        assertEquals(LeaderboardType.PERFECT_DAYS, captor.getValue().getLeaderboardType());
-        assertNotNull(captor.getValue().getRefreshedAt());
-    }
-
-    @Test
-    void refreshPerfectDays_whenNotPopulated_fallsBackToFullRefreshAndRecordsState() {
-        when(leaderboardMvRepository.isPopulated("mv_perfect_days")).thenReturn(false);
-
-        service.refreshPerfectDays();
-
-        verify(leaderboardMvRepository).refreshPerfectDaysFull();
-        verify(leaderboardMvRepository, never()).refreshPerfectDaysConcurrently();
-
-        ArgumentCaptor<LeaderboardRefreshState> captor = ArgumentCaptor.forClass(LeaderboardRefreshState.class);
-        verify(refreshStateRepository).save(captor.capture());
-        assertEquals(LeaderboardType.PERFECT_DAYS, captor.getValue().getLeaderboardType());
-    }
-
-    @Test
-    void refreshPerfectDays_whenAdvisoryLockNotAcquired_skipsEntirely() {
+    void whenAdvisoryLockNotAcquired_skipsEntirely() {
         when(leaderboardMvRepository.tryAdvisoryXactLock(anyLong())).thenReturn(false);
 
-        service.refreshPerfectDays();
+        service.refresh(LeaderboardType.MONTHLY);
 
         verify(leaderboardMvRepository, never()).isPopulated(anyString());
-        verify(leaderboardMvRepository, never()).refreshPerfectDaysConcurrently();
-        verify(leaderboardMvRepository, never()).refreshPerfectDaysFull();
-        verifyNoInteractions(refreshStateRepository);
+        verifyNoInteractions(jdbcTemplate, refreshStateRepository);
     }
 
     @Test
-    void refreshMonthly_whenAdvisoryLockNotAcquired_skipsEntirely() {
-        // Guards against a real production deadlock: two processes (e.g. an old instance mid-
-        // REFRESH during a restart, and a newly-started instance's immediately-firing intraday
-        // trigger) both trying to REFRESH the same MV. If another session already holds the
-        // advisory lock for this type, this run must skip cleanly rather than proceed and risk
-        // colliding with it.
-        when(leaderboardMvRepository.tryAdvisoryXactLock(anyLong())).thenReturn(false);
-
-        service.refreshMonthly();
-
-        verify(leaderboardMvRepository, never()).isPopulated(anyString());
-        verify(leaderboardMvRepository, never()).refreshMonthlyConcurrently();
-        verify(leaderboardMvRepository, never()).refreshMonthlyFull();
-        verifyNoInteractions(refreshStateRepository);
-    }
-
-    @Test
-    void refreshAllTime_whenAdvisoryLockReturnsNull_treatedAsNotAcquiredAndSkips() {
-        // Boolean unboxing safety: a null result (unexpected, but must not NPE) is treated the
-        // same as "not acquired" — fail closed (skip) rather than assume the lock was granted.
+    void whenAdvisoryLockReturnsNull_treatedAsNotAcquiredAndSkips() {
         when(leaderboardMvRepository.tryAdvisoryXactLock(anyLong())).thenReturn(null);
 
-        service.refreshAllTime();
+        service.refresh(LeaderboardType.ALL_TIME);
 
-        verify(leaderboardMvRepository, never()).refreshAllTimeConcurrently();
-        verify(leaderboardMvRepository, never()).refreshAllTimeFull();
-        verifyNoInteractions(refreshStateRepository);
+        verifyNoInteractions(jdbcTemplate, refreshStateRepository);
     }
 }

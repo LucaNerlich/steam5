@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
+import org.steam5.domain.LeaderboardType;
 import org.steam5.domain.Season;
 import org.steam5.service.DomainCacheEvictor;
 import org.steam5.service.LeaderboardRefreshService;
@@ -52,7 +53,7 @@ class SeasonFinalizerJobTest {
         // job execution, not wait for the separately-scheduled 00:46 UTC cron.
         InOrder order = inOrder(seasonService, leaderboardRefreshService);
         order.verify(seasonService).ensureSeasonForDate(any(LocalDate.class));
-        order.verify(leaderboardRefreshService).refreshSeason();
+        order.verify(leaderboardRefreshService).refresh(LeaderboardType.SEASON);
     }
 
     @Test
@@ -70,7 +71,7 @@ class SeasonFinalizerJobTest {
         // computation that hasn't been finalized yet.
         InOrder order = inOrder(seasonService, leaderboardRefreshService);
         order.verify(seasonService).finalizeSeason(ended);
-        order.verify(leaderboardRefreshService).refreshSeason();
+        order.verify(leaderboardRefreshService).refresh(LeaderboardType.SEASON);
     }
 
     @Test
@@ -82,7 +83,7 @@ class SeasonFinalizerJobTest {
 
     @Test
     void execute_refreshFails_isRethrownAsJobExecutionExceptionButStillEvicts() {
-        doThrow(new RuntimeException("boom")).when(leaderboardRefreshService).refreshSeason();
+        doThrow(new RuntimeException("boom")).when(leaderboardRefreshService).refresh(LeaderboardType.SEASON);
 
         // A failed finalization must surface as a failed Quartz execution so metrics
         // and alerting see it; eviction still runs in the finally block.

@@ -1,10 +1,8 @@
 package org.steam5.repository;
 
-import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.Repository;
 import org.springframework.data.repository.query.Param;
-import org.springframework.transaction.annotation.Transactional;
 import org.steam5.domain.Guess;
 
 import java.util.List;
@@ -92,55 +90,15 @@ public interface LeaderboardMvRepository extends Repository<Guess, Long> {
     @Query(value = "SELECT pg_try_advisory_xact_lock(:key)", nativeQuery = true)
     Boolean tryAdvisoryXactLock(@Param("key") long key);
 
-    @Transactional
-    @Modifying(clearAutomatically = false, flushAutomatically = false)
-    @Query(value = "REFRESH MATERIALIZED VIEW mv_leaderboard_all_time", nativeQuery = true)
-    void refreshAllTimeFull();
 
-    @Transactional
-    @Modifying(clearAutomatically = false, flushAutomatically = false)
-    @Query(value = "REFRESH MATERIALIZED VIEW CONCURRENTLY mv_leaderboard_all_time", nativeQuery = true)
-    void refreshAllTimeConcurrently();
 
-    @Transactional
-    @Modifying(clearAutomatically = false, flushAutomatically = false)
-    @Query(value = "REFRESH MATERIALIZED VIEW mv_leaderboard_monthly", nativeQuery = true)
-    void refreshMonthlyFull();
 
-    @Transactional
-    @Modifying(clearAutomatically = false, flushAutomatically = false)
-    @Query(value = "REFRESH MATERIALIZED VIEW CONCURRENTLY mv_leaderboard_monthly", nativeQuery = true)
-    void refreshMonthlyConcurrently();
 
-    @Transactional
-    @Modifying(clearAutomatically = false, flushAutomatically = false)
-    @Query(value = "REFRESH MATERIALIZED VIEW mv_leaderboard_weekly", nativeQuery = true)
-    void refreshWeeklyFull();
 
-    @Transactional
-    @Modifying(clearAutomatically = false, flushAutomatically = false)
-    @Query(value = "REFRESH MATERIALIZED VIEW CONCURRENTLY mv_leaderboard_weekly", nativeQuery = true)
-    void refreshWeeklyConcurrently();
 
-    @Transactional
-    @Modifying(clearAutomatically = false, flushAutomatically = false)
-    @Query(value = "REFRESH MATERIALIZED VIEW mv_leaderboard_season", nativeQuery = true)
-    void refreshSeasonFull();
 
-    @Transactional
-    @Modifying(clearAutomatically = false, flushAutomatically = false)
-    @Query(value = "REFRESH MATERIALIZED VIEW CONCURRENTLY mv_leaderboard_season", nativeQuery = true)
-    void refreshSeasonConcurrently();
 
-    @Transactional
-    @Modifying(clearAutomatically = false, flushAutomatically = false)
-    @Query(value = "REFRESH MATERIALIZED VIEW mv_hardest_games", nativeQuery = true)
-    void refreshHardestGamesFull();
 
-    @Transactional
-    @Modifying(clearAutomatically = false, flushAutomatically = false)
-    @Query(value = "REFRESH MATERIALIZED VIEW CONCURRENTLY mv_hardest_games", nativeQuery = true)
-    void refreshHardestGamesConcurrently();
 
     interface PerfectDayMvRow {
         String getSteamId();
@@ -158,13 +116,5 @@ public interface LeaderboardMvRepository extends Repository<Guess, Long> {
             "FROM mv_perfect_days ORDER BY game_date DESC, steam_id", nativeQuery = true)
     List<PerfectDayMvRow> findPerfectDays();
 
-    @Transactional
-    @Modifying(clearAutomatically = false, flushAutomatically = false)
-    @Query(value = "REFRESH MATERIALIZED VIEW mv_perfect_days", nativeQuery = true)
-    void refreshPerfectDaysFull();
 
-    @Transactional
-    @Modifying(clearAutomatically = false, flushAutomatically = false)
-    @Query(value = "REFRESH MATERIALIZED VIEW CONCURRENTLY mv_perfect_days", nativeQuery = true)
-    void refreshPerfectDaysConcurrently();
 }
