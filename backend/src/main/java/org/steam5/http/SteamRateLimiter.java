@@ -11,7 +11,8 @@ public class SteamRateLimiter {
 
     // Monotonic: a system-clock correction must not turn into a multi-minute sleep (backwards
     // step) or a burst at Steam (forwards step).
-    private volatile long nextAllowedNanos = 0L;
+    // Long.MIN_VALUE, not 0: nanoTime may be negative, so 0 is not a safe "no deadline" sentinel.
+    private volatile long nextAllowedNanos = Long.MIN_VALUE;
     /** Minimum spacing between Steam API calls. */
     private static final long MIN_INTERVAL_MS = 1000L;
     private final Timer waitTimer;
