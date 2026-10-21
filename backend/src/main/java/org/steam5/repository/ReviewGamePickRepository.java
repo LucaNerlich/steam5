@@ -15,6 +15,9 @@ import java.util.Optional;
 @Repository
 public interface ReviewGamePickRepository extends JpaRepository<ReviewGamePick, Long> {
 
+    /** Newest pick row, used to seed the daily-picks monitoring gauge at startup. */
+    Optional<ReviewGamePick> findTopByOrderByCreatedAtDesc();
+
     /**
      * Returns all picks for one challenge day, ordered by the player-visible
      * round index (legacy rows without a round index fall back to id order).
