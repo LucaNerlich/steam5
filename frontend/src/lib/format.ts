@@ -61,7 +61,7 @@ export function formatRelativeTime(
     if (diffMs < 0) return formatDate(d, locale);
 
     const seconds = Math.floor(diffMs / 1000);
-    if (seconds < 45) return 'just now';
+    if (seconds < 60) return 'just now';
     const minutes = Math.floor(seconds / 60);
     if (minutes < 60) return `${minutes}m`;
     const hours = Math.floor(minutes / 60);

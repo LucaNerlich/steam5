@@ -78,6 +78,8 @@ describe('formatRelativeTime', () => {
 
     it('returns just now for recent timestamps', () => {
         expect(formatRelativeTime('2026-07-31T11:59:30Z', now)).toBe('just now');
+        // 45–59s must still read "just now", not "0m".
+        expect(formatRelativeTime('2026-07-31T11:59:15Z', now)).toBe('just now');
     });
 
     it('returns minutes and hours for same-day ages', () => {
