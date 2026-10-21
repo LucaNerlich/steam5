@@ -143,7 +143,10 @@ export default function ReactionBar(props: {
             } else {
                 // A rejected toggle (429 rate limit, 5xx) must not look like a successful
                 // no-op: report it and let the next attempt clear it.
-                setError(message || "Could not update the reaction. Please try again.");
+                // Machine codes are not user copy: map the one the API actually returns.
+                setError(message === "rate_limit_exceeded"
+                    ? "Too many reactions — try again in a minute."
+                    : "Could not update the reaction. Please try again.");
             }
         }
         setPending(null);

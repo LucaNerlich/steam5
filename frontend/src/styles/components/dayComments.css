@@ -139,6 +139,12 @@
     cursor: default;
 }
 
+.reaction-bar__error {
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--color-error);
+}
+
 .day-comments__archive-error {
     margin: 0;
     font-size: 0.8rem;
