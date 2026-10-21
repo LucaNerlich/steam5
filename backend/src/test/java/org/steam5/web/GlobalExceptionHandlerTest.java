@@ -78,8 +78,11 @@ class GlobalExceptionHandlerTest {
             final HttpMessageNotReadableException ex = new HttpMessageNotReadableException(
                     "JSON parse error: x\n2026-10-21 ERROR forged", (org.springframework.http.HttpInputMessage) null);
             handler.handleUnreadableBody(ex, request);
-            org.junit.jupiter.api.Assertions.assertFalse(appender.list.stream()
-                    .anyMatch(event -> event.getFormattedMessage().contains("forged")));
+            org.junit.jupiter.api.Assertions.assertEquals(1, appender.list.size());
+            final ch.qos.logback.classic.spi.ILoggingEvent event = appender.list.getFirst();
+            org.junit.jupiter.api.Assertions.assertFalse(event.getFormattedMessage().contains("forged"));
+            org.junit.jupiter.api.Assertions.assertTrue(event.getThrowableProxy() == null
+                    || !event.getThrowableProxy().getMessage().contains("forged"));
         } finally {
             logger.detachAppender(appender);
         }
