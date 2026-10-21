@@ -2,8 +2,9 @@
 // Plain fs + regex + WCAG math; no colour libraries, and prism-free of any DOM usage.
 //
 // Two checks:
-//  1. Every var(--color-*) reference in src/styles/** resolves to a definition or carries
-//     its own fallback (a hung reference silently renders inherited colour).
+//  1. Every var(--color-*) reference in src/styles/**, app/**/*.css and the TSX under
+//     src/ and app/ resolves to a definition or carries its own fallback (a hung
+//     reference silently renders inherited colour).
 //  2. The fill/text pairs restored by the AA pass meet WCAG AA 4.5:1 in BOTH themes.
 //     Values are read from the css files themselves, so a fill or ink that regresses
 //     below the threshold fails here.
@@ -238,12 +239,13 @@ const allDefinedTokens = new Set([...Object.keys(lightTokens), ...Object.keys(da
 describe('css colour tokens', () => {
     it('every var(--color-*) reference has a definition or a fallback', () => {
         const hung: string[] = [];
-        for (const path of cssFiles(STYLES_DIR)) {
+        const cssRoots = [STYLES_DIR, join(STYLES_DIR, '..', '..', 'app')];
+        for (const root of cssRoots) for (const path of cssFiles(root)) {
             const css = withoutComments(readFileSync(path, 'utf8'));
             for (const m of css.matchAll(/var\(--color-[a-z0-9-]+/g)) {
                 const {name, fallback} = parseVarCall(varCallFrom(css, m.index));
                 if (allDefinedTokens.has(name) || fallback) continue;
-                hung.push(`${path.slice(STYLES_DIR.length)}: ${name}`);
+                hung.push(`${path}: ${name}`);
             }
         }
         // TSX renders inline styles too; the same hung reference is invisible to a CSS-only walk.
