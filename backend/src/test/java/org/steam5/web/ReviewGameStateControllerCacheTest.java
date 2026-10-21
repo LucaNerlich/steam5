@@ -316,4 +316,15 @@ public class ReviewGameStateControllerCacheTest {
         assertNotNull(cached.getBody());
         assertEquals(200, cachingController.buckets().getStatusCode().value());
     }
+
+    @Test
+    void archiveMonth_doesNotCacheEmptyMonths() throws Exception {
+        final Cacheable c = ReviewGameStateController.class
+                .getMethod("archiveMonth", String.class)
+                .getAnnotation(Cacheable.class);
+        final Field f = ReviewGameStateController.class.getDeclaredField("CACHE_ONLY_2XX_NONEMPTY_LIST");
+        f.setAccessible(true);
+        assertEquals((String) f.get(null), c.unless(),
+                "an empty month (200 []) must not mint a cache entry per client-supplied month");
+    }
 }
