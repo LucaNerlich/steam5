@@ -6,6 +6,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.server.ResponseStatusException;
 import org.steam5.domain.GameDate;
+import org.steam5.domain.Season;
+import org.steam5.domain.SeasonStatus;
 import org.steam5.service.SeasonService;
 import org.steam5.web.admin.SeasonAdminController;
 
@@ -45,6 +47,33 @@ class SeasonAdminControllerTest {
 
         assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
         verify(seasonService, never()).backfillRange(any(), any());
+    }
+
+    @Test
+    void backfill_skipsASeasonEndingToday() {
+        final LocalDate today = GameDate.todayUtc();
+        final Season endedYesterday = season(1L, 1, today.minusDays(10), today.minusDays(1));
+        final Season endsToday = season(2L, 2, today.minusDays(9), today);
+        when(seasonService.backfillRange(today.minusDays(10), today))
+                .thenReturn(List.of(endedYesterday, endsToday));
+
+        final ResponseEntity<SeasonAdminController.BackfillResponse> response = controller.backfill(
+                new SeasonAdminController.BackfillRequest(today.minusDays(10), today, true));
+
+        assertEquals(200, response.getStatusCode().value());
+        assertEquals(1, response.getBody().finalizedSeasons());
+        verify(seasonService).finalizeSeason(endedYesterday);
+        verify(seasonService, never()).finalizeSeason(endsToday);
+    }
+
+    private static Season season(long id, int number, LocalDate start, LocalDate end) {
+        final Season season = new Season();
+        season.setId(id);
+        season.setSeasonNumber(number);
+        season.setStartDate(start);
+        season.setEndDate(end);
+        season.setStatus(SeasonStatus.ACTIVE);
+        return season;
     }
 
     @Test

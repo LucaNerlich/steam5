@@ -70,7 +70,8 @@ public class SeasonAdminController {
         int count = 0;
         LocalDate todayUtc = GameDate.todayUtc();
         for (Season season : seasons) {
-            if (!season.getEndDate().isAfter(todayUtc)) {
+            // SeasonService refuses to finalize a season that ends today, so skip it here.
+            if (season.getEndDate().isBefore(todayUtc)) {
                 seasonService.finalizeSeason(season);
                 count++;
             }
