@@ -25,7 +25,6 @@ import java.util.concurrent.TimeUnit;
  * (rendered as {@code quartz_jobs_execution_seconds_*} by the Prometheus registry) tagged with
  * the job's group, name, and outcome (succeeded/failed/vetoed).
  */
-@Slf4j
 @Configuration
 public class QuartzMetricsConfig {
 
