@@ -2,6 +2,35 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.20.4] - 2026-10-21
+
+### Fixed
+
+- Recorded each day's pick answer when it is generated, so archive answers, per-user history and always-pick scores no longer drift when Steam review counts change later
+- Kept the shared review-game cache bounded: bulk details ingestion clears it once per batch, empty archive months and canonical season IDs no longer mint keys, and the all-time achievement stats have their own cache
+- Validated completion against the games actually served, so stale stored rounds after a pick regeneration can no longer unlock comments, hide the Share button or leak into shared scores
+- Restored archive progress: resets reach mounted round cards, signing in no longer wipes locally saved archive days, and share completeness merges stored and server results
+- Fixed the theme and font toggles when site data is blocked, and the theme choice persists across reloads again
+- Made the performance cards honest: an empty rolling window shows "No data" instead of 0%, the heatmap no longer averages daily averages, bucket bars render at full opacity, and season ranks and recap links meet AA contrast
+- Pinned server-rendered dates and prices to en-US, closed the 45–59 second "0m" gap, and pinned the season countdown locale
+- Returned an error instead of a 404 when archive or season data is unavailable upstream, and treated a malformed archive date as not found
+- Bounded the remaining page prefetches, moved the remaining API proxies onto the shared helper so a stalled backend fails in 10 seconds, and typed the leaderboard page data
+- Monitoring and ingestion: daily-picks gauges read shared state and seed at startup, the avatar job writes only the blurhash columns, the bulk details upsert is transactional and clears the cache once, and OpenID verification has a response timeout
+- Kept Steam pick selection and lock waiters outside the database transaction, with a single-flight guard so a rollover does not repeat the selection
+- Closed two rate-limit gaps: percent-encoded paths can no longer bypass the limiters, and the three per-path filters are one rule list
+
+### Changed
+
+- Centralized weak-ETag generation in Etags and let Spring MVC answer conditional 304s from the cached 200
+- Collapsed leaderboard materialized-view refresh into one type-driven method, made DomainCacheEvictor the only review-game cache writer, and removed dead helpers and routes
+- Removed the server-side guess prefill from the home round page and the stale cookie read from the root layout, restoring ISR for pages that declare revalidate
+
+### Security
+
+- Screenshot lightbox captions render Steam-provided text as text, not HTML
+- Both server actions and every bearer-token route handler gate on the trusted backend origin
+- Log handlers no longer echo client-controlled values, preventing forged log lines
+
 ## [1.20.3] - 2026-10-19
 
 ### Fixed
