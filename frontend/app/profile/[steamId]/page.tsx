@@ -77,7 +77,7 @@ export default async function ProfilePage({params}: { params: { steamId: string 
     // One server-side aggregate instead of shipping the whole all-time board to the browser.
     const globalHitRate = await (async (): Promise<number | null> => {
         const leaders = await fetchLeaderboardData('all', 600);
-        if (!leaders || leaders.length === 0) return null;
+        if (!Array.isArray(leaders) || leaders.length === 0) return null;
         let hits = 0;
         let rounds = 0;
         for (const l of leaders) {
