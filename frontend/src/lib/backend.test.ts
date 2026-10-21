@@ -98,7 +98,7 @@ describe('proxyBackendJson', () => {
         });
 
         expect(res.status).toBe(500);
-        expect(res.headers.get('cache-control')).toBeNull();
+        expect(res.headers.get('cache-control')).toBe('no-store');
     });
 
     it('applies the route Cache-Control to a successful response', async () => {
@@ -112,6 +112,67 @@ describe('proxyBackendJson', () => {
 
         expect(res.status).toBe(200);
         expect(res.headers.get('cache-control')).toBe('public, s-maxage=60, max-age=30');
+    });
+
+    it('refuses to send a bearer token to a disallowed origin', async () => {
+        vi.resetModules();
+        vi.stubEnv('NODE_ENV', 'production');
+        vi.stubEnv('NEXT_PUBLIC_API_DOMAIN', 'http://backend:8080');
+        const fetchMock = vi.fn();
+        vi.stubGlobal('fetch', fetchMock);
+        const mod = await import('./backend');
+
+        const res = await mod.proxyBackendJson(req(), {
+            path: '/api/x',
+            bearerToken: 'secret',
+            errorMessage: 'blocked',
+        });
+
+        expect(res.status).toBe(503);
+        expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it('marks private proxy failures no-store', async () => {
+        vi.spyOn(console, 'error').mockImplementation(() => undefined);
+        vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('down'); }));
+
+        const res = await proxyBackendJson(req(), {
+            path: '/api/x',
+            privateNoStore: true,
+            errorMessage: 'failed',
+        });
+
+        expect(res.status).toBe(502);
+        expect(res.headers.get('cache-control')).toBe('private, no-store');
+    });
+
+    it('uses a custom error cache control on an upstream error', async () => {
+        vi.spyOn(console, 'error').mockImplementation(() => undefined);
+        vi.stubGlobal('fetch', vi.fn(async () => new NextResponse('nope', {status: 500})));
+
+        const res = await proxyBackendJson(req(), {
+            path: '/api/x',
+            errorMessage: 'failed',
+            errorCacheControl: 'no-cache',
+        });
+
+        expect(res.status).toBe(500);
+        expect(res.headers.get('cache-control')).toBe('no-cache');
+    });
+
+    it('keeps the problem+json contract when asked', async () => {
+        vi.spyOn(console, 'error').mockImplementation(() => undefined);
+        vi.stubGlobal('fetch', vi.fn(async () => new NextResponse('nope', {status: 500})));
+
+        const res = await proxyBackendJson(req(), {
+            path: '/api/x',
+            errorMessage: 'failed',
+            problemJsonOnError: true,
+        });
+
+        expect(res.status).toBe(500);
+        expect(res.headers.get('content-type')).toContain('application/problem+json');
+        await expect(res.json()).resolves.toMatchObject({status: 500, detail: 'failed'});
     });
 
     it('answers 502 when the upstream call exceeds its bound', async () => {
