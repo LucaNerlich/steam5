@@ -74,7 +74,6 @@ public class BlurhashScreenshotsJob implements Job {
 
     @Override
     public void execute(JobExecutionContext context) throws JobExecutionException {
-        log.info("Job start BlurhashScreenshotsJob key={} fireTime={} scheduled={} refireCount={}", context.getJobDetail().getKey(), context.getFireTime(), context.getScheduledFireTime(), context.getRefireCount());
 
         // When executed programmatically, we can optionally specify an appId to limit the scope of the job.
         final Object appIdObj = context.getMergedJobDataMap() != null ? context.getMergedJobDataMap().get("appId") : null;

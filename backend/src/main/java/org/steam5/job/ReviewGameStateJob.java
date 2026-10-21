@@ -64,9 +64,6 @@ public class ReviewGameStateJob implements Job {
 
     @Override
     public void execute(JobExecutionContext context) throws JobExecutionException {
-        final long start = System.nanoTime();
-        log.info("Job start ReviewGameStateJob key={} fireTime={} scheduled={} refireCount={}",
-                context.getJobDetail().getKey(), context.getFireTime(), context.getScheduledFireTime(), context.getRefireCount());
         try {
             final var picks = service.generateDailyPicks();
             if (picks != null && !picks.isEmpty()) {
@@ -96,10 +93,6 @@ public class ReviewGameStateJob implements Job {
                     .register(meterRegistry)
                     .increment();
             throw new JobExecutionException(e, false);
-        } finally {
-            long durationMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
-            log.info("Job end ReviewGameStateJob durationMs={} nextFireTime={}", durationMs,
-                    context.getTrigger() != null ? context.getTrigger().getNextFireTime() : null);
         }
     }
 

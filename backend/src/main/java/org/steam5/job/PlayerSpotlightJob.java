@@ -6,8 +6,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
 import org.steam5.service.PlayerSpotlightService;
 
-import java.util.concurrent.TimeUnit;
-
 @Component
 @Slf4j
 @DisallowConcurrentExecution
@@ -21,19 +19,12 @@ public class PlayerSpotlightJob implements Job {
 
     @Override
     public void execute(JobExecutionContext context) throws JobExecutionException {
-        final long start = System.nanoTime();
-        log.info("PlayerSpotlightJob fired at {}", context.getFireTime());
         try {
             playerSpotlightService.computeAndPersistForToday();
         } catch (Exception ex) {
             log.error("PlayerSpotlight computation failed", ex);
             // Rethrow so Quartz records the failure instead of reporting success.
             throw new JobExecutionException(ex, false);
-        } finally {
-            long durationMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
-            log.info("PlayerSpotlightJob completed in {}ms; next fire {}",
-                    durationMs,
-                    context.getTrigger() != null ? context.getTrigger().getNextFireTime() : null);
         }
     }
 

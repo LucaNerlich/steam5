@@ -26,7 +26,6 @@ public class BlurhashAvatarJob implements Job {
 
     @Override
     public void execute(final JobExecutionContext context) throws JobExecutionException {
-        log.info("Job start BlurhashAvatarJob key={} fireTime={} scheduled={} refireCount={}", context.getJobDetail().getKey(), context.getFireTime(), context.getScheduledFireTime(), context.getRefireCount());
 
         final Object steamIdObj = context.getMergedJobDataMap() != null ? context.getMergedJobDataMap().get("steamId") : null;
         if (steamIdObj != null) {

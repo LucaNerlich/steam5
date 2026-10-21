@@ -33,9 +33,7 @@ public class SeasonFinalizerJob implements Job {
 
     @Override
     public void execute(JobExecutionContext context) throws JobExecutionException {
-        final long started = System.nanoTime();
         final LocalDate todayUtc = OffsetDateTime.now(ZoneOffset.UTC).toLocalDate();
-        log.info("SeasonFinalizerJob fired at {} (UTC date={})", context.getFireTime(), todayUtc);
         try {
             // Ensure there is a season covering today
             Season current = seasonService.ensureSeasonForDate(todayUtc);
@@ -69,9 +67,6 @@ public class SeasonFinalizerJob implements Job {
             // before this job fired) from pairing stale entries with a fresher
             // X-Leaderboard-Refreshed-At header until the cache's own TTL clears it.
             cacheEvictor.evictLeaderboardStatic();
-            long durationMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started);
-            log.info("SeasonFinalizerJob completed in {}ms; next fire {}", durationMs,
-                    context.getTrigger() != null ? context.getTrigger().getNextFireTime() : null);
         }
     }
 

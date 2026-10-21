@@ -7,8 +7,6 @@ import org.springframework.stereotype.Component;
 import org.steam5.service.SeasonService;
 
 import java.util.List;
-import java.util.concurrent.TimeUnit;
-
 @Component
 @Slf4j
 @DisallowConcurrentExecution
@@ -22,8 +20,6 @@ public class SeasonBackfillJob implements Job {
 
     @Override
     public void execute(JobExecutionContext context) throws JobExecutionException {
-        final long start = System.nanoTime();
-        log.info("SeasonBackfillJob fired at {}", context.getFireTime());
         try {
             List<?> created = seasonService.backfillHistoricalSeasons();
             if (created.isEmpty()) {
@@ -35,11 +31,6 @@ public class SeasonBackfillJob implements Job {
             log.error("Season backfill failed", ex);
             // Rethrow so Quartz records the failure instead of reporting success.
             throw new JobExecutionException(ex, false);
-        } finally {
-            long durationMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
-            log.info("SeasonBackfillJob completed in {}ms; next fire {}",
-                    durationMs,
-                    context.getTrigger() != null ? context.getTrigger().getNextFireTime() : null);
         }
     }
 
