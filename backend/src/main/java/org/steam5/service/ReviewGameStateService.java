@@ -304,7 +304,7 @@ public class ReviewGameStateService {
                 labels.add((prev == MIN_BUCKET_BOUND ? "1-" + b : (prev + MIN_BUCKET_BOUND) + "-" + b));
                 prev = b;
             }
-            labels.add(bounds.getLast() + "+");
+            labels.add((bounds.getLast() + 1) + "+");
             return labels;
         }
 
@@ -329,7 +329,7 @@ public class ReviewGameStateService {
                 }
                 prev = b;
             }
-            return bounds.getLast() + "+";
+            return (bounds.getLast() + 1) + "+";
         }
 
         public List<String> getBucketTitles() {
