@@ -21,6 +21,10 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class LeaderboardService {
 
+    /** Leaderboard streaks only read the tail of the history; see GuessRepository. */
+    private static final int STREAK_WINDOW_DAYS = 400;
+
+
     private final GuessRepository guessRepository;
     private final UserRepository userRepository;
     private final LeaderboardMvRepository leaderboardMvRepository;
@@ -39,7 +43,7 @@ public class LeaderboardService {
         final Map<String, User> usersById = userRepository.findAllById(steamIds).stream()
                 .collect(Collectors.toMap(User::getSteamId, user -> user));
 
-        final Map<String, List<LocalDate>> streakDatesById = guessRepository.findDistinctDatesUpToForUsers(List.copyOf(steamIds), asOfDate)
+        final Map<String, List<LocalDate>> streakDatesById = guessRepository.findDistinctDatesUpToForUsersSince(List.copyOf(steamIds), asOfDate, asOfDate.minusDays(STREAK_WINDOW_DAYS))
                 .stream()
                 .collect(Collectors.groupingBy(GuessRepository.UserDateRow::getSteamId,
                         Collectors.mapping(GuessRepository.UserDateRow::getGameDate, Collectors.toList())));
@@ -110,7 +114,7 @@ public class LeaderboardService {
 
         final List<String> steamIds = rows.stream().map(LeaderboardMvRepository.LeaderboardMvRow::getSteamId).toList();
         final Map<String, List<LocalDate>> streakDatesById = guessRepository
-                .findDistinctDatesUpToForUsers(steamIds, asOfDate)
+                .findDistinctDatesUpToForUsersSince(steamIds, asOfDate, asOfDate.minusDays(STREAK_WINDOW_DAYS))
                 .stream()
                 .collect(Collectors.groupingBy(GuessRepository.UserDateRow::getSteamId,
                         Collectors.mapping(GuessRepository.UserDateRow::getGameDate, Collectors.toList())));

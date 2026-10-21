@@ -140,6 +140,24 @@ public interface GuessRepository extends JpaRepository<Guess, Long> {
     List<UserDateRow> findDistinctDatesUpToForUsers(@Param("steamIds") List<String> steamIds,
                                                     @Param("asOfDate") LocalDate asOfDate);
 
+    // Leaderboard streaks only need the days leading into asOfDate: currentStreak stops at the
+    // first gap, and a 400-day bound covers any realistic run without reading the full history
+    // on every cache rollover. The spotlight's longestStreak keeps the unbounded query.
+    // shortcut: streaks over 400 days are truncated, upgrade to a trailing-run window query
+    // when someone approaches it.
+    @Query("""
+            select distinct g.steamId as steamId,
+                   g.gameDate as gameDate
+            from Guess g
+            where g.steamId in :steamIds
+              and g.gameDate <= :asOfDate
+              and g.gameDate >= :since
+            order by g.steamId asc, g.gameDate desc
+            """)
+    List<UserDateRow> findDistinctDatesUpToForUsersSince(@Param("steamIds") List<String> steamIds,
+                                                         @Param("asOfDate") LocalDate asOfDate,
+                                                         @Param("since") LocalDate since);
+
     // Average submission time per user (in minutes since midnight)
     interface AvgTimeRow {
         String getSteamId();
