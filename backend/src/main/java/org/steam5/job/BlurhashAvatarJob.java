@@ -66,9 +66,7 @@ public class BlurhashAvatarJob implements Job {
                 // avatar encode below running instead of aborting the whole method.
                 log.warn("Avatar thumbnail blurhash encode returned nothing for steamId={}", steamId);
             } else {
-                user.setBlurhashAvatar(thumbEncoded.hash());
-                user.setBlurdataAvatar(thumbEncoded.dataUrl());
-                userRepository.save(user);
+                userRepository.updateAvatarBlurhash(steamId, thumbEncoded.hash(), thumbEncoded.dataUrl());
                 encoded++;
             }
         }
@@ -79,9 +77,7 @@ public class BlurhashAvatarJob implements Job {
             if (fullEncoded == null) {
                 log.warn("Full avatar blurhash encode returned nothing for steamId={}", steamId);
             } else {
-                user.setBlurhashAvatarFull(fullEncoded.hash());
-                user.setBlurdataAvatarFull(fullEncoded.dataUrl());
-                userRepository.save(user);
+                userRepository.updateAvatarFullBlurhash(steamId, fullEncoded.hash(), fullEncoded.dataUrl());
                 encoded++;
             }
         }
