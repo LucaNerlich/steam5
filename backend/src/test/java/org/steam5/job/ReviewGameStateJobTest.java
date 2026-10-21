@@ -62,13 +62,15 @@ class ReviewGameStateJobTest {
         final SimpleMeterRegistry registry = new SimpleMeterRegistry();
         resetGauges();
         final OffsetDateTime created = OffsetDateTime.now().minusHours(2);
-        final ReviewGamePick latest = new ReviewGamePick(1L, LocalDate.now(), 10L, created);
+        final LocalDate day = LocalDate.now();
+        final ReviewGamePick latest = new ReviewGamePick(1L, day, 10L, created);
         when(pickRepository.findTopByOrderByCreatedAtDesc()).thenReturn(Optional.of(latest));
-        when(pickRepository.findByPickDate(created.toLocalDate())).thenReturn(List.of(latest));
+        when(pickRepository.findByPickDate(day)).thenReturn(List.of(latest));
 
         new ReviewGameStateJob(service, pickRepository, registry).registerGauges();
 
-        assertTrue(registry.get("steam5.daily.picks.last.success.epoch.seconds").gauge().value() > 0);
+        assertEquals((double) created.toEpochSecond(),
+                registry.get("steam5.daily.picks.last.success.epoch.seconds").gauge().value());
         assertEquals(1.0, registry.get("steam5.daily.picks.last.success.size").gauge().value());
     }
 

@@ -15,14 +15,14 @@ import java.util.Optional;
 @Repository
 public interface ReviewGamePickRepository extends JpaRepository<ReviewGamePick, Long> {
 
+    /** Newest pick row, used to seed the daily-picks monitoring gauge at startup. */
+    Optional<ReviewGamePick> findTopByOrderByCreatedAtDesc();
+
     /**
      * Returns all picks for one challenge day, ordered by the player-visible
      * round index (legacy rows without a round index fall back to id order).
      * Uses the index on review_game_pick.pick_date (idx_pick_date / equivalent).
      */
-    /** Newest pick row, used to seed the daily-picks monitoring gauge at startup. */
-    Optional<ReviewGamePick> findTopByOrderByCreatedAtDesc();
-
     @Query("SELECT p FROM ReviewGamePick p WHERE p.pickDate = :pickDate ORDER BY p.roundIndex ASC NULLS LAST, p.id ASC")
     List<ReviewGamePick> findByPickDate(@Param("pickDate") LocalDate pickDate);
 
