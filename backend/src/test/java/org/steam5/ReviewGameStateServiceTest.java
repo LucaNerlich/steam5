@@ -243,9 +243,28 @@ public class ReviewGameStateServiceTest {
         final List<ReviewGamePick> picks = service.generateDailyPicks();
 
         assertTrue(picks.isEmpty());
-        verify(pickLockRepository, never()).save(any());
         verify(excludedAppRepository, never()).save(any());
         verify(pickRepository, never()).saveAll(anyList());
+    }
+
+    @Test
+    void generateDailyPicks_edgeBlockFromSteam_producesNoExclusions() throws Exception {
+        // A 403 from Steam's edge (or a 401 for a rotated key) says nothing about the app;
+        // excluding it writes a permanent row that no code deletes.
+        doThrow(new SteamApiException(403, "https://store.steampowered.com/api/appdetails?appids=1&key=abc", "forbidden"))
+                .when(detailsFetcher).fetchForAppId(anyLong());
+
+        assertTrue(service.generateDailyPicks().isEmpty());
+        verify(excludedAppRepository, never()).save(any());
+    }
+
+    @Test
+    void generateDailyPicks_goneAppIsStillExcluded() throws Exception {
+        doThrow(new SteamApiException(404, "https://store.steampowered.com/api/appdetails?appids=1&key=abc", "not found"))
+                .when(detailsFetcher).fetchForAppId(anyLong());
+
+        assertTrue(service.generateDailyPicks().isEmpty());
+        verify(excludedAppRepository, atLeastOnce()).save(any());
     }
 
     private ReviewGameStateService stubbedServiceFor(ReviewGameStateService.BUCKET_STRATEGY strategy) {

@@ -230,14 +230,15 @@ public class ReviewGameStateService {
                     log.warn("Steam API rate limited (429) while validating appId {}. Aborting pick generation without exclusion.", appId);
                     throw new RuntimeException(sae); // propagate to stop execution per policy
                 }
-                if (sae.getStatusCode() >= 500 || sae.getStatusCode() == 599) {
-                    // Transient upstream/network failure — never permanently exclude.
+                // Only "this app is gone" answers are permanent. Every other status is
+                // transient (edge blocking 403, proxy 408, a rotated key's 401, an unfollowed
+                // 3xx) and must not write a row nothing ever deletes.
+                if (sae.getStatusCode() != 404 && sae.getStatusCode() != 410) {
                     log.warn("Transient Steam API failure (HTTP {}) while validating appId {}; skipping without exclusion", sae.getStatusCode(), appId);
                     return false;
                 }
                 excludedAppRepository.save(new org.steam5.domain.ExcludedApp(appId, "details fetch error: HTTP " + sae.getStatusCode(), OffsetDateTime.now()));
-                return false;
-            } catch (Exception e) {
+                return false;            } catch (Exception e) {
                 // Unknown failures (parsing, persistence) are treated as transient: a
                 // permanent exclusion here could poison the pool and, during an
                 // outage, lock a day to zero picks.
