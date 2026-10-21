@@ -6,7 +6,6 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.steam5.domain.details.SteamAppDetail;
 import org.steam5.domain.details.SteamAppDetailService;
@@ -19,7 +18,6 @@ import java.util.Optional;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/details")
-@Validated
 public class SteamAppDetailController {
 
     private final SteamAppDetailService detailService;

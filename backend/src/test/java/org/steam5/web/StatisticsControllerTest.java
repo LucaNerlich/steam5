@@ -38,6 +38,14 @@ class StatisticsControllerTest {
     }
 
     @Test
+    void userAchievements_rejectsAnUnknownTimeframe() {
+        final ResponseEntity<List<StatisticsService.UserLabel>> res = controller.userAchievements("weekely");
+
+        assertEquals(400, res.getStatusCode().value());
+        org.mockito.Mockito.verifyNoInteractions(statisticsService);
+    }
+
+    @Test
     void hardestGames_setsRefreshedAtHeaderWhenStateExists() {
         List<StatisticsService.HardestGame> canned = List.of(
                 new StatisticsService.HardestGame(1L, "Game", 1.5, 10L, 0.5, "over", "10000+", 4L, "1-100", java.time.LocalDate.now())
