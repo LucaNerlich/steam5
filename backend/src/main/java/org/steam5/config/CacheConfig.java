@@ -56,6 +56,15 @@ public class CacheConfig {
                         .build()
         );
 
+        final CaffeineCache cacheStatsDaily = new CaffeineCache(
+                "stats-daily",
+                Caffeine.newBuilder()
+                        .expireAfterWrite(24, TimeUnit.HOURS)
+                        .maximumSize(500)
+                        .recordStats()
+                        .build()
+        );
+
         final CaffeineCache cacheStatsHourly = new CaffeineCache(
                 "stats-hourly",
                 Caffeine.newBuilder()
@@ -179,6 +188,7 @@ public class CacheConfig {
                 cacheOneDay,
                 cacheReviewGame,
                 cacheStatsLong,
+                cacheStatsDaily,
                 cacheStatsHourly,
                 cacheStatsShort,
                 leaderboardLive,
