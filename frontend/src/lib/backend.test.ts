@@ -1,6 +1,6 @@
 import {afterEach, describe, expect, it, vi} from 'vitest';
 import {NextRequest, NextResponse} from 'next/server';
-import {forwardedForHeaderValue, proxyBackendJson} from './backend';
+import {bearerAuthHeaders, forwardedForHeaderValue, proxyBackendJson} from './backend';
 
 describe('forwardedForHeaderValue', () => {
     it('relays the client IP the trusted edge proxy set', () => {
@@ -17,6 +17,25 @@ describe('forwardedForHeaderValue', () => {
         expect(forwardedForHeaderValue(null)).toEqual({});
         expect(forwardedForHeaderValue(undefined)).toEqual({});
         expect(forwardedForHeaderValue('')).toEqual({});
+    });
+});
+
+describe('bearerAuthHeaders', () => {
+    afterEach(() => {
+        vi.unstubAllEnvs();
+        vi.resetModules();
+    });
+
+    it('attaches the token when the backend origin may receive it', () => {
+        expect(bearerAuthHeaders('token-1')).toEqual({authorization: 'Bearer token-1'});
+    });
+
+    it('refuses a plain-http non-loopback backend in production', async () => {
+        vi.resetModules();
+        vi.stubEnv('NODE_ENV', 'production');
+        vi.stubEnv('NEXT_PUBLIC_API_DOMAIN', 'http://backend:8080');
+        const mod = await import('./backend');
+        expect(mod.bearerAuthHeaders('token-1')).toBeNull();
     });
 });
 

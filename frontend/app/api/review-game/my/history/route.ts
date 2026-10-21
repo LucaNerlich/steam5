@@ -1,6 +1,6 @@
 import {NextRequest, NextResponse} from "next/server";
 import {cookies} from "next/headers";
-import {BACKEND_ORIGIN, BACKEND_TIMEOUT_MS, forwardedForHeaders} from "@/lib/backend";
+import {BACKEND_ORIGIN, BACKEND_TIMEOUT_MS, bearerAuthHeaders, forwardedForHeaders} from "@/lib/backend";
 
 
 export async function GET(req: NextRequest) {
@@ -15,6 +15,13 @@ export async function GET(req: NextRequest) {
             headers: {"Cache-Control": "private, no-store"}
         });
     }
+    const auth = bearerAuthHeaders(token);
+    if (!auth) {
+        return NextResponse.json({error: "Backend origin not allowed"}, {
+            status: 503,
+            headers: {"Cache-Control": "private, no-store"}
+        });
+    }
     try {
         const params = new URLSearchParams();
         if (from) params.set('from', from);
@@ -22,7 +29,7 @@ export async function GET(req: NextRequest) {
         const url = `${BACKEND_ORIGIN}/api/review-game/my/history${params.toString() ? '?' + params.toString() : ''}`;
 
         const res = await fetch(url, {
-            headers: {"accept": "application/json", "authorization": `Bearer ${token}`, ...forwardedForHeaders(req)},
+            headers: {"accept": "application/json", ...auth, ...forwardedForHeaders(req)},
             cache: 'no-store',
             signal: AbortSignal.timeout(BACKEND_TIMEOUT_MS)
         });
