@@ -45,7 +45,7 @@ public class CorsConfig {
      */
     @Bean
     public CorsConfigurationSource corsConfigurationSource(
-            @Value("${cors.allowedOrigins:https://steam5.org,https://next.steam5.org,http://localhost:3000}") String originsCsv
+            @Value("${cors.allowed-origins}") String originsCsv
     ) {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowCredentials(true);
