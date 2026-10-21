@@ -53,6 +53,7 @@ export default function ReactionBar(props: {
         open = false, onPickerOpenChange,
     } = props;
     const [pending, setPending] = useState<ReactionType | null>(null);
+    const [error, setError] = useState<string | null>(null);
     const rootRef = useRef<HTMLDivElement>(null);
     const triggerRef = useRef<HTMLButtonElement | null>(null);
     const pickerId = useId();
@@ -126,6 +127,7 @@ export default function ReactionBar(props: {
             return;
         }
         setPending(reactionType);
+        setError(null);
         try {
             await toggleReaction(commentId, reactionType);
             await onToggled();
@@ -138,8 +140,11 @@ export default function ReactionBar(props: {
                 || message === "Unauthorized"
             ) {
                 onUnauthorized?.();
+            } else {
+                // A rejected toggle (429 rate limit, 5xx) must not look like a successful
+                // no-op: report it and let the next attempt clear it.
+                setError(message || "Could not update the reaction. Please try again.");
             }
-            // Otherwise keep current UI; SWR will retain prior data.
         }
         setPending(null);
     };
@@ -256,6 +261,9 @@ export default function ReactionBar(props: {
                             );
                         })}
                     </div>
+                )}
+                {error && (
+                    <p className="reaction-bar__error" role="alert">{error}</p>
                 )}
             </div>
         </div>
