@@ -42,9 +42,9 @@ export default function ImprovementTrend({rounds}: { rounds: Round[] }): React.R
     const trendColor = noData
         ? "var(--color-muted)"
         : improving
-            ? "var(--color-success, #16a34a)"
+            ? "var(--color-success-text)"
             : declining
-                ? "var(--color-danger, #ef4444)"
+                ? "var(--color-danger)"
                 : "var(--color-muted)";
 
     const trendLabel = noData ? "Need more data" : improving ? "Improving" : declining ? "Declining" : "Stable";

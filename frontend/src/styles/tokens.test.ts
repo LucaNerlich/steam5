@@ -289,3 +289,29 @@ describe('background/text pairs meet WCAG AA 4.5:1', () => {
         }
     }
 });
+
+describe('performance status text meets WCAG AA 4.5:1 on the surface', () => {
+    const themes: Array<[string, Record<string, string>]> = [
+        ['light', lightTokens],
+        ['dark', darkThemeTokens],
+    ];
+    for (const [theme, tokens] of themes) {
+        for (const token of ['--color-warning', '--color-danger', '--color-success-text']) {
+            it(`[${theme}] ${token} on --color-surface`, () => {
+                const surface = resolveColor('var(--color-surface)', tokens);
+                const ink = resolveColor(`var(${token})`, tokens);
+                const ratio = contrastRatio(ink, surface);
+                expect(ratio, `${token} in ${theme}: ${ratio.toFixed(2)}:1`).toBeGreaterThanOrEqual(MIN_CONTRAST);
+            });
+        }
+    }
+});
+
+describe('bucket callout track', () => {
+    it('keeps the track translucent without dimming the child fill', () => {
+        const css = withoutComments(readFileSync(join(STYLES_DIR, 'components/profile.css'), 'utf8'));
+        const body = blockFrom(css, css.indexOf('.bucket-callout__bar-bg'));
+        expect(body).toContain('color-mix');
+        expect(body).not.toMatch(/(?<![-\w])opacity\s*:/);
+    });
+});
