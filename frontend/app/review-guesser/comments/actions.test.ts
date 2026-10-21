@@ -44,10 +44,13 @@ describe('postCommentAction backend origin', () => {
         process.env.NEXT_PUBLIC_API_DOMAIN = 'http://evil.example:8080';
         cookieGet.mockReturnValue({value: 'token'});
 
+        const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
         const res = await postCommentAction(undefined, form('2026-07-31', 'hi'));
 
-        expect(res).toEqual({ok: false, error: 'Backend origin is not trusted for credentials'});
+        expect(res).toEqual({ok: false, error: 'Could not reach the comment service — please try again.'});
         expect(fetchMock).not.toHaveBeenCalled();
+        expect(errorSpy).toHaveBeenCalled();
     });
 
     it('proceeds for an https backend in production', async () => {

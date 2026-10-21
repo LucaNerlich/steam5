@@ -60,10 +60,13 @@ describe('submitGuessAction backend origin', () => {
         process.env.NEXT_PUBLIC_API_DOMAIN = 'http://evil.example:8080';
         cookieGet.mockReturnValue({value: 'token'});
 
+        const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
         const res = await submitGuessAction(undefined, form(10, 'Positive'));
 
-        expect(res).toEqual({ok: false, appId: 10, error: 'Backend origin is not trusted for credentials'});
+        expect(res).toEqual({ok: false, appId: 10, error: 'Could not reach the game service — please try again.'});
         expect(fetchMock).not.toHaveBeenCalled();
+        expect(errorSpy).toHaveBeenCalled();
     });
 
     it('proceeds for an https backend in production', async () => {

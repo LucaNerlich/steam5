@@ -60,9 +60,11 @@ export async function submitGuessAction(_prev: GuessActionState | undefined, for
     }
 
     try {
-        const backend = allowedBackendOrigin(process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080');
+        const configuredBackend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
+        const backend = allowedBackendOrigin(configuredBackend);
         if (!backend) {
-            return {ok: false, appId: requestedAppId, error: 'Backend origin is not trusted for credentials'};
+            console.error('Blocked guess bearer egress: untrusted backend origin', configuredBackend);
+            return {ok: false, appId: requestedAppId, error: 'Could not reach the game service — please try again.'};
         }
         // Reject values that are not one of today's bucket labels so arbitrary strings
         // never reach the backend (which would persist them verbatim and grade them
