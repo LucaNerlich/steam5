@@ -125,6 +125,24 @@ class SteamAppDetailServiceTest {
     }
 
     @Test
+    void bulkUpsertEvictsOnlyThePerAppEntryAfterCommit() {
+        TransactionSynchronizationManager.initSynchronization();
+        try {
+            when(repository.findById(APP_ID)).thenReturn(Optional.empty());
+
+            service.upsertFromJson(APP_ID, json("{\"name\": \"Bulk\"}"), false);
+
+            for (final TransactionSynchronization synchronization : TransactionSynchronizationManager.getSynchronizations()) {
+                synchronization.afterCommit();
+            }
+            verify(cacheEvictor, times(1)).evictAppDetailEntry(APP_ID);
+            verify(cacheEvictor, never()).evictAppDetail(APP_ID);
+        } finally {
+            TransactionSynchronizationManager.clearSynchronization();
+        }
+    }
+
+    @Test
     void findByAppId_touchesEveryCollectionSoTheDetachedEntityCanSerialize() {
         final SteamAppDetail spy = spy(new SteamAppDetail());
         when(repository.findByAppId(APP_ID)).thenReturn(Optional.of(spy));
