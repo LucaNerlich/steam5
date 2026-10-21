@@ -121,13 +121,18 @@ public class RoundPresenceService {
     public void unregister(final WebSocketSession session) {
         final String scopeKey = scopeKeyOf(session);
         if (scopeKey == null) return;
-        sessionsByScope.computeIfPresent(scopeKey, (k, list) -> {
-            if (list.remove(session)) {
-                sendSessions.remove(session.getId());
-                decrementConnectionCounters(session);
-            }
-            return list.isEmpty() ? null : list;
-        });
+        // Take registerLock before the scope map: register acquires them in that order, and
+        // ConcurrentHashMap.computeIfPresent holds the bin monitor while this lambda runs, so
+        // the opposite order here deadlocks the two paths against each other.
+        synchronized (registerLock) {
+            sessionsByScope.computeIfPresent(scopeKey, (k, list) -> {
+                if (list.remove(session)) {
+                    sendSessions.remove(session.getId());
+                    decrementConnectionCounters(session);
+                }
+                return list.isEmpty() ? null : list;
+            });
+        }
     }
 
     /**

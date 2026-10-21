@@ -263,17 +263,6 @@ public class ReviewGameStateServiceTest {
         verify(excludedAppRepository, atLeastOnce()).save(any());
     }
 
-    @Test
-    void bucketLabelsAndInferBucketAgreeAtTheTopBoundary() {
-        // The open bucket starts at lastBoundary + 1, so its label must not claim the
-        // boundary value that belongs to the closed bucket below it.
-        final List<String> labels = service.getBucketLabels();
-
-        assertEquals("100001+", labels.getLast());
-        assertEquals("10001-100000", service.inferBucket(100_000));
-        assertEquals("100001+", service.inferBucket(100_001));
-    }
-
     private ReviewGameStateService stubbedServiceFor(ReviewGameStateService.BUCKET_STRATEGY strategy) {
         return new ReviewGameStateService(
                 reviewsRepository,

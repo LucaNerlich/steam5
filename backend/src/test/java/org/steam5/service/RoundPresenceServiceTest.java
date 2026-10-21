@@ -161,8 +161,9 @@ class RoundPresenceServiceTest {
         doThrow(new SessionLimitExceededException("buffer", CloseStatus.SESSION_NOT_RELIABLE))
                 .when(stuck).sendMessage(any(TextMessage.class));
 
-        service.register(healthy);
+        // Offender first: the healthy session must still receive the snapshot after it.
         service.register(stuck);
+        service.register(healthy);
 
         service.broadcastSnapshot("scopeA");
 
