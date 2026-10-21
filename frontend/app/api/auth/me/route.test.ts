@@ -33,7 +33,7 @@ describe('GET /api/auth/me bearer egress', () => {
         vi.resetModules();
         vi.stubEnv('NODE_ENV', 'production');
         vi.stubEnv('NEXT_PUBLIC_API_DOMAIN', 'https://api.example.com');
-        const fetchMock = vi.fn(async () => new Response(
+        const fetchMock = vi.fn(async (_url: string | URL | Request, _init?: RequestInit) => new Response(
             JSON.stringify({valid: true, steamId: '765'}),
             {status: 200, headers: {'content-type': 'application/json'}},
         ));
