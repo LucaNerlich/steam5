@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import {bucketOutcome, flattenDayRounds, outcomeCounts} from './rounds';
+import {bucketOutcome, flattenDayRounds, outcomeCounts, validatedResultsForDay} from './rounds';
 
 const round = (roundIndex: number, appId: number) => ({
     roundIndex,
@@ -73,5 +73,22 @@ describe('outcomeCounts', () => {
     it('ignores rounds with an unparseable label', () => {
         expect(outcomeCounts([{selectedBucket: '', actualBucket: ''}]))
             .toEqual({hits: 0, tooHigh: 0, tooLow: 0});
+    });
+});
+
+describe('validatedResultsForDay', () => {
+    const result = (appId: number) => ({appId, selectedLabel: '1-13', actualBucket: '1-13', totalReviews: 10, correct: true});
+    const games = [{appId: 11}, {appId: 22}, {appId: 33}, {appId: 44}, {appId: 55}];
+
+    it('drops a stored result whose app no longer belongs to that round', () => {
+        const stored = {1: result(11), 2: result(999), 3: result(33)};
+        const validated = validatedResultsForDay(games, stored, {}, 5);
+        expect(Object.keys(validated).map(Number).sort()).toEqual([1, 3]);
+    });
+
+    it('keeps a server result that matches the served pick', () => {
+        const server = {1: result(11), 2: result(22), 3: result(33), 4: result(44), 5: result(55)};
+        const validated = validatedResultsForDay(games, {}, server, 5);
+        expect(Object.keys(validated)).toHaveLength(5);
     });
 });

@@ -17,6 +17,7 @@ import useRoundArrowNavigation from "@/lib/hooks/useRoundArrowNavigation";
 import {saveRound, type RoundResult} from "@/lib/storage";
 import {isActionStateForPick, isRoundSubmitted, prefillToResponse, resolveEffectiveResponse, resolveSubmissionTarget, type RoundSubmission} from "@/lib/guessResolution";
 import {computeSignedOutDuringPlay} from "@/lib/authGuard";
+import {validatedResultsForDay} from "@/lib/rounds";
 import {Routes} from "../../app/routes";
 import "@/styles/components/reviewGuesserRound.css";
 import "@/styles/components/reviewRoundResult.css";
@@ -257,7 +258,19 @@ export default function ReviewGuesserRound({
 
     const submitError = state && !state.ok && stateForThisPick ? state.error : undefined;
     const shouldShowGuessControls = !(effectiveResponse || storedThisRound || prefilled);
-    const shareResults = !serverGuessesLoading && hasServerResults ? serverResults : undefined;
+    // A result only counts toward completion when it belongs to one of today's picks:
+    // after a regenerated pick set, round-index keys from the old games must not unlock
+    // comments or leak into the shared score.
+    // Validate each round index against the pick served for that round. Membership in the
+    // set is not enough: a stale result at index 2 for a game that is now round 3 would still
+    // pass, and the consumers only count keys.
+    const validatedResults = validatedResultsForDay(dayGames, storedResults, mergedServerResults, totalRounds);
+    const validatedLatestIndex = Object.keys(validatedResults).reduce((max, key) => Math.max(max, Number(key)), 0);
+    const latestRoundForShare = validatedLatestIndex || latestStoredRoundIndex;
+    const latestForShare = validatedLatestIndex > 0 ? validatedResults[validatedLatestIndex] : latestResult;
+    const shareResults = !serverGuessesLoading && Object.keys(validatedResults).length > 0
+        ? validatedResults
+        : undefined;
     return (
         <>
             {shouldShowGuessControls && (
@@ -292,9 +305,10 @@ export default function ReviewGuesserRound({
                     canShowShare={canShowShare}
                     gameDate={gameDate}
                     totalRounds={totalRounds}
-                    latestRound={latestStoredRoundIndex}
-                    latest={latestResult}
+                    latestRound={latestRoundForShare}
+                    latest={latestForShare}
                     shareResults={shareResults}
+                    hasServerResults={hasServerResults}
                     signedIn={signedIn}
                     signedOutDuringPlay={signedOutDuringPlay}
                 />
@@ -306,8 +320,8 @@ export default function ReviewGuesserRound({
                 gameDate={gameDate}
                 games={dayGames}
                 totalRounds={totalRounds}
-                latestRound={latestStoredRoundIndex}
-                latest={latestResult}
+                latestRound={latestRoundForShare}
+                latest={latestForShare}
                 results={shareResults}
             />
 

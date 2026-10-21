@@ -37,11 +37,9 @@ export default function RoundSummary(props: {
     const stored = useStoredDay(gameDate);
     if (!gameDate) return null;
 
-    const merged: Record<number, RoundResult> = {
-        ...(stored?.results || {}),
-        ...(results || {}),
-        [latestRound]: latest,
-    };
+    // When the parent passes an authoritative (pick-validated) map, count only that; the
+    // stored fallback is for direct callers that do not provide one.
+    const merged: Record<number, RoundResult> = results ?? stored?.results ?? {};
 
     const isComplete = Object.keys(merged).length >= totalRounds;
     if (!isComplete) return null;
