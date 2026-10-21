@@ -1,7 +1,6 @@
 "use client";
 
-import {useEffect} from "react";
-import useSWR, {useSWRConfig} from "swr";
+import useSWR from "swr";
 import {useAuth} from "@/contexts/AuthContext";
 import type {RoundResult} from "@/lib/storage";
 
@@ -63,26 +62,13 @@ export default function useServerGuesses(disabled: boolean = false): {
     loading: boolean;
 } {
     const {steamId} = useAuth();
-    const {cache} = useSWRConfig();
 
     // Include steamId in the SWR key so guesses are not shared across accounts
     const swrKey = disabled ? null : `/api/review-game/my/today?steamId=${steamId ?? 'anon'}`;
 
-    // Clear previous identity's cached entries when identity changes
-    useEffect(() => {
-        // Invalidate all my/today entries when steamId changes
-        const keysToDelete: string[] = [];
-        if (cache instanceof Map) {
-            for (const key of cache.keys()) {
-                if (typeof key === 'string' && key.startsWith('/api/review-game/my/today')) {
-                    keysToDelete.push(key);
-                }
-            }
-        }
-        for (const key of keysToDelete) {
-            cache.delete(key);
-        }
-    }, [steamId, cache]);
+    // No cache surgery here: steamId is already part of the key, so entries never collide.
+    // Deleting the current key's entry on mount also drops its cache for every other consumer,
+    // and a raw Map.delete never emits UNLOAD, so keepPreviousData still renders the old value.
 
     // SWR owns the fetch lifecycle (dedup, races, cleanup) instead of a manual
     // effect. A null key disables fetching; keepPreviousData keeps the last map
