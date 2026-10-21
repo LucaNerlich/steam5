@@ -11,7 +11,9 @@ import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClientResponseException;
+import org.springframework.web.client.ResponseErrorHandler;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.http.client.ClientHttpResponse;
 import org.steam5.config.SteamAppsConfig;
 
 import java.io.IOException;
@@ -33,6 +35,15 @@ public class SteamHttpClient {
         rf.setConnectTimeout(cfg.getHttpTimeoutMs());
         rf.setReadTimeout(cfg.getHttpTimeoutMs());
         this.restTemplate = new RestTemplate(rf);
+        // Never throw from the error handler: the default one buffers a failed response's body
+        // whole before the extractor can apply the size cap. readBodyBounded checks the status
+        // itself and rejects it before touching the body.
+        this.restTemplate.setErrorHandler(new ResponseErrorHandler() {
+            @Override
+            public boolean hasError(ClientHttpResponse response) {
+                return false;
+            }
+        });
     }
 
     private static boolean shouldRetry(int status) {
@@ -119,6 +130,24 @@ public class SteamHttpClient {
                 recordOutcome(endpoint, status == 429 ? "rate_limited" : "failed", System.nanoTime() - started);
                 throw new SteamApiException(status, url, "HTTP " + status + " calling Steam API", rcre);
             } catch (ResourceAccessException rae) {
+                // With the error handler disabled, a SteamApiException raised inside the
+                // extractor (a non-2xx status, or a body over the cap) arrives wrapped here.
+                // Classify it like any other response instead of retrying a deterministic
+                // failure three times as a network error.
+                if (rae.getCause() instanceof SteamApiException sae) {
+                    final int status = sae.getStatusCode();
+                    if (shouldRetry(status) && attempt < maxAttempts) {
+                        log.warn("Steam API exception {} on attempt {}/{}, retrying: {}",
+                                 status, attempt, maxAttempts, sanitizeUrl(url));
+                        backoff(attempt);
+                        continue;
+                    }
+                    log.error("Steam API call failed after {} attempts: status={} url={}",
+                              attempt, status, sanitizeUrl(url));
+                    if (status == 429) recordRateLimited(endpoint);
+                    recordOutcome(endpoint, status == 429 ? "rate_limited" : "failed", System.nanoTime() - started);
+                    throw sae;
+                }
                 // I/O errors or timeouts; retry with backoff
                 if (attempt < maxAttempts) {
                     log.warn("Steam API network error on attempt {}/{}, retrying: {} ({})",
@@ -155,10 +184,14 @@ public class SteamHttpClient {
             }
             final long declared = response.getHeaders().getContentLength();
             if (declared > MAX_RESPONSE_BYTES) {
-                throw new IOException("Steam API response declares " + declared
+                throw new SteamApiException(413, url, "Steam API response declares " + declared
                         + " bytes, over the " + MAX_RESPONSE_BYTES + "-byte cap");
             }
-            return new String(readBounded(response.getBody(), MAX_RESPONSE_BYTES), StandardCharsets.UTF_8);
+            try {
+                return new String(readBounded(response.getBody(), MAX_RESPONSE_BYTES), StandardCharsets.UTF_8);
+            } catch (ResponseTooLargeException e) {
+                throw new SteamApiException(413, url, e.getMessage(), e);
+            }
         });
     }
 
@@ -170,10 +203,17 @@ public class SteamHttpClient {
      * @return the body bytes
      * @throws IOException when the body exceeds {@code maxBytes} (or the stream fails)
      */
+    /** Marks a body that exceeded the cap, so the caller can classify it without sniffing messages. */
+    static final class ResponseTooLargeException extends IOException {
+        ResponseTooLargeException(String message) {
+            super(message);
+        }
+    }
+
     static byte[] readBounded(final InputStream in, final long maxBytes) throws IOException {
         final byte[] body = in.readNBytes((int) maxBytes + 1);
         if (body.length > maxBytes) {
-            throw new IOException("Steam API response exceeds the " + maxBytes + "-byte cap");
+            throw new ResponseTooLargeException("Steam API response exceeds the " + maxBytes + "-byte cap");
         }
         return body;
     }
