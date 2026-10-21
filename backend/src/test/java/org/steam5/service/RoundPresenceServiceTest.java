@@ -7,6 +7,7 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
+import org.springframework.web.socket.handler.SessionLimitExceededException;
 import org.steam5.config.PresenceProperties;
 import tools.jackson.databind.ObjectMapper;
 
@@ -147,6 +148,27 @@ class RoundPresenceServiceTest {
 
         assertEquals(1, service.scopeSize("scopeA"));
         assertTrue(service.sessionsFor("scopeA").contains(open));
+    }
+
+    @Test
+    void broadcastPrunesSessionsThatExceedTheSendLimit() throws IOException {
+        // ConcurrentWebSocketSessionDecorator signals a hopeless client with
+        // SessionLimitExceededException, a RuntimeException the old catch missed: it aborted
+        // the loop, so every later session in the scope missed the snapshot and the offender
+        // stayed registered.
+        final WebSocketSession healthy = sessionFor("scopeA", "1.1.1.1", "1", "Alice", "http://avatar/a");
+        final WebSocketSession stuck = sessionFor("scopeA", "1.1.1.2", "2", "Bob", "http://avatar/b");
+        doThrow(new SessionLimitExceededException("buffer", CloseStatus.SESSION_NOT_RELIABLE))
+                .when(stuck).sendMessage(any(TextMessage.class));
+
+        service.register(healthy);
+        service.register(stuck);
+
+        service.broadcastSnapshot("scopeA");
+
+        assertEquals(1, service.scopeSize("scopeA"));
+        assertFalse(service.sessionsFor("scopeA").contains(stuck));
+        verify(healthy).sendMessage(any(TextMessage.class));
     }
 
     @Test
