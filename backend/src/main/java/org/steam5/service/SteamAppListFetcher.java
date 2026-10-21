@@ -1,6 +1,7 @@
 package org.steam5.service;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.steam5.config.JobsConfig;
@@ -18,6 +19,9 @@ import java.time.OffsetDateTime;
 @Slf4j
 @Service
 public class SteamAppListFetcher implements Fetcher {
+
+    /** steam_app_index.name is varchar(255); Steam's store names are not length-bounded. */
+    private static final int MAX_NAME_LENGTH = 255;
 
     private final SteamAppsConfig properties;
     private final JsonHttpClient jsonHttpClient;
@@ -66,7 +70,17 @@ public class SteamAppListFetcher implements Fetcher {
                     if (appId <= 0 || name.isEmpty()) {
                         continue;
                     }
-                    appIndexRepository.save(new SteamAppIndex(appId, name));
+                    final String safeName = name.length() > MAX_NAME_LENGTH
+                            ? name.substring(0, MAX_NAME_LENGTH)
+                            : name;
+                    try {
+                        appIndexRepository.save(new SteamAppIndex(appId, safeName));
+                    } catch (DataIntegrityViolationException e) {
+                        // A single row Postgres rejects must not abort the page: the cursor is
+                        // persisted after the loop, so the same row would fail every retry and
+                        // wedge all later pages forever.
+                        log.warn("Skipping appId {} rejected by steam_app_index: {}", appId, e.getMessage());
+                    }
                     batchCount++;
                 }
                 totalApps += apps.size();
