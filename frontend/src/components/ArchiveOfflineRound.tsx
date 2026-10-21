@@ -1,12 +1,12 @@
 "use client";
 
 import React, {useEffect, useState} from "react";
+import useStoredDay, {notifyStoredDayChanged} from "@/components/round/useStoredDay";
 import Link from "next/link";
 import RoundResultDialog from "@/components/RoundResultDialog";
 import RoundResultActions from "@/components/RoundResultActions";
 import type {GuessResponse} from "@/types/review-game";
-import {loadDay, saveRound, type StoredDay} from "@/lib/storage";
-import {notifyStoredDayChanged} from "@/components/round/useStoredDay";
+import {saveRound} from "@/lib/storage";
 import {QuestionIcon} from "@phosphor-icons/react/ssr";
 import {Routes} from "../../app/routes";
 import "@/styles/components/reviewGuesserRound.css";
@@ -24,6 +24,17 @@ type Props = {
     offlineAnswer: { actualBucket: string; totalReviews: number } | null;
 };
 
+/** Selection restored from the shared stored day; empty when the day was reset. */
+export function storedSelection(
+    stored: {results?: Record<number, {selectedLabel?: string}>} | null,
+    roundIndex: number,
+): {selectedLabel: string | null; submitted: boolean} {
+    const existing = stored?.results?.[roundIndex];
+    return existing?.selectedLabel
+        ? {selectedLabel: existing.selectedLabel, submitted: true}
+        : {selectedLabel: null, submitted: false};
+}
+
 export default function ArchiveOfflineRound(props: Readonly<Props>): React.ReactElement {
     const {appId, buckets, bucketTitles, roundIndex, totalRounds, pickName, gameDate, offlineAnswer} = props;
 
@@ -31,28 +42,14 @@ export default function ArchiveOfflineRound(props: Readonly<Props>): React.React
     // persisted local progress is loaded after mount to avoid a hydration mismatch.
     const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
     const [submitted, setSubmitted] = useState<boolean>(false);
-    const [stored, setStored] = useState<StoredDay | null>(null);
+    // Shared store: a reset elsewhere clears it, so this card learns about the reset too.
+    const stored = useStoredDay(gameDate);
 
     useEffect(() => {
-        // localStorage isn't available during SSR, and reading it during render would
-        // mismatch the server HTML — so load after mount. The updates are deferred to
-        // a microtask so the effect doesn't synchronously cascade an extra render.
-        let cancelled = false;
-        queueMicrotask(() => {
-            if (cancelled) return;
-            const d = loadDay(gameDate);
-            if (!d) return;
-            setStored(d);
-            const existing = d.results?.[roundIndex];
-            if (existing?.selectedLabel) {
-                setSelectedLabel(existing.selectedLabel);
-                setSubmitted(true);
-            }
-        });
-        return () => {
-            cancelled = true;
-        };
-    }, [gameDate, roundIndex]);
+        const next = storedSelection(stored, roundIndex);
+        setSelectedLabel(next.selectedLabel);
+        setSubmitted(next.submitted);
+    }, [stored, roundIndex]);
 
     const prevHref = roundIndex > 1 ? `#round-${roundIndex - 1}` : null;
     const nextHref = roundIndex < totalRounds ? `#round-${roundIndex + 1}` : null;
@@ -80,8 +77,7 @@ export default function ArchiveOfflineRound(props: Readonly<Props>): React.React
             totalReviews: offlineAnswer.totalReviews,
             correct: offlineAnswer.actualBucket === label,
         };
-        const updated = saveRound(gameDate, roundIndex, totalRounds, result);
-        if (updated) setStored(updated);
+        saveRound(gameDate, roundIndex, totalRounds, result);
         // The shared store backs the reset controls on this page; without this notification they
         // still showed "no progress" until a reload or navigation.
         notifyStoredDayChanged();
