@@ -5,7 +5,6 @@ import GameInfoSection from "@/components/GameInfoSection";
 import NewsBox from "@/components/NewsBox";
 import PlayerSpotlight from "@/components/PlayerSpotlight";
 import ReviewGuesserRound from "@/components/ReviewGuesserRound";
-import {cookies} from "next/headers";
 import {notFound} from "next/navigation";
 import {BACKEND_ORIGIN as backend} from "@/lib/backend";
 
@@ -33,30 +32,6 @@ async function loadToday(): Promise<ReviewGameState> {
     return res.json();
 }
 
-type ServerGuess = {
-    roundIndex: number;
-    appId: number;
-    selectedBucket: string;
-    actualBucket?: string;
-    totalReviews?: number;
-};
-
-async function loadMyGuesses(): Promise<ServerGuess[]> {
-    const token = (await cookies()).get('s5_token')?.value;
-    if (!token) return [];
-    try {
-        const res = await fetch(`${backend}/api/review-game/my/today`, {
-            headers: {"accept": "application/json", "authorization": `Bearer ${token}`},
-            // Do not cache; user-specific
-            cache: 'no-store',
-        });
-        if (!res.ok) return [];
-        return await res.json();
-    } catch {
-        return [];
-    }
-}
-
 export default async function ReviewGuesserRoundPage({params}: { params: Promise<{ round: string }> }) {
     const {round} = await params;
     const roundIndex = parseRoundIndex(round);
@@ -72,30 +47,8 @@ export default async function ReviewGuesserRoundPage({params}: { params: Promise
         notFound();
     }
 
-    // Preload existing guesses to avoid client-side flicker for authenticated users.
-    // Only keep a guess if its appId still matches today's pick for that round — when
-    // picks are regenerated for the same date, stale guesses would otherwise be shown
-    // (they remain dated today on the backend but point at the previous game).
-    const myGuesses = await loadMyGuesses();
-    const appIdForRound = (ri: number): number | undefined => today.picks[ri - 1]?.appId;
-    const freshGuesses = myGuesses.filter(g => g.appId === appIdForRound(g.roundIndex));
-    const allResults = Object.fromEntries(freshGuesses.map(g => [g.roundIndex, {
-        appId: g.appId,
-        pickName: undefined,
-        selectedLabel: g.selectedBucket,
-        actualBucket: g.actualBucket ?? '',
-        totalReviews: g.totalReviews ?? 0,
-        correct: g.actualBucket ? (g.actualBucket === g.selectedBucket) : false,
-    }]));
-    const currentPrefill = (() => {
-        const g = freshGuesses.find(x => x.roundIndex === roundIndex);
-        if (!g) return undefined;
-        return {
-            selectedLabel: g.selectedBucket,
-            actualBucket: g.actualBucket ?? '',
-            totalReviews: g.totalReviews ?? 0,
-        } as const;
-    })();
+    // No cookies()/bearer fetch here: the page stays statically renderable and the
+    // useServerGuesses client hook restores the player's guesses after mount.
 
     return (
         <section className="container">
@@ -112,8 +65,6 @@ export default async function ReviewGuesserRoundPage({params}: { params: Promise
                 pickName={pick.name}
                 gameDate={today.date}
                 dayGames={today.picks.map((p) => ({appId: p.appId, name: p.name}))}
-                prefilled={currentPrefill}
-                allResults={allResults}
             />
 
             {roundIndex === 1 && <PlayerSpotlight/>}
