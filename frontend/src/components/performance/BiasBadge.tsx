@@ -6,30 +6,27 @@ import {outcomeCounts} from "@/lib/rounds";
 type Round = { selectedBucket: string; actualBucket: string };
 
 export default function BiasBadge({rounds}: { rounds: Round[] }): React.ReactElement {
-    const {message, detail, color, kind, highPct, lowPct, hitPct} = (() => {
+    const {message, detail, color, highPct, lowPct, hitPct} = (() => {
         const {hits: hit, tooHigh: high, tooLow: low} = outcomeCounts(rounds);
         const total = high + low + hit;
-        if (total === 0) return {message: "No data yet", detail: "", color: "var(--color-muted)", kind: "neutral", highPct: 0, lowPct: 0, hitPct: 0};
+        if (total === 0) return {message: "No data yet", detail: "", color: "var(--color-muted)", highPct: 0, lowPct: 0, hitPct: 0};
         const hp = Math.round((high / total) * 100);
         const lp = Math.round((low / total) * 100);
         const htp = Math.round((hit / total) * 100);
         if (hp > 45) return {
             message: "You tend to guess too high",
             detail: `${hp}% of guesses overshoot the actual price range`,
-            color: "var(--color-warning)",
-            kind: "high", highPct: hp, lowPct: lp, hitPct: htp,
+            color: "var(--color-warning)", highPct: hp, lowPct: lp, hitPct: htp,
         };
         if (lp > 45) return {
             message: "You tend to guess too low",
             detail: `${lp}% of guesses undershoot the actual price range`,
-            color: "var(--color-danger)",
-            kind: "low", highPct: hp, lowPct: lp, hitPct: htp,
+            color: "var(--color-danger)", highPct: hp, lowPct: lp, hitPct: htp,
         };
         return {
             message: "Your guesses are well balanced",
             detail: `${htp}% hit rate across ${total} rounds`,
-            color: "var(--color-success-text)",
-            kind: "balanced", highPct: hp, lowPct: lp, hitPct: htp,
+            color: "var(--color-success-text)", highPct: hp, lowPct: lp, hitPct: htp,
         };
     })();
 
@@ -46,8 +43,8 @@ export default function BiasBadge({rounds}: { rounds: Round[] }): React.ReactEle
     return (
         <div className="perf-card">
             <div className="perf-card__title">Guess bias</div>
-            <div className="perf-badge" style={{"--badge-color": color} as React.CSSProperties}>
-                <div className="perf-badge__text">
+            <div className="perf-badge">
+                <div>
                     <div className="perf-badge__main" style={{color}}>{message}</div>
                     {detail && <div className="perf-badge__sub">{detail}</div>}
                 </div>
