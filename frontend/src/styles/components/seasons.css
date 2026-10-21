@@ -167,18 +167,6 @@
     font-size: 1.1rem;
 }
 
-.season-card__rank--gold {
-    color: oklch(0.82 0.14 85);
-}
-
-.season-card__rank--silver {
-    color: oklch(0.85 0.05 260);
-}
-
-.season-card__rank--bronze {
-    color: oklch(0.72 0.12 40);
-}
-
 .season-card__player {
     display: flex;
     gap: 0.75rem;
@@ -238,7 +226,7 @@
     gap: 0.4rem;
     font-weight: 600;
     text-decoration: none;
-    color: var(--color-accent);
+    color: var(--color-primary);
 }
 
 .season-card__link:hover {

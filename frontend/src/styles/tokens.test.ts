@@ -196,7 +196,7 @@ function blockFrom(css: string, from: number): string {
 
 // background + colour declarations of the main rule for a selector token; the first
 // occurrence carrying both wins, so :hover/:visited companions don't shadow it.
-function declarationsOf(path: string, selector: string): {background: string; color: string} {
+function declarationsOf(path: string, selector: string): {background?: string; color: string} {
     const css = withoutComments(readFileSync(path, 'utf8'));
     let index = 0;
     while ((index = css.indexOf(selector, index)) !== -1) {
@@ -204,7 +204,7 @@ function declarationsOf(path: string, selector: string): {background: string; co
         const background = body.match(/background\s*:\s*([^;]+);/)?.[1];
         // Word boundary: must not match inside "border-color:".
         const color = body.match(/(?<![-\w])color\s*:\s*([^;]+);/)?.[1];
-        if (background && color) return {background, color};
+        if (color) return {background, color};
         index += selector.length;
     }
     throw new Error(`no background+color rule for ${selector} in ${path}`);
@@ -248,7 +248,7 @@ describe('css colour tokens', () => {
 
 // ── 2. AA contrast on the pairs restored by the double pass ───────────────────
 
-const referencePairs = [
+const referencePairs: Array<{label: string; file: string; selector: string; background?: string}> = [
     {label: '.btn-cta fill/text', file: 'shared.css', selector: '.btn-cta'},
     {label: '.btn-success fill/text', file: 'shared.css', selector: '.btn-success'},
     {label: '.not-found__button fill/text', file: 'components/not-found.css', selector: '.not-found__button'},
@@ -267,6 +267,12 @@ const referencePairs = [
         file: 'components/reviewRoundResult.css',
         selector: `.result-chip--${tier}`,
     })),
+    {
+        label: '.season-card__link text/surface',
+        file: 'components/seasons.css',
+        selector: '.season-card__link',
+        background: 'var(--color-surface)',
+    },
 ];
 
 describe('background/text pairs meet WCAG AA 4.5:1', () => {
@@ -278,7 +284,9 @@ describe('background/text pairs meet WCAG AA 4.5:1', () => {
         for (const pair of referencePairs) {
             it(`[${theme}] ${pair.label}`, () => {
                 const declarations = declarationsOf(join(STYLES_DIR, pair.file), pair.selector);
-                const background = resolveColor(declarations.background, tokens);
+                const backgroundValue = pair.background ?? declarations.background;
+                if (!backgroundValue) throw new Error(`no background for ${pair.selector}`);
+                const background = resolveColor(backgroundValue, tokens);
                 const text = resolveColor(declarations.color, tokens);
                 const ratio = contrastRatio(text, background);
                 expect(
@@ -306,7 +314,6 @@ describe('performance status text meets WCAG AA 4.5:1 on the surface', () => {
         }
     }
 });
-
 describe('bucket callout track', () => {
     it('keeps the track translucent without dimming the child fill', () => {
         const css = withoutComments(readFileSync(join(STYLES_DIR, 'components/profile.css'), 'utf8'));
