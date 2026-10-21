@@ -266,6 +266,16 @@ public class RoundPresenceService {
                     log.debug("Pruning failed presence session {} for scope {}: {}",
                             session.getId(), scopeKey, e.toString());
                     pruneSession(list, session);
+                    if (e instanceof SessionLimitExceededException limitExceeded) {
+                        // The decorator only flags the session; it stays open but every later send
+                        // short-circuits. Close it so the client reconnects and the socket is not
+                        // held outside the counters that were just released.
+                        try {
+                            session.close(limitExceeded.getStatus());
+                        } catch (Exception closeFailure) {
+                            log.debug("Failed to close limit-exceeded session {}: {}", session.getId(), closeFailure.toString());
+                        }
+                    }
                 } else {
                     log.debug("Broadcast to session {} failed but the session is open; keeping it: {}",
                             session.getId(), e.toString());
