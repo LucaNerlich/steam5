@@ -1,6 +1,7 @@
 'use server';
 
 import {getAuth} from '@/lib/serverAuth';
+import {allowedBackendOrigin} from '@/lib/requestOrigin';
 
 const MAX_BODY_LENGTH = 1000;
 
@@ -63,7 +64,10 @@ export async function postCommentAction(
     }
 
     try {
-        const backend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
+        const backend = allowedBackendOrigin(process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080');
+        if (!backend) {
+            return {ok: false, error: 'Backend origin is not trusted for credentials'};
+        }
         const res = await fetch(
             `${backend}/api/review-game/comments/${encodeURIComponent(gameDate)}`,
             {

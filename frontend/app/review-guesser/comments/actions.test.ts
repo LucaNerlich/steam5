@@ -35,6 +35,31 @@ beforeEach(() => {
 
 afterEach(() => {
     vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+});
+
+describe('postCommentAction backend origin', () => {
+    it('fails closed on a plain-http remote backend in production', async () => {
+        vi.stubEnv('NODE_ENV', 'production');
+        process.env.NEXT_PUBLIC_API_DOMAIN = 'http://evil.example:8080';
+        cookieGet.mockReturnValue({value: 'token'});
+
+        const res = await postCommentAction(undefined, form('2026-07-31', 'hi'));
+
+        expect(res).toEqual({ok: false, error: 'Backend origin is not trusted for credentials'});
+        expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it('proceeds for an https backend in production', async () => {
+        vi.stubEnv('NODE_ENV', 'production');
+        process.env.NEXT_PUBLIC_API_DOMAIN = 'https://api.example.com';
+        cookieGet.mockReturnValue({value: 'token'});
+        fetchMock.mockResolvedValueOnce(mockResponse(200, {id: 1}));
+
+        await postCommentAction(undefined, form('2026-07-31', 'hi'));
+
+        expect(fetchMock.mock.calls[0][0]).toBe('https://api.example.com/api/review-game/comments/2026-07-31');
+    });
 });
 
 describe('postCommentAction input validation', () => {

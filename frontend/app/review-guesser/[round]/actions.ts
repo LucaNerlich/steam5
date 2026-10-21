@@ -2,6 +2,7 @@
 
 import type {GuessResponse, ReviewGameState} from "@/types/review-game";
 import {getAuth} from '@/lib/serverAuth';
+import {allowedBackendOrigin} from '@/lib/requestOrigin';
 
 const MAX_BUCKET_GUESS_LENGTH = 50;
 
@@ -59,7 +60,10 @@ export async function submitGuessAction(_prev: GuessActionState | undefined, for
     }
 
     try {
-        const backend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
+        const backend = allowedBackendOrigin(process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080');
+        if (!backend) {
+            return {ok: false, appId: requestedAppId, error: 'Backend origin is not trusted for credentials'};
+        }
         // Reject values that are not one of today's bucket labels so arbitrary strings
         // never reach the backend (which would persist them verbatim and grade them
         // leniently). Fail closed when today's buckets cannot be loaded.
