@@ -26,9 +26,13 @@ public class PathRateLimitFilter extends OncePerRequestFilter {
     private record Rule(String path, boolean exact, FixedWindowCounter counter, String label) {
     }
 
+    // /api/profile/ is fetched server-side by Next.js with no X-Forwarded-For, so every visitor,
+    // the OG route and the ISR warm-up share the Next container's single counter. 60/min was
+    // sized for one browser and turned ordinary profile traffic into 429s (500s on the page).
+    // /api/auth/ stays per-client: those calls originate in the browser.
     private final List<Rule> rules = List.of(
             new Rule("/api/auth/", false, new FixedWindowCounter(60), "Auth"),
-            new Rule("/api/profile/", false, new FixedWindowCounter(60), "Profile"),
+            new Rule("/api/profile/", false, new FixedWindowCounter(600), "Profile"),
             new Rule("/api/users/search", true, new FixedWindowCounter(30), "User search"));
 
     @Override
