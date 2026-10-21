@@ -3,6 +3,7 @@ import {renderToStaticMarkup} from 'react-dom/server';
 import BucketAccuracyBars from './BucketAccuracyBars';
 import HitRateVsAverageCard from './HitRateVsAverageCard';
 import OutcomeMixBar from './OutcomeMixBar';
+import BiasBadge from './BiasBadge';
 import RollingHitRateSpark from './RollingHitRateSpark';
 import CalendarHeatmap from './CalendarHeatmap';
 
@@ -103,5 +104,21 @@ describe('performance charts expose their values', () => {
         );
 
         expect(html).toContain('1 active day,');
+    });
+
+    it('BiasBadge and OutcomeMixBar count the same outcome mix', () => {
+        const rounds = [
+            {selectedBucket: '', actualBucket: '', date: DATED},
+            {selectedBucket: '', actualBucket: '', date: DATED},
+            {selectedBucket: '1-100', actualBucket: '1-100', date: DATED},
+            {selectedBucket: '101-1000', actualBucket: '1-100', date: DATED},
+            {selectedBucket: '1-100', actualBucket: '101-1000', date: DATED},
+        ];
+
+        const badge = renderToStaticMarkup(<BiasBadge rounds={rounds}/>);
+        const mix = renderToStaticMarkup(<OutcomeMixBar rounds={rounds}/>);
+
+        expect(badge).toContain('33% too high, 33% hits, 33% too low');
+        expect(mix).toContain('Outcome mix: Hit 1 (33%), Too High 1 (33%), Too Low 1 (33%)');
     });
 });

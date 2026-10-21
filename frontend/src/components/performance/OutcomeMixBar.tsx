@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import {cutoffDateString, leadingBucketOrder} from "@/lib/rounds";
+import {cutoffDateString, outcomeCounts} from "@/lib/rounds";
 
 type Round = { selectedBucket: string; actualBucket: string; date?: string };
 
@@ -10,17 +10,12 @@ export default function OutcomeMixBar({rounds}: { rounds: Round[] }): React.Reac
     const cutoff = cutoffDateString(DAYS_WINDOW);
     const last = rounds.filter(r => r.date && r.date >= cutoff);
     const bars = (() => {
-        const counts = {hit: 0, high: 0, low: 0};
-        for (const r of last) {
-            if (r.selectedBucket === r.actualBucket) counts.hit++;
-            else if (leadingBucketOrder(r.selectedBucket) > leadingBucketOrder(r.actualBucket)) counts.high++;
-            else counts.low++;
-        }
-        const total = Math.max(1, counts.hit + counts.high + counts.low);
+        const {hits, tooHigh, tooLow} = outcomeCounts(last);
+        const total = Math.max(1, hits + tooHigh + tooLow);
         return [
-            {key: 'Hit', value: counts.hit, color: 'var(--color-success, #16a34a)', pct: counts.hit / total},
-            {key: 'Too High', value: counts.high, color: 'var(--color-warning, #f59e0b)', pct: counts.high / total},
-            {key: 'Too Low', value: counts.low, color: 'var(--color-danger, #ef4444)', pct: counts.low / total},
+            {key: 'Hit', value: hits, color: 'var(--color-success, #16a34a)', pct: hits / total},
+            {key: 'Too High', value: tooHigh, color: 'var(--color-warning, #f59e0b)', pct: tooHigh / total},
+            {key: 'Too Low', value: tooLow, color: 'var(--color-danger, #ef4444)', pct: tooLow / total},
         ];
     })();
 
