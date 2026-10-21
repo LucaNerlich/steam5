@@ -57,20 +57,10 @@ export default function ShareControls(props: {
     })();
 
     const stored = useStoredDay(gameDate);
-const data: StoredDay | null = results !== undefined
+    // An authoritative, pick-validated map replaces localStorage as the completion source.
+    const data: StoredDay | null = results !== undefined
         ? {totalRounds, results}
         : stored;
-=======
-    // Merge instead of choosing either source: a server map with four rounds must not hide
-    // the fifth round stored locally (played out of order or while signed out).
-    const data: StoredDay = {
-        totalRounds,
-        results: {
-            ...(stored?.results || {}),
-            ...(results || {}),
-            [latestRound]: latest,
-        },
-    };
 
     const indices = new Set<number>(
         data?.results ? Object.keys(data.results).map(n => parseInt(n, 10)) : []
