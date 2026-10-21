@@ -694,13 +694,18 @@ public class ReviewGameStateController {
         final List<String> actualBuckets = new ArrayList<>();
         final List<Long> appIds = new ArrayList<>();
         final Set<Long> legacyAppIds = new HashSet<>();
+        final Set<String> labelSet = new HashSet<>(labels);
         for (LocalDate d : picksByDate.keySet().stream().sorted().toList()) {
             final List<org.steam5.domain.ReviewGamePick> picks = picksByDate.get(d);
             for (org.steam5.domain.ReviewGamePick p : picks) {
                 appIds.add(p.getAppId());
-                if (p.getActualBucket() != null) {
+                if (p.getActualBucket() != null && labelSet.contains(p.getActualBucket())) {
                     // The answer recorded when the round was played stays authoritative.
                     actualBuckets.add(p.getActualBucket());
+                } else if (p.getTotalReviews() != null) {
+                    // Not a legacy row, but its label is from an older boundary set: map the
+                    // recorded count under today's labels instead of returning an unknown label.
+                    actualBuckets.add(service.inferBucket(p.getTotalReviews()));
                 } else {
                     // Legacy row: no recorded answer, fall back to the current snapshot.
                     actualBuckets.add(null);

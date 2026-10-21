@@ -89,6 +89,23 @@ class ReviewGameStateCachingTest {
     }
 
     @Test
+    void alwaysPickReinterpretsARecordedLabelMissingFromTheCurrentBoundaries() {
+        final LocalDate day = GameDate.todayUtc().minusDays(1);
+        final ReviewGamePick pick = new ReviewGamePick(1L, day, 42L, OffsetDateTime.now());
+        pick.recordAnswer(855, "999-1000");
+        when(pickRepository.findByPickDateBetween(day, day)).thenReturn(List.of(pick));
+        when(service.getBucketLabels()).thenReturn(List.of("1-13", "112-855", "856-6467"));
+        when(service.inferBucket(855)).thenReturn("112-855");
+
+        final ResponseEntity<ReviewGameStateController.HistoricalAlwaysPickResponse> res =
+                controller.alwaysPickHistory(day.toString(), day.toString());
+
+        final var score = res.getBody().scores().stream()
+                .filter(s -> s.bucketLabel().equals("112-855")).findFirst().orElseThrow();
+        assertEquals(5.0, score.avgPoints());
+    }
+
+    @Test
     void alwaysPickHistoryRefusesARangeWiderThanTenYears() {
         ResponseEntity<ReviewGameStateController.HistoricalAlwaysPickResponse> res =
                 controller.alwaysPickHistory("1990-01-01", "2026-12-31");
