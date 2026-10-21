@@ -9,13 +9,11 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.steam5.config.ReviewGameConfig;
 import org.steam5.domain.GameDate;
-import org.steam5.domain.DailyPickLock;
 import org.steam5.domain.ReviewGamePick;
 import org.steam5.domain.SteamAppReviews;
 import org.steam5.http.SteamApiException;
 import org.steam5.job.blurhash.BlurhashEnqueueListener;
 import org.steam5.job.events.BlurhashEncodeRequested;
-import org.steam5.repository.DailyPickLockRepository;
 import org.steam5.repository.ExcludedAppRepository;
 import org.steam5.repository.ReviewGamePickRepository;
 import org.steam5.repository.SteamAppReviewsRepository;
@@ -82,7 +80,7 @@ public class ReviewGameStateService {
             // winner, then write the picks and the lock row. No HTTP call runs in here.
             final TransactionTemplate transaction = new TransactionTemplate(transactionManager);
             final List<ReviewGamePick> saved = transaction.execute(status -> {
-                if (!pickLockRepository.tryAcquire(today.toString())) {
+                if (!pickRepository.tryAcquire(today.toString())) {
                     return null;
                 }
                 final List<ReviewGamePick> concurrent = pickRepository.findByPickDate(today);
@@ -90,7 +88,6 @@ public class ReviewGameStateService {
                     return concurrent;
                 }
                 final List<ReviewGamePick> inserted = pickRepository.saveAll(picks);
-                pickLockRepository.save(new DailyPickLock(today, OffsetDateTime.now()));
                 // Blurhash events are @TransactionalEventListener(AFTER_COMMIT): publishing
                 // them outside this transaction would drop them.
                 for (ReviewGamePick p : inserted) {
@@ -291,7 +288,6 @@ public class ReviewGameStateService {
         private final SteamAppReviewsFetcher reviewsFetcher;
         private final SteamAppDetailsFetcher detailsFetcher;
         private final ReviewGamePickRepository pickRepository;
-        private final DailyPickLockRepository pickLockRepository;
         private final ExcludedAppRepository excludedAppRepository;
         private final ReviewGameConfig config;
         private final DomainCacheEvictor cacheEvictor;
