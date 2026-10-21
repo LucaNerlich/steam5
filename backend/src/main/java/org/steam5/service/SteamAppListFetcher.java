@@ -75,13 +75,13 @@ public class SteamAppListFetcher implements Fetcher {
                             : name;
                     try {
                         appIndexRepository.save(new SteamAppIndex(appId, safeName));
+                        batchCount++;
                     } catch (DataIntegrityViolationException e) {
                         // A single row Postgres rejects must not abort the page: the cursor is
                         // persisted after the loop, so the same row would fail every retry and
                         // wedge all later pages forever.
                         log.warn("Skipping appId {} rejected by steam_app_index: {}", appId, e.getMessage());
                     }
-                    batchCount++;
                 }
                 totalApps += apps.size();
             }
