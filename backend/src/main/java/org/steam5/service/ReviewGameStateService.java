@@ -5,6 +5,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
@@ -33,7 +35,6 @@ public class ReviewGameStateService {
 
     public static final int MIN_BUCKET_BOUND = 1;
 
-    @Transactional
     public List<ReviewGamePick> generateDailyPicks() {
         final LocalDate today = GameDate.todayUtc();
         final List<ReviewGamePick> existing = pickRepository.findByPickDate(today);
@@ -41,13 +42,54 @@ public class ReviewGameStateService {
             return existing;
         }
 
-        // Try to acquire a per-day lock to prevent concurrent generation (job vs
-        // endpoint). This is a NON-BLOCKING advisory lock — concurrent callers
-        // return immediately instead of blocking on the daily_pick_lock unique
-        // index for the winner's whole (potentially slow) transaction.
-        final boolean acquired = pickLockRepository.tryAcquire(today.toString());
-        if (!acquired) {
-            // Another generator is running/just ran; wait briefly for it to finish then return existing
+        // Exclusion window parameterized
+        final int doNotRepeatDays = Math.max(0, config.getDoNotRepeatDays());
+        final LocalDate excludeSince = doNotRepeatDays >= 36500 ? LocalDate.of(1970, MIN_BUCKET_BOUND, MIN_BUCKET_BOUND) : today.minusDays(doNotRepeatDays);
+
+        // Candidate selection and Steam validation run without a transaction: a slow
+        // details/reviews API must not pin a Hikari connection or hold the day lock.
+        final List<ReviewGamePick> picks = selectPicks(today, excludeSince);
+        if (picks.isEmpty()) {
+            // A full generation pass produced no picks (e.g. Steam API outage). Do
+            // NOT record the daily lock row — later requests can retry the day.
+            log.warn("Pick generation produced no picks for {}; day remains unlocked for later retry", today);
+            return List.of();
+        }
+
+        // Shuffle picks to avoid deterministic bucket order per round, then assign
+        // the player-visible round index (1..n) AFTER the shuffle so statistics
+        // round labels match the order actually served to players.
+        Collections.shuffle(picks);
+        for (int i = 0; i < picks.size(); i++) {
+            final ReviewGamePick pick = picks.get(i);
+            pick.setRoundIndex(i + 1);
+            final int totalReviews = getTotalReviewCountForApp(pick.getAppId());
+            pick.recordAnswer(totalReviews, inferBucket(totalReviews));
+        }
+
+        // Short transaction: acquire the advisory lock, re-check for a concurrent
+        // winner, then write the picks and the lock row. No HTTP call runs in here.
+        final TransactionTemplate transaction = new TransactionTemplate(transactionManager);
+        final List<ReviewGamePick> saved = transaction.execute(status -> {
+            if (!pickLockRepository.tryAcquire(today.toString())) {
+                return null;
+            }
+            final List<ReviewGamePick> concurrent = pickRepository.findByPickDate(today);
+            if (!concurrent.isEmpty()) {
+                return concurrent;
+            }
+            final List<ReviewGamePick> inserted = pickRepository.saveAll(picks);
+            pickLockRepository.save(new DailyPickLock(today, OffsetDateTime.now()));
+            // Blurhash events are @TransactionalEventListener(AFTER_COMMIT): publishing
+            // them outside this transaction would drop them.
+            for (ReviewGamePick p : inserted) {
+                eventPublisher.publishEvent(new BlurhashEncodeRequested(p.getAppId(), null, BlurhashEnqueueListener.Type.SCREENSHOT));
+            }
+            return inserted;
+        });
+        if (saved == null) {
+            // Another generator holds the lock; wait outside any transaction so this
+            // thread releases its pooled connection while polling.
             for (int i = 0; i < 20; i++) { // ~2s total
                 final List<ReviewGamePick> concurrent = pickRepository.findByPickDate(today);
                 if (!concurrent.isEmpty()) return concurrent;
@@ -57,16 +99,17 @@ public class ReviewGameStateService {
                     break;
                 }
             }
-            // Do not attempt to generate if lock not acquired
             return pickRepository.findByPickDate(today);
         }
 
-        log.info("Generating review-game picks for {}", today);
+        log.info("Generated {} review-game picks for {}", saved.size(), today);
+        enrichPickedAppsAfterCommit(saved);
+        evictReviewGameStateAfterCommit();
+        return saved;
+    }
 
-        // Exclusion window parameterized
-        final int doNotRepeatDays = Math.max(0, config.getDoNotRepeatDays());
-        final LocalDate excludeSince = doNotRepeatDays >= 36500 ? LocalDate.of(1970, MIN_BUCKET_BOUND, MIN_BUCKET_BOUND) : today.minusDays(doNotRepeatDays);
-
+    /** Selects and Steam-validates the day's candidates; deliberately non-transactional. */
+    private List<ReviewGamePick> selectPicks(LocalDate today, LocalDate excludeSince) {
         final List<ReviewGamePick> picks = new ArrayList<>(5);
         final Set<Long> chosenIds = new HashSet<>();
 
@@ -115,40 +158,7 @@ public class ReviewGameStateService {
             }
             round++;
         }
-
-        if (picks.isEmpty()) {
-            // A full generation pass produced no picks (e.g. Steam API outage). Do
-            // NOT record the daily lock row — the advisory lock is released at
-            // commit, so later requests can retry generation for the same day.
-            log.warn("Pick generation produced no picks for {}; day remains unlocked for later retry", today);
-            return List.of();
-        }
-
-        // Shuffle picks to avoid deterministic bucket order per round, then assign
-        // the player-visible round index (1..n) AFTER the shuffle so statistics
-        // round labels match the order actually served to players.
-        Collections.shuffle(picks);
-        for (int i = 0; i < picks.size(); i++) {
-            final ReviewGamePick pick = picks.get(i);
-            pick.setRoundIndex(i + 1);
-            final int totalReviews = getTotalReviewCountForApp(pick.getAppId());
-            pick.recordAnswer(totalReviews, inferBucket(totalReviews));
-        }
-        final List<ReviewGamePick> saved = pickRepository.saveAll(picks);
-        pickLockRepository.save(new DailyPickLock(today, OffsetDateTime.now()));
-        log.info("Generated {} review-game picks for {}", saved.size(), today);
-
-        // Blurhash events are @TransactionalEventListener(AFTER_COMMIT): they
-        // MUST be published inside this transaction or they are dropped.
-        for (ReviewGamePick p : saved) {
-            eventPublisher.publishEvent(new BlurhashEncodeRequested(p.getAppId(), null, BlurhashEnqueueListener.Type.SCREENSHOT));
-        }
-
-        // Slow Steam enrichment runs AFTER the transaction commits so the lock
-        // and picks are durably visible before the API calls start.
-        enrichPickedAppsAfterCommit(saved);
-        evictReviewGameStateAfterCommit();
-        return saved;
+        return picks;
     }
 
     /**
@@ -310,6 +320,7 @@ public class ReviewGameStateService {
     private final ReviewGameConfig config;
     private final DomainCacheEvictor cacheEvictor;
     private final ApplicationEventPublisher eventPublisher;
+    private final PlatformTransactionManager transactionManager;
 
     public List<String> getBucketLabels() {
         final List<Integer> bounds = config.getBucketBoundaries();

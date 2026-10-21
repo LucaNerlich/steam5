@@ -3,6 +3,9 @@ package org.steam5;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationEventPublisher;
+import org.mockito.InOrder;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.SimpleTransactionStatus;
 import org.springframework.data.domain.PageRequest;
 import org.steam5.config.ReviewGameConfig;
 import org.steam5.domain.GameDate;
@@ -30,6 +33,7 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.inOrder;
 
 public class ReviewGameStateServiceTest {
 
@@ -42,6 +46,7 @@ public class ReviewGameStateServiceTest {
     private ReviewGameConfig config;
     private DomainCacheEvictor cacheEvictor;
     private ApplicationEventPublisher eventPublisher;
+    private PlatformTransactionManager transactionManager;
 
     private ReviewGameStateService service;
 
@@ -56,6 +61,8 @@ public class ReviewGameStateServiceTest {
         config = new ReviewGameConfig();
         cacheEvictor = mock(DomainCacheEvictor.class);
         eventPublisher = mock(ApplicationEventPublisher.class);
+        transactionManager = mock(PlatformTransactionManager.class);
+        when(transactionManager.getTransaction(any())).thenReturn(new SimpleTransactionStatus());
 
         service = new ReviewGameStateService(
                 reviewsRepository,
@@ -66,7 +73,8 @@ public class ReviewGameStateServiceTest {
                 excludedAppRepository,
                 config,
                 cacheEvictor,
-                eventPublisher
+                eventPublisher,
+                transactionManager
         );
 
         // Defaults for config
@@ -141,12 +149,29 @@ public class ReviewGameStateServiceTest {
     }
 
     @Test
+    void candidateValidationRunsBeforeThePersistenceLock() throws Exception {
+        final java.util.concurrent.atomic.AtomicBoolean validated = new java.util.concurrent.atomic.AtomicBoolean(false);
+        doAnswer(invocation -> {
+            validated.set(true);
+            return true;
+        }).when(detailsFetcher).fetchForAppId(anyLong());
+        when(pickLockRepository.tryAcquire(anyString())).thenAnswer(invocation -> {
+            assertTrue(validated.get(), "the advisory lock was acquired before Steam validation finished");
+            return true;
+        });
+
+        service.generateDailyPicks();
+
+        verify(pickLockRepository).tryAcquire(anyString());
+    }
+
+    @Test
     void generateDailyPicks_anchorsToUtcDateNotJvmLocalDate() {
         // The daily round must resolve "today" in UTC so it aligns with the UTC-scheduled
         // Quartz job and the UTC frontend; a JVM-local date would roll over early/late and
         // serve the wrong day. Verify the existence check queries the UTC date.
         service.generateDailyPicks();
-        verify(pickRepository).findByPickDate(GameDate.todayUtc());
+        verify(pickRepository, atLeastOnce()).findByPickDate(GameDate.todayUtc());
     }
 
     @Test
@@ -200,7 +225,8 @@ public class ReviewGameStateServiceTest {
                 excludedAppRepository,
                 config,
                 cacheEvictor,
-                eventPublisher
+                eventPublisher,
+                transactionManager
         ) {
             @Override
             public BUCKET_STRATEGY chooseStrategyForDate(LocalDate date) {
