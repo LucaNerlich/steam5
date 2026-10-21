@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import {bucketOutcome, flattenDayRounds, outcomeCounts, validatedResultsForDay} from './rounds';
+import {bucketOutcome, flattenDayRounds, outcomeCounts, recentRounds, validatedResultsForDay} from './rounds';
 
 const round = (roundIndex: number, appId: number) => ({
     roundIndex,
@@ -90,5 +90,18 @@ describe('validatedResultsForDay', () => {
         const server = {1: result(11), 2: result(22), 3: result(33), 4: result(44), 5: result(55)};
         const validated = validatedResultsForDay(games, {}, server, 5);
         expect(Object.keys(validated)).toHaveLength(5);
+    });
+});
+
+describe('recentRounds', () => {
+    const day = (date: string, rounds: Array<{actualBucket?: string}>) => ({date, rounds});
+
+    it('takes the newest graded rounds and skips ungraded ones', () => {
+        const days = [
+            day('2026-10-20', [{actualBucket: '1-13'}, {actualBucket: undefined}]),
+            day('2026-10-19', [{actualBucket: '14-111'}]),
+        ];
+        expect(recentRounds(days, 2).map(r => r.actualBucket)).toEqual(['1-13', '14-111']);
+        expect(recentRounds(days, 10)).toHaveLength(2);
     });
 });

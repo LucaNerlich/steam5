@@ -103,3 +103,11 @@ export function validatedResultsForDay<T extends {appId: number}>(
     }
     return validated;
 }
+
+/** Newest-first graded rounds across the profile's days (the OG "recent" box). */
+export function recentRounds<T extends {actualBucket?: string}>(
+    days: Array<{rounds: T[]}>,
+    limit = 10,
+): T[] {
+    return days.flatMap(day => day.rounds).filter(round => round.actualBucket).slice(0, limit);
+}
