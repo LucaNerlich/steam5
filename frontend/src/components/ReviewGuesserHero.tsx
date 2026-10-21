@@ -97,7 +97,8 @@ export default function ReviewGuesserHero(props: Readonly<ReviewGuesserHeroProps
                 )}
                 {(() => {
                     const price = pick.priceOverview;
-                    const isFree = price === null || Boolean(pick.isFree || (price && price.finalAmount === 0));
+                    // price === null means Steam omitted price_overview (delisted/unpriced), not "free".
+                    const isFree = Boolean(pick.isFree || (price && price.finalAmount === 0));
                     if (isFree) {
                         return (
                             <span title='Free to play' className="meta-item">🆓 Free to play</span>
