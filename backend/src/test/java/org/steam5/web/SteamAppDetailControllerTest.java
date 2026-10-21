@@ -52,7 +52,7 @@ public class SteamAppDetailControllerTest {
 
         // not found
         when(detailService.findByAppId(anyLong())).thenReturn(Optional.empty());
-        assertEquals(404, controller.getDetails(42L, new HttpHeaders()).getStatusCode().value());
+        assertEquals(404, controller.getDetails(42L).getStatusCode().value());
 
         // found
         SteamAppDetail detail = Mockito.mock(SteamAppDetail.class);
@@ -64,7 +64,7 @@ public class SteamAppDetailControllerTest {
         when(detail.getMovies()).thenReturn(Collections.emptySet());
         when(detail.getPriceOverview()).thenReturn(null);
         when(detailService.findByAppId(7L)).thenReturn(Optional.of(detail));
-        ResponseEntity<SteamAppDetail> ok = controller.getDetails(7L, new HttpHeaders());
+        ResponseEntity<SteamAppDetail> ok = controller.getDetails(7L);
         assertEquals(200, ok.getStatusCode().value());
         assertNotNull(ok.getHeaders().getFirst("Cache-Control"));
         assertSame(detail, ok.getBody());

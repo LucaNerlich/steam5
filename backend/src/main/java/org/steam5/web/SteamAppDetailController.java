@@ -3,7 +3,6 @@ package org.steam5.web;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
@@ -125,8 +124,7 @@ public class SteamAppDetailController {
     @GetMapping("/{appId}")
     @Transactional(readOnly = true)
     @Cacheable(value = "one-day", key = "#appId", unless = "#result == null || !#result.statusCode.is2xxSuccessful()")
-    public ResponseEntity<SteamAppDetail> getDetails(@PathVariable("appId") Long appId,
-                                                     @RequestHeader HttpHeaders headers) {
+    public ResponseEntity<SteamAppDetail> getDetails(@PathVariable("appId") Long appId) {
         final Optional<SteamAppDetail> detailOpt = detailService.findByAppId(appId);
         if (detailOpt.isEmpty()) {
             return ResponseEntity.notFound().build();
@@ -134,13 +132,6 @@ public class SteamAppDetailController {
         final SteamAppDetail detail = detailOpt.get();
 
         final String etag = weakEtagForDetail(detail);
-        if (etag != null && headers.getIfNoneMatch().contains(etag)) {
-            return ResponseEntity.status(304)
-                    .eTag(etag)
-                    .header("Cache-Control", "public, s-maxage=86400, max-age=3600")
-                    .build();
-        }
-
         return ResponseEntity.ok()
                 .eTag(etag)
                 .header("Cache-Control", "public, s-maxage=86400, max-age=3600")
