@@ -20,8 +20,10 @@ public class ReviewGameStateJob implements Job {
 
     private final ReviewGameStateService service;
     private final MeterRegistry meterRegistry;
-    private final AtomicLong lastSuccessEpochSeconds = new AtomicLong(0L);
-    private final AtomicLong lastSuccessSize = new AtomicLong(0L);
+    // Quartz hands each firing a fresh job bean, so these must be static for the
+    // gauges registered from the startup singleton to observe execute()'s writes.
+    private static final AtomicLong lastSuccessEpochSeconds = new AtomicLong(0L);
+    private static final AtomicLong lastSuccessSize = new AtomicLong(0L);
 
     public ReviewGameStateJob(ReviewGameStateService service, MeterRegistry meterRegistry) {
         this.service = service;
