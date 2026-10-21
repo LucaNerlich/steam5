@@ -83,7 +83,9 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ApiError> handleUnreadableBody(HttpMessageNotReadableException ex,
                                                          HttpServletRequest request) {
-        log.warn("Malformed request body: {}", ex.getMessage());
+        // Jackson embeds the decoded client value in its parse message; log only the
+        // exception type so a newline in the body cannot forge a second log line.
+        log.warn("Malformed request body ({})", ex.getMostSpecificCause().getClass().getSimpleName());
         return ResponseEntity.status(400).body(
             ApiError.of(400, "Malformed request body", request.getRequestURI())
         );

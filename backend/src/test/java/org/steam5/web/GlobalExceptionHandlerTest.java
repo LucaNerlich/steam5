@@ -67,6 +67,25 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
+    void unreadableBody_doesNotLogTheClientValue() {
+        final ch.qos.logback.classic.Logger logger =
+                (ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger(GlobalExceptionHandler.class);
+        final ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent> appender =
+                new ch.qos.logback.core.read.ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+        try {
+            final HttpMessageNotReadableException ex = new HttpMessageNotReadableException(
+                    "JSON parse error: x\n2026-10-21 ERROR forged", (org.springframework.http.HttpInputMessage) null);
+            handler.handleUnreadableBody(ex, request);
+            org.junit.jupiter.api.Assertions.assertFalse(appender.list.stream()
+                    .anyMatch(event -> event.getFormattedMessage().contains("forged")));
+        } finally {
+            logger.detachAppender(appender);
+        }
+    }
+
+    @Test
     void unreadableBody_returns400() {
         final HttpMessageNotReadableException ex = new HttpMessageNotReadableException("bad json", (org.springframework.http.HttpInputMessage) null);
         final ResponseEntity<ApiError> res = handler.handleUnreadableBody(ex, request);
