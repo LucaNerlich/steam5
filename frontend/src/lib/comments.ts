@@ -99,15 +99,11 @@ export function commentsUrl(gameDate: string): string {
  * @param gameDate - The game date used to identify the comments.
  * @returns The comments associated with the game date.
  */
-export async function fetchComments(
-    gameDate: string,
-    options?: {immutable?: boolean},
-): Promise<DayComment[]> {
-    // Historical lists use a short revalidating Cache-Control; allow the browser to honor it.
-    // Live / authenticated fetches stay no-store.
-    const res = await fetch(commentsUrl(gameDate), {
-        cache: options?.immutable ? "force-cache" : "no-store",
-    });
+export async function fetchComments(gameDate: string): Promise<DayComment[]> {
+    // The route already sets the policy: no-store for authenticated, max-age=30 for today,
+    // private max-age=300 must-revalidate for past days. An explicit fetch cache mode here
+    // overrode it -- force-cache ignored the 300 s window, no-store killed the 30 s one.
+    const res = await fetch(commentsUrl(gameDate));
     if (!res.ok) {
         throw new Error("Failed to fetch comments");
     }

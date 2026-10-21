@@ -58,7 +58,7 @@ describe('commentsUrl', () => {
 });
 
 describe('fetchComments', () => {
-    it('GETs the proxy with cache no-store and returns parsed comments', async () => {
+    it('GETs the proxy and returns parsed comments', async () => {
         const comments: DayComment[] = [{
             id: 1,
             body: 'hi',
@@ -73,17 +73,7 @@ describe('fetchComments', () => {
         const result = await fetchComments('2026-07-31');
 
         expect(result).toEqual(comments);
-        expect(fetchMock).toHaveBeenCalledWith('/api/review-game/comments/2026-07-31', {cache: 'no-store'});
-    });
-
-    it('uses force-cache when fetching immutable archive comments', async () => {
-        fetchMock.mockResolvedValue(mockResponse(true, []));
-
-        await fetchComments('2026-07-31', {immutable: true});
-
-        expect(fetchMock).toHaveBeenCalledWith('/api/review-game/comments/2026-07-31', {
-            cache: 'force-cache',
-        });
+        expect(fetchMock).toHaveBeenCalledWith('/api/review-game/comments/2026-07-31');
     });
 
     it('throws when the proxy responds non-OK', async () => {
