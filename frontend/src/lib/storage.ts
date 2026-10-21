@@ -35,12 +35,27 @@ export function saveRound(gameDate: string, roundIndex: number, totalRounds: num
     }
 }
 
-export function clearAll(): void {
+const STORAGE_PREFIX = 'review-guesser:';
+
+function todayUtc(): string {
+    return new Date().toISOString().slice(0, 10);
+}
+
+/** Archive keys are `review-guesser:<yyyy-mm-dd>`; ISO dates compare lexicographically. */
+function isArchivedKey(key: string, beforeDate: string): boolean {
+    return key.startsWith(STORAGE_PREFIX) && key.slice(STORAGE_PREFIX.length) < beforeDate;
+}
+
+/**
+ * Removes stored archive days, never the live round's key: the archive controls only ever
+ * show past dates, so wiping today's progress is outside their stated scope.
+ */
+export function clearAll(beforeDate: string = todayUtc()): void {
     try {
         const toDelete: string[] = [];
         for (let i = 0; i < localStorage.length; i++) {
             const k = localStorage.key(i);
-            if (k && k.startsWith('review-guesser:')) toDelete.push(k);
+            if (k && isArchivedKey(k, beforeDate)) toDelete.push(k);
         }
         toDelete.forEach(k => localStorage.removeItem(k));
     } catch {
@@ -55,11 +70,11 @@ export function clearDay(gameDate: string): void {
     }
 }
 
-export function hasAny(): boolean {
+export function hasAny(beforeDate: string = todayUtc()): boolean {
     try {
         for (let i = 0; i < localStorage.length; i++) {
             const k = localStorage.key(i);
-            if (k && k.startsWith('review-guesser:')) return true;
+            if (k && isArchivedKey(k, beforeDate)) return true;
         }
         return false;
     } catch {
