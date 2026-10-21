@@ -1,7 +1,6 @@
 package org.steam5.service;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cache.CacheManager;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -30,7 +29,7 @@ public class SteamAppReviewsFetcher implements Fetcher {
     private final SteamAppIndexRepository appIndexRepository;
     private final SteamAppReviewsRepository reviewsRepository;
     private final IngestStateRepository ingestStateRepository;
-    private final CacheManager cacheManager;
+    private final DomainCacheEvictor cacheEvictor;
     private final JobsConfig jobsConfig;
 
     public SteamAppReviewsFetcher(SteamAppsConfig properties,
@@ -38,14 +37,14 @@ public class SteamAppReviewsFetcher implements Fetcher {
                                   SteamAppIndexRepository appIndexRepository,
                                   SteamAppReviewsRepository reviewsRepository,
                                   IngestStateRepository ingestStateRepository,
-                                  CacheManager cacheManager,
+                                  DomainCacheEvictor cacheEvictor,
                                   JobsConfig jobsConfig) {
         this.properties = properties;
         this.jsonHttpClient = jsonHttpClient;
         this.appIndexRepository = appIndexRepository;
         this.reviewsRepository = reviewsRepository;
         this.ingestStateRepository = ingestStateRepository;
-        this.cacheManager = cacheManager;
+        this.cacheEvictor = cacheEvictor;
         this.jobsConfig = jobsConfig;
     }
 
@@ -100,11 +99,8 @@ public class SteamAppReviewsFetcher implements Fetcher {
         }
 
         if (processed > 0) {
-            final var reviewGame = cacheManager.getCache("review-game");
-            if (reviewGame != null) {
-                reviewGame.clear();
-                log.info("Cleared review-game cache after bulk reviews ingestion of {} apps", processed);
-            }
+            cacheEvictor.evictReviewGameState();
+            log.info("Cleared review-game cache after bulk reviews ingestion of {} apps", processed);
         }
 
         log.info("Reviews ingestion finished. processed={} batchLimit={} starting_after={}", processed, batchLimit, effectiveLastAppId);
@@ -144,13 +140,9 @@ public class SteamAppReviewsFetcher implements Fetcher {
         SteamAppReviews entity = new SteamAppReviews(appId, totalPositive, totalNegative, OffsetDateTime.now());
         reviewsRepository.save(entity);
 
-        final var reviewGame = cacheManager.getCache("review-game");
-        if (reviewGame != null) {
-            reviewGame.evict(appId + "review-count");
-            if (clearReviewGameAggregates) {
-                // today/picks can change derived buckets if numbers shift
-                reviewGame.clear();
-            }
+        if (clearReviewGameAggregates) {
+            // today/picks can change derived buckets if numbers shift
+            cacheEvictor.evictReviewGameState();
         }
         return true;
     }

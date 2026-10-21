@@ -3,12 +3,11 @@ package org.steam5.job;
 import lombok.extern.slf4j.Slf4j;
 import org.quartz.*;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.cache.Cache;
-import org.springframework.cache.CacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
 import org.steam5.http.SteamApiException;
 import org.steam5.repository.SteamAppReviewsRepository;
+import org.steam5.service.DomainCacheEvictor;
 import org.steam5.service.SteamAppReviewsFetcher;
 
 import java.util.List;
@@ -24,16 +23,16 @@ public class SteamAppReviewsRefreshJob implements Job {
 
     private final SteamAppReviewsFetcher fetcher;
     private final SteamAppReviewsRepository reviewsRepository;
-    private final CacheManager cacheManager;
+    private final DomainCacheEvictor cacheEvictor;
     private final int configuredNightlyLimit;
 
     public SteamAppReviewsRefreshJob(SteamAppReviewsFetcher fetcher,
                                      SteamAppReviewsRepository reviewsRepository,
-                                     CacheManager cacheManager,
+                                     DomainCacheEvictor cacheEvictor,
                                      @Value("${jobs.reviews-refresh.nightly-limit:2500}") int configuredNightlyLimit) {
         this.fetcher = fetcher;
         this.reviewsRepository = reviewsRepository;
-        this.cacheManager = cacheManager;
+        this.cacheEvictor = cacheEvictor;
         this.configuredNightlyLimit = configuredNightlyLimit;
     }
 
@@ -57,8 +56,8 @@ public class SteamAppReviewsRefreshJob implements Job {
             final List<Long> ids = reviewsRepository.findIdsOrderByUpdatedAtAsc(org.springframework.data.domain.PageRequest.of(0, limit));
             for (Long appId : ids) {
                 try {
-                    // Per-app cache eviction only; avoid clearing review-game aggregates on every
-                    // app (that thrash forces DB reloads while this job is already heavy).
+                    // No per-app eviction here; the aggregate review-game cache is cleared once
+                    // after the loop instead of once per app.
                     final boolean success = fetcher.fetchForAppId(appId, false);
                     if (success) {
                         refreshed++;
@@ -82,11 +81,8 @@ public class SteamAppReviewsRefreshJob implements Job {
         } finally {
             // Clear review-game cache after any successful refreshes, even if job aborted early
             if (refreshed > 0) {
-                final Cache reviewGame = cacheManager.getCache("review-game");
-                if (reviewGame != null) {
-                    reviewGame.clear();
-                    log.info("Cleared review-game cache after refreshing {} apps", refreshed);
-                }
+                cacheEvictor.evictReviewGameState();
+                log.info("Cleared review-game cache after refreshing {} apps", refreshed);
             }
             long ms = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
             log.info("SteamAppReviewsRefreshJob refreshed={} durationMs={}", refreshed, ms);

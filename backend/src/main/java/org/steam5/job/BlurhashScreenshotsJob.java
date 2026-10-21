@@ -2,8 +2,6 @@ package org.steam5.job;
 
 import lombok.extern.slf4j.Slf4j;
 import org.quartz.*;
-import org.springframework.cache.Cache;
-import org.springframework.cache.CacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
@@ -28,20 +26,17 @@ public class BlurhashScreenshotsJob implements Job {
     private static final String CURSOR_ID = "blurhash_screenshots";
 
     private final BlurhashService service;
-    private final CacheManager cacheManager;
     private final ScreenshotRepository screenshotRepository;
     private final DomainCacheEvictor cacheEvictor;
     private final JobsConfig jobsConfig;
     private final IngestStateRepository ingestStateRepository;
 
     public BlurhashScreenshotsJob(final BlurhashService service,
-                                  final CacheManager cacheManager,
                                   final ScreenshotRepository screenshotRepository,
                                   final DomainCacheEvictor cacheEvictor,
                                   final JobsConfig jobsConfig,
                                   final IngestStateRepository ingestStateRepository) {
         this.service = service;
-        this.cacheManager = cacheManager;
         this.screenshotRepository = screenshotRepository;
         this.cacheEvictor = cacheEvictor;
         this.jobsConfig = jobsConfig;
@@ -156,10 +151,7 @@ public class BlurhashScreenshotsJob implements Job {
 
             // Clear game cache once so the FE can pull new screenshot blur data.
             if (encoded > 0) {
-                final Cache cache = cacheManager.getCache("review-game");
-                if (cache != null) {
-                    cache.clear();
-                }
+                cacheEvictor.evictReviewGameState();
                 // Also evict each processed app's one-day detail cache entry so the freshly
                 // encoded screenshot blur data appears in cached app detail responses
                 // immediately instead of up to the 24h TTL (mirrors the targeted path).
