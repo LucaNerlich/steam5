@@ -3,6 +3,7 @@
 import type {GuessResponse, ReviewGameState} from "@/types/review-game";
 import {getAuth} from '@/lib/serverAuth';
 import {allowedBackendOrigin} from '@/lib/requestOrigin';
+import {BACKEND_TIMEOUT_MS} from '@/lib/backend';
 
 const MAX_BUCKET_GUESS_LENGTH = 50;
 
@@ -83,6 +84,7 @@ export async function submitGuessAction(_prev: GuessActionState | undefined, for
             method: 'POST',
             headers: reqHeaders,
             body: JSON.stringify({appId, bucketGuess}),
+            signal: AbortSignal.timeout(BACKEND_TIMEOUT_MS),
             // Avoid caching mutations
             cache: 'no-store',
         });

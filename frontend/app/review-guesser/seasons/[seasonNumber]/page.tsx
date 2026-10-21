@@ -9,7 +9,7 @@ import {buildBreadcrumbJsonLd, serializeJsonLd} from "@/lib/seo";
 import "@/styles/components/season-detail.css";
 import "@/styles/components/seasons.css";
 import {Routes} from "../../../routes";
-import {BACKEND_ORIGIN as backend} from "@/lib/backend";
+import {BACKEND_ORIGIN as backend, BACKEND_TIMEOUT_MS } from "@/lib/backend";
 
 type PageParams = {
     params: {
@@ -25,6 +25,7 @@ const percentFormatter = new Intl.NumberFormat(undefined, {style: "percent", max
 
 export async function fetchSeasonDetail(seasonNumber: string): Promise<SeasonDetailResponse | null> {
     const res = await fetch(`${backend}/api/seasons/${encodeURIComponent(seasonNumber)}`, {
+        signal: AbortSignal.timeout(BACKEND_TIMEOUT_MS),
         headers: {"accept": "application/json"},
         next: {
             revalidate: 600,

@@ -2,6 +2,7 @@
 
 import {getAuth} from '@/lib/serverAuth';
 import {allowedBackendOrigin} from '@/lib/requestOrigin';
+import {BACKEND_TIMEOUT_MS} from '@/lib/backend';
 
 const MAX_BODY_LENGTH = 1000;
 
@@ -81,6 +82,7 @@ export async function postCommentAction(
                 },
                 body: JSON.stringify({body}),
                 cache: 'no-store',
+                signal: AbortSignal.timeout(BACKEND_TIMEOUT_MS),
             },
         );
 
