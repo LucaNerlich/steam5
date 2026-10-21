@@ -11,18 +11,16 @@ const ARCHIVE_DAY_LIST_LIMIT = 5000;
 export const revalidate = 86400;
 
 async function loadDays(): Promise<string[]> {
-    try {
-        const res = await fetch(`${backend}/api/review-game/days?limit=${ARCHIVE_DAY_LIST_LIMIT}`, {
-            headers: {'accept': 'application/json'},
-            next: {revalidate: ONE_DAY_REVALIDATE_SECONDS},
-        });
-        if (!res.ok) return [];
-        const data: unknown = await res.json();
-        if (!Array.isArray(data)) return [];
-        return data.filter((date): date is string => typeof date === "string");
-    } catch {
-        return [];
-    }
+    const res = await fetch(`${backend}/api/review-game/days?limit=${ARCHIVE_DAY_LIST_LIMIT}`, {
+        headers: {'accept': 'application/json'},
+        next: {revalidate: ONE_DAY_REVALIDATE_SECONDS},
+    });
+    // An outage is not "no archive days": throwing renders the error boundary instead
+    // of a permanent empty state that a crawler would cache.
+    if (!res.ok) throw new Error(`Failed to load archive days (${res.status})`);
+    const data: unknown = await res.json();
+    if (!Array.isArray(data)) throw new Error('Unexpected archive days payload');
+    return data.filter((date): date is string => typeof date === "string");
 }
 
 async function loadBuckets(): Promise<{ buckets: string[]; bucketTitles: string[] }> {
@@ -43,34 +41,31 @@ type ArchiveMonthDay = {
     picks: Array<{ appId: number; name: string }>;
 };
 
-async function loadMonthArchiveDays(month: string, revalidateSeconds: number): Promise<ArchiveMonthDay[]> {
+export async function loadMonthArchiveDays(month: string, revalidateSeconds: number): Promise<ArchiveMonthDay[]> {
     if (!isValidMonth(month)) return [];
-    try {
-        const res = await fetch(`${backend}/api/review-game/archive/month?month=${encodeURIComponent(month)}`, {
-            headers: {'accept': 'application/json'},
-            next: {revalidate: revalidateSeconds},
-        });
-        if (!res.ok) return [];
-        const data: unknown = await res.json();
-        if (!Array.isArray(data)) return [];
-        return data
-            .filter((row): row is ArchiveMonthDay => {
-                if (typeof row !== "object" || row === null) return false;
-                const candidate = row as { date?: unknown; picks?: unknown };
-                return typeof candidate.date === "string" && Array.isArray(candidate.picks);
-            })
-            .map((row) => ({
-                date: row.date,
-                picks: row.picks
-                    .filter((pick): pick is { appId: number; name: string } => {
-                        if (typeof pick !== "object" || pick === null) return false;
-                        const candidate = pick as { appId?: unknown; name?: unknown };
-                        return typeof candidate.appId === "number" && typeof candidate.name === "string";
-                    }),
-            }));
-    } catch {
-        return [];
-    }
+    const res = await fetch(`${backend}/api/review-game/archive/month?month=${encodeURIComponent(month)}`, {
+        headers: {'accept': 'application/json'},
+        next: {revalidate: revalidateSeconds},
+    });
+    // An outage must reach the error boundary, not render a month with missing game links.
+    if (!res.ok) throw new Error(`Failed to load archive month ${month} (${res.status})`);
+    const data: unknown = await res.json();
+    if (!Array.isArray(data)) throw new Error(`Unexpected archive month payload for ${month}`);
+    return data
+        .filter((row): row is ArchiveMonthDay => {
+            if (typeof row !== "object" || row === null) return false;
+            const candidate = row as { date?: unknown; picks?: unknown };
+            return typeof candidate.date === "string" && Array.isArray(candidate.picks);
+        })
+        .map((row) => ({
+            date: row.date,
+            picks: row.picks
+                .filter((pick): pick is { appId: number; name: string } => {
+                    if (typeof pick !== "object" || pick === null) return false;
+                    const candidate = pick as { appId?: unknown; name?: unknown };
+                    return typeof candidate.appId === "number" && typeof candidate.name === "string";
+                }),
+        }));
 }
 
 function getMonthKey(date: string): string {
