@@ -1,6 +1,6 @@
 import type {Metadata} from "next";
 import Link from "next/link";
-import {BACKEND_ORIGIN as backend} from "@/lib/backend";
+import {BACKEND_ORIGIN as backend, BACKEND_TIMEOUT_MS } from "@/lib/backend";
 import {ACHIEVEMENT_LABELS, ACHIEVEMENT_TITLES, ACHIEVEMENT_ICONS} from "@/lib/achievements";
 import {INSIGHT_EMOJI, type InsightType} from "@/lib/insights";
 import type {BucketsResponse} from "@/types/review-game";
@@ -28,6 +28,7 @@ async function loadBuckets(): Promise<Buckets> {
         const res = await fetch(`${backend}/api/review-game/buckets`, {
             next: {revalidate: 3600},
             headers: {"accept": "application/json"},
+            signal: AbortSignal.timeout(BACKEND_TIMEOUT_MS),
         });
         if (!res.ok) return {labels: [], titles: []};
         const data: BucketsResponse = await res.json();
