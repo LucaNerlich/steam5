@@ -20,6 +20,15 @@ import static org.mockito.Mockito.when;
 
 public class AuthControllerTest {
 
+    @org.junit.jupiter.api.Test
+    void verificationRequestCarriesTheResponseTimeout() {
+        final AuthController controller = controller(
+                mock(AuthTokenService.class), mock(SteamUserService.class),
+                mock(org.steam5.repository.UserRepository.class), mock(OpenIdNonceStore.class));
+        assertEquals(java.time.Duration.ofSeconds(10),
+                controller.verificationRequest("openid.mode=check_authentication").timeout().orElseThrow());
+    }
+
     private static final String CALLBACK_BASE = "https://steam5.org/api/auth/steam/callback";
     private static final String STEAM_ID = "76561198000000000";
     private static final String CLAIMED_ID = "https://steamcommunity.com/openid/id/" + STEAM_ID;

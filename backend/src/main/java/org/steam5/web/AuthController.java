@@ -148,6 +148,19 @@ public class AuthController {
      * client-supplied openid.op_endpoint) and returns true only when Steam
      * answers {@code is_valid:true}. Extracted for unit-testability.
      */
+    /** Builds the hardcoded Steam verification request; visible for the timeout regression test. */
+    HttpRequest verificationRequest(String body) {
+        return HttpRequest.newBuilder()
+                .uri(URI.create(OPENID_ENDPOINT))
+                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                .header(HttpHeaders.ACCEPT, "text/plain")
+                .header(HttpHeaders.ACCEPT_ENCODING, "identity")
+                .header(HttpHeaders.USER_AGENT, "steam5-auth/1.0")
+                .timeout(Duration.ofSeconds(10))
+                .POST(HttpRequest.BodyPublishers.ofString(body))
+                .build();
+    }
+
     boolean steamVerifies(Map<String, String> params) {
         try {
             final String body = SteamOpenIdUtils.buildCheckAuthBody(params);
@@ -156,14 +169,7 @@ public class AuthController {
             // Steam endpoint.  Never trust the client-supplied openid.op_endpoint —
             // doing so would allow an attacker to point the backend at an arbitrary
             // server that returns is_valid:true (SSRF + authentication bypass).
-            final HttpRequest req = HttpRequest.newBuilder()
-                    .uri(URI.create(OPENID_ENDPOINT))
-                    .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-                    .header(HttpHeaders.ACCEPT, "text/plain")
-                    .header(HttpHeaders.ACCEPT_ENCODING, "identity")
-                    .header(HttpHeaders.USER_AGENT, "steam5-auth/1.0")
-                    .POST(HttpRequest.BodyPublishers.ofString(body))
-                    .build();
+            final HttpRequest req = verificationRequest(body);
             final HttpResponse<String> res = HTTP_CLIENT.send(req, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
 
             final String resBody = res.body();
