@@ -362,10 +362,15 @@ public class RoundPresenceService {
         globalConnections.updateAndGet(current -> Math.max(0, current - 1));
         final String clientIp = clientIpOf(session);
         if (clientIp != null) {
-            connectionsByIp.computeIfPresent(clientIp, (k, count) -> {
-                final int next = count.decrementAndGet();
-                return next <= 0 ? null : count;
-            });
+            // Same lock as register: check/increment/decrement/remove must be one critical
+            // section, or a decrement that drops the entry can race a concurrent register and
+            // strand the new session's counter outside the map.
+            synchronized (registerLock) {
+                connectionsByIp.computeIfPresent(clientIp, (k, count) -> {
+                    final int next = count.decrementAndGet();
+                    return next <= 0 ? null : count;
+                });
+            }
         }
     }
 
