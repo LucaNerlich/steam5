@@ -674,7 +674,6 @@ public class ReviewGameStateController {
     private AlwaysPickComputation computeAlwaysPickForRange(java.time.LocalDate start, java.time.LocalDate end) {
         final List<String> labels = service.getBucketLabels();
         // Collect all appIds for dates in range, preserving chronological order per day
-        final java.util.ArrayList<Long> appIds = new java.util.ArrayList<>();
         final List<ReviewGamePick> picksInRange = pickRepository.findByPickDateBetween(start, end);
         final Map<LocalDate, List<ReviewGamePick>> picksByDate = new HashMap<>();
         for (ReviewGamePick pick : picksInRange) {
@@ -692,14 +691,29 @@ public class ReviewGameStateController {
         // chronological order. Iterating every calendar day between start and
         // end (potentially millions of empty days for to=9999-12-31) was an
         // anonymous CPU DoS; days without picks contribute nothing.
+        final List<String> actualBuckets = new ArrayList<>();
+        final List<Long> appIds = new ArrayList<>();
+        final Set<Long> legacyAppIds = new HashSet<>();
         for (LocalDate d : picksByDate.keySet().stream().sorted().toList()) {
             final List<org.steam5.domain.ReviewGamePick> picks = picksByDate.get(d);
-            for (org.steam5.domain.ReviewGamePick p : picks) appIds.add(p.getAppId());
+            for (org.steam5.domain.ReviewGamePick p : picks) {
+                appIds.add(p.getAppId());
+                if (p.getActualBucket() != null) {
+                    // The answer recorded when the round was played stays authoritative.
+                    actualBuckets.add(p.getActualBucket());
+                } else {
+                    // Legacy row: no recorded answer, fall back to the current snapshot.
+                    actualBuckets.add(null);
+                    legacyAppIds.add(p.getAppId());
+                }
+            }
         }
-        final Map<Long, Integer> totalReviewsByAppId = lookupTotalReviewsByAppIds(new HashSet<>(appIds));
-        final List<String> actualBuckets = appIds.stream()
-                .map(id -> service.inferBucket(totalReviewsByAppId.getOrDefault(id, 0)))
-                .toList();
+        final Map<Long, Integer> legacyTotals = lookupTotalReviewsByAppIds(legacyAppIds);
+        for (int i = 0; i < actualBuckets.size(); i++) {
+            if (actualBuckets.get(i) == null) {
+                actualBuckets.set(i, service.inferBucket(legacyTotals.getOrDefault(appIds.get(i), 0)));
+            }
+        }
         final int rounds = actualBuckets.size();
         final java.util.ArrayList<AlwaysPickScore> out = new java.util.ArrayList<>();
         for (int i = 0; i < labels.size(); i++) {
