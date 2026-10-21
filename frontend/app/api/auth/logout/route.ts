@@ -5,18 +5,6 @@ import {allowedBackendOrigin, rejectUntrustedOrigin} from '@/lib/requestOrigin';
 /** Trusted public origin of this site; never derived from client-supplied headers. */
 const SITE_ORIGIN = (process.env.NEXT_PUBLIC_DOMAIN || "").replace(/\/$/, "");
 
-/**
- * Kept as the route's name for the shared gate so existing callers/tests read the same; the
- * policy itself lives in `@/lib/requestOrigin`.
- */
-export function allowedLogoutBackendOrigin(
-    configuredOrigin: string,
-    production = process.env.NODE_ENV === 'production',
-    trustedOrigins = process.env.ALLOWED_BACKEND_ORIGINS || '',
-): string | null {
-    return allowedBackendOrigin(configuredOrigin, production, trustedOrigins);
-}
-
 // POST (not GET): SameSite=Lax cookies are not sent on cross-site POSTs, so a
 // third-party page cannot force-logout the user via an <img>/GET request.
 export async function POST(req: NextRequest) {
@@ -37,7 +25,7 @@ export async function POST(req: NextRequest) {
     const token = req.cookies.get('s5_token')?.value;
     if (token) {
         const configuredBackend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
-        const backendOrigin = allowedLogoutBackendOrigin(configuredBackend);
+        const backendOrigin = allowedBackendOrigin(configuredBackend);
         if (!backendOrigin) {
             console.error('Backend logout call skipped: production backend origin must use HTTPS or be explicitly trusted');
         } else {

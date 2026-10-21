@@ -6,28 +6,7 @@ vi.mock('next/cache', () => ({
     revalidateTag: vi.fn(),
 }));
 
-import {allowedLogoutBackendOrigin, POST} from './route';
-
-describe('allowedLogoutBackendOrigin', () => {
-    it('requires HTTPS for a remote backend in production', () => {
-        expect(allowedLogoutBackendOrigin('http://api.example.com', true, '')).toBeNull();
-        expect(allowedLogoutBackendOrigin('https://api.example.com', true, '')).toBe('https://api.example.com');
-    });
-
-    it('allows development, loopback, and explicitly trusted HTTP services', () => {
-        expect(allowedLogoutBackendOrigin('http://api.example.com', false, '')).toBe('http://api.example.com');
-        expect(allowedLogoutBackendOrigin('http://localhost:8080', true, '')).toBe('http://localhost:8080');
-        expect(allowedLogoutBackendOrigin(
-            'http://backend:8080', true, 'https://other.example.com, http://backend:8080',
-        )).toBe('http://backend:8080');
-    });
-
-    it('rejects malformed origins and URLs containing credentials or paths', () => {
-        expect(allowedLogoutBackendOrigin('not a URL', false, '')).toBeNull();
-        expect(allowedLogoutBackendOrigin('https://user:pass@example.com', false, '')).toBeNull();
-        expect(allowedLogoutBackendOrigin('https://example.com/backend', false, '')).toBeNull();
-    });
-});
+import {POST} from './route';
 
 describe('POST', () => {
     beforeEach(() => {
