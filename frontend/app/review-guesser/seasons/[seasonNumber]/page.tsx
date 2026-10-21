@@ -49,9 +49,7 @@ export async function generateMetadata({params}: MetadataParams): Promise<Metada
     const description = data
         ? `Full recap, stats, and award winners from Steam Review Guesser Season #${data.season.seasonNumber}.`
         : `Detailed stats for Steam Review Guesser Season #${seasonLabel}.`;
-    const canonical = typeof Routes.seasonDetail === "function"
-        ? Routes.seasonDetail(seasonLabel)
-        : `/review-guesser/season/${seasonLabel}`;
+    const canonical = Routes.seasonDetail(seasonLabel);
 
     return {
         title,
