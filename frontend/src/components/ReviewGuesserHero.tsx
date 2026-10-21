@@ -6,6 +6,7 @@ import {Fancybox} from "@fancyapps/ui";
 import "@fancyapps/ui/dist/fancybox/fancybox.css";
 import {ReviewGameState, SteamAppDetail} from "@/types/review-game";
 import {formatDate, formatPrice} from "@/lib/format";
+import {textCaption} from "@/components/game/GameInfoVideos";
 import "@/styles/components/reviewGuesserHero.css";
 
 // Names are joined with "; " — the previous Intl.ListFormat dance rewrote every literal part
@@ -16,6 +17,11 @@ interface ReviewGuesserHeroProps {
     today: ReviewGameState;
     pick: SteamAppDetail;
     roundIndex: number;
+}
+
+/** Text-only Fancybox caption formatter, shared with the video surface. */
+export function screenshotCaption(_carousel: unknown, slide: { caption?: string }): HTMLElement {
+    return textCaption(slide?.caption);
 }
 
 export default function ReviewGuesserHero(props: Readonly<ReviewGuesserHeroProps>): React.ReactElement {
@@ -34,6 +40,11 @@ export default function ReviewGuesserHero(props: Readonly<ReviewGuesserHeroProps
         // Initialize Fancybox for this component's screenshots
         // @ts-ignore
         Fancybox.bind(`[data-fancybox="screenshots-${pick.appId}"]`, {
+            Carousel: {
+                // Steam names are publisher-supplied text; Fancybox's default caption
+                // renderer assigns them with innerHTML (see #323/#428).
+                formatCaption: screenshotCaption,
+            },
             Toolbar: {
                 display: {
                     left: ["infobar"],
