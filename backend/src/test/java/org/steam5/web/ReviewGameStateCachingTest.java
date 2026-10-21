@@ -11,6 +11,8 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.concurrent.ConcurrentMapCacheManager;
 import org.springframework.cache.interceptor.CacheInterceptor;
 import org.springframework.http.ResponseEntity;
+import org.steam5.domain.GameDate;
+import org.steam5.domain.ReviewGamePick;
 import org.steam5.domain.details.SteamAppDetailService;
 import org.steam5.repository.GuessRepository;
 import org.steam5.repository.ReviewGamePickRepository;
@@ -19,6 +21,8 @@ import org.steam5.repository.UserRepository;
 import org.steam5.service.ReviewGameStateService;
 
 import java.lang.reflect.Method;
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -27,6 +31,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -61,6 +67,42 @@ class ReviewGameStateCachingTest {
         final Method method = ReviewGameStateService.class.getMethod("getTotalReviewCountForApp", Long.class);
 
         assertNull(AnnotationUtils.findAnnotation(method, Cacheable.class));
+    }
+
+    @Test
+    void alwaysPickUsesTheRecordedAnswerNotTheCurrentSnapshot() {
+        final LocalDate day = GameDate.todayUtc().minusDays(1);
+        final ReviewGamePick pick = new ReviewGamePick(1L, day, 42L, OffsetDateTime.now());
+        pick.recordAnswer(855, "112-855");
+        when(pickRepository.findByPickDateBetween(day, day)).thenReturn(List.of(pick));
+        when(service.getBucketLabels()).thenReturn(List.of("1-13", "112-855", "856-6467"));
+
+        final ResponseEntity<ReviewGameStateController.HistoricalAlwaysPickResponse> res =
+                controller.alwaysPickHistory(day.toString(), day.toString());
+
+        assertEquals(200, res.getStatusCode().value());
+        final var score = res.getBody().scores().stream()
+                .filter(s -> s.bucketLabel().equals("112-855")).findFirst().orElseThrow();
+        assertEquals(5.0, score.avgPoints());
+        assertEquals(1, score.rounds());
+        verify(service, never()).inferBucket(org.mockito.ArgumentMatchers.anyInt());
+    }
+
+    @Test
+    void alwaysPickReinterpretsARecordedLabelMissingFromTheCurrentBoundaries() {
+        final LocalDate day = GameDate.todayUtc().minusDays(1);
+        final ReviewGamePick pick = new ReviewGamePick(1L, day, 42L, OffsetDateTime.now());
+        pick.recordAnswer(855, "999-1000");
+        when(pickRepository.findByPickDateBetween(day, day)).thenReturn(List.of(pick));
+        when(service.getBucketLabels()).thenReturn(List.of("1-13", "112-855", "856-6467"));
+        when(service.inferBucket(855)).thenReturn("112-855");
+
+        final ResponseEntity<ReviewGameStateController.HistoricalAlwaysPickResponse> res =
+                controller.alwaysPickHistory(day.toString(), day.toString());
+
+        final var score = res.getBody().scores().stream()
+                .filter(s -> s.bucketLabel().equals("112-855")).findFirst().orElseThrow();
+        assertEquals(5.0, score.avgPoints());
     }
 
     @Test
