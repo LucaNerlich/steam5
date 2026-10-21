@@ -132,4 +132,16 @@ class PublicHttpUrlTest {
         assertSame(HttpsURLConnection.getDefaultHostnameVerifier(),
                 ((HttpsURLConnection) connection).getHostnameVerifier());
     }
+
+    @Test
+    void rejectsPrivateIpv4BehindNat64And6to4Prefixes() throws java.net.UnknownHostException {
+        // The guard unwraps mapped/compatible/translated literals; these two transition
+        // prefixes put the embedded IPv4 at different offsets and used to read as public.
+        for (String literal : new String[]{
+                "64:ff9b::7f00:1", "64:ff9b::a00:1", "64:ff9b::a9fe:a9fe", "2002:7f00:1::"}) {
+            assertTrue(PublicHttpUrl.isDisallowedAddress(java.net.InetAddress.getByName(literal)), literal);
+        }
+        // A public IPv4 synthesized through the same NAT64 prefix stays allowed.
+        assertFalse(PublicHttpUrl.isDisallowedAddress(java.net.InetAddress.getByName("64:ff9b::808:808")));
+    }
 }

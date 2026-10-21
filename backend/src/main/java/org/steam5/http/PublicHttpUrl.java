@@ -158,35 +158,67 @@ public final class PublicHttpUrl {
      * predicate unwraps).
      */
     private static InetAddress normalizeAddress(InetAddress address) {
-        if (address instanceof Inet6Address v6 && isIpv4EmbeddedAddress(v6)) {
-            try {
-                return extractEmbeddedIpv4(v6);
-            } catch (UnknownHostException ex) {
-                return address;
+        if (address instanceof Inet6Address v6) {
+            final byte[] embedded = embeddedIpv4(v6);
+            if (embedded != null) {
+                try {
+                    return InetAddress.getByAddress(embedded);
+                } catch (UnknownHostException ex) {
+                    return address;
+                }
             }
         }
         return address;
     }
 
     /**
-     * {@code ::ffff:0:0/96} (mapped), {@code ::ffff:0:0:0/96} (translated, RFC 6052) and
-     * {@code ::/96} (compatible) all embed an IPv4 address in their last four octets.
+     * The IPv4 address an IPv6 literal embeds, or null. Covers the mapped/compatible/
+     * translated forms ({@code ::ffff:0:0/96}, {@code ::ffff:0:0:0/96}, {@code ::/96}) plus
+     * the two transition prefixes that put the address somewhere else: NAT64
+     * {@code 64:ff9b::/96} (bytes 12-15) and 6to4 {@code 2002::/16} (bytes 2-5). Only the
+     * well-known NAT64 prefix is unwrapped — DNS64 synthesizes public addresses there too,
+     * so the caller still applies the deny list to the extracted IPv4 address.
      */
-    static boolean isIpv4EmbeddedAddress(Inet6Address v6) {
+    static byte[] embeddedIpv4(Inet6Address v6) {
         final byte[] octets = v6.getAddress();
+        boolean zeroPrefix = true;
         for (int i = 0; i < 8; i++) {
             if (octets[i] != 0) {
-                return false;
+                zeroPrefix = false;
+                break;
             }
         }
-        final boolean mapped = octets[10] == (byte) 0xff && octets[11] == (byte) 0xff;
-        final boolean compatible = octets[10] == 0 && octets[11] == 0;
-        return mapped || compatible;
+        if (zeroPrefix) {
+            final boolean mapped = octets[10] == (byte) 0xff && octets[11] == (byte) 0xff;
+            final boolean compatible = octets[10] == 0 && octets[11] == 0;
+            if (mapped || compatible) {
+                return new byte[]{octets[12], octets[13], octets[14], octets[15]};
+            }
+        }
+        if (octets[0] == 0x00 && octets[1] == 0x64 && octets[2] == (byte) 0xff && octets[3] == (byte) 0x9b) {
+            boolean restZero = true;
+            for (int i = 4; i < 12; i++) {
+                if (octets[i] != 0) {
+                    restZero = false;
+                    break;
+                }
+            }
+            if (restZero) {
+                return new byte[]{octets[12], octets[13], octets[14], octets[15]};
+            }
+        }
+        if (octets[0] == 0x20 && octets[1] == 0x02) {
+            return new byte[]{octets[2], octets[3], octets[4], octets[5]};
+        }
+        return null;
     }
 
-    private static InetAddress extractEmbeddedIpv4(Inet6Address v6) throws UnknownHostException {
-        final byte[] octets = v6.getAddress();
-        return InetAddress.getByAddress(new byte[]{octets[12], octets[13], octets[14], octets[15]});
+    /**
+     * {@code ::ffff:0:0/96} (mapped), {@code ::ffff:0:0:0/96} (translated, RFC 6052),
+     * {@code ::/96} (compatible), NAT64 {@code 64:ff9b::/96} and 6to4 {@code 2002::/16}.
+     */
+    static boolean isIpv4EmbeddedAddress(Inet6Address v6) {
+        return embeddedIpv4(v6) != null;
     }
 
     /**
