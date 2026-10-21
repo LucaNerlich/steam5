@@ -52,7 +52,7 @@ delegated to Steam. After Steam verifies a user, the backend issues a signed **J
 | Passwords        | None — Steam handles credentials                            |
 | Token expiry     | 30 days                                                     |
 | Login CSRF       | State nonce cookie (`s5_state`)                             |
-| Rate limiting    | `AuthRateLimitFilter` — 60 req/min per IP on `/api/auth/**` |
+| Rate limiting    | `PathRateLimitFilter` — 60 req/min on `/api/auth/**` and `/api/profile/**`, 30 on `/api/users/search` |
 | Admin access     | Separate shared-secret header (`X-Admin-Token`)             |
 
 The architecture is a **two-tier proxy**: the browser talks to the **Next.js** frontend server (App Router), which in
@@ -124,7 +124,7 @@ sequenceDiagram
 |----------------------------------------------------------------------|----------|---------------------------------------------------------------------------|
 | `backend/src/main/java/org/steam5/web/AuthController.java`           | Backend  | Login redirect, OpenID callback, JWT validate endpoints                   |
 | `backend/src/main/java/org/steam5/service/AuthTokenService.java`     | Backend  | JWT generation and verification (HMAC-SHA256)                             |
-| `backend/src/main/java/org/steam5/security/AuthRateLimitFilter.java` | Backend  | Per-IP rate limiter for all `/api/auth/**` endpoints                      |
+| `backend/src/main/java/org/steam5/security/PathRateLimitFilter.java` | Backend  | One per-IP rate limiter with three path rules (auth 60, profile 60, search 30) |
 | `backend/src/main/java/org/steam5/security/AdminTokenFilter.java`    | Backend  | Spring Security filter for `X-Admin-Token` header                         |
 | `backend/src/main/java/org/steam5/config/SecurityConfig.java`        | Backend  | Spring Security filter chain, endpoint protection rules                   |
 | `backend/src/main/java/org/steam5/domain/User.java`                  | Backend  | User JPA entity (steamId as PK, no password field)                        |
@@ -610,10 +610,8 @@ Key design decisions:
 @Bean
 public SecurityFilterChain securityFilterChain(HttpSecurity http,
                                                AdminTokenFilter adminTokenFilter,
-                                               AuthRateLimitFilter authRateLimitFilter,
-                                               PresenceRateLimitFilter presenceRateLimitFilter,
-                                               UserSearchRateLimitFilter userSearchRateLimitFilter,
-                                               ProfileRateLimitFilter profileRateLimitFilter) {
+                                               PathRateLimitFilter pathRateLimitFilter,
+                                               PresenceRateLimitFilter presenceRateLimitFilter) {
     http
             .csrf(AbstractHttpConfigurer::disable)  // SameSite=Lax + stateless JWT replaces CSRF tokens
             .cors(Customizer.withDefaults())        // in-chain, so preflights are authorized before CORS headers
@@ -643,12 +641,10 @@ public SecurityFilterChain securityFilterChain(HttpSecurity http,
             // and cannot be used as anchor points; doing so throws at startup.
             // addFilterBefore inserts each filter directly before the anchor, so the
             // first registration ends up earliest in the chain:
-            //   AuthRateLimit → PresenceRateLimit → UserSearchRateLimit → ProfileRateLimit
-            //   → AdminTokenFilter → BasicAuthenticationFilter → …
-            .addFilterBefore(authRateLimitFilter, BasicAuthenticationFilter.class)
+            //   PathRateLimit → PresenceRateLimit → AdminTokenFilter
+            //   → BasicAuthenticationFilter → …
+            .addFilterBefore(pathRateLimitFilter, BasicAuthenticationFilter.class)
             .addFilterBefore(presenceRateLimitFilter, BasicAuthenticationFilter.class)
-            .addFilterBefore(userSearchRateLimitFilter, BasicAuthenticationFilter.class)
-            .addFilterBefore(profileRateLimitFilter, BasicAuthenticationFilter.class)
             .addFilterBefore(adminTokenFilter, BasicAuthenticationFilter.class)
             .formLogin(AbstractHttpConfigurer::disable);
     return http.build();
@@ -661,52 +657,29 @@ chain above has no `httpBasic(...)`, so `X-Admin-Token` is the only way to obtai
 
 **Filter execution order on a request to `/api/auth/**`:**
 
-1. `AuthRateLimitFilter` — check IP request count; return 429 if exceeded
+1. `PathRateLimitFilter` — match the path rule, check its IP counter; return 429 if exceeded
 2. `AdminTokenFilter` — skipped (path doesn't start with `/api/admin/`)
 3. Spring Security authorization — `permitAll()` for `/api/auth/**`
 4. Controller handler
 
 ### 9.2 Rate Limit Filter
 
-**File:** `backend/src/main/java/org/steam5/security/AuthRateLimitFilter.java`
+**File:** `backend/src/main/java/org/steam5/security/PathRateLimitFilter.java`
 
-```java
+One filter owns three fixed-window rules, all keyed by `request.getRemoteAddr()` (resolved by
+`server.forward-headers-strategy`):
 
-@Component
-@Slf4j
-public class AuthRateLimitFilter extends OncePerRequestFilter {
+| Rule | Path | Limit |
+| --- | --- | --- |
+| auth | starts with `/api/auth/` | 60/min |
+| profile | starts with `/api/profile/` | 60/min |
+| user search | exactly `/api/users/search` | 30/min |
 
-    private static final int MAX_REQUESTS_PER_MINUTE = 60;
-
-    // Caffeine cache: per-IP counter, expires 1 minute after first request in the window
-    private final Cache<String, AtomicInteger> requestCounts = Caffeine.newBuilder()
-            .expireAfterWrite(Duration.ofMinutes(1))
-            .maximumSize(10_000)
-            .build();
-
-    @Override
-    protected boolean shouldNotFilter(HttpServletRequest request) {
-        // Only applies to /api/auth/**; skips OPTIONS (CORS preflight)
-        return "OPTIONS".equalsIgnoreCase(request.getMethod())
-                || !path.startsWith("/api/auth/");
-    }
-
-    @Override
-    protected void doFilterInternal(...) {
-        final String ip = request.getRemoteAddr();  // resolved correctly by forward-headers-strategy=framework
-        final AtomicInteger count = requestCounts.get(ip, k -> new AtomicInteger(0));
-        if (count.incrementAndGet() > MAX_REQUESTS_PER_MINUTE) {
-            response.setStatus(429);
-            response.getWriter().write("{\"error\":\"rate_limit_exceeded\"}");
-            return;
-        }
-        chain.doFilter(request, response);
-    }
-}
-```
-
-Uses Caffeine (already on the classpath) — no new dependency. The cache is bounded to 10 000 entries to prevent
-unbounded memory growth during a distributed IP flood.
+`shouldNotFilter` skips OPTIONS preflights and any path that matches no rule. A limited request
+writes the shared `429 {"error":"rate_limit_exceeded"}` body. Each rule has its own bounded
+`FixedWindowCounter`, so exhausting search does not limit auth or profile. The presence ticket
+limiter stays separate (`PresenceRateLimitFilter`) because its limiter is config-driven and shared
+with the WebSocket handshake.
 
 ### 9.3 Admin Token Filter
 
@@ -1048,7 +1021,7 @@ curl -H "X-Admin-Token: my-secret-admin-token" \
 | Open-redirect prevention           | `isAllowedRedirect()` validates scheme + host + port           | Redirecting users to attacker-controlled sites after Steam auth |
 | SSRF prevention                    | `OPENID_ENDPOINT` constant, never from request params          | Backend proxied to attacker server for `check_authentication`   |
 | Login CSRF state nonce             | `s5_state` cookie + `state` URL param, verified in callback    | Login CSRF (tricking user into authenticating as attacker)      |
-| Rate limiting                      | `AuthRateLimitFilter` — 60 req/min/IP on `/api/auth/**`        | Token enumeration, DoS amplification on validate endpoint       |
+| Rate limiting                      | `PathRateLimitFilter` — 60/min auth+profile, 30/min search      | Token enumeration, DoS amplification on validate endpoint       |
 | Constant-time token compare        | `MessageDigest.isEqual()` in `AdminTokenFilter`                | Timing oracle on admin token                                    |
 | JWT not in URL                     | `Authorization: Bearer` header on `/api/auth/validate`         | Token in server logs / browser history / Referer headers        |
 | Secret strength enforcement        | Startup `IllegalStateException` if `auth.jwtSecret` < 32 chars | Weak/default secret in production                               |
