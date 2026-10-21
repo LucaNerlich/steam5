@@ -24,6 +24,25 @@ export function screenshotCaption(_carousel: unknown, slide: { caption?: string 
     return textCaption(slide?.caption);
 }
 
+/** Bind options for the screenshot gallery; exported so the caption sink is testable. */
+export const SCREENSHOT_FANCYBOX_OPTIONS = {
+    Carousel: {
+        // Steam names are publisher-supplied text; Fancybox's default caption renderer
+        // assigns them with innerHTML (see #323/#428).
+        formatCaption: screenshotCaption,
+    },
+    Toolbar: {
+        display: {
+            left: ["infobar"],
+            middle: [],
+            right: ["close"],
+        },
+    },
+    Images: {
+        protected: true,
+    },
+} as const;
+
 export default function ReviewGuesserHero(props: Readonly<ReviewGuesserHeroProps>): React.ReactElement {
     const today = props.today;
     const pick = props.pick;
@@ -39,23 +58,7 @@ export default function ReviewGuesserHero(props: Readonly<ReviewGuesserHeroProps
     useEffect(() => {
         // Initialize Fancybox for this component's screenshots
         // @ts-ignore
-        Fancybox.bind(`[data-fancybox="screenshots-${pick.appId}"]`, {
-            Carousel: {
-                // Steam names are publisher-supplied text; Fancybox's default caption
-                // renderer assigns them with innerHTML (see #323/#428).
-                formatCaption: screenshotCaption,
-            },
-            Toolbar: {
-                display: {
-                    left: ["infobar"],
-                    middle: [],
-                    right: ["close"]
-                }
-            },
-            Images: {
-                protected: true
-            }
-        });
+        Fancybox.bind(`[data-fancybox="screenshots-${pick.appId}"]`, SCREENSHOT_FANCYBOX_OPTIONS);
 
         return () => {
             Fancybox.unbind(`[data-fancybox="screenshots-${pick.appId}"]`);
