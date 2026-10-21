@@ -5,6 +5,23 @@ import {useEffect, useSyncExternalStore} from "react";
 type Theme = "light" | "dark";
 
 let currentTheme: Theme = "light";
+
+export function readStoredTheme(): string | null {
+    try {
+        return window.localStorage.getItem("theme");
+    } catch {
+        // Site data blocked (privacy setting/extension): fall back to the DOM/OS theme.
+        return null;
+    }
+}
+
+export function writeStoredTheme(theme: Theme): void {
+    try {
+        window.localStorage.setItem("theme", theme);
+    } catch {
+        // Keep the in-memory theme; only persistence is unavailable.
+    }
+}
 const listeners = new Set<() => void>();
 
 function notifyListeners() {
@@ -15,7 +32,7 @@ function readThemeFromDOM(): Theme {
     if (typeof window === "undefined") return "light";
     const rootTheme = document.documentElement.getAttribute("data-theme");
     if (rootTheme === "dark") return "dark";
-    const stored = window.localStorage.getItem("theme");
+    const stored = readStoredTheme();
     if (stored === "light" || stored === "dark") return stored;
     return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? "dark" : "light";
 }
@@ -32,7 +49,7 @@ function applyTheme(theme: Theme) {
     } else {
         root.removeAttribute("data-theme");
     }
-    window.localStorage.setItem("theme", theme);
+    writeStoredTheme(theme);
     setThemeCookie(theme);
     notifyListeners();
 }
@@ -59,14 +76,14 @@ export default function ThemeToggle() {
 
     useEffect(() => {
         // Sync cookie from localStorage for users who don't have it yet
-        const stored = window.localStorage.getItem("theme");
+        const stored = readStoredTheme();
         if (stored === "light" || stored === "dark") {
             setThemeCookie(stored as Theme);
         }
 
         const media = window.matchMedia('(prefers-color-scheme: dark)');
         const handler = () => {
-            const s = window.localStorage.getItem("theme");
+            const s = readStoredTheme();
             if (s !== "light" && s !== "dark") {
                 applyTheme(media.matches ? "dark" : "light");
             }
