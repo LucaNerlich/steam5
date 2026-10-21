@@ -25,8 +25,8 @@ export default async function LeaderboardWeeklyPage() {
             <LeaderboardTable
                 mode="weekly-floating"
                 refreshMs={120000}
-                initialData={leaderboardData as any}
-                initialAchievements={achievementsData as any}
+                initialData={leaderboardData}
+                initialAchievements={achievementsData}
             />
         </>
     );

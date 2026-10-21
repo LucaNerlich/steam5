@@ -4,7 +4,24 @@
  */
 
 import {BACKEND_ORIGIN, fetchBackendJson} from "@/lib/backend";
+import type {UserAchievement} from "@/lib/achievements";
 export {BACKEND_ORIGIN};
+
+/** One row of /api/leaderboard/*; the shape LeaderboardTable renders. */
+export type LeaderEntry = {
+    steamId: string;
+    personaName: string;
+    totalPoints: number;
+    rounds: number;
+    hits: number;
+    flops: number;
+    tooHigh: number;
+    tooLow: number;
+    avgPoints: number;
+    streak: number;
+    avatar?: string | null;
+    profileUrl?: string | null;
+};
 
 /** Valid timeframe values for the achievements API */
 export type AchievementTimeframe = "daily" | "weekly" | "season" | "all";
@@ -18,14 +35,14 @@ export type AchievementTimeframe = "daily" | "weekly" | "season" | "all";
 export async function fetchLeaderboardData(
   endpoint: string,
   revalidate: number
-): Promise<unknown | null> {
-  const {data} = await fetchBackendJson<unknown>(`/api/leaderboard/${endpoint}`, {revalidate});
+): Promise<LeaderEntry[] | null> {
+  const {data} = await fetchBackendJson<LeaderEntry[]>(`/api/leaderboard/${endpoint}`, {revalidate});
   return data;
 }
 
 /** Shape returned by fetchAchievements */
 export type AchievementsResult = {
-  data: unknown[];
+  data: UserAchievement[];
 };
 
 /**
@@ -56,7 +73,7 @@ export async function fetchAchievements(
   timeframe: AchievementTimeframe,
   revalidate: number
 ): Promise<AchievementsResult> {
-  const {data} = await fetchBackendJson<unknown[]>(
+  const {data} = await fetchBackendJson<UserAchievement[]>(
     `/api/stats/users/achievements?timeframe=${timeframe}`,
     {revalidate},
   );
@@ -71,7 +88,7 @@ export async function fetchLeaderboardPageData(
   endpoint: string,
   timeframe: AchievementTimeframe,
   revalidate: number
-): Promise<[unknown | null, AchievementsResult]> {
+): Promise<[LeaderEntry[] | null, AchievementsResult]> {
   return Promise.all([
     fetchLeaderboardData(endpoint, revalidate),
     fetchAchievements(timeframe, revalidate),
