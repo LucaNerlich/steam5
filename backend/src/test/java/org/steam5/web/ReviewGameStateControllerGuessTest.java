@@ -13,7 +13,6 @@ import org.steam5.domain.details.SteamAppDetailService;
 import org.steam5.repository.GuessRepository;
 import org.steam5.repository.ReviewGamePickRepository;
 import org.steam5.repository.SteamAppReviewsRepository;
-import org.steam5.repository.UserRepository;
 import org.steam5.service.ReviewGameStateService;
 
 import java.lang.reflect.Method;
@@ -42,7 +41,6 @@ public class ReviewGameStateControllerGuessTest {
 
     private ReviewGameStateService service;
     private GuessRepository guessRepository;
-    private UserRepository userRepository;
     private SimpleMeterRegistry meterRegistry;
     private ReviewGameStateController controller;
 
@@ -50,14 +48,12 @@ public class ReviewGameStateControllerGuessTest {
     void setUp() {
         service = mock(ReviewGameStateService.class);
         guessRepository = mock(GuessRepository.class);
-        userRepository = mock(UserRepository.class);
         meterRegistry = new SimpleMeterRegistry();
         controller = new ReviewGameStateController(
                 service,
                 mock(SteamAppDetailService.class),
                 guessRepository,
                 mock(SteamAppReviewsRepository.class),
-                userRepository,
                 mock(ReviewGamePickRepository.class),
                 mock(Scheduler.class),
                 meterRegistry);
@@ -155,7 +151,6 @@ public class ReviewGameStateControllerGuessTest {
         // winner's committed row. With an ambient @Transactional this path was a
         // 500: the failed insert marked the transaction rollback-only and the
         // commit at method exit threw UnexpectedRollbackException.
-        when(userRepository.existsById("u1")).thenReturn(true);
         final Guess persisted = new Guess(9L, "u1", LocalDate.now(), 1, LIVE_APP_ID,
                 "101-1000", "101-1000", 4, OffsetDateTime.now());
         when(guessRepository.findBySteamIdAndGameDateAndRoundIndex("u1", LocalDate.now(), 1))

@@ -17,7 +17,6 @@ import org.steam5.domain.details.SteamAppDetailService;
 import org.steam5.repository.GuessRepository;
 import org.steam5.repository.ReviewGamePickRepository;
 import org.steam5.repository.SteamAppReviewsRepository;
-import org.steam5.repository.UserRepository;
 import org.steam5.service.ReviewGameStateService;
 
 import java.lang.reflect.Method;
@@ -54,7 +53,6 @@ class ReviewGameStateCachingTest {
                 mock(SteamAppDetailService.class),
                 mock(GuessRepository.class),
                 mock(SteamAppReviewsRepository.class),
-                mock(UserRepository.class),
                 pickRepository,
                 mock(Scheduler.class),
                 new SimpleMeterRegistry());
