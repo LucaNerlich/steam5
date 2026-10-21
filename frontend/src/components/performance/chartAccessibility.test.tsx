@@ -48,7 +48,7 @@ describe('performance charts expose their values', () => {
         const html = renderToStaticMarkup(
             <HitRateVsAverageCard rounds={[
                 {selectedBucket: '1-100', actualBucket: '1-100', date: STALE},
-            ]}/>,
+            ]} globalHitRate={null}/>,
         );
 
         expect(html).toContain('aria-label="Hit rate vs average: yours no data, global no data"');

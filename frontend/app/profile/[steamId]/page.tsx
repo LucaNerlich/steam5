@@ -7,6 +7,7 @@ import {formatDate, ordinal, placementTier} from "@/lib/format";
 import {flattenDayRounds} from "@/lib/rounds";
 import {BACKEND_ORIGIN as backend} from "@/lib/backend";
 import {formatAwardMetric} from "@/lib/seasons";
+import {fetchLeaderboardData} from "@/lib/leaderboard";
 import {INSIGHT_EMOJI, type InsightType} from "@/lib/insights";
 
 type ProfileResponse = {
@@ -72,6 +73,19 @@ export default async function ProfilePage({params}: { params: { steamId: string 
     const awards = data.awards ?? [];
     const awardSeasons = groupAwardsBySeason(awards);
     const spotlights = data.spotlights ?? [];
+
+    // One server-side aggregate instead of shipping the whole all-time board to the browser.
+    const globalHitRate = await (async (): Promise<number | null> => {
+        const leaders = await fetchLeaderboardData('all', 600);
+        if (!leaders || leaders.length === 0) return null;
+        let hits = 0;
+        let rounds = 0;
+        for (const l of leaders) {
+            hits += l.hits || 0;
+            rounds += l.rounds || 0;
+        }
+        return rounds > 0 ? (hits / rounds) * 100 : null;
+    })();
 
     return (
         <section className="container">
@@ -171,7 +185,7 @@ export default async function ProfilePage({params}: { params: { steamId: string 
                     )}
                 </section>
 
-                <PerformanceSection rounds={flattenDayRounds(allDays)} />
+                <PerformanceSection rounds={flattenDayRounds(allDays)} globalHitRate={globalHitRate} />
 
                 <section aria-labelledby="days-title">
                     <h2 id="days-title">Review Guesser — Rounds by day</h2>

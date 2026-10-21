@@ -2,7 +2,6 @@
 
 import React from "react";
 import {cutoffDateString} from "@/lib/rounds";
-import useSWR from "swr";
 
 type Round = { selectedBucket: string; actualBucket: string; date?: string };
 
@@ -30,12 +29,11 @@ function Row({y, label, pct, color}: { y: number; label: string; pct: number | n
     );
 }
 
-const fetcher = (url: string) => fetch(url, {headers: {accept: 'application/json'}}).then(r => {
-    if (!r.ok) throw new Error(`Failed to load ${url}: ${r.status}`);
-    return r.json();
-});
-
-export default function HitRateVsAverageCard({rounds}: { rounds: Round[] }): React.ReactElement {
+export default function HitRateVsAverageCard({rounds, globalHitRate}: {
+    rounds: Round[];
+    /** All-time hit rate across every player, computed by the server; null when unavailable. */
+    globalHitRate: number | null;
+}): React.ReactElement {
     const cutoff = cutoffDateString(DAYS_WINDOW);
 
     // null (not 0) when nothing falls inside the window: the card's own "No data" branches are
@@ -53,20 +51,9 @@ export default function HitRateVsAverageCard({rounds}: { rounds: Round[] }): Rea
         return eligible === 0 ? null : (hits / eligible) * 100;
     })();
 
-    const {data: leaders} = useSWR<Array<{
-        hits: number;
-        rounds: number
-    }>>("/api/leaderboard/all", fetcher, {refreshInterval: 300000, revalidateOnFocus: false});
-    const globalAvg = (() => {
-        if (!Array.isArray(leaders) || leaders.length === 0) return null as number | null;
-        let h = 0, t = 0;
-        for (const l of leaders) {
-            h += (l.hits || 0);
-            t += (l.rounds || 0);
-        }
-        if (t <= 0) return null;
-        return (h / t) * 100;
-    })();
+    // The aggregate comes from the server: deriving it here downloaded one row per player
+    // (the all-time board has no limit) and left the SSR HTML claiming "No data".
+    const globalAvg = globalHitRate;
 
     return (
         <div className="perf-card">
