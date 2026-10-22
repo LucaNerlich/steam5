@@ -666,11 +666,9 @@ export default function DayComments(props: {
     const [openPickerCommentId, setOpenPickerCommentId] = useState<number | null>(null);
 
     const swrKey = gameDate ? commentsUrl(gameDate) : null;
-    // Long browser cache only for anonymous archive views (no reactedByViewer).
-    const immutableFetch = readOnly && isSignedIn !== true;
     const {data, error: loadError, isLoading, mutate} = useSWR<DayComment[]>(
         swrKey,
-        () => fetchComments(gameDate as string, {immutable: immutableFetch}),
+        () => fetchComments(gameDate as string),
         readOnly && !canModerate
             ? {
                 revalidateOnFocus: false,

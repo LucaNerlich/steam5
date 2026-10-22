@@ -2,8 +2,8 @@ import {NextRequest, NextResponse} from "next/server";
 import {cookies} from "next/headers";
 import {BACKEND_ORIGIN, BACKEND_TIMEOUT_MS, bearerAuthHeaders, forwardedForHeaders} from "@/lib/backend";
 
-const CACHE_LIVE = {"Cache-Control": "private, max-age=30, must-revalidate"} as const;
-const CACHE_HISTORICAL = {"Cache-Control": "private, max-age=300, must-revalidate"} as const;
+const CACHE_LIVE = {"Cache-Control": "private, max-age=30, must-revalidate", Vary: "Cookie"} as const;
+const CACHE_HISTORICAL = {"Cache-Control": "private, max-age=300, must-revalidate", Vary: "Cookie"} as const;
 const NO_STORE = {"Cache-Control": "private, no-store"} as const;
 
 function isUtcToday(date: string): boolean {
