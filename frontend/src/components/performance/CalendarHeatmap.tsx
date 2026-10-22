@@ -24,12 +24,18 @@ function buildHeatmapGrid(avgByDay: Map<string, number>) {
     const seenMonths = new Set<string>();
     const monthLabels: {week: number; label: string}[] = [];
     const cur = new Date(start);
+    // The grid is anchored a year back and always emits WEEKS * DAYS cells, so the trailing
+    // 0-6 cells of the current week are dates that have not happened yet. Painting them made
+    // the tooltip and aria-label claim "No play" for the future.
+    const todayUtc = new Date().toISOString().slice(0, 10);
 
     for (let w = 0; w < WEEKS; w++) {
         for (let d = 0; d < DAYS; d++) {
             const dateStr = cur.toISOString().slice(0, 10);
             const avg = avgByDay.get(dateStr) ?? null;
-            cells.push({dateStr, week: w, day: d, avg});
+            if (dateStr <= todayUtc) {
+                cells.push({dateStr, week: w, day: d, avg});
+            }
 
             // Month label at start of week (day 0) when month changes
             if (d === 0) {
