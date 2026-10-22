@@ -50,7 +50,7 @@ public class PresenceHandshakeInterceptor implements HandshakeInterceptor {
      * @param originsCsv comma-separated list of allowed origins
      */
     public PresenceHandshakeInterceptor(
-            @Value("${cors.allowedOrigins:https://steam5.org,https://next.steam5.org,http://localhost:3000}") final String originsCsv,
+            @Value("${cors.allowed-origins}") final String originsCsv,
             final PresenceRateLimiter presenceRateLimiter,
             final PresenceMetrics presenceMetrics) {
         this.allowedOrigins = CorsConfig.parseAllowedOrigins(originsCsv);

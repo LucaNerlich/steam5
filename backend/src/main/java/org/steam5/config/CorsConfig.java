@@ -45,11 +45,18 @@ public class CorsConfig {
      */
     @Bean
     public CorsConfigurationSource corsConfigurationSource(
-            @Value("${cors.allowedOrigins:https://steam5.org,https://next.steam5.org,http://localhost:3000}") String originsCsv
+            @Value("${cors.allowed-origins}") String originsCsv
     ) {
+        final List<String> allowedOrigins = parseAllowedOrigins(originsCsv);
+        if (allowedOrigins.isEmpty()) {
+            // A present-but-blank CORS_ALLOWED_ORIGINS beats the placeholder default and would
+            // silently 403 every cross-origin request and presence handshake.
+            throw new IllegalStateException(
+                    "cors.allowed-origins resolved to an empty list; unset CORS_ALLOWED_ORIGINS to use the default");
+        }
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowCredentials(true);
-        config.setAllowedOriginPatterns(parseAllowedOrigins(originsCsv));
+        config.setAllowedOriginPatterns(allowedOrigins);
         config.setAllowedHeaders(List.of("*"));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
 

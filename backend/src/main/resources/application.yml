@@ -63,6 +63,11 @@ spring:
   web:
     error:
       include-message: always
+cors:
+  # Relaxed binding for env vars: the camelCase @Value this replaced could only be set as
+  # CORS_ALLOWEDORIGINS, so the conventional CORS_ALLOWED_ORIGINS silently did nothing.
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:https://steam5.org,https://next.steam5.org,http://localhost:3000}
+
 server:
   port: ${SERVER_PORT:8080}
   forward-headers-strategy: native
