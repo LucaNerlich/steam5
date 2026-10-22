@@ -27,31 +27,30 @@ public interface LeaderboardMvRepository extends Repository<Guess, Long> {
         Double getAvgPoints();
         String getPersonaName();
         String getAvatarFull();
-        String getBlurdataAvatarFull();
         String getProfileUrl();
     }
 
     @Query(value = "SELECT steam_id AS steamId, total_points AS totalPoints, rounds, hits, flops, " +
             "too_high AS tooHigh, too_low AS tooLow, avg_points AS avgPoints, persona_name AS personaName, " +
-            "avatar_full AS avatarFull, blurdata_avatar_full AS blurdataAvatarFull, profile_url AS profileUrl " +
+            "avatar_full AS avatarFull, profile_url AS profileUrl " +
             "FROM mv_leaderboard_all_time ORDER BY total_points DESC, steam_id ASC", nativeQuery = true)
     List<LeaderboardMvRow> findAllTime();
 
     @Query(value = "SELECT steam_id AS steamId, total_points AS totalPoints, rounds, hits, flops, " +
             "too_high AS tooHigh, too_low AS tooLow, avg_points AS avgPoints, persona_name AS personaName, " +
-            "avatar_full AS avatarFull, blurdata_avatar_full AS blurdataAvatarFull, profile_url AS profileUrl " +
+            "avatar_full AS avatarFull, profile_url AS profileUrl " +
             "FROM mv_leaderboard_monthly ORDER BY total_points DESC, steam_id ASC", nativeQuery = true)
     List<LeaderboardMvRow> findMonthly();
 
     @Query(value = "SELECT steam_id AS steamId, total_points AS totalPoints, rounds, hits, flops, " +
             "too_high AS tooHigh, too_low AS tooLow, avg_points AS avgPoints, persona_name AS personaName, " +
-            "avatar_full AS avatarFull, blurdata_avatar_full AS blurdataAvatarFull, profile_url AS profileUrl " +
+            "avatar_full AS avatarFull, profile_url AS profileUrl " +
             "FROM mv_leaderboard_weekly ORDER BY total_points DESC, steam_id ASC", nativeQuery = true)
     List<LeaderboardMvRow> findWeekly();
 
     @Query(value = "SELECT steam_id AS steamId, total_points AS totalPoints, rounds, hits, flops, " +
             "too_high AS tooHigh, too_low AS tooLow, avg_points AS avgPoints, persona_name AS personaName, " +
-            "avatar_full AS avatarFull, blurdata_avatar_full AS blurdataAvatarFull, profile_url AS profileUrl " +
+            "avatar_full AS avatarFull, profile_url AS profileUrl " +
             "FROM mv_leaderboard_season ORDER BY total_points DESC, steam_id ASC", nativeQuery = true)
     List<LeaderboardMvRow> findSeason();
 
@@ -104,14 +103,13 @@ public interface LeaderboardMvRepository extends Repository<Guess, Long> {
         String getSteamId();
         String getPersonaName();
         String getAvatarFull();
-        String getBlurdataAvatarFull();
         String getProfileUrl();
         java.time.LocalDate getGameDate();
         String getAppNames();
     }
 
     @Query(value = "SELECT steam_id AS steamId, persona_name AS personaName, " +
-            "avatar_full AS avatarFull, blurdata_avatar_full AS blurdataAvatarFull, profile_url AS profileUrl, " +
+            "avatar_full AS avatarFull, profile_url AS profileUrl, " +
             "game_date AS gameDate, app_names AS appNames " +
             "FROM mv_perfect_days ORDER BY game_date DESC, steam_id", nativeQuery = true)
     List<PerfectDayMvRow> findPerfectDays();
