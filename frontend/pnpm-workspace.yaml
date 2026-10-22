@@ -7,6 +7,14 @@
 #   and trusted GitHub repositories.
 minimumReleaseAge: 10080
 minimumReleaseAgeIgnoreMissingTime: false
+# Locked before the seven-day window was introduced and already reviewed. Remove each
+# entry once the version ages out (2026-10-25 .. 2026-10-28).
+minimumReleaseAgeExclude:
+  - vite@8.3.5
+  - happy-dom@21.0.4
+  - caniuse-lite@1.0.30001817
+  - baseline-browser-mapping@2.11.30
+  - postcss@8.5.31
 trustPolicy: no-downgrade
 # undici-types@6.21.0 (transitive via @types/node) predates OIDC provenance, so the
 # publish-date-based trust check misreads it as a takeover. Skip trust checks for
