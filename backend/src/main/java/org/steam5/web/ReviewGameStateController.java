@@ -53,7 +53,6 @@ public class ReviewGameStateController {
     private final SteamAppDetailService detailService;
     private final GuessRepository guessRepository;
     private final SteamAppReviewsRepository reviewsRepository;
-    private final UserRepository userRepository;
     private final org.steam5.repository.ReviewGamePickRepository pickRepository;
     private final Scheduler scheduler;
     private final MeterRegistry meterRegistry;
@@ -396,17 +395,10 @@ public class ReviewGameStateController {
             return ResponseEntity.badRequest().build();
         }
 
-        // ensure user exists (id is primary key; handle race with duplicate insert)
-        if (!userRepository.existsById(steamId)) {
-            try {
-                User user = new User();
-                user.setSteamId(steamId);
-                user.setCreatedAt(OffsetDateTime.now());
-                userRepository.save(user);
-            } catch (DataIntegrityViolationException ignored) {
-                // another request created it concurrently; proceed
-            }
-        }
+        // No User bootstrap here: save() on a new entity with an assigned id is a merge, which
+        // copies every null column over a row a concurrent logout/profile write just updated
+        // (reverting token_not_valid_before). The login callback already creates the row, and
+        // guesses has no FK to users.
 
         // date = today’s picks date
         final List<ReviewGamePick> picks = service.generateDailyPicks();
