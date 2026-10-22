@@ -19,7 +19,7 @@ vi.mock('next/link', () => ({
     ),
 }));
 
-import {CommentBodyText, GameLinkPicker, insertMentionIntoBody, insertMentionReference} from './DayComments';
+import {CommentBodyText, GameLinkPicker, insertMentionIntoBody, insertMentionReference, isDayComplete, shouldResetComposer} from './DayComments';
 
 function render(body: string): string {
     return renderToStaticMarkup(<CommentBodyText body={body}/>);
@@ -75,6 +75,26 @@ describe('CommentBodyText mentions', () => {
         const gameIndex = html.indexOf('/app/220');
         expect(mentionIndex).toBeGreaterThan(-1);
         expect(gameIndex).toBeGreaterThan(mentionIndex);
+    });
+});
+
+describe('isDayComplete', () => {
+    it('stays closed when there is no pick-validated map', () => {
+        // Stale localStorage keys are not a completion source after a picks regeneration.
+        expect(isDayComplete(undefined, 5)).toBe(false);
+    });
+
+    it('requires every round in the validated map', () => {
+        const result = {appId: 1, selectedLabel: '1-10', actualBucket: '1-10', totalReviews: 5, correct: true};
+        expect(isDayComplete({1: result, 2: result, 3: result, 4: result}, 5)).toBe(false);
+        expect(isDayComplete({1: result, 2: result, 3: result, 4: result, 5: result}, 5)).toBe(true);
+    });
+});
+
+describe('shouldResetComposer', () => {
+    it('resets only when the textarea still holds the submitted body', () => {
+        expect(shouldResetComposer('posted body', 'posted body')).toBe(true);
+        expect(shouldResetComposer('next draft', 'posted body')).toBe(false);
     });
 });
 
