@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.20.6] - 2026-10-22
+
+### Changed
+
+- Moved the frontend toolchain to Node 24 and pnpm 12, and bumped happy-dom
+
 ## [1.20.5] - 2026-10-22
 
 ### Fixed
