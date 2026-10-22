@@ -309,4 +309,23 @@ class RoundPresenceServiceTest {
         when(session.getId()).thenReturn("session-" + SESSION_ID.incrementAndGet());
         return session;
     }
+
+    @Test
+    void unregisterReleasesThePerIpSlotForTheNextRegister() {
+        // The counter fix keeps check/increment/decrement/remove in one critical section;
+        // this pins the release invariant a broken decrement would silently lose.
+        final WebSocketSession first = sessionFor("scopeA", "10.0.0.1", null, null, null);
+        service.register(first);
+        for (int i = 1; i < 5; i++) {
+            assertEquals(RoundPresenceService.RegisterResult.OK,
+                    service.register(sessionFor("scopeA", "10.0.0.1", null, null, null)));
+        }
+        assertEquals(RoundPresenceService.RegisterResult.IP_LIMIT,
+                service.register(sessionFor("scopeA", "10.0.0.1", null, null, null)));
+
+        service.unregister(first);
+
+        assertEquals(RoundPresenceService.RegisterResult.OK,
+                service.register(sessionFor("scopeA", "10.0.0.1", null, null, null)));
+    }
 }
