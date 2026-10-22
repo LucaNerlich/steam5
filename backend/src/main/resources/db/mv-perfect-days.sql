@@ -2,11 +2,12 @@
 -- (StatisticsService#getPerfectDays / GET /api/stats/game/perfect-days).
 --
 -- A "perfect day" is when a player scored the maximum possible points on every
--- round for a given game date. The maximum is derived from the day's actual
--- round count (MAX(round_index) over that day's guesses) — NOT hardcoded to 5,
--- because the pick count is configurable and fallback logic can produce fewer
--- rounds. This mirrors GuessRepository#findUsersByPerfectDaysDesc (day_rounds
--- CTE), which compares day_points against 5 * rounds_per_day.
+-- round for a given game date. The maximum is derived from the day's generated
+-- round count (COUNT(*) over that day's review_game_pick rows) — NOT from
+-- completed guesses and not hardcoded to 5, because the pick count is
+-- configurable and fallback logic can produce fewer rounds. This mirrors
+-- GuessRepository#findUsersByPerfectDaysDesc (day_rounds CTE), which compares
+-- day_points against 5 * rounds_per_day.
 --
 -- The correlated subquery for app_names joins review_game_picks (indexed by
 -- pick_date) to fetch the games that appeared on each date — same for every
@@ -37,7 +38,7 @@ SELECT
 FROM guesses g
 LEFT JOIN users u ON u.steam_id = g.steam_id
 GROUP BY g.steam_id, u.persona_name, g.game_date
-HAVING SUM(g.points) = 5 * (SELECT MAX(d2.round_index) FROM guesses d2 WHERE d2.game_date = g.game_date)
+HAVING SUM(g.points) = 5 * (SELECT COUNT(*) FROM review_game_pick d2 WHERE d2.pick_date = g.game_date)
 WITH NO DATA;
 
 -- Required for REFRESH MATERIALIZED VIEW CONCURRENTLY. CREATE INDEX CONCURRENTLY cannot run
