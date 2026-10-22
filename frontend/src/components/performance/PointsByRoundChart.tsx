@@ -20,7 +20,7 @@ function fmtDate(dateStr: string): string {
 
 function computeWindow(daysWindow: number, todayStr: string) {
     const cutoff = new Date(todayStr + "T00:00:00Z");
-    cutoff.setDate(cutoff.getDate() - daysWindow);
+    cutoff.setUTCDate(cutoff.getUTCDate() - daysWindow);
     const cutoffStr = cutoff.toISOString().slice(0, 10);
     return {
         cutoffStr,

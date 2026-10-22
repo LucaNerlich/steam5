@@ -11,7 +11,7 @@ function lastNDays(n: number, todayUtc: string): string[] {
     const dates: string[] = [];
     for (let i = n - 1; i >= 0; i--) {
         const day = new Date(now);
-        day.setDate(now.getDate() - i);
+        day.setUTCDate(now.getUTCDate() - i);
         dates.push(day.toISOString().slice(0, 10));
     }
     return dates;
