@@ -42,7 +42,9 @@ export async function POST(req: NextRequest) {
         }
     }
 
-    const resp = NextResponse.redirect(new URL('/review-guesser/1', base));
+    // 303 so the browser continues with GET: logout is a form POST, and the 307 default
+    // made the round page load as a POST result (reload replayed it).
+    const resp = NextResponse.redirect(new URL('/review-guesser/1', base), 303);
 
     // Clear-Site-Data instructs the browser to sweep all cookies for this origin in
     // one shot — more thorough than manually expiring individual cookies.

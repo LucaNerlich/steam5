@@ -33,6 +33,8 @@ describe('POST', () => {
         const response = await POST(request);
 
         expect(fetch).not.toHaveBeenCalled();
+        // 303, not the 307 default: the browser must continue with GET, not re-POST the page.
+        expect(response.status).toBe(303);
         expect(response.headers.get('location')).toBe('https://steam5.org/review-guesser/1');
         expect(response.cookies.get('s5_token')?.value).toBe('');
     });
