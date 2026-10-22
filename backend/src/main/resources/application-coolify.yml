@@ -3,7 +3,7 @@ spring:
   datasource:
     hikari:
       # Surface connection leaks in prod logs (0 disables detection)
-      leak-detection-threshold: ${DB_POOL_LEAK_DETECTION_MS:60000}
+      leak-detection-threshold: ${SPRING_DATASOURCE_HIKARI_LEAK_DETECTION_THRESHOLD:60000}
       # Kill runaway queries from broken jobs; normal gameplay queries finish in ms.
       connection-init-sql: SET statement_timeout = '${DB_STATEMENT_TIMEOUT:120s}'
   jpa:

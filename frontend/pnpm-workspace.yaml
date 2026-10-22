@@ -5,7 +5,7 @@
 # - blockExoticSubdeps: transitive deps may not come from git:/file:/tarball URLs,
 #   but still permits trusted registry sources, local file paths, workspace links,
 #   and trusted GitHub repositories.
-minimumReleaseAge: 1440
+minimumReleaseAge: 10080
 minimumReleaseAgeIgnoreMissingTime: false
 trustPolicy: no-downgrade
 # undici-types@6.21.0 (transitive via @types/node) predates OIDC provenance, so the
