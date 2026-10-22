@@ -57,22 +57,20 @@ const myTodayFetcher = async (url: string): Promise<ServerGuess[] | null> => {
     }
 };
 
-export default function useServerGuesses(disabled: boolean = false): {
+export default function useServerGuesses(): {
     guesses: Record<number, RoundResult>;
     loading: boolean;
 } {
     const {steamId} = useAuth();
 
     // Include steamId in the SWR key so guesses are not shared across accounts
-    const swrKey = disabled ? null : `/api/review-game/my/today?steamId=${steamId ?? 'anon'}`;
+    const swrKey = `/api/review-game/my/today?steamId=${steamId ?? 'anon'}`;
 
     // No cache surgery here: steamId is already part of the key, so entries never collide.
     // Deleting the current key's entry on mount also drops its cache for every other consumer,
     // and a raw Map.delete never emits UNLOAD, so keepPreviousData still renders the old value.
 
-    // SWR owns the fetch lifecycle (dedup, races, cleanup) instead of a manual
-    // effect. A null key disables fetching; keepPreviousData keeps the last map
-    // while disabled, matching the previous behavior of leaving state untouched.
+    // SWR owns the fetch lifecycle (dedup, races, cleanup) instead of a manual effect.
     const {data, isLoading} = useSWR<ServerGuess[] | null>(
         swrKey,
         myTodayFetcher,
@@ -84,5 +82,5 @@ export default function useServerGuesses(disabled: boolean = false): {
         for (const g of data) guesses[g.roundIndex] = toRoundResult(g);
     }
 
-    return {guesses, loading: !disabled && isLoading};
+    return {guesses, loading: isLoading};
 }
