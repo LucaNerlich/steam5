@@ -410,12 +410,24 @@ public class ReviewGameStateController {
             }
         }
 
-        final int total = service.getTotalReviewCountForApp(req.appId);
-        final String computedActual = service.inferBucket(total);
-
         // date = today’s picks date
         final List<ReviewGamePick> picks = service.generateDailyPicks();
         final java.time.LocalDate date = picks.isEmpty() ? GameDate.todayUtc() : picks.getFirst().getPickDate();
+
+        // Grade from the answer recorded on the pick itself. steam_app_reviews is mutable
+        // (the nightly refresh rewrites it), so recomputing here could score a round against
+        // a different bucket than the one /my/today and the archive serve for it. Legacy rows
+        // with no recorded answer fall back to the live count.
+        final ReviewGamePick pick = picks.stream()
+                .filter(p -> Objects.equals(p.getAppId(), req.appId))
+                .findFirst()
+                .orElse(null);
+        final int total = pick != null && pick.getTotalReviews() != null
+                ? pick.getTotalReviews()
+                : service.getTotalReviewCountForApp(req.appId);
+        final String computedActual = pick != null && pick.getActualBucket() != null
+                ? pick.getActualBucket()
+                : service.inferBucket(total);
         // Compute roundIndex strictly from ordered picks; default to -1 if not found
         final List<Long> pickOrder = picks.stream().map(ReviewGamePick::getAppId).toList();
         final int foundIdx = pickOrder.indexOf(req.appId);

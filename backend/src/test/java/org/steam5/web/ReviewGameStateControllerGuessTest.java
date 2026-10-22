@@ -176,6 +176,34 @@ public class ReviewGameStateControllerGuessTest {
     }
 
     @Test
+    void submitGuessAuthenticated_gradesFromTheAnswerRecordedOnThePick() {
+        // The mutable steam_app_reviews snapshot moved to a different bucket after the
+        // pick was generated; the recorded answer must decide the points, otherwise the
+        // stored guess disagrees with /my/today and the archive for the same round.
+        final ReviewGamePick recorded = new ReviewGamePick(1L, LocalDate.now(), LIVE_APP_ID, OffsetDateTime.now());
+        recorded.recordAnswer(1000, "101-1000");
+        when(service.generateDailyPicks()).thenReturn(List.of(recorded));
+        when(service.getTotalReviewCountForApp(LIVE_APP_ID)).thenReturn(500);
+        when(service.inferBucket(500)).thenReturn("1-100");
+        when(userRepository.existsById("u1")).thenReturn(true);
+        when(guessRepository.findBySteamIdAndGameDateAndRoundIndex("u1", LocalDate.now(), 1))
+                .thenReturn(Optional.empty());
+
+        final ResponseEntity<ReviewGameStateController.GuessResponse> res =
+                controller.submitGuessAuthenticated("u1",
+                        new ReviewGameStateController.GuessRequest(LIVE_APP_ID, "101-1000"));
+
+        assertEquals(200, res.getStatusCode().value());
+        assertEquals(1000, res.getBody().totalReviews());
+        assertEquals("101-1000", res.getBody().actualBucket());
+        assertTrue(res.getBody().correct());
+
+        final org.mockito.ArgumentCaptor<Guess> saved = org.mockito.ArgumentCaptor.forClass(Guess.class);
+        org.mockito.Mockito.verify(guessRepository).save(saved.capture());
+        assertEquals("101-1000", saved.getValue().getActualBucket());
+    }
+
+    @Test
     void submitGuessAuthenticated_isNotWrappedInATransaction() throws Exception {
         // Transaction-semantics guard (issue #203): a transaction around the
         // handler lets a caught duplicate-key violation mark it rollback-only,
