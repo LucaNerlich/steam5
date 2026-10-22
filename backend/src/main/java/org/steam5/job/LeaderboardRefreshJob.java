@@ -40,7 +40,6 @@ public class LeaderboardRefreshJob implements Job {
         final JobDataMap map = context.getMergedJobDataMap();
         final LeaderboardType type = LeaderboardType.valueOf(String.valueOf(map.get("type")));
         Exception caughtException = null;
-        log.info("LeaderboardRefreshJob[{}] starting", type);
         try {
             refreshService.refresh(type);
         } catch (Exception e) {

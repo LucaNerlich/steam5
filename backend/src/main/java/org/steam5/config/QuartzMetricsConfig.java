@@ -6,6 +6,7 @@ import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
 import org.quartz.JobListener;
 import org.springframework.boot.quartz.autoconfigure.SchedulerFactoryBeanCustomizer;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -33,6 +34,7 @@ public class QuartzMetricsConfig {
                 .setGlobalJobListeners(new MicrometerJobListener(meterRegistry));
     }
 
+    @Slf4j
     static final class MicrometerJobListener implements JobListener {
 
         private static final String LISTENER_NAME = "micrometerQuartzJobListener";
@@ -52,7 +54,12 @@ public class QuartzMetricsConfig {
 
         @Override
         public void jobToBeExecuted(final JobExecutionContext context) {
-            // no-op: jobWasExecuted() reads JobExecutionContext.getJobRunTime() for duration
+            // One lifecycle log for every job: the classes no longer each copy-paste a start
+            // line and a timing finally, and the shape is identical across jobs.
+            log.info("Job start {} key={} fireTime={} scheduled={} refireCount={}",
+                    context.getJobDetail().getKey().getName(),
+                    context.getJobDetail().getKey(), context.getFireTime(),
+                    context.getScheduledFireTime(), context.getRefireCount());
         }
 
         @Override
@@ -62,9 +69,12 @@ public class QuartzMetricsConfig {
 
         @Override
         public void jobWasExecuted(final JobExecutionContext context, final JobExecutionException jobException) {
-            final long runTimeMs = context.getJobRunTime();
+            final long runTimeMs = Math.max(0L, context.getJobRunTime());
             final String outcome = (jobException == null) ? "succeeded" : "failed";
-            record(context, Math.max(0L, runTimeMs), outcome);
+            log.info("Job end {} durationMs={} outcome={} nextFireTime={}",
+                    context.getJobDetail().getKey().getName(), runTimeMs, outcome,
+                    context.getTrigger() != null ? context.getTrigger().getNextFireTime() : null);
+            record(context, runTimeMs, outcome);
         }
 
         private void record(final JobExecutionContext context, final long runTimeMs, final String outcome) {
