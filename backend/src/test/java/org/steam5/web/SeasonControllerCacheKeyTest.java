@@ -37,4 +37,15 @@ class SeasonControllerCacheKeyTest {
         context.setVariable("seasonIdentifier", "+1");
         assertEquals("1", expression.getValue(context, String.class));
     }
+
+    @Test
+    void awardsResolveAndCacheWithTheSameIdentifierRuleAsDetail() throws Exception {
+        // #617: the awards route must not resolve a numeric segment as a primary key.
+        final java.lang.reflect.Method method = SeasonController.class.getMethod("awards", String.class);
+        final Cacheable cacheable = method.getAnnotation(Cacheable.class);
+        final Expression expression = new SpelExpressionParser().parseExpression(cacheable.key());
+        final StandardEvaluationContext context = new StandardEvaluationContext();
+        context.setVariable("seasonId", "01");
+        assertEquals("1", expression.getValue(context, String.class));
+    }
 }

@@ -110,10 +110,11 @@ public class SeasonController {
     }
 
     @GetMapping("/{seasonId}/awards")
-    @Cacheable(value = "season-awards-response", key = "#seasonId", unless = "#result == null || #result.body == null")
-    public ResponseEntity<List<AwardView>> awards(@PathVariable Long seasonId) {
-        Season season = seasonService.findSeason(seasonId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Season not found"));
+    @Cacheable(value = "season-awards-response",
+            key = "T(org.steam5.web.SeasonController).canonicalSeasonKey(#seasonId)",
+            unless = "#result == null || #result.body == null")
+    public ResponseEntity<List<AwardView>> awards(@PathVariable String seasonId) {
+        Season season = resolveSeason(seasonId);
         List<SeasonAwardResult> awards = seasonService.listAwardsForSeason(season.getId());
         return ResponseEntity.ok()
                 .header("Cache-Control", "public, s-maxage=3600, max-age=900")
