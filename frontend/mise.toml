@@ -4,4 +4,4 @@
 # aqua backend, whose older bundled versions can't resolve pnpm 11/12's renamed
 # GitHub release assets ("no asset found: pnpm-linux-x64").
 [tools]
-node = "22"
+node = "24"
