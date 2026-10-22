@@ -76,23 +76,6 @@ export async function GET(req: Request): Promise<ImageResponse> {
         } catch { return null; }
     }
 
-    function percentileRank(value: number, values: number[]): number {
-        if (values.length === 0) return 100;
-        let below = 0;
-        for (const v of values) if (v <= value) below++;
-        const pct = 100 - Math.floor((below / values.length) * 100);
-        return Math.max(1, Math.min(99, pct));
-    }
-
-    function rankBadge(pctTop: number): { label: string; color: string } {
-        if (pctTop <= 1) return { label: "S+", color: "#22c55e" };
-        if (pctTop <= 5) return { label: "S", color: "#10b981" };
-        if (pctTop <= 10) return { label: "A", color: "#34d399" };
-        if (pctTop <= 25) return { label: "B", color: "#fde047" };
-        if (pctTop <= 50) return { label: "C", color: "#f59e0b" };
-        return { label: "Rookie", color: "#ef4444" };
-    }
-
     // Prepare data depending on variant
     let title = "Steam5";
     let subtitle = "Review Guesser";
@@ -110,15 +93,9 @@ export async function GET(req: Request): Promise<ImageResponse> {
             subtitle = "Profile — Review Guesser";
             avatarSrc = sanitizeAvatarUrl(profile.avatar);
             primary = pickAccent(profile.steamId);
-            // A missing leaderboard means "unknown", not "worst": percentileRank returns
-            // 100 for an empty list, which used to render Rookie / Top 100%.
-            const totalPct = leaders && leaders.length > 0
-                ? percentileRank(profile.stats.totalPoints, leaders.map(l => l.totalPoints))
-                : null;
-            const avgPct = leaders && leaders.length > 0
-                ? percentileRank(profile.stats.avgPoints, leaders.map(l => l.avgPoints))
-                : null;
-            badge = totalPct === null ? null : rankBadge(totalPct);
+            const {totalPct, avgPct, badge: rankBadgeValue} =
+                profileRank(leaders, profile.stats.totalPoints, profile.stats.avgPoints);
+            badge = rankBadgeValue;
             statsLines = [
                 { label: "Total Points", value: String(profile.stats.totalPoints) },
                 {
