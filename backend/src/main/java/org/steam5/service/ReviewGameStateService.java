@@ -9,13 +9,11 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.steam5.config.ReviewGameConfig;
 import org.steam5.domain.GameDate;
-import org.steam5.domain.DailyPickLock;
 import org.steam5.domain.ReviewGamePick;
 import org.steam5.domain.SteamAppReviews;
 import org.steam5.http.SteamApiException;
 import org.steam5.job.blurhash.BlurhashEnqueueListener;
 import org.steam5.job.events.BlurhashEncodeRequested;
-import org.steam5.repository.DailyPickLockRepository;
 import org.steam5.repository.ExcludedAppRepository;
 import org.steam5.repository.ReviewGamePickRepository;
 import org.steam5.repository.SteamAppReviewsRepository;
@@ -82,7 +80,7 @@ public class ReviewGameStateService {
             // winner, then write the picks and the lock row. No HTTP call runs in here.
             final TransactionTemplate transaction = new TransactionTemplate(transactionManager);
             final List<ReviewGamePick> saved = transaction.execute(status -> {
-                if (!pickLockRepository.tryAcquire(today.toString())) {
+                if (!pickRepository.tryAcquire(today.toString())) {
                     return null;
                 }
                 final List<ReviewGamePick> concurrent = pickRepository.findByPickDate(today);
@@ -90,7 +88,6 @@ public class ReviewGameStateService {
                     return concurrent;
                 }
                 final List<ReviewGamePick> inserted = pickRepository.saveAll(picks);
-                pickLockRepository.save(new DailyPickLock(today, OffsetDateTime.now()));
                 // Blurhash events are @TransactionalEventListener(AFTER_COMMIT): publishing
                 // them outside this transaction would drop them.
                 for (ReviewGamePick p : inserted) {
@@ -230,14 +227,15 @@ public class ReviewGameStateService {
                     log.warn("Steam API rate limited (429) while validating appId {}. Aborting pick generation without exclusion.", appId);
                     throw new RuntimeException(sae); // propagate to stop execution per policy
                 }
-                if (sae.getStatusCode() >= 500 || sae.getStatusCode() == 599) {
-                    // Transient upstream/network failure — never permanently exclude.
+                // Only "this app is gone" answers are permanent. Every other status is
+                // transient (edge blocking 403, proxy 408, a rotated key's 401, an unfollowed
+                // 3xx) and must not write a row nothing ever deletes.
+                if (sae.getStatusCode() != 404 && sae.getStatusCode() != 410) {
                     log.warn("Transient Steam API failure (HTTP {}) while validating appId {}; skipping without exclusion", sae.getStatusCode(), appId);
                     return false;
                 }
                 excludedAppRepository.save(new org.steam5.domain.ExcludedApp(appId, "details fetch error: HTTP " + sae.getStatusCode(), OffsetDateTime.now()));
-                return false;
-            } catch (Exception e) {
+                return false;            } catch (Exception e) {
                 // Unknown failures (parsing, persistence) are treated as transient: a
                 // permanent exclusion here could poison the pool and, during an
                 // outage, lock a day to zero picks.
@@ -290,7 +288,6 @@ public class ReviewGameStateService {
         private final SteamAppReviewsFetcher reviewsFetcher;
         private final SteamAppDetailsFetcher detailsFetcher;
         private final ReviewGamePickRepository pickRepository;
-        private final DailyPickLockRepository pickLockRepository;
         private final ExcludedAppRepository excludedAppRepository;
         private final ReviewGameConfig config;
         private final DomainCacheEvictor cacheEvictor;

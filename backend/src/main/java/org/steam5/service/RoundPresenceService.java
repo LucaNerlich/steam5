@@ -121,13 +121,18 @@ public class RoundPresenceService {
     public void unregister(final WebSocketSession session) {
         final String scopeKey = scopeKeyOf(session);
         if (scopeKey == null) return;
-        sessionsByScope.computeIfPresent(scopeKey, (k, list) -> {
-            if (list.remove(session)) {
-                sendSessions.remove(session.getId());
-                decrementConnectionCounters(session);
-            }
-            return list.isEmpty() ? null : list;
-        });
+        // Take registerLock before the scope map: register acquires them in that order, and
+        // ConcurrentHashMap.computeIfPresent holds the bin monitor while this lambda runs, so
+        // the opposite order here deadlocks the two paths against each other.
+        synchronized (registerLock) {
+            sessionsByScope.computeIfPresent(scopeKey, (k, list) -> {
+                if (list.remove(session)) {
+                    sendSessions.remove(session.getId());
+                    decrementConnectionCounters(session);
+                }
+                return list.isEmpty() ? null : list;
+            });
+        }
     }
 
     /**
@@ -362,10 +367,15 @@ public class RoundPresenceService {
         globalConnections.updateAndGet(current -> Math.max(0, current - 1));
         final String clientIp = clientIpOf(session);
         if (clientIp != null) {
-            connectionsByIp.computeIfPresent(clientIp, (k, count) -> {
-                final int next = count.decrementAndGet();
-                return next <= 0 ? null : count;
-            });
+            // Same lock as register: check/increment/decrement/remove must be one critical
+            // section, or a decrement that drops the entry can race a concurrent register and
+            // strand the new session's counter outside the map.
+            synchronized (registerLock) {
+                connectionsByIp.computeIfPresent(clientIp, (k, count) -> {
+                    final int next = count.decrementAndGet();
+                    return next <= 0 ? null : count;
+                });
+            }
         }
     }
 

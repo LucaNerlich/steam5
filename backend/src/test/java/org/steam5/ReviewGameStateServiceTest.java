@@ -12,7 +12,6 @@ import org.steam5.domain.ReviewGamePick;
 import org.steam5.domain.SteamAppReviews;
 import org.steam5.http.SteamApiException;
 import org.steam5.job.events.BlurhashEncodeRequested;
-import org.steam5.repository.DailyPickLockRepository;
 import org.steam5.repository.ExcludedAppRepository;
 import org.steam5.repository.ReviewGamePickRepository;
 import org.steam5.repository.SteamAppReviewsRepository;
@@ -44,7 +43,6 @@ public class ReviewGameStateServiceTest {
     private SteamAppReviewsFetcher reviewsFetcher;
     private SteamAppDetailsFetcher detailsFetcher;
     private ReviewGamePickRepository pickRepository;
-    private DailyPickLockRepository pickLockRepository;
     private ExcludedAppRepository excludedAppRepository;
     private ReviewGameConfig config;
     private DomainCacheEvictor cacheEvictor;
@@ -59,7 +57,6 @@ public class ReviewGameStateServiceTest {
         reviewsFetcher = mock(SteamAppReviewsFetcher.class);
         detailsFetcher = mock(SteamAppDetailsFetcher.class);
         pickRepository = mock(ReviewGamePickRepository.class);
-        pickLockRepository = mock(DailyPickLockRepository.class);
         excludedAppRepository = mock(ExcludedAppRepository.class);
         config = new ReviewGameConfig();
         cacheEvictor = mock(DomainCacheEvictor.class);
@@ -72,7 +69,6 @@ public class ReviewGameStateServiceTest {
                 reviewsFetcher,
                 detailsFetcher,
                 pickRepository,
-                pickLockRepository,
                 excludedAppRepository,
                 config,
                 cacheEvictor,
@@ -86,7 +82,7 @@ public class ReviewGameStateServiceTest {
         config.setMinReviewsFreshDays(0);
 
         // Lock acquired
-        when(pickLockRepository.tryAcquire(any())).thenReturn(true);
+        when(pickRepository.tryAcquire(any())).thenReturn(true);
 
         // No existing picks
         when(pickRepository.findByPickDate(any(LocalDate.class))).thenReturn(List.of());
@@ -188,14 +184,14 @@ public class ReviewGameStateServiceTest {
             validated.set(true);
             return true;
         }).when(detailsFetcher).fetchForAppId(anyLong());
-        when(pickLockRepository.tryAcquire(anyString())).thenAnswer(invocation -> {
+        when(pickRepository.tryAcquire(anyString())).thenAnswer(invocation -> {
             assertTrue(validated.get(), "the advisory lock was acquired before Steam validation finished");
             return true;
         });
 
         service.generateDailyPicks();
 
-        verify(pickLockRepository).tryAcquire(anyString());
+        verify(pickRepository).tryAcquire(anyString());
     }
 
     @Test
@@ -243,9 +239,28 @@ public class ReviewGameStateServiceTest {
         final List<ReviewGamePick> picks = service.generateDailyPicks();
 
         assertTrue(picks.isEmpty());
-        verify(pickLockRepository, never()).save(any());
         verify(excludedAppRepository, never()).save(any());
         verify(pickRepository, never()).saveAll(anyList());
+    }
+
+    @Test
+    void generateDailyPicks_edgeBlockFromSteam_producesNoExclusions() throws Exception {
+        // A 403 from Steam's edge (or a 401 for a rotated key) says nothing about the app;
+        // excluding it writes a permanent row that no code deletes.
+        doThrow(new SteamApiException(403, "https://store.steampowered.com/api/appdetails?appids=1&key=abc", "forbidden"))
+                .when(detailsFetcher).fetchForAppId(anyLong());
+
+        assertTrue(service.generateDailyPicks().isEmpty());
+        verify(excludedAppRepository, never()).save(any());
+    }
+
+    @Test
+    void generateDailyPicks_goneAppIsStillExcluded() throws Exception {
+        doThrow(new SteamApiException(404, "https://store.steampowered.com/api/appdetails?appids=1&key=abc", "not found"))
+                .when(detailsFetcher).fetchForAppId(anyLong());
+
+        assertTrue(service.generateDailyPicks().isEmpty());
+        verify(excludedAppRepository, atLeastOnce()).save(any());
     }
 
     private ReviewGameStateService stubbedServiceFor(ReviewGameStateService.BUCKET_STRATEGY strategy) {
@@ -254,7 +269,6 @@ public class ReviewGameStateServiceTest {
                 reviewsFetcher,
                 detailsFetcher,
                 pickRepository,
-                pickLockRepository,
                 excludedAppRepository,
                 config,
                 cacheEvictor,
