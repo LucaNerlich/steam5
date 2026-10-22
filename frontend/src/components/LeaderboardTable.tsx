@@ -161,7 +161,9 @@ export default function LeaderboardTable(props: {
     const showLastUpdated = props.mode === 'season' || props.mode === 'all' || props.mode === 'weekly-floating';
     const lastUpdatedText = showLastUpdated ? formatRefreshedAt(refreshedAt) : null;
 
-    if (error) return <p className="text-muted">Failed to load leaderboard. Please try again.</p>;
+    // SWR keeps the previous payload on a failed revalidation; only show the error when
+    // there is nothing to render (both sibling tables already guard it this way).
+    if (error && !data) return <p className="text-muted">Failed to load leaderboard. Please try again.</p>;
     if (isLoading && !props.initialData) return <p className="text-muted">Loading leaderboard…</p>;
     if (!data) return <p className="text-muted">Loading leaderboard…</p>;
 
