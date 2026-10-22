@@ -56,7 +56,7 @@ class LeaderboardRefreshJobTest {
         InOrder order = inOrder(refreshService, cacheEvictor);
         order.verify(refreshService).refresh(LeaderboardType.ALL_TIME);
         order.verify(cacheEvictor).evictLeaderboardStatic();
-        verify(cacheEvictor, never()).evictStatsHourly();
+        verify(cacheEvictor, never()).evictStatsHourlyKeys(org.mockito.ArgumentMatchers.<String>any());
     }
 
     @Test
@@ -85,7 +85,7 @@ class LeaderboardRefreshJobTest {
         job.execute(contextFor("HARDEST_GAMES"));
         verify(refreshService).refresh(LeaderboardType.HARDEST_GAMES);
         verify(cacheEvictor).evictLeaderboardStatic();
-        verify(cacheEvictor).evictStatsHourly();
+        verify(cacheEvictor).evictStatsHourlyKeys("hardest-games-");
     }
 
     @Test
@@ -94,8 +94,8 @@ class LeaderboardRefreshJobTest {
         verify(refreshService).refresh(LeaderboardType.PERFECT_DAYS);
         verify(cacheEvictor).evictLeaderboardStatic();
         // perfect-days reads through "stats-hourly" (StatisticsService#getPerfectDays), just
-        // like hardest-games, so it must also evict that cache — not only leaderboard-static.
-        verify(cacheEvictor).evictStatsHourly();
+        // like hardest-games, so it must also evict its own keys — not the whole cache.
+        verify(cacheEvictor).evictStatsHourlyKeys("perfect-days");
     }
 
     @Test
@@ -106,7 +106,7 @@ class LeaderboardRefreshJobTest {
         assertThrows(JobExecutionException.class, () -> job.execute(context));
 
         verify(cacheEvictor).evictLeaderboardStatic();
-        verify(cacheEvictor).evictStatsHourly();
+        verify(cacheEvictor).evictStatsHourlyKeys("perfect-days");
     }
 
     @Test

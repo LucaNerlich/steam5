@@ -93,14 +93,13 @@ class StatisticsServiceTest {
     }
 
     private LeaderboardMvRepository.PerfectDayMvRow perfectDayRow(String steamId, String personaName,
-                                                                    String avatarFull, String blurdataAvatarFull,
+                                                                    String avatarFull,
                                                                     String profileUrl, LocalDate gameDate,
                                                                     String appNames) {
         final LeaderboardMvRepository.PerfectDayMvRow r = mock(LeaderboardMvRepository.PerfectDayMvRow.class);
         when(r.getSteamId()).thenReturn(steamId);
         when(r.getPersonaName()).thenReturn(personaName);
         when(r.getAvatarFull()).thenReturn(avatarFull);
-        when(r.getBlurdataAvatarFull()).thenReturn(blurdataAvatarFull);
         when(r.getProfileUrl()).thenReturn(profileUrl);
         when(r.getGameDate()).thenReturn(gameDate);
         when(r.getAppNames()).thenReturn(appNames);
@@ -110,7 +109,7 @@ class StatisticsServiceTest {
     @Test
     void getPerfectDays_mapsRowsAndSplitsAppNamesOnCommaSpace() {
         final LeaderboardMvRepository.PerfectDayMvRow row = perfectDayRow(
-                "76561198000000001", "Alice", "https://avatar/full.jpg", "data:blur", "https://steamcommunity.com/id/alice",
+                "76561198000000001", "Alice", "https://avatar/full.jpg", "https://steamcommunity.com/id/alice",
                 LocalDate.of(2026, 1, 15), "Half-Life\u001fPortal 2\u001fLeft 4 Dead");
         when(leaderboardMvRepository.findPerfectDays()).thenReturn(List.of(row));
 
@@ -129,7 +128,7 @@ class StatisticsServiceTest {
     @Test
     void getPerfectDays_nullAppNames_mapsToEmptyList() {
         final LeaderboardMvRepository.PerfectDayMvRow row = perfectDayRow(
-                "76561198000000002", "Bob", null, null, null, LocalDate.of(2026, 2, 1), null);
+                "76561198000000002", "Bob", null, null, LocalDate.of(2026, 2, 1), null);
         when(leaderboardMvRepository.findPerfectDays()).thenReturn(List.of(row));
 
         final List<StatisticsService.PerfectDayEntry> result = service.getPerfectDays();
@@ -141,7 +140,7 @@ class StatisticsServiceTest {
     @Test
     void getPerfectDays_singleAppName_returnsSingletonList() {
         final LeaderboardMvRepository.PerfectDayMvRow row = perfectDayRow(
-                "76561198000000003", "Carol", null, null, null, LocalDate.of(2026, 3, 1), "Portal");
+                "76561198000000003", "Carol", null, null, LocalDate.of(2026, 3, 1), "Portal");
         when(leaderboardMvRepository.findPerfectDays()).thenReturn(List.of(row));
 
         final List<StatisticsService.PerfectDayEntry> result = service.getPerfectDays();
@@ -158,9 +157,9 @@ class StatisticsServiceTest {
     @Test
     void getPerfectDays_preservesRepositoryOrdering() {
         final LeaderboardMvRepository.PerfectDayMvRow newer = perfectDayRow(
-                "steam-newer", "Newer", null, null, null, LocalDate.of(2026, 5, 1), "Game A");
+                "steam-newer", "Newer", null, null, LocalDate.of(2026, 5, 1), "Game A");
         final LeaderboardMvRepository.PerfectDayMvRow older = perfectDayRow(
-                "steam-older", "Older", null, null, null, LocalDate.of(2026, 4, 1), "Game B");
+                "steam-older", "Older", null, null, LocalDate.of(2026, 4, 1), "Game B");
         // Repository query orders by game_date DESC — the service must not re-sort.
         when(leaderboardMvRepository.findPerfectDays()).thenReturn(List.of(newer, older));
 
@@ -175,7 +174,7 @@ class StatisticsServiceTest {
         // chr(31) is the view's join delimiter, so a real title containing ", " stays
         // one name; splitting on ", " used to expand it into bogus extra entries.
         final LeaderboardMvRepository.PerfectDayMvRow row = perfectDayRow(
-                "steam-1", "Player", null, null, null, LocalDate.of(2026, 1, 1),
+                "steam-1", "Player", null, null, LocalDate.of(2026, 1, 1),
                 "Warhammer 40,000: Dawn of War" + '\u001f' + "Portal 2");
         when(leaderboardMvRepository.findPerfectDays()).thenReturn(List.of(row));
 
