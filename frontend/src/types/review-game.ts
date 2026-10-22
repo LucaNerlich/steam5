@@ -27,7 +27,8 @@ export interface SteamAppDetail {
     type: string | null;
     name: string;
     controllerSupport: string | null;
-    isFree: boolean;
+    /** Backend Lombok getter isFree() serializes as "free". */
+    free: boolean;
     dlc: string | null; // comma separated list of appIds as string
     shortDescription: string | null;
     detailedDescription: string | null;
