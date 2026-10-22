@@ -14,6 +14,9 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -130,7 +133,7 @@ class LeaderboardServiceTest {
         // r2.getPersonaName() intentionally left unstubbed (null) — exercises the steamId fallback
 
         when(leaderboardMvRepository.findAllTime()).thenReturn(List.of(r1, r2));
-        // findDistinctDatesUpToForUsers intentionally left unstubbed —
+        // The bounded streak query is intentionally left unstubbed —
         // Mockito's empty-list default exercises the null-safe streak fallback path.
 
         List<LeaderboardService.LeaderEntry> result = service.buildAllTimeLeaderboard(LocalDate.now());
@@ -211,5 +214,37 @@ class LeaderboardServiceTest {
         assertEquals(1, result.size());
         assertEquals("u1", result.get(0).steamId());
         assertEquals(20L, result.get(0).totalPoints());
+    }
+
+    @Test
+    void buildAllTimeLeaderboard_boundsTheStreakWindowAndCountsConsecutiveDays() {
+        final LocalDate asOf = LocalDate.of(2026, 10, 21);
+        final LeaderboardMvRepository.LeaderboardMvRow row = mock(LeaderboardMvRepository.LeaderboardMvRow.class);
+        when(row.getSteamId()).thenReturn("u1");
+        when(row.getTotalPoints()).thenReturn(10L);
+        when(row.getRounds()).thenReturn(2L);
+        when(row.getHits()).thenReturn(2L);
+        when(row.getFlops()).thenReturn(0L);
+        when(row.getTooHigh()).thenReturn(0L);
+        when(row.getTooLow()).thenReturn(0L);
+        when(row.getAvgPoints()).thenReturn(5.0);
+        when(leaderboardMvRepository.findAllTime()).thenReturn(List.of(row));
+
+        final GuessRepository.UserDateRow today = mock(GuessRepository.UserDateRow.class);
+        when(today.getSteamId()).thenReturn("u1");
+        when(today.getGameDate()).thenReturn(asOf);
+        final GuessRepository.UserDateRow yesterday = mock(GuessRepository.UserDateRow.class);
+        when(yesterday.getSteamId()).thenReturn("u1");
+        when(yesterday.getGameDate()).thenReturn(asOf.minusDays(1));
+        when(guessRepository.findDistinctDatesUpToForUsersSince(anyList(), any(), any()))
+                .thenReturn(List.of(today, yesterday));
+
+        final List<LeaderboardService.LeaderEntry> result = service.buildAllTimeLeaderboard(asOf);
+
+        assertEquals(2, result.get(0).streak());
+        final org.mockito.ArgumentCaptor<LocalDate> since = org.mockito.ArgumentCaptor.forClass(LocalDate.class);
+        verify(guessRepository).findDistinctDatesUpToForUsersSince(anyList(), eq(asOf), since.capture());
+        assertEquals(asOf.minusDays(400), since.getValue(),
+                "the leaderboard must not read more than the 400-day streak window");
     }
 }
