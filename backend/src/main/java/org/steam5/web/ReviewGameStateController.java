@@ -25,6 +25,7 @@ import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
 import org.quartz.TriggerKey;
 
+import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.YearMonth;
@@ -162,19 +163,6 @@ public class ReviewGameStateController {
         // boundary value, which inferBucket places in the closed bucket below.
         final boolean ok = req.bucketGuess.equals(actual);
         return ResponseEntity.ok(new GuessResponse(req.appId, total, actual, ok));
-    }
-
-    @GetMapping("/today/details")
-    @Cacheable(value = "review-game", key = "'today-details:' + T(org.steam5.domain.GameDate).todayUtc()", unless = CACHE_ONLY_2XX_NONEMPTY_LIST)
-    public ResponseEntity<List<SteamAppDetail>> getTodayDetails() {
-        final List<ReviewGamePick> picks = service.generateDailyPicks();
-        final List<Long> appIds = picks.stream().map(ReviewGamePick::getAppId).toList();
-        final List<SteamAppDetail> details = detailService.findAllByAppIdIn(appIds);
-        final String etag = weakEtagForPicks(details);
-        return ResponseEntity.ok()
-                .eTag(etag)
-                .header("Cache-Control", CACHE_LIVE)
-                .body(details);
     }
 
     @GetMapping("/my/today")
@@ -566,14 +554,16 @@ public class ReviewGameStateController {
     @Cacheable(value = "review-game", key = "'archive-month:' + #month", unless = CACHE_ONLY_2XX_NONEMPTY_LIST)
     public ResponseEntity<List<ArchiveMonthDay>> archiveMonth(@RequestParam("month") String month) {
         final YearMonth ym;
+        final LocalDate from;
+        final LocalDate to;
         try {
             ym = YearMonth.parse(month);
-        } catch (DateTimeParseException e) {
+            from = ym.atDay(1);
+            to = ym.plusMonths(1).atDay(1);
+        } catch (DateTimeException e) {
             return ResponseEntity.badRequest().build();
         }
 
-        final LocalDate from = ym.atDay(1);
-        final LocalDate to = ym.plusMonths(1).atDay(1);
         final List<org.steam5.repository.ReviewGamePickRepository.MonthlyArchivePickRow> rows =
                 pickRepository.listMonthlyArchivePicks(from, to);
 

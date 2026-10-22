@@ -152,22 +152,6 @@ public class ReviewGameStateControllerCacheTest {
     // variant can ever be stored by the cache interceptor ---
 
     @Test
-    void todayDetails_alwaysReturns200WithEtag() {
-        final SteamAppDetail detail = mock(SteamAppDetail.class);
-        when(detail.getAppId()).thenReturn(42L);
-        when(service.generateDailyPicks())
-                .thenReturn(List.of(new ReviewGamePick(1L, LocalDate.now(), 42L, OffsetDateTime.now())));
-        when(detailService.findAllByAppIdIn(anyList())).thenReturn(List.of(detail));
-
-        final ResponseEntity<List<SteamAppDetail>> ok = controller.getTodayDetails();
-        assertEquals(200, ok.getStatusCode().value());
-        assertNotNull(ok.getBody());
-        assertEquals(1, ok.getBody().size());
-        assertEquals("public, s-maxage=1800, max-age=60, must-revalidate", ok.getHeaders().getCacheControl());
-        assertNotNull(ok.getHeaders().getETag());
-    }
-
-    @Test
     void buckets_negotiates304PerRequestViaMvc() throws Exception {
         when(service.getBucketLabels()).thenReturn(List.of("1-13"));
         when(service.getBucketTitles()).thenReturn(List.of("0-13 reviews"));
@@ -224,7 +208,7 @@ public class ReviewGameStateControllerCacheTest {
     }
 
     @Test
-    void getTodayDetails_doesNotCacheEmptyList() throws Exception {
+    void cacheUnless_doesNotCacheEmptyLists() throws Exception {
         final Expression expr = cacheUnlessExpr("CACHE_ONLY_2XX_NONEMPTY_LIST");
 
         assertTrue(unless(expr, ResponseEntity.ok(List.of())), "an empty details list must NOT be cached");
@@ -253,13 +237,6 @@ public class ReviewGameStateControllerCacheTest {
         assertEquals("today-picks:" + GameDate.todayUtc(),
                 evalCacheKey("getToday"),
                 "the /today cache key must be scoped to the UTC date, not a static 'picks' key");
-    }
-
-    @Test
-    void getTodayDetails_cacheKeyEmbedsTodayUtcDate() throws Exception {
-        assertEquals("today-details:" + GameDate.todayUtc(),
-                evalCacheKey("getTodayDetails"),
-                "the /today/details cache key must be scoped to the UTC date");
     }
 
     /** Reads a method's @Cacheable key SpEL and evaluates it (the key uses a T(GameDate) static call). */

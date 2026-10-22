@@ -2,10 +2,6 @@
 GET {{host}}/api/review-game/today
 Accept: application/json
 
-### Get today's review-game picks details (game metadata)
-GET {{host}}/api/review-game/today/details
-Accept: application/json
-
 ### Get configured bucket labels (game metadata)
 GET {{host}}/api/review-game/buckets
 Accept: application/json
