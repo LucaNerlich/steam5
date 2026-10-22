@@ -33,15 +33,6 @@ interface Props {
     gameDate?: string;
     /** Today's picks for comment quick-link chips. */
     dayGames?: CommentGameRef[];
-    prefilled?: { selectedLabel: string; actualBucket?: string; totalReviews?: number };
-    allResults?: Record<number, {
-        appId: number;
-        pickName?: string;
-        selectedLabel: string;
-        actualBucket: string;
-        totalReviews: number;
-        correct: boolean;
-    }>;
 }
 
 type StoredRoundResult = RoundResult;
@@ -67,8 +58,6 @@ function numericRoundKeys(record: Record<number, StoredRoundResult>): number[] {
  * @param totalRounds - The total number of rounds in the game.
  * @param pickName - The name of the current pick.
  * @param gameDate - The date identifying the game.
- * @param prefilled - An optional previously submitted result to display.
- * @param allResults - Optional results from other rounds.
  * @returns The rendered guessing controls, round result, and related actions.
  */
 export default function ReviewGuesserRound({
@@ -79,9 +68,7 @@ export default function ReviewGuesserRound({
                                                 totalRounds,
                                                 pickName,
                                                 gameDate,
-                                                dayGames,
-                                                prefilled,
-                                                allResults
+                                                dayGames
                                             }: Props) {
     const initial: GuessActionState = {ok: false};
     const [state, formAction] = useActionState<GuessActionState, FormData>(submitGuessAction, initial);
@@ -93,8 +80,7 @@ export default function ReviewGuesserRound({
     // it rendered but was never persisted, leaving the round re-guessable after a
     // reload. Capturing gameDate/round/appId/label atomically keeps the save honest.
     const [submission, setSubmission] = useState<RoundSubmission | null>(null);
-    const disableClientFetch = Boolean(prefilled) || (allResults && Object.keys(allResults).length >= totalRounds);
-    const {guesses: serverGuesses, loading: serverGuessesLoading} = useServerGuesses(disableClientFetch);
+    const {guesses: serverGuesses, loading: serverGuessesLoading} = useServerGuesses();
 
     const scopeKey = `${gameDate ?? ''}:${roundIndex}:${appId}`;
 
@@ -138,10 +124,7 @@ export default function ReviewGuesserRound({
     // Determine completion and existing result for this round.
     // serverGuesses already arrives in StoredRoundResult shape from the hook.
     const storedResults = stored?.results || {};
-    const serverResults: Record<number, StoredRoundResult> = {
-        ...serverGuesses,
-        ...(allResults ?? {}),
-    };
+    const serverResults: Record<number, StoredRoundResult> = {...serverGuesses};
     // A stored/server result is only valid for this round if it belongs to the
     // current pick. When today's picks are regenerated, results keyed by round
     // index would otherwise surface a previous game's guess on the new game.
@@ -150,9 +133,8 @@ export default function ReviewGuesserRound({
         ? storedResults[roundIndex]
         : (isForCurrentPick(serverResults[roundIndex]) ? serverResults[roundIndex] : undefined);
 
-    // Prefer server response; fallback to stored round result; finally use prefilled from server (authenticated restore)
+    // Prefer the response for this round; fall back to the stored/server result for it.
     const computedPrefill = (() => {
-        if (prefilled) return prefilled;
         const g = serverGuesses[roundIndex];
         if (!g || g.appId !== appId) return undefined;
         return {
@@ -161,8 +143,7 @@ export default function ReviewGuesserRound({
             totalReviews: g.totalReviews,
         };
     })();
-    const prefilledResponse = prefillToResponse(appId, computedPrefill);
-    const effectiveResponse = resolveEffectiveResponse(state, storedThisRound, prefilledResponse, appId);
+    const effectiveResponse = resolveEffectiveResponse(state, storedThisRound, prefillToResponse(appId, computedPrefill), appId);
 
     // Effective selected label used for rendering, derived during render instead
     // of mirrored into state: the user's fresh pick wins, otherwise the restored
@@ -206,7 +187,7 @@ export default function ReviewGuesserRound({
     // Submitted flag: either current state submitted, or restored from storage, or authenticated prefilled for this round.
     // Note: state.error alone does not mark the round as submitted — a failed submission
     // must keep the guess buttons enabled so the player can retry without a page reload.
-    const submittedFlag = isRoundSubmitted(state, appId, storedThisRound, Boolean(prefilled));
+    const submittedFlag = isRoundSubmitted(state, appId, storedThisRound, false);
 
     // Single source of truth: when to show ShareControls
     const hasServerResults = Object.keys(serverResults).length > 0;
@@ -257,7 +238,7 @@ export default function ReviewGuesserRound({
     useRoundArrowNavigation({prevHref, nextHref, hasNextRound, disabled: showAuthWarning});
 
     const submitError = state && !state.ok && stateForThisPick ? state.error : undefined;
-    const shouldShowGuessControls = !(effectiveResponse || storedThisRound || prefilled);
+    const shouldShowGuessControls = !(effectiveResponse || storedThisRound);
     // A result only counts toward completion when it belongs to one of today's picks:
     // after a regenerated pick set, round-index keys from the old games must not unlock
     // comments or leak into the shared score.
@@ -288,17 +269,12 @@ export default function ReviewGuesserRound({
                 />
             )}
 
-            {(effectiveResponse || prefilled) && (
+            {effectiveResponse && (
                 <RoundResultSection
                     appId={appId}
                     buckets={buckets}
                     selectedLabel={storedThisRound?.selectedLabel ?? renderSelectedLabel ?? (computedPrefill?.selectedLabel ?? null)}
-                    result={(effectiveResponse ?? {
-                        appId,
-                        totalReviews: computedPrefill?.totalReviews ?? 0,
-                        actualBucket: computedPrefill?.actualBucket ?? '',
-                        correct: computedPrefill?.actualBucket ? (computedPrefill.actualBucket === (computedPrefill?.selectedLabel ?? '')) : false,
-                    }) as GuessResponse}
+                    result={effectiveResponse}
                     prevHref={prevHref}
                     nextHref={roundIndex < totalRounds ? nextHref : null}
                     randomArchiveHref={roundIndex >= totalRounds ? Routes.randomArchive : null}
