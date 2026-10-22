@@ -213,6 +213,16 @@ function detectMentionQuery(value: string, caret: number): {start: number; query
     return {start: atIndex, query};
 }
 
+/** Completion for the comment gate: only the pick-validated map counts. */
+export function isDayComplete(results: Record<number, RoundResult> | undefined, totalRounds: number): boolean {
+    return results !== undefined && Object.keys(results).length >= totalRounds;
+}
+
+/** Reset the composer only when it still holds the body that was submitted. */
+export function shouldResetComposer(currentValue: string, submittedBody: string): boolean {
+    return currentValue === submittedBody;
+}
+
 /**
  * Replaces the in-progress `@query` token that ends at `caret` with `snippet`, returning the
  * new body and caret position, or null when the caret is no longer inside a mention token
@@ -437,7 +447,7 @@ type ComposerAction =
     | {type: "bodyInput"; bodyLength: number; mention: MentionSelection | null}
     | {type: "insertionLength"; bodyLength: number}
     | {type: "mentionMenuClosed"}
-    | {type: "postSucceeded"}
+    | {type: "postSucceeded"; bodyLength: number}
     | {type: "postedIndicatorExpired"}
     | {type: "mentionSearchSucceeded"; candidates: MentionCandidate[]}
     | {type: "mentionSearchRateLimited"};
@@ -465,7 +475,7 @@ function composerReducer(state: ComposerState, action: ComposerAction): Composer
         case "postSucceeded":
             return {
                 posted: true,
-                bodyLength: 0,
+                bodyLength: action.bodyLength,
                 mention: null,
                 mentionCandidates: [],
                 mentionRateLimited: false,
@@ -501,12 +511,15 @@ function CommentComposer(props: {
             const submittedBody = String(formData.get('body') ?? '');
             const next = await postCommentAction(prev, formData);
             if (next.ok) {
-                // Do not discard text typed for the next comment while this post was pending.
-                if (textareaRef.current?.value === submittedBody) {
+                // Do not discard text typed for the next comment while this post was pending,
+                // and keep the counter/Post button consistent with the draft that survived.
+                const draft = textareaRef.current?.value ?? submittedBody;
+                const resetting = shouldResetComposer(draft, submittedBody);
+                if (resetting) {
                     formRef.current?.reset();
                 }
                 if (postedTimerRef.current !== null) window.clearTimeout(postedTimerRef.current);
-                dispatch({type: "postSucceeded"});
+                dispatch({type: "postSucceeded", bodyLength: resetting ? 0 : draft.length});
                 postedTimerRef.current = window.setTimeout(() => {
                     postedTimerRef.current = null;
                     dispatch({type: "postedIndicatorExpired"});
@@ -728,8 +741,7 @@ export default function DayComments(props: {
     // localStorage would let results for a regenerated day's old picks unlock it.
     // Readonly (archive) views and anonymous visitors are exempt from this gate.
     if (!readOnly && isSignedIn === true && totalRounds !== undefined && latestRound !== undefined && latest) {
-        const isComplete = results !== undefined && Object.keys(results).length >= totalRounds;
-        if (!isComplete) return null;
+        if (!isDayComplete(results, totalRounds)) return null;
     }
 
     const commentCount = data?.length ?? 0;
