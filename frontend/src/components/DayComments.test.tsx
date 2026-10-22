@@ -97,6 +97,14 @@ describe('insertMentionIntoBody', () => {
         expect(insertMentionIntoBody('hi @al there', 12, snippet, 1000)).toBeNull();
     });
 
+    it('consumes the rest of the token when the caret sits inside it', () => {
+        // Picking a suggestion after ArrowLeft left the tail of the typed name behind:
+        // "hi @ali" with the caret after "@al" became "hi [@Alice](...) li".
+        const result = insertMentionIntoBody('hi @ali', 5, snippet, 1000);
+
+        expect(result).toEqual({value: `hi ${snippet}`, caret: `hi ${snippet}`.length});
+    });
+
     it('leaves the text that follows the token intact', () => {
         const result = insertMentionIntoBody('hi @al and more', 6, snippet, 1000);
 
