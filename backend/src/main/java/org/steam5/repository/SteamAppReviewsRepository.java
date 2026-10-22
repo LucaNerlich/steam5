@@ -52,35 +52,6 @@ public interface SteamAppReviewsRepository extends JpaRepository<SteamAppReviews
     List<Long> findRandomAnyAppIds(@Param("sinceDate") LocalDate sinceDate,
                                    Pageable pageable);
 
-    /**
-     * Randomly selects eligible apps above a dynamic threshold.
-     * Uses NOT EXISTS anti-joins and limits ORDER BY random() to the eligible subset.
-     */
-    @Query(value = """
-            WITH eligible AS (
-                SELECT r.app_id
-                FROM steam_app_reviews r
-                WHERE (r.total_positive + r.total_negative) > :threshold
-                  AND NOT EXISTS (
-                      SELECT 1
-                      FROM review_game_pick p
-                      WHERE p.app_id = r.app_id
-                        AND p.pick_date >= :sinceDate
-                  )
-                  AND NOT EXISTS (
-                      SELECT 1
-                      FROM excluded_app x
-                      WHERE x.app_id = r.app_id
-                  )
-            )
-            SELECT app_id
-            FROM eligible
-            ORDER BY random()
-            LIMIT :#{#pageable.pageSize}
-            """, nativeQuery = true)
-    List<Long> findRandomAnyAppIds(@Param("sinceDate") LocalDate sinceDate,
-                                   @Param("threshold") int threshold,
-                                   Pageable pageable);
 
     @Query(value = "SELECT COALESCE(SUM(total_positive + total_negative), 0) FROM steam_app_reviews", nativeQuery = true)
     long sumTotalReviews();
