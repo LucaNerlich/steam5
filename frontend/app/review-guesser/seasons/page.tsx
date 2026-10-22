@@ -29,7 +29,7 @@ async function loadCurrentSeason(): Promise<CurrentSeasonResponse | null> {
 
 // null means "could not load", [] means "no finished seasons yet": the page must not tell
 // visitors the archive is empty during a partial backend failure.
-async function loadSeasons(): Promise<SeasonView[] | null> {
+export async function loadSeasons(): Promise<SeasonView[] | null> {
     try {
         const res = await fetch(`${backend}/api/seasons?limit=8`, {
             next: {revalidate: 600, tags: ["seasons-list"]}
