@@ -204,6 +204,8 @@ the backend's `/actuator/prometheus` endpoint over HTTP basic auth.
 
   ```bash
   cd monitoring
+  # The stack joins Coolify's external network for the in-network Postgres DSN.
+  docker network create coolify 2>/dev/null || true
   cp .env.example .env
   docker compose --env-file .env up -d
   ```
