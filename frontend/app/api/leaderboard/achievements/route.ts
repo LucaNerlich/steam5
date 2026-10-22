@@ -1,9 +1,6 @@
 import {NextRequest} from "next/server";
 import {proxyBackendJson} from "@/lib/backend";
 
-// Revalidate defaults to the shortest TTL (daily); per-fetch revalidate handles longer ones
-export const revalidate = 300;
-
 export async function GET(request: NextRequest) {
     const requested = (request.nextUrl.searchParams.get('timeframe') || 'all').toLowerCase();
     // The backend's "today" alias means daily; unknown values must not mint unbounded 24h keys.

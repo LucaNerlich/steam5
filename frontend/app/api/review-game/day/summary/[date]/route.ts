@@ -1,9 +1,6 @@
 import {NextRequest, NextResponse} from "next/server";
 import {BACKEND_ORIGIN, BACKEND_TIMEOUT_MS} from "@/lib/backend";
 
-export const revalidate = 300;
-
-
 export async function GET(req: NextRequest, {params}: { params: Promise<{ date: string }> }) {
     const {date} = await params;
     try {
@@ -23,5 +20,4 @@ export async function GET(req: NextRequest, {params}: { params: Promise<{ date: 
         return NextResponse.json([], {status: 502});
     }
 }
-
 
