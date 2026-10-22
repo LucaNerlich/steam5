@@ -6,7 +6,18 @@ import org.springframework.expression.Expression;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 
+import org.steam5.domain.Season;
+import org.steam5.service.SeasonService;
+
+import java.util.List;
+import java.util.Optional;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class SeasonControllerCacheKeyTest {
 
@@ -36,6 +47,25 @@ class SeasonControllerCacheKeyTest {
         assertEquals("1", expression.getValue(context, String.class));
         context.setVariable("seasonIdentifier", "+1");
         assertEquals("1", expression.getValue(context, String.class));
+    }
+
+    @Test
+    void awardsResolvesTheNumericSegmentAsASeasonNumber() {
+        final SeasonService seasonService = mock(SeasonService.class);
+        final SeasonResponseMapper mapper = mock(SeasonResponseMapper.class);
+        final Season byNumber = new Season();
+        byNumber.setId(7L);
+        final Season byId = new Season();
+        byId.setId(1L);
+        when(seasonService.findSeasonByNumber(1)).thenReturn(Optional.of(byNumber));
+        when(seasonService.findSeason(1L)).thenReturn(Optional.of(byId));
+        when(seasonService.listAwardsForSeason(7L)).thenReturn(List.of());
+        when(mapper.mapAwards(anyList())).thenReturn(List.of());
+
+        new SeasonController(seasonService, mapper).awards("1");
+
+        verify(seasonService).listAwardsForSeason(7L);
+        verify(seasonService, never()).listAwardsForSeason(1L);
     }
 
     @Test
