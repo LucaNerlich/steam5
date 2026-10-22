@@ -15,7 +15,10 @@ import ImprovementTrend from "./performance/ImprovementTrend";
 import BiasBadge from "./performance/BiasBadge";
 import BucketCallouts from "./performance/BucketCallouts";
 
-export default function PerformanceSection({rounds}: { rounds: FlatRound[] }): React.ReactElement | null {
+export default function PerformanceSection({rounds, globalHitRate = null}: {
+    rounds: FlatRound[];
+    globalHitRate?: number | null;
+}): React.ReactElement | null {
     if (rounds.length === 0) return null;
 
     return (
@@ -28,7 +31,7 @@ export default function PerformanceSection({rounds}: { rounds: FlatRound[] }): R
                 <RollingHitRateSpark rounds={rounds} />
                 <StreaksCard rounds={rounds} />
                 <BucketAccuracyBars rounds={rounds} />
-                <HitRateVsAverageCard rounds={rounds} />
+                <HitRateVsAverageCard rounds={rounds} globalHitRate={globalHitRate} />
                 <RoundPositionChart rounds={rounds} />
                 <DayOfWeekChart rounds={rounds} />
                 <ImprovementTrend rounds={rounds} />

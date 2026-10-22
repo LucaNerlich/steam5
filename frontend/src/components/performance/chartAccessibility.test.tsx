@@ -48,13 +48,24 @@ describe('performance charts expose their values', () => {
         const html = renderToStaticMarkup(
             <HitRateVsAverageCard rounds={[
                 {selectedBucket: '1-100', actualBucket: '1-100', date: STALE},
-            ]}/>,
+            ]} globalHitRate={null}/>,
         );
 
         expect(html).toContain('aria-label="Hit rate vs average: yours no data, global no data"');
         expect(html).toContain('No data');
     });
 
+
+    it('HitRateVsAverageCard renders the supplied global rate instead of fetching it', () => {
+        const html = renderToStaticMarkup(
+            <HitRateVsAverageCard rounds={[
+                {selectedBucket: '1-100', actualBucket: '1-100', date: STALE},
+            ]} globalHitRate={62}/>,
+        );
+
+        expect(html).toContain('global 62%');
+        expect(html).not.toContain('global no data');
+    });
     it('RollingHitRateSpark shows the no-data branch for an empty recent window', () => {
         const html = renderToStaticMarkup(
             <RollingHitRateSpark rounds={[
