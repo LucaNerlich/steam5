@@ -1,4 +1,4 @@
-import {describe, expect, it} from 'vitest';
+import {describe, expect, it, vi} from 'vitest';
 import {renderToStaticMarkup} from 'react-dom/server';
 import BucketAccuracyBars from './BucketAccuracyBars';
 import HitRateVsAverageCard from './HitRateVsAverageCard';
@@ -79,6 +79,19 @@ describe('performance charts expose their values', () => {
         expect(html).toContain('<circle');
     });
 
+
+    it('CalendarHeatmap does not paint days after today', () => {
+        // The grid always emits 371 cells; the trailing ones used to render as "No play".
+        vi.useFakeTimers({now: new Date('2026-10-21T12:00:00Z')});
+        try {
+            const html = renderToStaticMarkup(<CalendarHeatmap rounds={[]}/>);
+
+            expect(html).toContain('2026-10-21');
+            expect(html).not.toContain('2026-10-22');
+        } finally {
+            vi.useRealTimers();
+        }
+    });
     it('CalendarHeatmap names the best day without an unweighted daily average', () => {
         const today = new Date().toISOString().slice(0, 10);
         const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
