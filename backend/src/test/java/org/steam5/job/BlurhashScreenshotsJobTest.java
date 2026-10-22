@@ -25,9 +25,11 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -43,6 +45,7 @@ class BlurhashScreenshotsJobTest {
 
     private static final String CURSOR_ID = "blurhash_screenshots";
 
+    private BlurhashService service;
     private ScreenshotRepository screenshotRepository;
     private IngestStateRepository ingestStateRepository;
     private JobsConfig.Blurhash blurhashConfig;
@@ -50,7 +53,7 @@ class BlurhashScreenshotsJobTest {
 
     @BeforeEach
     void setUp() {
-        final BlurhashService service = mock(BlurhashService.class);
+        service = mock(BlurhashService.class);
         screenshotRepository = mock(ScreenshotRepository.class);
         final DomainCacheEvictor cacheEvictor = mock(DomainCacheEvictor.class);
         final JobsConfig jobsConfig = mock(JobsConfig.class);
@@ -147,6 +150,19 @@ class BlurhashScreenshotsJobTest {
                 "a completed run must not report a truncated batch: " + messages(logs));
     }
 
+    @Test
+    void targetedRun_failsWhenTheEncodedRowCannotBeSaved() throws Exception {
+        when(service.readAndEncode(anyString(), any())).thenReturn(new BlurhashService.Encoded("hash", null));
+        final Screenshot shot = mock(Screenshot.class);
+        when(shot.getPathThumbnail()).thenReturn("https://cdn/thumb.jpg");
+        when(shot.getPathFull()).thenReturn("https://cdn/full.jpg");
+        when(screenshotRepository.findMissingForApp(42L)).thenReturn(List.of(shot));
+        when(screenshotRepository.save(any())).thenThrow(new RuntimeException("boom"));
+
+        // A failed write must fail the job, not report an encode that was never persisted.
+        assertThrows(org.quartz.JobExecutionException.class, () -> job.execute(contextWithAppId(42L)));
+    }
+
     private static ListAppender<ILoggingEvent> attachJobLogCapture() {
         final ListAppender<ILoggingEvent> appender = new ListAppender<>();
         appender.start();
@@ -174,6 +190,14 @@ class BlurhashScreenshotsJobTest {
         final Screenshot screenshot = mock(Screenshot.class);
         when(screenshot.getId()).thenReturn(id);
         return screenshot;
+    }
+
+    private static JobExecutionContext contextWithAppId(long appId) {
+        final JobExecutionContext context = mock(JobExecutionContext.class);
+        final JobDataMap map = new JobDataMap();
+        map.put("appId", appId);
+        when(context.getMergedJobDataMap()).thenReturn(map);
+        return context;
     }
 
     /** A context with no {@code appId}, i.e. the full-run path. */

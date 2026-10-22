@@ -57,18 +57,14 @@ public class BlurhashScreenshotsJob implements Job {
      */
     int encodeForApp(Long appId) {
         int scanned = 0, encoded = 0, failed = 0;
-        try {
-            final List<Screenshot> list = screenshotRepository.findMissingForApp(appId);
-            for (Screenshot s : list) {
-                scanned++;
-                final Counters c = handleScreenshot(s);
-                encoded += c.encoded;
-                failed += c.failed;
-            }
-            log.info("Blurhash immediate finished for appId={} scanned={} encoded={} failed={}", appId, scanned, encoded, failed);
-        } catch (Exception e) {
-            log.warn("Blurhash immediate failed for appId={} err={}", appId, e.toString());
+        final List<Screenshot> list = screenshotRepository.findMissingForApp(appId);
+        for (Screenshot s : list) {
+            scanned++;
+            final Counters c = handleScreenshot(s);
+            encoded += c.encoded;
+            failed += c.failed;
         }
+        log.info("Blurhash immediate finished for appId={} scanned={} encoded={} failed={}", appId, scanned, encoded, failed);
         return encoded;
     }
 
@@ -87,7 +83,7 @@ public class BlurhashScreenshotsJob implements Job {
                     }
                     log.info("Targeted BlurhashScreenshotsJob finished for appId={} encoded={}", appId, encoded);
                 } catch (Exception e) {
-                    log.warn("Targeted BlurhashScreenshotsJob failed for appId {}", appId, e);
+                    throw new JobExecutionException(e, false);
                 }
                 return;
             }
@@ -194,7 +190,7 @@ public class BlurhashScreenshotsJob implements Job {
      */
     private Counters handleScreenshot(Screenshot screenshot) {
         final Counters counters = new Counters();
-        boolean changed = false;
+        int encoded = 0;
 
         // thumb
         if ((screenshot.getBlurhashThumb() == null || screenshot.getBlurhashThumb().isBlank()) && screenshot.getPathThumbnail() != null && !screenshot.getPathThumbnail().isBlank()) {
@@ -204,29 +200,26 @@ public class BlurhashScreenshotsJob implements Job {
             } else {
                 screenshot.setBlurhashThumb(enc.hash());
                 if (enc.dataUrl() != null) screenshot.setBlurdataThumb(enc.dataUrl());
-                counters.encoded++;
-                changed = true;
+                encoded++;
             }
         }
 
         // full
         if ((screenshot.getBlurhashFull() == null || screenshot.getBlurhashFull().isBlank()) && screenshot.getPathFull() != null && !screenshot.getPathFull().isBlank()) {
-            final BlurhashService.Encoded encoded = service.readAndEncode(screenshot.getPathFull(), BlurhashService.Type.FULL);
-            if (encoded == null) {
+            final BlurhashService.Encoded enc = service.readAndEncode(screenshot.getPathFull(), BlurhashService.Type.FULL);
+            if (enc == null) {
                 counters.failed++;
             } else {
-                screenshot.setBlurhashFull(encoded.hash());
-                if (encoded.dataUrl() != null) screenshot.setBlurdataFull(encoded.dataUrl());
-                counters.encoded++;
-                changed = true;
+                screenshot.setBlurhashFull(enc.hash());
+                if (enc.dataUrl() != null) screenshot.setBlurdataFull(enc.dataUrl());
+                encoded++;
             }
         }
-        if (changed) {
-            try {
-                screenshotRepository.save(screenshot);
-            } catch (Exception e) {
-                log.warn("Failed to save blurhash for screenshot id={}: {}", screenshot.getId(), e.getMessage());
-            }
+        if (encoded > 0) {
+            // Save before reporting success: a failed write must fail the job, not log a hash
+            // that was never persisted.
+            screenshotRepository.save(screenshot);
+            counters.encoded = encoded;
         }
         return counters;
     }
