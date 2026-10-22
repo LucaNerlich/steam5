@@ -7,6 +7,7 @@ import PlayerSpotlight from "@/components/PlayerSpotlight";
 import ReviewGuesserRound from "@/components/ReviewGuesserRound";
 import {notFound} from "next/navigation";
 import {BACKEND_ORIGIN as backend, BACKEND_TIMEOUT_MS } from "@/lib/backend";
+import {parseRoundIndex} from "@/lib/roundRoute";
 
 export const revalidate = 60;
 

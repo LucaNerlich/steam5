@@ -180,7 +180,6 @@ public class ReviewGameStateControllerGuessTest {
         when(service.generateDailyPicks()).thenReturn(List.of(recorded));
         when(service.getTotalReviewCountForApp(LIVE_APP_ID)).thenReturn(500);
         when(service.inferBucket(500)).thenReturn("1-100");
-        when(userRepository.existsById("u1")).thenReturn(true);
         when(guessRepository.findBySteamIdAndGameDateAndRoundIndex("u1", LocalDate.now(), 1))
                 .thenReturn(Optional.empty());
 
