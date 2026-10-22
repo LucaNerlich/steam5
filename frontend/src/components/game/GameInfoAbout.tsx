@@ -60,6 +60,9 @@ function isSafeUrl(url: string): boolean {
 function parseAboutHtml(html: string): ReturnType<typeof parse> {
     const options: HTMLReactParserOptions = {
         replace: (node: DOMNode) => {
+            // htmlparser2 gives <script>/<style> their own node types, so the allowlist
+            // branch below never saw them and the default renderer emitted both verbatim.
+            if (node.type === "script" || node.type === "style") return <></>;
             if (!isElement(node)) return undefined;
             const el: Element = node;
             if (el.name === "img") {
