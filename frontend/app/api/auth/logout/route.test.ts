@@ -39,6 +39,24 @@ describe('POST', () => {
         expect(response.cookies.get('s5_token')?.value).toBe('');
     });
 
+    it('relays the client IP on the token revocation call', async () => {
+        vi.stubEnv('NEXT_PUBLIC_API_DOMAIN', 'https://api.example.com');
+        vi.mocked(fetch).mockResolvedValue(new Response(null, {status: 200}));
+        const request = new NextRequest('https://steam5.org/api/auth/logout', {
+            method: 'POST',
+            headers: {
+                cookie: 's5_token=secret-token',
+                origin: 'https://steam5.org',
+                'x-forwarded-for': '203.0.113.7',
+            },
+        });
+
+        await POST(request);
+
+        const [, init] = vi.mocked(fetch).mock.calls[0];
+        expect((init?.headers as Record<string, string>)['x-forwarded-for']).toBe('203.0.113.7');
+    });
+
     it('rejects a cross-site logout before touching the session', async () => {
         vi.spyOn(console, 'error').mockImplementation(() => undefined);
         const request = new NextRequest('https://steam5.org/api/auth/logout', {
