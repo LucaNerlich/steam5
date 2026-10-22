@@ -1,11 +1,12 @@
 import {cache} from "react";
 import Link from "next/link";
-import {BACKEND_ORIGIN} from "@/lib/backend";
+import {BACKEND_ORIGIN, BACKEND_TIMEOUT_MS} from "@/lib/backend";
 import {Routes} from "../../app/routes";
 
 const getSeasonCountdown = cache(async () => {
     const res = await fetch(`${BACKEND_ORIGIN}/api/seasons/current`, {
-        next: {revalidate: 900, tags: ["season-current"]}
+        next: {revalidate: 900, tags: ["season-current"]},
+        signal: AbortSignal.timeout(BACKEND_TIMEOUT_MS),
     });
     if (!res.ok) return null;
     const data = await res.json() as {

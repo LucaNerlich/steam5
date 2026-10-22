@@ -181,6 +181,8 @@ describe('submitGuessAction without a session cookie (anonymous)', () => {
         const [url, init] = fetchMock.mock.calls[1];
         expect(url).toBe(`${BACKEND}/api/review-game/guess`);
         expect((init.headers as Record<string, string>).authorization).toBeUndefined();
+        // Every server-side backend call is bounded, including this one.
+        expect(init.signal).toBeInstanceOf(AbortSignal);
         expect(res).toEqual({ok: true, appId: 10, response: okBody, persisted: false});
     });
 

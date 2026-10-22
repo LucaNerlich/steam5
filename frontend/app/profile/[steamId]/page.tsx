@@ -5,7 +5,7 @@ import "@/styles/components/profile.css";
 import PerformanceSection from "@/components/PerformanceSection";
 import {formatDate, ordinal, placementTier} from "@/lib/format";
 import {flattenDayRounds} from "@/lib/rounds";
-import {BACKEND_ORIGIN as backend} from "@/lib/backend";
+import {BACKEND_ORIGIN as backend, BACKEND_TIMEOUT_MS } from "@/lib/backend";
 import {formatAwardMetric} from "@/lib/seasons";
 import {INSIGHT_EMOJI, type InsightType} from "@/lib/insights";
 
@@ -57,7 +57,7 @@ type ProfileResponse = {
 
 export default async function ProfilePage({params}: { params: { steamId: string } }) {
     const {steamId} = await params;
-    const res = await fetch(`${backend}/api/profile/${encodeURIComponent(steamId)}`, { next: { revalidate: 300, tags: [
+    const res = await fetch(`${backend}/api/profile/${encodeURIComponent(steamId)}`, { signal: AbortSignal.timeout(BACKEND_TIMEOUT_MS), next: { revalidate: 300, tags: [
                 `profile:${steamId}`
             ] } });
     if (res.status === 404) return notFound();
@@ -281,7 +281,7 @@ export async function generateMetadata({params}: { params: { steamId: string } }
     const {steamId} = await params;
     let name: string = steamId;
     try {
-        const res = await fetch(`${backend}/api/profile/${encodeURIComponent(steamId)}`, { next: { revalidate: 300 } });
+        const res = await fetch(`${backend}/api/profile/${encodeURIComponent(steamId)}`, { signal: AbortSignal.timeout(BACKEND_TIMEOUT_MS), next: { revalidate: 300 } });
         if (res.ok) {
             const data = await res.json() as ProfileResponse;
             name = data.personaName && data.personaName.trim() ? data.personaName : steamId;

@@ -6,7 +6,7 @@ import {groupAwardsByCategory, formatAwardMetric, rankClassName} from "@/lib/sea
 import type {SeasonView} from "@/types/seasons";
 import "@/styles/components/seasons.css";
 import {Routes} from "../../routes";
-import {BACKEND_ORIGIN as backend} from "@/lib/backend";
+import {BACKEND_ORIGIN as backend, BACKEND_TIMEOUT_MS } from "@/lib/backend";
 
 type CurrentSeasonResponse = {
     season: SeasonView;
@@ -18,6 +18,7 @@ type CurrentSeasonResponse = {
 async function loadCurrentSeason(): Promise<CurrentSeasonResponse | null> {
     try {
         const res = await fetch(`${backend}/api/seasons/current`, {
+            signal: AbortSignal.timeout(BACKEND_TIMEOUT_MS),
             next: {revalidate: 300, tags: ["seasons-current"]}
         });
         if (!res.ok) return null;
@@ -30,6 +31,7 @@ async function loadCurrentSeason(): Promise<CurrentSeasonResponse | null> {
 async function loadSeasons(): Promise<SeasonView[]> {
     try {
         const res = await fetch(`${backend}/api/seasons?limit=8`, {
+            signal: AbortSignal.timeout(BACKEND_TIMEOUT_MS),
             next: {revalidate: 600, tags: ["seasons-list"]}
         });
         if (!res.ok) return [];

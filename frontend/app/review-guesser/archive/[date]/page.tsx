@@ -12,12 +12,13 @@ import "@/styles/components/archive.css";
 import GameInfoSection from "@/components/GameInfoSection";
 import React from "react";
 import {Routes} from "../../../routes";
-import {BACKEND_ORIGIN as backend} from "@/lib/backend";
+import {BACKEND_ORIGIN as backend, BACKEND_TIMEOUT_MS } from "@/lib/backend";
 
 export const revalidate = 31536000;
 
 export async function loadArchived(date: string): Promise<ReviewGameState | null> {
     const res = await fetch(`${backend}/api/review-game/day/${encodeURIComponent(date)}`, {
+        signal: AbortSignal.timeout(BACKEND_TIMEOUT_MS),
         headers: {"accept": "application/json"},
         next: {revalidate: 31536000},
     });
@@ -39,6 +40,7 @@ async function loadAnswers(date: string): Promise<Record<number, {
     // expose a live day's results.
     try {
         const res = await fetch(`${backend}/api/review-game/day/${encodeURIComponent(date)}/answers`, {
+            signal: AbortSignal.timeout(BACKEND_TIMEOUT_MS),
             headers: {'accept': 'application/json'},
             next: {revalidate: 31536000},
         });
@@ -126,6 +128,7 @@ export async function generateMetadata({params}: { params: Promise<{ date: strin
     let ogUrl = '/og';
     try {
         const day: ReviewGameState | null = await fetch(`${backend}/api/review-game/day/${encodeURIComponent(date)}`, {
+            signal: AbortSignal.timeout(BACKEND_TIMEOUT_MS),
             headers: { 'accept': 'application/json' },
             next: { revalidate: 31536000 }
         }).then(r => r.ok ? r.json() : null);

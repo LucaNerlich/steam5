@@ -1,6 +1,6 @@
 import type {ReactNode} from "react";
 import {RoundPresenceProvider} from "@/contexts/RoundPresenceContext";
-import {BACKEND_ORIGIN as backend} from "@/lib/backend";
+import {BACKEND_ORIGIN as backend, BACKEND_TIMEOUT_MS } from "@/lib/backend";
 
 export const revalidate = 60;
 
@@ -12,6 +12,7 @@ export const revalidate = 60;
 async function loadTodayDate(): Promise<string | null> {
     try {
         const res = await fetch(`${backend}/api/review-game/today`, {
+            signal: AbortSignal.timeout(BACKEND_TIMEOUT_MS),
             headers: {"accept": "application/json"},
             next: {revalidate: 60, tags: ["round-today"]},
         });
