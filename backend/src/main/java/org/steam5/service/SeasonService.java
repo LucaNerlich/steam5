@@ -173,7 +173,7 @@ public class SeasonService {
     }
 
     @Transactional
-    @CacheEvict(value = {"season-current-response", "season-list-response", "season-detail-response"}, allEntries = true)
+    @CacheEvict(value = {"season-current-response", "season-list-response", "season-awards-response", "season-detail-response"}, allEntries = true)
     public List<Season> backfillHistoricalSeasons() {
         final Optional<LocalDate> earliestOpt = guessRepository.findEarliestGameDate();
         if (earliestOpt.isEmpty()) {
@@ -186,7 +186,7 @@ public class SeasonService {
     }
 
     @Transactional
-    @CacheEvict(value = {"season-current-response", "season-list-response", "season-detail-response"}, allEntries = true)
+    @CacheEvict(value = {"season-current-response", "season-list-response", "season-awards-response", "season-detail-response"}, allEntries = true)
     public List<Season> backfillRange(LocalDate startInclusive, LocalDate endInclusive) {
         if (startInclusive == null || endInclusive == null) {
             throw new IllegalArgumentException("startDate and endDate must be provided");
