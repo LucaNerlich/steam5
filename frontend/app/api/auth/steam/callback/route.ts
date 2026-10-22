@@ -1,6 +1,7 @@
 import {revalidatePath, revalidateTag} from 'next/cache';
 import {NextRequest, NextResponse} from "next/server";
 import {BACKEND_ORIGIN, forwardedForHeaders} from "@/lib/backend";
+import {allowedBackendOrigin} from "@/lib/requestOrigin";
 
 
 /** Trusted public origin of this site; never derived from client-supplied headers. */
@@ -45,8 +46,19 @@ export async function GET(req: NextRequest) {
         return resp;
     }
 
+    // This is the one route that RECEIVES the session JWT, so it must obey the same
+    // trusted-origin policy the bearer routes use: a plain-http backend that is not
+    // allow-listed must not get the token in cleartext.
+    const verifyOrigin = allowedBackendOrigin(BACKEND_ORIGIN);
+    if (!verifyOrigin) {
+        console.error('[steam5] refusing to exchange the login ticket over an untrusted backend origin');
+        const resp = NextResponse.redirect(new URL('/review-guesser/1?auth=failed', base));
+        clearStateCookie(resp, base);
+        return resp;
+    }
+
     const qs = url.searchParams.toString();
-    const verifyUrl = `${BACKEND_ORIGIN}/api/auth/steam/callback${qs ? `?${qs}` : ''}`;
+    const verifyUrl = `${verifyOrigin}/api/auth/steam/callback${qs ? `?${qs}` : ''}`;
 
     try {
         // The backend verifies the OpenID ticket against Steam's API, so this is
