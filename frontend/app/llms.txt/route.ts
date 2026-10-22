@@ -5,9 +5,9 @@ export function GET() {
 
 > Daily Steam review guessing game — guess review counts for five Steam games each day, climb leaderboards, and share your results.
 
-Steam5 presents five randomly selected Steam games per day. Players guess each game's total review count bucket, earning points for accuracy and speed. The site features daily, weekly, and seasonal leaderboards, player profiles with performance statistics, and an archive of past rounds.
+Steam5 presents five randomly selected Steam games per day. Players guess each game's total review count bucket: an exact match scores 5 points, off by one bucket 3, off by two 1. The site features daily, weekly, and seasonal leaderboards, player profiles with performance statistics, and an archive of past rounds.
 
-The project is open source (AGPL) and built with Next.js 15 (frontend) and Spring Boot 3.5 (backend).
+The project is open source (AGPL) and built with Next.js 16 (frontend) and Spring Boot 4 (backend).
 
 ## Main pages
 
