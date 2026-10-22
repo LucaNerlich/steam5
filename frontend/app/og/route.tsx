@@ -110,14 +110,23 @@ export async function GET(req: Request): Promise<ImageResponse> {
             subtitle = "Profile — Review Guesser";
             avatarSrc = sanitizeAvatarUrl(profile.avatar);
             primary = pickAccent(profile.steamId);
-            const totalPct = leaders ? percentileRank(profile.stats.totalPoints, leaders.map(l => l.totalPoints)) : 100;
-            const avgPct = leaders ? percentileRank(profile.stats.avgPoints, leaders.map(l => l.avgPoints)) : 100;
-            badge = rankBadge(totalPct);
+            // A missing leaderboard means "unknown", not "worst": percentileRank returns
+            // 100 for an empty list, which used to render Rookie / Top 100%.
+            const totalPct = leaders && leaders.length > 0
+                ? percentileRank(profile.stats.totalPoints, leaders.map(l => l.totalPoints))
+                : null;
+            const avgPct = leaders && leaders.length > 0
+                ? percentileRank(profile.stats.avgPoints, leaders.map(l => l.avgPoints))
+                : null;
+            badge = totalPct === null ? null : rankBadge(totalPct);
             statsLines = [
                 { label: "Total Points", value: String(profile.stats.totalPoints) },
-                { label: "Avg Points", value: profile.stats.avgPoints.toFixed(2) + ` · Top ${avgPct}%` },
+                {
+                    label: "Avg Points",
+                    value: profile.stats.avgPoints.toFixed(2) + (avgPct === null ? "" : ` · Top ${avgPct}%`),
+                },
                 { label: "Rounds", value: String(profile.stats.rounds) },
-                { label: "Top Rank", value: `Top ${totalPct}%` },
+                ...(totalPct === null ? [] : [{ label: "Top Rank", value: `Top ${totalPct}%` }]),
             ];
             // days are newest-first; the box says "Recent", so take the head and skip
             // today's still-ungraded rounds (the backend omits actualBucket for them).
