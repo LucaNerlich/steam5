@@ -2,6 +2,37 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.20.5] - 2026-10-22
+
+### Fixed
+
+- Graded a guess from the answer recorded on the pick, so a later Steam review-count refresh can no longer score a round against a different bucket than the one its result and the archive show
+- Stopped "Reset all archive progress" from deleting today's live results, and kept the current day out of archive resets
+- Let comment lists follow the route's own Cache-Control again: archived comments no longer linger past the freshness window, and live lists keep their 30-second window
+- Reported a failed seasons list as an error instead of "No completed seasons yet", and kept the last leaderboard table when a refresh fails
+- Treated a missing Steam price as unknown instead of "Free to play"
+- Rejected zero-padded round URLs like `/01` instead of silently rendering round 1
+- Stopped the activity heatmap from marking days that have not happened yet as "No play"
+- Kept the perfect-days "last updated" time out of the prerendered HTML, removing the hydration mismatch for visitors outside the server's timezone
+- Redirected logout with 303, so reload or Back no longer replays the logout POST
+- Showed a real message when a reaction is rejected, for example by the rate limit, instead of silently doing nothing
+- Bounded the footer, how-to-play, OG, page and action fetches so a stalled backend fails in ten seconds, and sized the profile rate limit for the Next server's shared bucket
+- Pruned presence sessions that exceed the send limit, serialized the per-IP counter, clamped over-long Steam app names so one bad row cannot wedge the ingest cursor, and applied the Steam response cap on the error path
+
+### Changed
+
+- Saved an app-list page in one transaction instead of one per app, bounded the leaderboard streak query to 400 days, and computed the global hit rate on the server instead of downloading the whole board per profile view
+- Made user writes column-scoped and removed the merge-based bootstrap, so a concurrent login can no longer undo a logout
+- Rejected unknown achievement timeframes with 400 and removed the inert `@Validated` annotations
+- Bound the CORS allow-list to `CORS_ALLOWED_ORIGINS`, failing fast on an empty value
+- Removed dead code: job lifecycle logging now lives in one Quartz listener, and unused props, SWR cache surgery, badge state and backend sample payloads are gone
+
+### Security
+
+- Rejected script and style nodes in the Steam about-HTML allowlist, closing a stored-XSS gap
+- Extended the SSRF guard to NAT64 and 6to4 literals, including the RFC 8215 local-use prefix
+- Gated the Steam login callback's token exchange on the trusted-origin policy
+
 ## [1.20.4] - 2026-10-21
 
 ### Fixed
