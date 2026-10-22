@@ -3,6 +3,8 @@ package org.steam5.service;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.SimpleTransactionStatus;
 import org.steam5.config.JobsConfig;
 import org.steam5.config.SteamAppsConfig;
 import org.steam5.domain.SteamAppIndex;
@@ -16,8 +18,10 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -33,8 +37,14 @@ class SteamAppListFetcherTest {
     private final IngestStateRepository ingestStateRepository = mock(IngestStateRepository.class);
     private final SteamAppIndexRepository appIndexRepository = mock(SteamAppIndexRepository.class);
     private final JobsConfig jobsConfig = new JobsConfig();
+    private final PlatformTransactionManager transactionManager = mock(PlatformTransactionManager.class);
     private final SteamAppListFetcher fetcher = new SteamAppListFetcher(
-            properties, appIndexRepository, ingestStateRepository, jsonHttpClient, jobsConfig);
+            properties, appIndexRepository, ingestStateRepository, jsonHttpClient, jobsConfig, transactionManager);
+
+    @org.junit.jupiter.api.BeforeEach
+    void setUp() {
+        when(transactionManager.getTransaction(any())).thenReturn(new SimpleTransactionStatus());
+    }
 
     @Test
     void clampsAnOversizedNameAndAdvancesTheCursorPastARejectedRow() throws Exception {
@@ -47,6 +57,8 @@ class SteamAppListFetcherTest {
                  "have_more_results":false,"last_appid":2}}
                 """.formatted(longName));
         when(jsonHttpClient.getJson(any())).thenReturn(page);
+        // The page batch is rejected, so the per-row fallback must still advance the cursor.
+        when(appIndexRepository.saveAll(anyList())).thenThrow(new DataIntegrityViolationException("row rejected"));
         when(appIndexRepository.save(any()))
                 .thenThrow(new DataIntegrityViolationException("row rejected"))
                 .thenReturn(null);
@@ -57,6 +69,24 @@ class SteamAppListFetcherTest {
         verify(appIndexRepository, times(2)).save(saved.capture());
         assertEquals(255, saved.getAllValues().get(0).getName().length(),
                 "an over-long Steam name must be clamped to the column width");
+        verify(ingestStateRepository).upsert(eq("steam_app_list"), eq(2L), any());
+    }
+
+    @Test
+    void savesThePageInOneBatch() throws Exception {
+        when(properties.getApiKey()).thenReturn("key");
+        when(properties.getApiUrl()).thenReturn("https://example.test/");
+        when(ingestStateRepository.findById("steam_app_list")).thenReturn(Optional.empty());
+        final JsonNode page = new ObjectMapper().readTree("""
+                {"response":{"apps":[{"appid":1,"name":"a"},{"appid":2,"name":"b"}],
+                 "have_more_results":false,"last_appid":2}}
+                """);
+        when(jsonHttpClient.getJson(any())).thenReturn(page);
+
+        fetcher.ingest();
+
+        verify(appIndexRepository).saveAll(anyList());
+        verify(appIndexRepository, never()).save(any());
         verify(ingestStateRepository).upsert(eq("steam_app_list"), eq(2L), any());
     }
 }
