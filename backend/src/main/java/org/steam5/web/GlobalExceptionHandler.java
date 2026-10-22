@@ -22,8 +22,10 @@ import org.steam5.http.ReviewGameException;
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
-    // Thrown when a @Validated controller's @RequestParam/@PathVariable (e.g. @Size) fails.
-    // Without this, the generic Exception handler below would catch it first and return 500 —
+    // Thrown when a @RequestParam/@PathVariable constraint (e.g. @Size) fails. Do not put
+    // @Validated on the controller: that routes method validation through an AOP proxy and
+    // throws ConstraintViolationException, which this handler does not map, so a client error
+    // would fall through to the generic Exception handler below and become a 500.
     // Spring's own default 400 handling for this ErrorResponse-implementing exception only
     // kicks in when no @ExceptionHandler in the app matches, and our Exception.class handler
     // always matches.

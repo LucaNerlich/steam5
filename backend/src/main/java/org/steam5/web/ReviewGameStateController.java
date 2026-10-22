@@ -8,7 +8,6 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.steam5.domain.GameDate;
 import org.steam5.domain.ReviewGamePick;
@@ -48,7 +47,6 @@ import java.util.regex.Pattern;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/review-game")
-@Validated
 public class ReviewGameStateController {
 
     private final ReviewGameStateService service;

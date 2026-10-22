@@ -4,7 +4,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -21,8 +20,9 @@ import java.util.Map;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/stats")
-@Validated
 public class StatisticsController {
+
+    private static final String ACHIEVEMENTS_HOUR = "public, s-maxage=3600, max-age=600";
 
     private final StatisticsService statisticsService;
     private final PlayerSpotlightService playerSpotlightService;
@@ -81,25 +81,33 @@ public class StatisticsController {
     @GetMapping(value = "/users/achievements", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<StatisticsService.UserLabel>> userAchievements(
             @RequestParam(name = "timeframe", defaultValue = "all") String timeframe) {
-        final List<StatisticsService.UserLabel> result = switch (timeframe.toLowerCase()) {
-            case "season" -> statisticsService.getUserAchievementsSeason();
-            case "monthly" -> statisticsService.getUserAchievementsMonthly();
-            case "weekly" -> statisticsService.getUserAchievementsWeekly();
-            case "daily", "today" -> statisticsService.getUserAchievementsDaily();
-            default -> statisticsService.getUserAchievements();
+        final StatisticsService.Timeframe window = switch (timeframe.toLowerCase()) {
+            case "all", "alltime", "all-time" -> StatisticsService.Timeframe.ALL_TIME;
+            case "season" -> StatisticsService.Timeframe.SEASON;
+            case "monthly" -> StatisticsService.Timeframe.MONTHLY;
+            case "weekly" -> StatisticsService.Timeframe.WEEKLY;
+            case "daily", "today" -> StatisticsService.Timeframe.DAILY;
+            default -> null;
         };
-
-        final String cacheControl = switch (timeframe.toLowerCase()) {
-            case "season" -> "public, s-maxage=3600, max-age=600";  // 1 hour server, 10 min client
-            case "monthly" -> "public, s-maxage=3600, max-age=600";  // 1 hour server, 10 min client
-            case "weekly" -> "public, s-maxage=3600, max-age=600";  // 1 hour server, 10 min client
-            case "daily", "today" -> "public, s-maxage=300, max-age=60";  // 5 min server, 1 min client
-            default -> "public, s-maxage=86400, max-age=3600";  // 1 day server, 1 hour client
+        if (window == null) {
+            return ResponseEntity.badRequest().build();
+        }
+        // One switch decides both the data and its freshness: a second switch over the same
+        // labels let an unknown timeframe serve all-time data under the 1-day TTL.
+        final UserAchievementsWindow result = switch (window) {
+            case SEASON -> new UserAchievementsWindow(statisticsService.getUserAchievementsSeason(), ACHIEVEMENTS_HOUR);
+            case MONTHLY -> new UserAchievementsWindow(statisticsService.getUserAchievementsMonthly(), ACHIEVEMENTS_HOUR);
+            case WEEKLY -> new UserAchievementsWindow(statisticsService.getUserAchievementsWeekly(), ACHIEVEMENTS_HOUR);
+            case DAILY -> new UserAchievementsWindow(statisticsService.getUserAchievementsDaily(), "public, s-maxage=300, max-age=60");
+            case ALL_TIME -> new UserAchievementsWindow(statisticsService.getUserAchievements(), "public, s-maxage=86400, max-age=3600");
         };
 
         return ResponseEntity.ok()
-                .header("Cache-Control", cacheControl)
-                .body(result);
+                .header("Cache-Control", result.cacheControl())
+                .body(result.labels());
+    }
+
+    private record UserAchievementsWindow(List<StatisticsService.UserLabel> labels, String cacheControl) {
     }
 
     @GetMapping(value = "/game", produces = MediaType.APPLICATION_JSON_VALUE)
