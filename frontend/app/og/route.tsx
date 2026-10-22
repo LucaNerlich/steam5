@@ -2,7 +2,7 @@ import {ImageResponse} from "next/og";
 import {readFile} from "node:fs/promises";
 import {join} from "node:path";
 import {sanitizeAvatarUrl} from "@/lib/ogAvatar";
-import {BACKEND_TIMEOUT_MS} from "@/lib/backend";
+import {BACKEND_ORIGIN, BACKEND_TIMEOUT_MS} from "@/lib/backend";
 import {outcomeCounts, recentRounds} from "@/lib/rounds";
 import {genericCardLines} from "@/lib/seo";
 
@@ -43,8 +43,6 @@ export async function GET(req: Request): Promise<ImageResponse> {
     const variant = (url.searchParams.get("variant") || "profile").toLowerCase();
     const steamId = url.searchParams.get("steamId");
 
-    const backend = process.env.NEXT_PUBLIC_API_DOMAIN || "http://localhost:8080";
-
     const bg = "#0b1220";
     const panelBg = "#0f172a";
     const panelBorder = "#1f2937";
@@ -62,7 +60,7 @@ export async function GET(req: Request): Promise<ImageResponse> {
 
     async function fetchProfile(id: string): Promise<ProfileResponse | null> {
         try {
-            const res = await fetch(`${backend}/api/profile/${encodeURIComponent(id)}`, { next: { revalidate: 300 }, signal: AbortSignal.timeout(BACKEND_TIMEOUT_MS) });
+            const res = await fetch(`${BACKEND_ORIGIN}/api/profile/${encodeURIComponent(id)}`, { next: { revalidate: 300 }, signal: AbortSignal.timeout(BACKEND_TIMEOUT_MS) });
             if (!res.ok) return null;
             return await res.json();
         } catch { return null; }
@@ -70,7 +68,7 @@ export async function GET(req: Request): Promise<ImageResponse> {
 
     async function fetchLeaders(): Promise<Leader[] | null> {
         try {
-            const res = await fetch(`${backend}/api/leaderboard`, { next: { revalidate: 300 }, signal: AbortSignal.timeout(BACKEND_TIMEOUT_MS) });
+            const res = await fetch(`${BACKEND_ORIGIN}/api/leaderboard`, { next: { revalidate: 300 }, signal: AbortSignal.timeout(BACKEND_TIMEOUT_MS) });
             if (!res.ok) return null;
             return await res.json();
         } catch { return null; }

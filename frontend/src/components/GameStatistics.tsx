@@ -4,6 +4,7 @@ import {formatDate} from '@/lib/format';
 import Link from 'next/link';
 import useSWR from 'swr';
 import '@/styles/components/game-statistics.css';
+import {BACKEND_ORIGIN} from '@/lib/backend';
 
 interface TopGameByReviews {
     appId: number;
@@ -34,14 +35,12 @@ const jsonFetcher = (url: string) => fetch(url, {headers: {'accept': 'applicatio
     return r.json();
 });
 
-const backend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
-
 export default function GameStatistics() {
     const {data: stats, isLoading: statsLoading} = useSWR<GameStatisticsData | null>(
         '/api/stats/game', jsonFetcher, {revalidateOnFocus: false}
     );
     const {data: picksData, isLoading: picksLoading} = useSWR<{totalPicks: number} | null>(
-        `${backend}/api/metrics/picks/summary`, jsonFetcher, {revalidateOnFocus: false}
+        `${BACKEND_ORIGIN}/api/metrics/picks/summary`, jsonFetcher, {revalidateOnFocus: false}
     );
     const totalRounds = picksData?.totalPicks ?? null;
     const loading = statsLoading || picksLoading;
