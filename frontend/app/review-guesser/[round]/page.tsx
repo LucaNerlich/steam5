@@ -10,17 +10,6 @@ import {BACKEND_ORIGIN as backend, BACKEND_TIMEOUT_MS } from "@/lib/backend";
 
 export const revalidate = 60;
 
-/**
- * Parses a round path segment. The complete string must be a positive safe
- * integer — partial matches like "1abc", "1.5", or "1e2" are rejected so
- * malformed URLs consistently 404 instead of silently becoming round 1.
- */
-function parseRoundIndex(round: string | undefined): number | null {
-    if (typeof round !== 'string' || !/^\d+$/.test(round)) return null;
-    const n = Number(round);
-    return Number.isSafeInteger(n) && n >= 1 ? n : null;
-}
-
 async function loadToday(): Promise<ReviewGameState> {
     const res = await fetch(`${backend}/api/review-game/today`, {
         signal: AbortSignal.timeout(BACKEND_TIMEOUT_MS),
