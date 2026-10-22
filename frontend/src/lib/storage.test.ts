@@ -77,11 +77,16 @@ describe('clearDay / clearAll', () => {
         expect(loadDay('2024-01-02')).not.toBeNull();
     });
 
-    it('clearAll removes every review-guesser entry but leaves unrelated keys', () => {
+    it('clearAll removes archived days, keeps today, and leaves unrelated keys', () => {
+        const today = new Date().toISOString().slice(0, 10);
         saveRound('2024-01-01', 1, 5, result);
         saveRound('2024-01-02', 1, 5, result);
+        saveRound(today, 1, 5, result);
         (globalThis as { localStorage: Storage }).localStorage.setItem('theme', 'dark');
         clearAll();
+        expect(loadDay('2024-01-01')).toBeNull();
+        expect(loadDay('2024-01-02')).toBeNull();
+        expect(loadDay(today)).not.toBeNull();
         expect(hasAny()).toBe(false);
         expect((globalThis as { localStorage: Storage }).localStorage.getItem('theme')).toBe('dark');
     });
