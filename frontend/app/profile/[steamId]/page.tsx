@@ -185,7 +185,7 @@ export default async function ProfilePage({params}: { params: { steamId: string 
                     )}
                 </section>
 
-                <PerformanceSection rounds={flattenDayRounds(allDays)} globalHitRate={globalHitRate} />
+                <PerformanceSection rounds={flattenDayRounds(allDays)} globalHitRate={globalHitRate} todayUtc={todayStr} />
 
                 <section aria-labelledby="days-title">
                     <h2 id="days-title">Review Guesser — Rounds by day</h2>

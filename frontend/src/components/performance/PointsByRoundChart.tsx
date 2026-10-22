@@ -18,10 +18,8 @@ function fmtDate(dateStr: string): string {
     });
 }
 
-function computeWindow(daysWindow: number) {
-    const now = new Date();
-    const todayStr = now.toISOString().slice(0, 10);
-    const cutoff = new Date(now);
+function computeWindow(daysWindow: number, todayStr: string) {
+    const cutoff = new Date(todayStr + "T00:00:00Z");
     cutoff.setDate(cutoff.getDate() - daysWindow);
     const cutoffStr = cutoff.toISOString().slice(0, 10);
     return {
@@ -42,10 +40,10 @@ function pointSummary(rounds: { points: number }[]): string {
     return `${rounds.length} rounds, average ${avg.toFixed(2)} pts, range ${Math.min(...pts)}-${Math.max(...pts)}`;
 }
 
-export default function PointsByRoundChart({rounds}: { rounds: Round[] }): React.ReactElement {
+export default function PointsByRoundChart({rounds, todayUtc}: { rounds: Round[]; todayUtc: string }): React.ReactElement {
     const DAYS_WINDOW = 30;
 
-    const {cutoffStr, startMs: windowStartMs, endMs: windowEndMs} = computeWindow(DAYS_WINDOW);
+    const {cutoffStr, startMs: windowStartMs, endMs: windowEndMs} = computeWindow(DAYS_WINDOW, todayUtc);
     const last = rounds.filter(r => r.date && r.date >= cutoffStr && r.points != null);
 
     const width = 600;

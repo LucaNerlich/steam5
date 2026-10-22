@@ -67,8 +67,10 @@ describe('performance charts expose their values', () => {
         expect(html).not.toContain('global no data');
     });
     it('RollingHitRateSpark shows the no-data branch for an empty recent window', () => {
+        const today = new Date().toISOString().slice(0, 10);
         const html = renderToStaticMarkup(
-            <RollingHitRateSpark rounds={[
+            <RollingHitRateSpark todayUtc={today}
+                rounds={[
                 {selectedBucket: '1-100', actualBucket: '1-100', date: STALE},
             ]}/>,
         );
@@ -80,7 +82,8 @@ describe('performance charts expose their values', () => {
     it('RollingHitRateSpark still names the measured values when the window has rounds', () => {
         const today = new Date().toISOString().slice(0, 10);
         const html = renderToStaticMarkup(
-            <RollingHitRateSpark rounds={[
+            <RollingHitRateSpark todayUtc={today}
+                rounds={[
                 {selectedBucket: '1-100', actualBucket: '1-100', date: today},
             ]}/>,
         );
@@ -95,7 +98,7 @@ describe('performance charts expose their values', () => {
         // The grid always emits 371 cells; the trailing ones used to render as "No play".
         vi.useFakeTimers({now: new Date('2026-10-21T12:00:00Z')});
         try {
-            const html = renderToStaticMarkup(<CalendarHeatmap rounds={[]}/>);
+            const html = renderToStaticMarkup(<CalendarHeatmap rounds={[]} todayUtc="2026-10-21"/>);
 
             expect(html).toContain('2026-10-21');
             expect(html).not.toContain('2026-10-22');
@@ -107,7 +110,7 @@ describe('performance charts expose their values', () => {
         const today = new Date().toISOString().slice(0, 10);
         const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
         const html = renderToStaticMarkup(
-            <CalendarHeatmap rounds={[
+            <CalendarHeatmap todayUtc={today} rounds={[
                 {date: today, points: 5},
                 {date: today, points: 5},
                 {date: yesterday, points: 1},
@@ -124,7 +127,7 @@ describe('performance charts expose their values', () => {
     it('CalendarHeatmap pluralises a single active day', () => {
         const today = new Date().toISOString().slice(0, 10);
         const html = renderToStaticMarkup(
-            <CalendarHeatmap rounds={[{date: today, points: 5}]}/>,
+            <CalendarHeatmap rounds={[{date: today, points: 5}]} todayUtc={today}/>,
         );
 
         expect(html).toContain('1 active day,');
