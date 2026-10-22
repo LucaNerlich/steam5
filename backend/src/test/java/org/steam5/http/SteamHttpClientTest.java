@@ -75,12 +75,14 @@ class SteamHttpClientTest {
     }
 
     @Test
-    void failingStatusIsClassifiedWithoutBufferingOrRetrying() throws Exception {
+    void failingStatusIsClassifiedInOneAttempt() throws Exception {
+        // The body is not copied into memory any more; Spring still drains it on close, so this
+        // test pins the classification and the single attempt, not the transfer.
         final AtomicInteger calls = new AtomicInteger();
         final HttpServer server = HttpServer.create(new InetSocketAddress(0), 0);
         server.createContext("/err", exchange -> {
             calls.incrementAndGet();
-            final byte[] body = new byte[4 * 1024 * 1024];
+            final byte[] body = new byte[1024];
             exchange.sendResponseHeaders(404, body.length);
             exchange.getResponseBody().write(body);
             exchange.close();
@@ -125,5 +127,54 @@ class SteamHttpClientTest {
         final String url = "http://127.0.0.1:" + closedPort + "/nope";
         final SteamApiException e = assertThrows(SteamApiException.class, () -> client().get(url));
         assertEquals(599, e.getStatusCode());
+    }
+
+    @Test
+    void chunkedOverCapResponseFailsOnceAs413() throws Exception {
+        final AtomicInteger calls = new AtomicInteger();
+        final HttpServer server = HttpServer.create(new InetSocketAddress(0), 0);
+        server.createContext("/chunked", exchange -> {
+            calls.incrementAndGet();
+            // No declared length: only the streamed read can catch this one.
+            exchange.sendResponseHeaders(200, 0);
+            final byte[] chunk = new byte[64 * 1024];
+            try (final java.io.OutputStream out = exchange.getResponseBody()) {
+                for (long sent = 0; sent <= SteamHttpClient.MAX_RESPONSE_BYTES; sent += chunk.length) {
+                    out.write(chunk);
+                }
+            } catch (IOException ignored) {
+                // the client closes the connection once it has seen enough
+            }
+            exchange.close();
+        });
+        server.start();
+        try {
+            final String url = "http://127.0.0.1:" + server.getAddress().getPort() + "/chunked";
+            final SteamApiException e = assertThrows(SteamApiException.class, () -> client().get(url));
+            assertEquals(413, e.getStatusCode(), "a streamed over-cap body must not be reported as 599");
+            assertEquals(1, calls.get(), "an over-cap body must not be downloaded three times");
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
+    void retryableStatusIsRetriedThreeTimes() throws Exception {
+        final AtomicInteger calls = new AtomicInteger();
+        final HttpServer server = HttpServer.create(new InetSocketAddress(0), 0);
+        server.createContext("/retry", exchange -> {
+            calls.incrementAndGet();
+            exchange.sendResponseHeaders(500, -1);
+            exchange.close();
+        });
+        server.start();
+        try {
+            final String url = "http://127.0.0.1:" + server.getAddress().getPort() + "/retry";
+            final SteamApiException e = assertThrows(SteamApiException.class, () -> client().get(url));
+            assertEquals(500, e.getStatusCode());
+            assertEquals(3, calls.get(), "5xx is transient and gets the three attempts");
+        } finally {
+            server.stop(0);
+        }
     }
 }
