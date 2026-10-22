@@ -17,6 +17,14 @@ export const REACTION_EMOJI: Record<ReactionType, string> = {
     HUG: "🤗",
 };
 
+/** Text names for the picker buttons, whose only child is an aria-hidden emoji. */
+export const REACTION_LABELS: Record<ReactionType, string> = {
+    THUMBS_UP: "Thumbs up",
+    LAUGH_CRYING: "Laughing",
+    LAUGH_TEAR: "Sad",
+    HUG: "Hug",
+};
+
 export type CommentAuthor = {
     steamId: string;
     personaName: string;
