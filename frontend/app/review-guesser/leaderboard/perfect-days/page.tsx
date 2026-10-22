@@ -19,7 +19,7 @@ export default async function PerfectDaysPage() {
             <script type="application/ld+json" dangerouslySetInnerHTML={{
                 __html: serializeJsonLd(breadcrumbJsonLd)
             }}/>
-            <PerfectDaysTable initialData={result?.data ?? null} initialRefreshedAt={result?.refreshedAt ?? null}/>
+            <PerfectDaysTable initialData={result?.data ?? null}/>
         </>
     );
 }

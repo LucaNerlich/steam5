@@ -18,12 +18,10 @@ const fetcher = (url: string) => fetchRefreshedJson<PerfectDay[]>(url);
  *
  * @param props - Configuration for initial data, refresh metadata, and refresh timing.
  * @param props.initialData - Optional perfect-day records used while fetching updated data.
- * @param props.initialRefreshedAt - Optional timestamp associated with the initial data.
  * @param props.refreshMs - Optional interval, in milliseconds, for refreshing the records.
  */
 export default function PerfectDaysTable(props: {
     initialData?: PerfectDay[] | null;
-    initialRefreshedAt?: string | null;
     refreshMs?: number;
 }) {
     const refreshInterval = props.refreshMs ?? 3600000;
@@ -32,7 +30,10 @@ export default function PerfectDaysTable(props: {
         refreshInterval,
         revalidateOnFocus: true,
         focusThrottleInterval: refreshInterval,
-        fallbackData: props.initialData ? {data: props.initialData, refreshedAt: props.initialRefreshedAt ?? null} : undefined,
+        // No refreshedAt in the fallback: formatRefreshedAt is timezone-dependent, and
+        // formatting it during the prerender makes the server HTML disagree with the
+        // visitor's zone (React then discards the subtree). It is set after mount instead.
+        fallbackData: props.initialData ? {data: props.initialData, refreshedAt: null} : undefined,
     });
 
     const data = perfectDaysResult?.data;
