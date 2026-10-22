@@ -23,9 +23,11 @@ public class Screenshot {
     @JsonIgnore
     private SteamAppDetail appId;
 
+    @Setter
     @Column(name = "path_thumbnail")
     private String pathThumbnail;
 
+    @Setter
     @Column(name = "path_full")
     private String pathFull;
 

@@ -88,11 +88,6 @@ public class ReviewGameStateService {
                     return concurrent;
                 }
                 final List<ReviewGamePick> inserted = pickRepository.saveAll(picks);
-                // Blurhash events are @TransactionalEventListener(AFTER_COMMIT): publishing
-                // them outside this transaction would drop them.
-                for (ReviewGamePick p : inserted) {
-                    eventPublisher.publishEvent(new BlurhashEncodeRequested(p.getAppId(), null, BlurhashEnqueueListener.Type.SCREENSHOT));
-                }
                 return inserted;
             });
             if (saved == null) {
@@ -102,6 +97,11 @@ public class ReviewGameStateService {
 
             log.info("Generated {} review-game picks for {}", saved.size(), today);
             saved.forEach(this::enrichPickedApp);
+            // The details refresh above replaces the screenshot rows, so enqueue the blurhash
+            // pass only after it has written them. The listener is AFTER_COMMIT, hence the
+            // short surrounding transaction.
+            transaction.executeWithoutResult(status -> saved.forEach(p ->
+                    eventPublisher.publishEvent(new BlurhashEncodeRequested(p.getAppId(), null, BlurhashEnqueueListener.Type.SCREENSHOT))));
             cacheEvictor.evictReviewGameState();
             return saved;
         } finally {
