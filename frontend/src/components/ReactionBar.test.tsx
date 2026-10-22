@@ -4,7 +4,7 @@
 // (Vitest 4 removed `environmentMatchGlobs`, so the per-file docblock is the hook.)
 import {act} from 'react';
 import {createRoot} from 'react-dom/client';
-import {describe, expect, it} from 'vitest';
+import {describe, expect, it, vi} from 'vitest';
 import {renderToStaticMarkup} from 'react-dom/server';
 import ReactionBar from './ReactionBar';
 import type {CommentReactionDto} from '@/lib/comments';
@@ -181,4 +181,46 @@ describe('ReactionBar Escape refocus', () => {
             container.remove();
         }
     });
+
+describe('ReactionBar error surface', () => {
+    (globalThis as {IS_REACT_ACT_ENVIRONMENT?: boolean}).IS_REACT_ACT_ENVIRONMENT = true;
+
+    it('surfaces a rate-limited toggle instead of swallowing it', async () => {
+        vi.stubGlobal('fetch', vi.fn(async () => new Response(
+            JSON.stringify({error: 'rate_limit_exceeded'}),
+            {status: 429, headers: {'content-type': 'application/json'}},
+        )));
+        const container = document.createElement('div');
+        document.body.appendChild(container);
+        const root = createRoot(container);
+        try {
+            await act(async () => {
+                root.render(
+                    <ReactionBar
+                        commentId={1}
+                        reactions={[]}
+                        canReact={true}
+                        onToggled={() => {}}
+                        open={true}
+                        onPickerOpenChange={() => {}}
+                    />,
+                );
+            });
+
+            const option = container.querySelector<HTMLButtonElement>('[role="menuitemcheckbox"]');
+            if (!option) throw new Error('reaction picker did not render');
+
+            await act(async () => {
+                option.click();
+            });
+
+            const alert = container.querySelector('[role="alert"]');
+            expect(alert?.textContent).toContain('Too many reactions');
+        } finally {
+            await act(async () => root.unmount());
+            container.remove();
+            vi.unstubAllGlobals();
+        }
+    });
+});
 });
