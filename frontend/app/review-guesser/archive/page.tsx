@@ -191,12 +191,12 @@ export default async function ArchiveIndexPage({searchParams}: ArchivePageProps)
                                 const picks = picksByDate.get(d) ?? [];
                                 return (
                                     <li key={d} className='archive-list__toc'>
-                                        <a href={`/review-guesser/archive/${d}`}>{d}</a>
+                                        <Link href={`/review-guesser/archive/${d}`} prefetch={false}>{d}</Link>
                                         {picks.length > 0 && (
                                             <ol>
                                                 {picks.map((pick, i) => (
                                                     <li key={`${d}-${pick.appId}`}>
-                                                        <a href={`/review-guesser/archive/${d}#round-${i + 1}`}>{pick.name}</a>
+                                                        <Link href={`/review-guesser/archive/${d}#round-${i + 1}`} prefetch={false}>{pick.name}</Link>
                                                     </li>
                                                 ))}
                                             </ol>
