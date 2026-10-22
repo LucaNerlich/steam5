@@ -37,4 +37,14 @@ describe('archive/season loaders distinguish missing from unavailable', () => {
         vi.stubGlobal('fetch', vi.fn(async () => new Response('boom', {status: 503})));
         await expect(fetchSeasonDetail('1')).rejects.toThrow('503');
     });
+
+    it('distinguishes a failed seasons list from an empty one', async () => {
+        const {loadSeasons} = await import('../../app/review-guesser/seasons/page');
+
+        vi.stubGlobal('fetch', vi.fn(async () => new Response('boom', {status: 503})));
+        await expect(loadSeasons()).resolves.toBeNull();
+
+        vi.stubGlobal('fetch', vi.fn(async () => Response.json([])));
+        await expect(loadSeasons()).resolves.toEqual([]);
+    });
 });

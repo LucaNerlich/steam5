@@ -28,16 +28,18 @@ async function loadCurrentSeason(): Promise<CurrentSeasonResponse | null> {
     }
 }
 
-async function loadSeasons(): Promise<SeasonView[]> {
+// null means "could not load", [] means "no finished seasons yet": the page must not tell
+// visitors the archive is empty during a partial backend failure.
+export async function loadSeasons(): Promise<SeasonView[] | null> {
     try {
         const res = await fetch(`${backend}/api/seasons?limit=8`, {
             signal: AbortSignal.timeout(BACKEND_TIMEOUT_MS),
             next: {revalidate: 600, tags: ["seasons-list"]}
         });
-        if (!res.ok) return [];
+        if (!res.ok) return null;
         return await res.json() as SeasonView[];
     } catch {
-        return [];
+        return null;
     }
 }
 
@@ -60,7 +62,7 @@ export default async function SeasonsPage() {
         );
     }
 
-    const previousSeasons = seasons.filter(season =>
+    const previousSeasons = seasons === null ? null : seasons.filter(season =>
         season.status === "FINALIZED" && season.id !== currentData.season.id
     );
 
@@ -97,7 +99,9 @@ export default async function SeasonsPage() {
                     </div>
                     <p className="seasons__muted">Top placements for each category per season.</p>
                 </div>
-                {previousSeasons.length === 0 ? (
+                {previousSeasons === null ? (
+                    <p className="seasons__muted">Couldn&apos;t load past seasons. Please try again shortly.</p>
+                ) : previousSeasons.length === 0 ? (
                     <p className="seasons__muted">No completed seasons yet. Check back once the first season wraps up.</p>
                 ) : (
                     <div className="seasons__list">
