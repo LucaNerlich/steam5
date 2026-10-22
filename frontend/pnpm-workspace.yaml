@@ -5,7 +5,7 @@
 # - blockExoticSubdeps: transitive deps may not come from git:/file:/tarball URLs,
 #   but still permits trusted registry sources, local file paths, workspace links,
 #   and trusted GitHub repositories.
-minimumReleaseAge: 10080
+minimumReleaseAge: 1440
 minimumReleaseAgeIgnoreMissingTime: false
 trustPolicy: no-downgrade
 # undici-types@6.21.0 (transitive via @types/node) predates OIDC provenance, so the
@@ -16,15 +16,3 @@ blockExoticSubdeps: true
 onlyBuiltDependencies:
   - sharp
   - unrs-resolver
-minimumReleaseAgeExclude:
-  - '@next/env@16.3.3'
-  - '@next/swc-darwin-arm64@16.3.3'
-  - '@next/swc-darwin-x64@16.3.3'
-  - '@next/swc-linux-arm64-gnu@16.3.3'
-  - '@next/swc-linux-arm64-musl@16.3.3'
-  - '@next/swc-linux-x64-gnu@16.3.3'
-  - '@next/swc-linux-x64-musl@16.3.3'
-  - '@next/swc-win32-arm64-msvc@16.3.3'
-  - '@next/swc-win32-x64-msvc@16.3.3'
-  - '@types/react-dom@19.2.5'
-  - next@16.3.3
