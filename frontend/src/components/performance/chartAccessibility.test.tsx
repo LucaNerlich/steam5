@@ -96,7 +96,9 @@ describe('performance charts expose their values', () => {
 
     it('CalendarHeatmap does not paint days after today', () => {
         // The grid always emits 371 cells; the trailing ones used to render as "No play".
-        vi.useFakeTimers({now: new Date('2026-10-21T12:00:00Z')});
+        // The clock is the day AFTER the server's todayUtc, so a component that reads the
+        // client clock instead of the prop would paint 2026-10-22 and fail.
+        vi.useFakeTimers({now: new Date('2026-10-22T12:00:00Z')});
         try {
             const html = renderToStaticMarkup(<CalendarHeatmap rounds={[]} todayUtc="2026-10-21"/>);
 
