@@ -8,6 +8,7 @@ import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.ConcurrentWebSocketSessionDecorator;
+import org.springframework.web.socket.handler.SessionLimitExceededException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
@@ -253,15 +254,28 @@ public class RoundPresenceService {
             }
             try {
                 sendSessionFor(session).sendMessage(message);
-            } catch (IOException | IllegalStateException e) {
+            } catch (IOException | IllegalStateException | SessionLimitExceededException e) {
                 presenceMetrics.getObject().recordBroadcastFailure();
                 // Only genuinely dead sessions are pruned. With sends serialized, a failed
                 // write to a still-open session is transient (the next snapshot carries the
                 // full state), and pruning it would silently drop a connected client.
-                if (!session.isOpen() || e instanceof IOException) {
+                // SessionLimitExceededException is the decorator's terminal state (send or
+                // buffer limit breached): the session is open but will never drain, and left
+                // in the list it aborts every later broadcast and keeps counting as present.
+                if (!session.isOpen() || e instanceof IOException || e instanceof SessionLimitExceededException) {
                     log.debug("Pruning failed presence session {} for scope {}: {}",
                             session.getId(), scopeKey, e.toString());
                     pruneSession(list, session);
+                    if (e instanceof SessionLimitExceededException limitExceeded) {
+                        // The decorator only flags the session; it stays open but every later send
+                        // short-circuits. Close it so the client reconnects and the socket is not
+                        // held outside the counters that were just released.
+                        try {
+                            session.close(limitExceeded.getStatus());
+                        } catch (Exception closeFailure) {
+                            log.debug("Failed to close limit-exceeded session {}: {}", session.getId(), closeFailure.toString());
+                        }
+                    }
                 } else {
                     log.debug("Broadcast to session {} failed but the session is open; keeping it: {}",
                             session.getId(), e.toString());
