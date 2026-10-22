@@ -20,7 +20,7 @@ type RoundResultSectionProps = {
     /** Random-archive link; null before the last round. */
     randomArchiveHref: string | null;
     canShowShare: boolean;
-    gameDate?: string;
+    gameDate: string;
     totalRounds: number;
     latestRound: number;
     latest: RoundResult;

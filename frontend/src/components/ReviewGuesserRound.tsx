@@ -30,7 +30,7 @@ interface Props {
     roundIndex: number;
     totalRounds: number;
     pickName?: string;
-    gameDate?: string;
+    gameDate: string;
     /** Today's picks for comment quick-link chips. */
     dayGames?: CommentGameRef[];
 }

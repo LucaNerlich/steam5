@@ -10,7 +10,7 @@ import useStoredDay from "@/components/round/useStoredDay";
 
 export default function ShareControls(props: {
     buckets: string[];
-    gameDate?: string;
+    gameDate: string;
     totalRounds: number;
     latestRound: number;
     latest: {
@@ -31,9 +31,7 @@ export default function ShareControls(props: {
     const [copied, setCopied] = useState(false);
     const isLocalhost = typeof window !== 'undefined' && (location.hostname === 'localhost' || location.hostname === '127.0.0.1');
 
-    const namesFetchUrl = gameDate
-        ? `/api/review-game/day/summary/${encodeURIComponent(gameDate)}`
-        : '/api/review-game/today';
+    const namesFetchUrl = `/api/review-game/day/summary/${encodeURIComponent(gameDate)}`;
 
     const {data: namesData, isLoading: namesLoading} = useSWR(namesFetchUrl, (url: string) =>
         fetch(url, {cache: 'no-store'}).then(r => {
@@ -116,7 +114,6 @@ export default function ShareControls(props: {
         const bars: string[] = [];
         lines.push('');
 
-        if (!gameDate) return null;
         if (!isComplete) return null;
 
         for (let i = 1; i <= totalRounds; i++) {
