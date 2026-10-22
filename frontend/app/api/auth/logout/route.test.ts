@@ -57,6 +57,22 @@ describe('POST', () => {
         expect((init?.headers as Record<string, string>)['x-forwarded-for']).toBe('203.0.113.7');
     });
 
+    it('logs a non-2xx revocation and still completes the best-effort logout', async () => {
+        vi.stubEnv('NEXT_PUBLIC_API_DOMAIN', 'https://api.example.com');
+        const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+        vi.mocked(fetch).mockResolvedValue(new Response(null, {status: 429}));
+        const request = new NextRequest('https://steam5.org/api/auth/logout', {
+            method: 'POST',
+            headers: {cookie: 's5_token=secret-token', origin: 'https://steam5.org'},
+        });
+
+        const response = await POST(request);
+
+        expect(errorSpy.mock.calls.flat().join(' ')).toContain('429');
+        expect(response.status).toBe(303);
+        expect(response.cookies.get('s5_token')?.value).toBe('');
+    });
+
     it('rejects a cross-site logout before touching the session', async () => {
         vi.spyOn(console, 'error').mockImplementation(() => undefined);
         const request = new NextRequest('https://steam5.org/api/auth/logout', {
