@@ -92,9 +92,18 @@ public class LeaderboardMvBootstrapConfig {
                 log.info("Created materialized view {} (WITH NO DATA)", mv.type().viewName());
             }
 
-            if (indexExists(connection, mv.indexName())) {
-                log.info("Index {} already exists — skipping creation", mv.indexName());
+            final Optional<Boolean> indexValidity = indexValidity(connection, mv.indexName());
+            if (indexValidity.isPresent() && indexValidity.get()) {
+                log.info("Index {} already exists and is valid — skipping creation", mv.indexName());
             } else {
+                if (indexValidity.isPresent()) {
+                    // An aborted CREATE INDEX CONCURRENTLY leaves an INVALID index with the
+                    // same name; PostgreSQL refuses concurrent refreshes against it, so rebuild.
+                    log.warn("Index {} exists but is invalid — recreating", mv.indexName());
+                    try (Statement statement = connection.createStatement()) {
+                        statement.execute("DROP INDEX CONCURRENTLY IF EXISTS " + mv.indexName());
+                    }
+                }
                 try (Statement statement = connection.createStatement()) {
                     statement.execute(createIndexSql);
                 }
@@ -125,11 +134,15 @@ public class LeaderboardMvBootstrapConfig {
         }
     }
 
-    private boolean indexExists(final Connection connection, final String indexName) throws SQLException {
-        try (PreparedStatement ps = connection.prepareStatement("SELECT 1 FROM pg_indexes WHERE indexname = ?")) {
+    private Optional<Boolean> indexValidity(final Connection connection, final String indexName) throws SQLException {
+        try (PreparedStatement ps = connection.prepareStatement(
+                "SELECT i.indisvalid FROM pg_class c JOIN pg_index i ON i.indexrelid = c.oid WHERE c.relname = ?")) {
             ps.setString(1, indexName);
             try (ResultSet rs = ps.executeQuery()) {
-                return rs.next();
+                if (!rs.next()) {
+                    return Optional.empty();
+                }
+                return Optional.of(rs.getBoolean(1));
             }
         }
     }

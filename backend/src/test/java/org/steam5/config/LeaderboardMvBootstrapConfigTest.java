@@ -40,8 +40,11 @@ class LeaderboardMvBootstrapConfigTest {
         config = new LeaderboardMvBootstrapConfig();
     }
 
-    /** Stubs the pg_matviews (existence + populated) / pg_indexes existence checks for every one of the 4 MVs. */
-    private void stubExistence(boolean viewExists, boolean viewPopulated, boolean indexExists) throws Exception {
+    /**
+     * Stubs the pg_matviews (existence + populated) and pg_index (validity) checks for every MV.
+     * {@code indexValid} null means the index is absent; false means present but INVALID.
+     */
+    private void stubExistence(boolean viewExists, boolean viewPopulated, Boolean indexValid) throws Exception {
         PreparedStatement viewCheck = mock(PreparedStatement.class);
         ResultSet viewRs = mock(ResultSet.class);
         when(viewRs.next()).thenReturn(viewExists);
@@ -50,16 +53,19 @@ class LeaderboardMvBootstrapConfigTest {
 
         PreparedStatement indexCheck = mock(PreparedStatement.class);
         ResultSet indexRs = mock(ResultSet.class);
-        when(indexRs.next()).thenReturn(indexExists);
+        when(indexRs.next()).thenReturn(indexValid != null);
+        if (indexValid != null) {
+            when(indexRs.getBoolean(1)).thenReturn(indexValid);
+        }
         when(indexCheck.executeQuery()).thenReturn(indexRs);
 
         when(connection.prepareStatement(argThat(sql -> sql != null && sql.contains("pg_matviews")))).thenReturn(viewCheck);
-        when(connection.prepareStatement(argThat(sql -> sql != null && sql.contains("pg_indexes")))).thenReturn(indexCheck);
+        when(connection.prepareStatement(argThat(sql -> sql != null && sql.contains("i.indisvalid")))).thenReturn(indexCheck);
     }
 
     @Test
     void bootstrap_neitherExistsNorPopulated_createsViewIndexAndPopulatesForEachMv() throws Exception {
-        stubExistence(false, false, false);
+        stubExistence(false, false, null);
 
         config.bootstrapLeaderboardMvs(dataSource).run(mock(ApplicationArguments.class));
 
@@ -84,7 +90,7 @@ class LeaderboardMvBootstrapConfigTest {
 
     @Test
     void bootstrap_viewExistsAndPopulatedButIndexMissing_createsOnlyTheIndex() throws Exception {
-        stubExistence(true, true, false);
+        stubExistence(true, true, null);
 
         config.bootstrapLeaderboardMvs(dataSource).run(mock(ApplicationArguments.class));
 
@@ -107,6 +113,17 @@ class LeaderboardMvBootstrapConfigTest {
         // 6 MVs x 1 statement (REFRESH only) — view+index already exist, just needs populating
         verify(statement, times(6)).execute(any(String.class));
         verify(refreshStateUpsert, times(6)).executeUpdate();
+    }
+
+    @Test
+    void bootstrap_indexExistsButIsInvalid_dropsAndRecreatesIt() throws Exception {
+        stubExistence(true, true, false);
+
+        config.bootstrapLeaderboardMvs(dataSource).run(mock(ApplicationArguments.class));
+
+        // 6 MVs x 2 statements (DROP INDEX CONCURRENTLY + CREATE UNIQUE INDEX CONCURRENTLY).
+        verify(statement, times(12)).execute(any(String.class));
+        verify(refreshStateUpsert, never()).executeUpdate();
     }
 
     @Test
