@@ -124,4 +124,15 @@ class PathRateLimitFilterTest {
 
         assertEquals(200, profile.getStatus());
     }
+
+    @Test
+    void profileBurstAboveTheOldSixtyPerMinuteBudgetStaysAllowed() throws Exception {
+        // The profile rule is keyed on the Next server's shared address, so 60/min capped the
+        // whole site's profile traffic; the budget must absorb an ordinary burst.
+        for (int i = 0; i < 100; i++) {
+            final MockHttpServletResponse response = new MockHttpServletResponse();
+            filter.doFilterInternal(req("/api/profile/76561198000000000", "GET"), response, chain);
+            assertEquals(200, response.getStatus(), "request " + (i + 1) + " must not be rate limited");
+        }
+    }
 }
