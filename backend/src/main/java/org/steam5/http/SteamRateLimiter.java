@@ -9,7 +9,10 @@ import java.util.concurrent.TimeUnit;
 @Component
 public class SteamRateLimiter {
 
-    private volatile long nextAllowedEpochMs = 0L;
+    // Monotonic: a system-clock correction must not turn into a multi-minute sleep (backwards
+    // step) or a burst at Steam (forwards step).
+    // Long.MIN_VALUE, not 0: nanoTime may be negative, so 0 is not a safe "no deadline" sentinel.
+    private volatile long nextAllowedNanos = Long.MIN_VALUE;
     /** Minimum spacing between Steam API calls. */
     private static final long MIN_INTERVAL_MS = 1000L;
     private final Timer waitTimer;
@@ -21,15 +24,13 @@ public class SteamRateLimiter {
     }
 
     public void acquirePermit() {
-        long now = System.currentTimeMillis();
-        long waitMs;
+        final long now = System.nanoTime();
+        final long waitMs;
         synchronized (this) {
-            if (now < nextAllowedEpochMs) {
-                waitMs = nextAllowedEpochMs - now;
-            } else {
-                waitMs = 0L;
-            }
-            nextAllowedEpochMs = Math.max(now, nextAllowedEpochMs) + MIN_INTERVAL_MS;
+            waitMs = now < nextAllowedNanos
+                    ? TimeUnit.NANOSECONDS.toMillis(nextAllowedNanos - now)
+                    : 0L;
+            nextAllowedNanos = Math.max(now, nextAllowedNanos) + TimeUnit.MILLISECONDS.toNanos(MIN_INTERVAL_MS);
         }
         if (waitMs > 0) {
             try {
