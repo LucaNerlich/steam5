@@ -12,7 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * One parse for the {@code cors.allowedOrigins} property, shared by {@link CorsConfig}'s filter
+ * One parse for the {@code cors.allowed-origins} property, shared by {@link CorsConfig}'s filter
  * and the presence handshake interceptor.
  *
  * <p>The defect this pins: the filter used the raw {@code split(",")} output, so an entry written
@@ -53,5 +53,14 @@ class CorsConfigTest {
         // The standalone filter bean is deliberately gone: with no order it ran after the
         // security chain (order -100), which is the defect this pins shut.
         assertThrows(NoSuchMethodException.class, () -> CorsConfig.class.getMethod("corsFilter", String.class));
+    }
+
+    @Test
+    void refusesToStartWithAnEmptyAllowList() {
+        // A present-but-blank CORS_ALLOWED_ORIGINS beats the placeholder default; failing here
+        // is the only way the operator finds out, instead of every origin silently 403ing.
+        final CorsConfig config = new CorsConfig();
+        assertThrows(IllegalStateException.class, () -> config.corsConfigurationSource(""));
+        assertThrows(IllegalStateException.class, () -> config.corsConfigurationSource("   "));
     }
 }
