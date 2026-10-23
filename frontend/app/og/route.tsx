@@ -3,6 +3,7 @@ import {readFile} from "node:fs/promises";
 import {join} from "node:path";
 import {sanitizeAvatarUrl} from "@/lib/ogAvatar";
 import {BACKEND_ORIGIN, BACKEND_TIMEOUT_MS} from "@/lib/backend";
+import {profileRank} from "@/lib/ogRank";
 import {outcomeCounts, recentRounds} from "@/lib/rounds";
 import {genericCardLines} from "@/lib/seo";
 
