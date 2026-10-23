@@ -3,6 +3,7 @@
 import useSWR from 'swr';
 import {scoreForRound} from '@/lib/scoring';
 import '@/styles/components/archive-summary.css';
+import {BACKEND_ORIGIN} from '@/lib/backend';
 
 interface AlwaysPickScore {
     bucketIndex: number;
@@ -42,12 +43,10 @@ const myGuessFetcher = (url: string) => fetch(url).then(r => {
     return r.json();
 });
 
-const backendBase = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
-
 export default function ArchiveSummary({date, bucketLabels, bucketTitles}: ArchiveSummaryProps) {
     const baselineUrl = date
-        ? `${backendBase}/api/review-game/history/always-pick?from=${encodeURIComponent(date)}&to=${encodeURIComponent(date)}`
-        : `${backendBase}/api/review-game/history/always-pick`;
+        ? `${BACKEND_ORIGIN}/api/review-game/history/always-pick?from=${encodeURIComponent(date)}&to=${encodeURIComponent(date)}`
+        : `${BACKEND_ORIGIN}/api/review-game/history/always-pick`;
     const myUrl = date
         ? `/api/review-game/my/day/${encodeURIComponent(date)}`
         : `/api/review-game/my/history`;

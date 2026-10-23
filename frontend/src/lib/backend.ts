@@ -2,7 +2,7 @@ import {NextResponse} from "next/server";
 import type {NextRequest} from "next/server";
 import {allowedBackendOrigin} from "./requestOrigin";
 
-export const BACKEND_ORIGIN = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
+export const BACKEND_ORIGIN = (process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080').replace(/\/$/, '');
 
 /**
  * Authorization header for the session token, or null when BACKEND_ORIGIN may not

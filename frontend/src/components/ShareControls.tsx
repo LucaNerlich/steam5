@@ -7,6 +7,7 @@ import {scoreForRound} from "@/lib/scoring";
 import {ExportIcon} from "@phosphor-icons/react/ssr";
 import type {RoundResult, StoredDay} from "@/lib/storage";
 import useStoredDay from "@/components/round/useStoredDay";
+import {BACKEND_ORIGIN} from "@/lib/backend";
 
 export default function ShareControls(props: {
     buckets: string[];
@@ -88,12 +89,11 @@ export default function ShareControls(props: {
             if (!isLocalhost) return;
             // Only attempt when we do NOT have server results
             if (hasServerResults) return;
-            const backend = process.env.NEXT_PUBLIC_API_DOMAIN || 'http://localhost:8080';
             await Promise.all(Array.from(indices).map(async (i) => {
                 const r = (i === latestRound ? latest : data!.results[i]);
                 if (!r) return;
                 // Fire-and-forget; backend will ignore duplicates
-                await fetch(`${backend}/api/review-game/guess`, {
+                await fetch(`${BACKEND_ORIGIN}/api/review-game/guess`, {
                     method: 'POST',
                     headers: {'content-type': 'application/json', 'accept': 'application/json'},
                     body: JSON.stringify({appId: r.appId, bucketGuess: r.selectedLabel}),
