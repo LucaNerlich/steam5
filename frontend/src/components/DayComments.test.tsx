@@ -19,7 +19,7 @@ vi.mock('next/link', () => ({
     ),
 }));
 
-import {CommentBodyText, GameLinkPicker, insertMentionIntoBody, insertMentionReference} from './DayComments';
+import {CommentBodyText, GameLinkPicker, insertMentionIntoBody, insertMentionReference, isDayComplete, shouldResetComposer} from './DayComments';
 
 function render(body: string): string {
     return renderToStaticMarkup(<CommentBodyText body={body}/>);
@@ -78,6 +78,26 @@ describe('CommentBodyText mentions', () => {
     });
 });
 
+describe('isDayComplete', () => {
+    it('stays closed when there is no pick-validated map', () => {
+        // Stale localStorage keys are not a completion source after a picks regeneration.
+        expect(isDayComplete(undefined, 5)).toBe(false);
+    });
+
+    it('requires every round in the validated map', () => {
+        const result = {appId: 1, selectedLabel: '1-10', actualBucket: '1-10', totalReviews: 5, correct: true};
+        expect(isDayComplete({1: result, 2: result, 3: result, 4: result}, 5)).toBe(false);
+        expect(isDayComplete({1: result, 2: result, 3: result, 4: result, 5: result}, 5)).toBe(true);
+    });
+});
+
+describe('shouldResetComposer', () => {
+    it('resets only when the textarea still holds the submitted body', () => {
+        expect(shouldResetComposer('posted body', 'posted body')).toBe(true);
+        expect(shouldResetComposer('next draft', 'posted body')).toBe(false);
+    });
+});
+
 describe('insertMentionIntoBody', () => {
     const snippet = '[@Alice](mention:7)';
 
@@ -95,6 +115,14 @@ describe('insertMentionIntoBody', () => {
 
     it('closes the menu without inserting when the caret moved right past the token', () => {
         expect(insertMentionIntoBody('hi @al there', 12, snippet, 1000)).toBeNull();
+    });
+
+    it('consumes the rest of the token when the caret sits inside it', () => {
+        // Picking a suggestion after ArrowLeft left the tail of the typed name behind:
+        // "hi @ali" with the caret after "@al" became "hi [@Alice](...) li".
+        const result = insertMentionIntoBody('hi @ali', 5, snippet, 1000);
+
+        expect(result).toEqual({value: `hi ${snippet}`, caret: `hi ${snippet}`.length});
     });
 
     it('leaves the text that follows the token intact', () => {

@@ -12,7 +12,6 @@ import {startSteamLogin} from "@/lib/steamLogin";
 import ReactionBar from "@/components/ReactionBar";
 import Avatar from "@/components/Avatar";
 import ConfirmModal from "@/components/ConfirmModal";
-import useStoredDay from "@/components/round/useStoredDay";
 import {
     COMMENT_MODERATOR_STEAM_ID,
     archiveComment,
@@ -214,6 +213,16 @@ function detectMentionQuery(value: string, caret: number): {start: number; query
     return {start: atIndex, query};
 }
 
+/** Completion for the comment gate: only the pick-validated map counts. */
+export function isDayComplete(results: Record<number, RoundResult> | undefined, totalRounds: number): boolean {
+    return results !== undefined && Object.keys(results).length >= totalRounds;
+}
+
+/** Reset the composer only when it still holds the body that was submitted. */
+export function shouldResetComposer(currentValue: string, submittedBody: string): boolean {
+    return currentValue === submittedBody;
+}
+
 /**
  * Replaces the in-progress `@query` token that ends at `caret` with `snippet`, returning the
  * new body and caret position, or null when the caret is no longer inside a mention token
@@ -231,8 +240,12 @@ export function insertMentionIntoBody(
 ): {value: string; caret: number} | null {
     const token = detectMentionQuery(value, caret);
     if (token === null) return null;
+    // Consume the rest of the typed name, but not trailing punctuation the user typed
+    // after it (e.g. "hi @al, see" keeps its comma).
+    let tokenEnd = caret;
+    while (tokenEnd < value.length && !/[\s,.;:!?)\]]/.test(value[tokenEnd])) tokenEnd++;
     const before = value.slice(0, token.start);
-    const after = value.slice(caret);
+    const after = value.slice(tokenEnd);
     const padAfter = after.length > 0 && !/^\s/.test(after) ? " " : "";
     const insertion = `${snippet}${padAfter}`;
     const next = before + insertion + after;
@@ -434,7 +447,7 @@ type ComposerAction =
     | {type: "bodyInput"; bodyLength: number; mention: MentionSelection | null}
     | {type: "insertionLength"; bodyLength: number}
     | {type: "mentionMenuClosed"}
-    | {type: "postSucceeded"}
+    | {type: "postSucceeded"; bodyLength: number}
     | {type: "postedIndicatorExpired"}
     | {type: "mentionSearchSucceeded"; candidates: MentionCandidate[]}
     | {type: "mentionSearchRateLimited"};
@@ -462,7 +475,7 @@ function composerReducer(state: ComposerState, action: ComposerAction): Composer
         case "postSucceeded":
             return {
                 posted: true,
-                bodyLength: 0,
+                bodyLength: action.bodyLength,
                 mention: null,
                 mentionCandidates: [],
                 mentionRateLimited: false,
@@ -495,11 +508,18 @@ function CommentComposer(props: {
     const [composer, dispatch] = useReducer(composerReducer, initialComposerState);
     const [state, formAction] = useActionState(
         async (prev: CommentActionState, formData: FormData) => {
+            const submittedBody = String(formData.get('body') ?? '');
             const next = await postCommentAction(prev, formData);
             if (next.ok) {
-                formRef.current?.reset();
+                // Do not discard text typed for the next comment while this post was pending,
+                // and keep the counter/Post button consistent with the draft that survived.
+                const draft = textareaRef.current?.value ?? submittedBody;
+                const resetting = shouldResetComposer(draft, submittedBody);
+                if (resetting) {
+                    formRef.current?.reset();
+                }
                 if (postedTimerRef.current !== null) window.clearTimeout(postedTimerRef.current);
-                dispatch({type: "postSucceeded"});
+                dispatch({type: "postSucceeded", bodyLength: resetting ? 0 : draft.length});
                 postedTimerRef.current = window.setTimeout(() => {
                     postedTimerRef.current = null;
                     dispatch({type: "postedIndicatorExpired"});
@@ -678,12 +698,6 @@ export default function DayComments(props: {
             : {revalidateOnFocus: false},
     );
 
-    // The stored day comes from the shared external store rather than a render-phase
-    // localStorage read: reading it during render made the server HTML and the hydration
-    // render disagree (React logs a hydration error and discards that render), and never
-    // subscribed to later writes.
-    const stored = useStoredDay(gameDate);
-
     const handlePosted = () => {
         void mutate();
     };
@@ -723,13 +737,11 @@ export default function DayComments(props: {
     if (!gameDate) return null;
 
     // Comments unlock for signed-in players only once they've finished every
-    // round for this day (same completion check as RoundSummary/ShareControls).
+    // round for this day. Only the pick-validated map counts: falling back to raw
+    // localStorage would let results for a regenerated day's old picks unlock it.
     // Readonly (archive) views and anonymous visitors are exempt from this gate.
     if (!readOnly && isSignedIn === true && totalRounds !== undefined && latestRound !== undefined && latest) {
-        const merged: Record<number, RoundResult> = results
-            ?? {...(stored?.results || {}), [latestRound]: latest};
-        const isComplete = Object.keys(merged).length >= totalRounds;
-        if (!isComplete) return null;
+        if (!isDayComplete(results, totalRounds)) return null;
     }
 
     const commentCount = data?.length ?? 0;
