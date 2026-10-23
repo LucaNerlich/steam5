@@ -459,23 +459,6 @@
 					}
 				},
 				{
-					"name": "Get today's review-game picks details",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
-						],
-						"url": {
-							"raw": "{{host}}/api/review-game/today/details",
-							"host": ["{{host}}"],
-							"path": ["api", "review-game", "today", "details"]
-						}
-					}
-				},
-				{
 					"name": "Get configured bucket labels",
 					"request": {
 						"method": "GET",

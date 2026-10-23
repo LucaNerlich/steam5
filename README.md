@@ -130,7 +130,7 @@ Respect rate limits; on any Steam 429 the jobs abort early.
 
 ## Backend REST API (selected)
 
-- `GET /api/review-game/today` and `/today/details`: daily picks and details
+- `GET /api/review-game/today`: daily picks and details
 - `POST /api/review-game/guess`: submit a guess
 - `GET /api/review-game/buckets`: bucket labels for UI
 - `GET /api/leaderboard/today` and `/leaderboard`: leaderboards
