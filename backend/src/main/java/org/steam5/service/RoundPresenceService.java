@@ -142,8 +142,10 @@ public class RoundPresenceService {
      * @param session the session to remove
      */
     private boolean pruneSession(final CopyOnWriteArrayList<WebSocketSession> list, final WebSocketSession session) {
+        // Remove the wrapper unconditionally: a broadcast that races unregister may have
+        // created it after the list entry was already gone, and nothing else cleans it.
+        sendSessions.remove(session.getId());
         if (list.remove(session)) {
-            sendSessions.remove(session.getId());
             decrementConnectionCounters(session);
             return true;
         }

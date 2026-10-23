@@ -12,9 +12,12 @@ import org.steam5.config.PresenceProperties;
 import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -308,6 +311,25 @@ class RoundPresenceServiceTest {
         when(session.isOpen()).thenReturn(true);
         when(session.getId()).thenReturn("session-" + SESSION_ID.incrementAndGet());
         return session;
+    }
+
+    @Test
+    void pruneSessionReleasesTheSendWrapperEvenWhenTheSessionIsAlreadyGone() throws Exception {
+        final WebSocketSession session = sessionFor("scopeA", "1.1.1.1", null, null, null);
+        service.register(session);
+        service.broadcastSnapshot("scopeA"); // creates the send wrapper
+
+        // The race: the broadcast snapshot still holds the session after unregister removed it.
+        final Method prune = RoundPresenceService.class.getDeclaredMethod(
+                "pruneSession", CopyOnWriteArrayList.class, WebSocketSession.class);
+        prune.setAccessible(true);
+        assertFalse((boolean) prune.invoke(service, new CopyOnWriteArrayList<>(), session),
+                "the session was already absent from the scope list");
+
+        final Field sendSessions = RoundPresenceService.class.getDeclaredField("sendSessions");
+        sendSessions.setAccessible(true);
+        assertTrue(((Map<?, ?>) sendSessions.get(service)).isEmpty(),
+                "a wrapper created for an unregistered session must not leak");
     }
 
     @Test
