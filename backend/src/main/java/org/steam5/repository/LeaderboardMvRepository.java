@@ -79,6 +79,15 @@ public interface LeaderboardMvRepository extends Repository<Guess, Long> {
     Boolean isPopulated(@Param("viewName") String viewName);
 
     /**
+     * True when the view has a valid unique index, the precondition for
+     * REFRESH MATERIALIZED VIEW CONCURRENTLY. An index left INVALID by an aborted
+     * CREATE UNIQUE INDEX CONCURRENTLY does not count.
+     */
+    @Query(value = "SELECT EXISTS (SELECT 1 FROM pg_index i JOIN pg_class tc ON tc.oid = i.indrelid " +
+            "WHERE tc.relname = :viewName AND i.indisunique AND i.indisvalid)", nativeQuery = true)
+    boolean hasValidUniqueIndex(@Param("viewName") String viewName);
+
+    /**
      * Transaction-scoped advisory lock (auto-released at commit/rollback, no manual unlock
      * needed — safe with pooled connections). Guards each MV's REFRESH against colliding with
      * another session already refreshing the same view: Quartz's {@code @DisallowConcurrentExecution}

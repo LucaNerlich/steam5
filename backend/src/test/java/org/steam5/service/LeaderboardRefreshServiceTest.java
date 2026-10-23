@@ -38,6 +38,7 @@ class LeaderboardRefreshServiceTest {
     @Test
     void whenPopulated_usesConcurrentRefreshAndRecordsState() {
         when(leaderboardMvRepository.isPopulated("mv_leaderboard_all_time")).thenReturn(true);
+        when(leaderboardMvRepository.hasValidUniqueIndex("mv_leaderboard_all_time")).thenReturn(true);
 
         service.refresh(LeaderboardType.ALL_TIME);
 
@@ -58,6 +59,16 @@ class LeaderboardRefreshServiceTest {
         final ArgumentCaptor<LeaderboardRefreshState> captor = ArgumentCaptor.forClass(LeaderboardRefreshState.class);
         verify(refreshStateRepository).save(captor.capture());
         assertEquals(LeaderboardType.ALL_TIME, captor.getValue().getLeaderboardType());
+    }
+
+    @Test
+    void whenTheUniqueIndexIsInvalid_fallsBackToFullRefresh() {
+        when(leaderboardMvRepository.isPopulated("mv_leaderboard_all_time")).thenReturn(true);
+        when(leaderboardMvRepository.hasValidUniqueIndex("mv_leaderboard_all_time")).thenReturn(false);
+
+        service.refresh(LeaderboardType.ALL_TIME);
+
+        verify(jdbcTemplate).execute("REFRESH MATERIALIZED VIEW mv_leaderboard_all_time");
     }
 
     @Test
@@ -83,6 +94,7 @@ class LeaderboardRefreshServiceTest {
     @Test
     void everyTypeUsesItsWhitelistedViewName() {
         when(leaderboardMvRepository.isPopulated(anyString())).thenReturn(true);
+        when(leaderboardMvRepository.hasValidUniqueIndex(anyString())).thenReturn(true);
 
         for (final LeaderboardType type : LeaderboardType.values()) {
             service.refresh(type);

@@ -51,11 +51,14 @@ public class LeaderboardRefreshService {
         }
 
         final boolean populated = Boolean.TRUE.equals(leaderboardMvRepository.isPopulated(viewName));
+        final boolean concurrent = populated && leaderboardMvRepository.hasValidUniqueIndex(viewName);
         if (!populated) {
             log.info("{} not yet populated — running non-concurrent initial REFRESH", viewName);
+        } else if (!concurrent) {
+            log.warn("{} has no valid unique index — running non-concurrent REFRESH", viewName);
         }
         // viewName comes from the enum's whitelist, never from a caller-supplied string.
-        jdbcTemplate.execute("REFRESH MATERIALIZED VIEW " + (populated ? "CONCURRENTLY " : "") + viewName);
+        jdbcTemplate.execute("REFRESH MATERIALIZED VIEW " + (concurrent ? "CONCURRENTLY " : "") + viewName);
         refreshStateRepository.save(new LeaderboardRefreshState(type, OffsetDateTime.now()));
     }
 }
