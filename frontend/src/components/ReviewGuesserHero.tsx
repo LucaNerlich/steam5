@@ -66,12 +66,13 @@ export default function ReviewGuesserHero(props: Readonly<ReviewGuesserHeroProps
         };
     }, [pick.appId]);
 
-    // Helper to ensure URLs are absolute
+    // Ensure URLs are absolute http(s); anything else (javascript:, data:) is dropped
+    // rather than used as an anchor href.
     const normalizeUrl = (url: string | null | undefined): string => {
         if (!url) return '';
-        if (url.startsWith('http://') || url.startsWith('https://')) return url;
         if (url.startsWith('//')) return `https:${url}`;
-        return url;
+        if (url.startsWith('http://') || url.startsWith('https://')) return url;
+        return '';
     };
 
     return (
@@ -129,6 +130,7 @@ export default function ReviewGuesserHero(props: Readonly<ReviewGuesserHeroProps
                     {allShots.map((s, i) => {
                         const fullUrl = normalizeUrl(s.pathFull || s.pathThumbnail);
                         const thumbUrl = normalizeUrl(s.pathThumbnail || s.pathFull);
+                        if (!fullUrl || !thumbUrl) return null;
                         return (
                             <a
                                 key={s.id}
