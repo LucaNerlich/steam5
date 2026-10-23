@@ -27,15 +27,15 @@ async function loadTodayDate(): Promise<string | null> {
 /**
  * Provides review-guesser content with presence scoped to today's game date.
  *
- * @returns The review-guesser content, optionally wrapped with round presence context.
+ * The provider stays mounted even when the date is unavailable: its consumers require
+ * the context, and an empty scope simply does not open a socket.
+ *
+ * @returns The review-guesser content wrapped with round presence context.
  */
 export default async function ReviewGuesserRoundLayout({children}: {children: ReactNode}) {
     const gameDate = await loadTodayDate();
-    if (!gameDate) {
-        return <>{children}</>;
-    }
     return (
-        <RoundPresenceProvider scopeKey={gameDate}>
+        <RoundPresenceProvider scopeKey={gameDate ?? ""}>
             {children}
         </RoundPresenceProvider>
     );
