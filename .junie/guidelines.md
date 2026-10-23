@@ -24,7 +24,7 @@ Root: `/mnt/workspace/luca/steam5`
 
 - `backend/` — Spring Boot 3.5 (Java 21, Gradle Kotlin DSL). PostgreSQL for persistence. Uses `.env` via `spring-dotenv`
   to load environment variables in dev.
-- `frontend/` — Next.js 16 with React 19, TypeScript. Node 22 runtime, package manager `pnpm@10.15.1`.
+- `frontend/` — Next.js 16 with React 19, TypeScript. Node 24 runtime, package manager `pnpm@10.33.2`.
 - `Dockerfile.coolify` — containerization for deployment (Coolify).
 - `steam5.log` — runtime log (if produced in root).
 - `.junie/` — Junie configuration and this guidelines file.
@@ -38,7 +38,7 @@ Root: `/mnt/workspace/luca/steam5`
     - Notable libs: Spring Security, OAuth2 Client, Quartz, Caffeine cache, JJWT, Lombok
 - Frontend
     - Next.js `^16`, React `^19`, TypeScript `^5.9`
-    - Node `22`, npm `11`, pnpm `10.15.1` (see `frontend/package.json`)
+    - Node `24`, npm `11`, pnpm `10.33.2` (see `frontend/package.json`)
 
 ## Environment and configuration
 
@@ -61,7 +61,7 @@ Root: `/mnt/workspace/luca/steam5`
 Prerequisites
 
 - Java 21 (for backend)
-- Node 22 and pnpm 10.15.1 (for frontend)
+- Node 24 and pnpm 10.33.2 (for frontend)
 - PostgreSQL 14+ accessible locally (or a JDBC URL to a remote instance)
 
 Database (dev)

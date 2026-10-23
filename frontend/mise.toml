@@ -1,7 +1,9 @@
 # Tool versions for local dev, CI, and Coolify/Railpack builds.
-# NOTE: pnpm is intentionally NOT managed here. The package.json "packageManager"
-# field makes Coolify/Railpack install pnpm 10.15.1 via Corepack instead of mise's
-# aqua backend, whose older bundled versions can't resolve pnpm 11/12's renamed
-# GitHub release assets ("no asset found: pnpm-linux-x64").
+# pnpm is pinned to 10.33.2 because Coolify's Railpack bundles mise 2026.3.17,
+# whose aqua registry cannot resolve pnpm 11+ renamed release assets
+# ("no asset found: pnpm-linux-x64"). Railpack does not use Corepack for pnpm,
+# so packageManager cannot work around it.
+# Upgrade to 12 once Railpack ships mise >= 2026.5.4 (aqua 4.511.0).
 [tools]
 node = "24"
+pnpm = "10.33.2"

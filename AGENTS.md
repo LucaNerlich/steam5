@@ -7,7 +7,7 @@
 Steam5 is a monorepo with two independent sub-projects:
 
 - **Backend** (`backend/`): Spring Boot 4.1.1, Java 21, Gradle 9.8.1, PostgreSQL
-- **Frontend** (`frontend/`): Next.js 16, React 19, TypeScript, pnpm 10.15.1, Node 22
+- **Frontend** (`frontend/`): Next.js 16, React 19, TypeScript, pnpm 10.33.2, Node 24
 
 Standard commands are documented in `README.md` and `.junie/guidelines.md`.
 
