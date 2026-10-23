@@ -2,6 +2,44 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.0] - 2026-10-23
+
+### Changed
+
+- Perfect-day rankings and the PERFECT_DAY achievement now count only days where every generated round was answered with an exact hit; days still in progress no longer count
+- The leaderboard materialized-view bootstrap repairs an invalid unique index and falls back to a non-concurrent refresh instead of leaving leaderboards frozen
+- Hardest-games and perfect-days refreshes evict only their own cache keys, so weekly, monthly and season achievement aggregates keep their full TTL
+- Case-insensitive developer, publisher, genre and category lookups use the lower() indexes, and the scheduler and cache definitions are table-driven
+- Removed unused leaderboard avatar blurdata and spotlight aggregates
+
+### Fixed
+
+- Blurhash placeholders survive a details refresh, and an encode that cannot be saved now fails the job instead of reporting success
+- Season awards resolve the same season identifier as the season detail route after a backfill renumbers seasons
+- Daily average score cards require five distinct players, not five guesses
+- Logout relays the client IP so token revocation is not rate-limited, and a failed revocation is logged
+- Removed the route-level prerender from the cached GET proxies, so a deploy can no longer bake an upstream 404 or 502 into the route
+- The archive month endpoint returns 400 instead of 500 for an out-of-range month
+- Comments stay locked until the current pick set is complete, a mid-token mention no longer leaves text behind, and a draft survives a pending post
+- Round pages keep the presence provider mounted when today's date cannot be loaded, and a raced presence send wrapper is released
+- Reaction-picker options have accessible names for screen readers
+- Profile charts use the server's UTC date, removing hydration mismatches around midnight
+- OG profile cards omit the rank badge when the leaderboard is unavailable instead of showing Rookie and Top 100%
+- Archive day links use client-side navigation, and llms.txt reports the real 5/3/1 scoring and stack versions
+- `NEXT_PUBLIC_API_DOMAIN` is normalized once, so a trailing slash no longer breaks API, websocket and Steam-login URLs
+- The monitoring quickstart creates the external Docker network, in the compose file and both READMEs
+
+### Removed
+
+- Removed the unused `/api/review-game/today/details` endpoint and the unreachable `/api/review-game/today` Next.js proxy
+- Removed the `DB_POOL_*` environment aliases; use Spring's `SPRING_DATASOURCE_HIKARI_*` names
+- Removed the unused `useServerGuesses` disabled option; the two comment-mutation proxies now share one helper
+
+### Security
+
+- Screenshot links accept only http(s) URLs, so a data-driven `javascript:` URL can no longer become an anchor href
+- pnpm refuses package versions younger than seven days, with the already-locked versions exempted
+
 ## [1.20.6] - 2026-10-22
 
 ### Changed
