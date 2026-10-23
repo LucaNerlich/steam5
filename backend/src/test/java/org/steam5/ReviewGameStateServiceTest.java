@@ -215,8 +215,11 @@ public class ReviewGameStateServiceTest {
         for (ReviewGamePick p : picks) {
             verify(detailsFetcher, atLeastOnce()).fetchForAppId(p.getAppId());
         }
-        // Ensure event published for each
-        verify(eventPublisher, atLeast(5)).publishEvent(any(BlurhashEncodeRequested.class));
+        // The blurhash events must fire only after the details refresh has written the
+        // screenshot rows they encode; publishing first makes the job scan stale rows.
+        final var order = inOrder(detailsFetcher, eventPublisher);
+        order.verify(detailsFetcher, atLeast(5)).fetchForAppId(anyLong());
+        order.verify(eventPublisher, atLeast(5)).publishEvent(any(BlurhashEncodeRequested.class));
     }
 
     @Test

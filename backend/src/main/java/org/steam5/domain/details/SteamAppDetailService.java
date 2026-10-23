@@ -12,7 +12,9 @@ import tools.jackson.databind.JsonNode;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -175,7 +177,6 @@ public class SteamAppDetailService {
         detail.getPublisher().clear();
         detail.getGenres().clear();
         detail.getCategories().clear();
-        detail.getScreenshots().clear();
         detail.getMovies().clear();
 
         // Developers (atomic lookup-or-create by name: INSERT ... ON CONFLICT
@@ -249,14 +250,26 @@ public class SteamAppDetailService {
             detail.getGenres().add(g);
         }
 
-        // Screenshots
+        // Screenshots: update the existing rows in place by path_full so the blurhash
+        // columns filled by BlurhashScreenshotsJob survive a details refresh.
+        final Map<String, Screenshot> existingScreenshots = new LinkedHashMap<>();
+        for (Screenshot screenshot : detail.getScreenshots()) {
+            existingScreenshots.put(screenshot.getPathFull(), screenshot);
+        }
+        final Set<String> seenScreenshots = new HashSet<>();
         for (JsonNode ssNode : safeArray(data.path("screenshots"))) {
             final String thumb = normalizeToHttps(ssNode.path("path_thumbnail").asText(null));
             final String full = normalizeToHttps(ssNode.path("path_full").asText(null));
-            if (StringUtils.isNoneBlank(thumb, full)) {
-                detail.getScreenshots().add(new Screenshot(null, detail, thumb, full, null, null, null, null));
+            if (StringUtils.isNoneBlank(thumb, full) && seenScreenshots.add(full)) {
+                final Screenshot existingScreenshot = existingScreenshots.get(full);
+                if (existingScreenshot == null) {
+                    detail.getScreenshots().add(new Screenshot(null, detail, thumb, full, null, null, null, null));
+                } else {
+                    existingScreenshot.setPathThumbnail(thumb);
+                }
             }
         }
+        detail.getScreenshots().removeIf(screenshot -> !seenScreenshots.contains(screenshot.getPathFull()));
 
         // Movies
         for (JsonNode mvNode : safeArray(data.path("movies"))) {

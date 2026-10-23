@@ -90,6 +90,36 @@ class SteamAppDetailServiceTest {
     }
 
     @Test
+    void reIngestPreservesScreenshotBlurhash() {
+        final SteamAppDetail existing = new SteamAppDetail();
+        existing.setAppId(APP_ID);
+        final Screenshot screenshot = new Screenshot(null, existing,
+                "https://shared.akamai.steamstatic.com/thumb.jpg",
+                "https://shared.akamai.steamstatic.com/full.jpg",
+                "thumb-hash", "full-hash", "thumb-data", "full-data");
+        existing.getScreenshots().add(screenshot);
+        when(repository.findById(APP_ID)).thenReturn(Optional.of(existing));
+
+        service.upsertFromJson(APP_ID, json("""
+                {
+                  "screenshots": [
+                    {
+                      "path_thumbnail": "https://shared.akamai.steamstatic.com/thumb-v2.jpg",
+                      "path_full": "https://shared.akamai.steamstatic.com/full.jpg"
+                    }
+                  ]
+                }
+                """));
+
+        assertEquals(1, existing.getScreenshots().size());
+        final Screenshot refreshed = existing.getScreenshots().iterator().next();
+        assertSame(screenshot, refreshed);
+        assertEquals("https://shared.akamai.steamstatic.com/thumb-v2.jpg", refreshed.getPathThumbnail());
+        assertEquals("thumb-hash", refreshed.getBlurhashThumb());
+        assertEquals("full-data", refreshed.getBlurdataFull());
+    }
+
+    @Test
     void persistsANewDetail() {
         when(repository.findById(APP_ID)).thenReturn(Optional.empty());
 
