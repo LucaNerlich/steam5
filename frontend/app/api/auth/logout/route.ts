@@ -1,6 +1,7 @@
 import {revalidatePath, revalidateTag} from 'next/cache';
 import {NextRequest, NextResponse} from 'next/server';
 import {allowedBackendOrigin, rejectUntrustedOrigin} from '@/lib/requestOrigin';
+import {forwardedForHeaders} from '@/lib/backend';
 
 /** Trusted public origin of this site; never derived from client-supplied headers. */
 const SITE_ORIGIN = (process.env.NEXT_PUBLIC_DOMAIN || "").replace(/\/$/, "");
@@ -30,12 +31,17 @@ export async function POST(req: NextRequest) {
             console.error('Backend logout call skipped: production backend origin must use HTTPS or be explicitly trusted');
         } else {
             try {
-                await fetch(`${backendOrigin}/api/auth/logout`, {
+                const res = await fetch(`${backendOrigin}/api/auth/logout`, {
                     method: 'POST',
-                    headers: {authorization: `Bearer ${token}`},
+                    // Relay the client IP like the other auth routes; without it every
+                    // logout shares the Next container's single rate-limit bucket.
+                    headers: {authorization: `Bearer ${token}`, ...forwardedForHeaders(req)},
                     cache: 'no-store',
                     signal: AbortSignal.timeout(3000),
                 });
+                if (!res.ok) {
+                    console.error(`Backend logout failed with ${res.status}; the token may stay valid until it expires`);
+                }
             } catch (e) {
                 console.error('Backend logout call failed', e);
             }
