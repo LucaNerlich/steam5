@@ -15,9 +15,10 @@ import ImprovementTrend from "./performance/ImprovementTrend";
 import BiasBadge from "./performance/BiasBadge";
 import BucketCallouts from "./performance/BucketCallouts";
 
-export default function PerformanceSection({rounds, globalHitRate = null}: {
+export default function PerformanceSection({rounds, globalHitRate = null, todayUtc}: {
     rounds: FlatRound[];
     globalHitRate?: number | null;
+    todayUtc: string;
 }): React.ReactElement | null {
     if (rounds.length === 0) return null;
 
@@ -25,11 +26,11 @@ export default function PerformanceSection({rounds, globalHitRate = null}: {
         <section aria-labelledby="perf-title">
             <h2 id="perf-title">Recent performance</h2>
             <div className="perf-grid">
-                <CalendarHeatmap rounds={rounds} />
-                <PointsByRoundChart rounds={rounds} />
+                <CalendarHeatmap rounds={rounds} todayUtc={todayUtc} />
+                <PointsByRoundChart rounds={rounds} todayUtc={todayUtc} />
                 <OutcomeMixBar rounds={rounds} />
-                <RollingHitRateSpark rounds={rounds} />
-                <StreaksCard rounds={rounds} />
+                <RollingHitRateSpark rounds={rounds} todayUtc={todayUtc} />
+                <StreaksCard rounds={rounds} todayUtc={todayUtc} />
                 <BucketAccuracyBars rounds={rounds} />
                 <HitRateVsAverageCard rounds={rounds} globalHitRate={globalHitRate} />
                 <RoundPositionChart rounds={rounds} />

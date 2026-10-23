@@ -6,19 +6,19 @@ type Round = { selectedBucket: string; actualBucket: string; date?: string };
 
 const DAYS_WINDOW = 30;
 
-function lastNDays(n: number): string[] {
-    const now = new Date();
+function lastNDays(n: number, todayUtc: string): string[] {
+    const now = new Date(todayUtc + "T00:00:00Z");
     const dates: string[] = [];
     for (let i = n - 1; i >= 0; i--) {
         const day = new Date(now);
-        day.setDate(now.getDate() - i);
+        day.setUTCDate(now.getUTCDate() - i);
         dates.push(day.toISOString().slice(0, 10));
     }
     return dates;
 }
 
-export default function RollingHitRateSpark({rounds}: { rounds: Round[] }): React.ReactElement {
-    const days = lastNDays(DAYS_WINDOW);
+export default function RollingHitRateSpark({rounds, todayUtc}: { rounds: Round[]; todayUtc: string }): React.ReactElement {
+    const days = lastNDays(DAYS_WINDOW, todayUtc);
     const width = 600;
     const height = 140;
     const padding = 24;

@@ -9,9 +9,13 @@ function toUTCDate(d: string): number {
     return new Date(d + "T00:00:00Z").getTime();
 }
 
-export default function StreaksCard({rounds}: { rounds: Round[] }): React.ReactElement {
-    // UTC "current day" that refreshes at the next UTC midnight while mounted.
-    const [todayUtc, setTodayUtc] = useState(() => new Date().toISOString().slice(0, 10));
+export default function StreaksCard({rounds, todayUtc: serverTodayUtc}: {
+    rounds: Round[];
+    todayUtc: string;
+}): React.ReactElement {
+    // Start from the server's UTC day (so SSR and hydration agree), then refresh at each
+    // UTC midnight while mounted.
+    const [todayUtc, setTodayUtc] = useState(serverTodayUtc);
 
     useEffect(() => {
         // Re-check the UTC day every minute so the streak rolls over shortly

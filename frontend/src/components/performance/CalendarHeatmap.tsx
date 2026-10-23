@@ -12,8 +12,8 @@ const LEFT = 20; // space for Mon/Wed/Fri labels
 const TOP = 18;  // space for month labels
 
 // Build 53×7 grid starting from Monday of the week 364 days ago
-function buildHeatmapGrid(avgByDay: Map<string, number>) {
-    const today = new Date();
+function buildHeatmapGrid(avgByDay: Map<string, number>, todayUtc: string) {
+    const today = new Date(todayUtc + "T00:00:00Z");
     // Go back 364 days, then back to Monday
     const start = new Date(today);
     start.setUTCDate(start.getUTCDate() - 364);
@@ -27,7 +27,6 @@ function buildHeatmapGrid(avgByDay: Map<string, number>) {
     // The grid is anchored a year back and always emits WEEKS * DAYS cells, so the trailing
     // 0-6 cells of the current week are dates that have not happened yet. Painting them made
     // the tooltip and aria-label claim "No play" for the future.
-    const todayUtc = new Date().toISOString().slice(0, 10);
 
     for (let w = 0; w < WEEKS; w++) {
         for (let d = 0; d < DAYS; d++) {
@@ -67,7 +66,7 @@ function heatmapSummary(cells: {dateStr: string; avg: number | null}[]): string 
     return `${played.length} active ${played.length === 1 ? "day" : "days"}, best day ${best.dateStr} at ${(best.avg as number).toFixed(1)} pts/round`;
 }
 
-export default function CalendarHeatmap({rounds}: { rounds: Round[] }): React.ReactElement {
+export default function CalendarHeatmap({rounds, todayUtc}: { rounds: Round[]; todayUtc: string }): React.ReactElement {
     const avgByDay = (() => {
         const map = new Map<string, { total: number; count: number }>();
         for (const r of rounds) {
@@ -82,7 +81,7 @@ export default function CalendarHeatmap({rounds}: { rounds: Round[] }): React.Re
         return result;
     })();
 
-    const {cells, monthLabels} = buildHeatmapGrid(avgByDay);
+    const {cells, monthLabels} = buildHeatmapGrid(avgByDay, todayUtc);
 
     const svgW = LEFT + WEEKS * (CELL + GAP) - GAP;
     const svgH = TOP + DAYS * (CELL + GAP) - GAP;
