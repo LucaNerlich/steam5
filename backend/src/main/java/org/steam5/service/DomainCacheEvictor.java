@@ -74,10 +74,32 @@ public class DomainCacheEvictor {
     }
 
     /**
-     * Clears cached hourly statistics, including hardest-games rankings and related aggregates.
+     * Clears stats-hourly entries whose key starts with any of the given prefixes. Prefer this
+     * over clearing the whole cache when a refresh only invalidates specific entries: the
+     * cache also holds weekly/monthly/season achievement aggregates that are expensive to
+     * rebuild and unrelated to leaderboard refreshes.
      */
-    public void evictStatsHourly() {
-        clear(STATS_HOURLY);
+    public void evictStatsHourlyKeys(final String... keyPrefixes) {
+        final org.springframework.cache.Cache cache = cacheManager.getCache(STATS_HOURLY);
+        if (cache == null) {
+            return;
+        }
+        if (!(cache instanceof CaffeineCache caffeineCache)) {
+            cache.clear();
+            return;
+        }
+        final Cache<Object, Object> nativeCache = caffeineCache.getNativeCache();
+        for (final Object key : nativeCache.asMap().keySet()) {
+            if (!(key instanceof String s)) {
+                continue;
+            }
+            for (final String prefix : keyPrefixes) {
+                if (s.startsWith(prefix)) {
+                    caffeineCache.evict(key);
+                    break;
+                }
+            }
+        }
     }
 
     /**

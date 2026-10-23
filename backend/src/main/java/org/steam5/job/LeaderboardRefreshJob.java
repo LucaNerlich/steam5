@@ -47,11 +47,10 @@ public class LeaderboardRefreshJob implements Job {
             caughtException = e;
         } finally {
             cacheEvictor.evictLeaderboardStatic();
-            if (type == LeaderboardType.HARDEST_GAMES || type == LeaderboardType.PERFECT_DAYS) {
-                // hardest-games and perfect-days read through "stats-hourly" (StatisticsService),
-                // not "leaderboard-static" — without this, their 1h TTL could let the freshness
-                // header outrun the cached body it labels by up to that long after each refresh.
-                cacheEvictor.evictStatsHourly();
+            if (type == LeaderboardType.HARDEST_GAMES) {
+                cacheEvictor.evictStatsHourlyKeys("hardest-games-");
+            } else if (type == LeaderboardType.PERFECT_DAYS) {
+                cacheEvictor.evictStatsHourlyKeys("perfect-days");
             }
             long ms = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
             log.info("LeaderboardRefreshJob[{}] completed in {}ms", type, ms);
