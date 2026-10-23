@@ -74,23 +74,6 @@ export async function GET(req: Request): Promise<ImageResponse> {
         } catch { return null; }
     }
 
-    function percentileRank(value: number, values: number[]): number {
-        if (values.length === 0) return 100;
-        let below = 0;
-        for (const v of values) if (v <= value) below++;
-        const pct = 100 - Math.floor((below / values.length) * 100);
-        return Math.max(1, Math.min(99, pct));
-    }
-
-    function rankBadge(pctTop: number): { label: string; color: string } {
-        if (pctTop <= 1) return { label: "S+", color: "#22c55e" };
-        if (pctTop <= 5) return { label: "S", color: "#10b981" };
-        if (pctTop <= 10) return { label: "A", color: "#34d399" };
-        if (pctTop <= 25) return { label: "B", color: "#fde047" };
-        if (pctTop <= 50) return { label: "C", color: "#f59e0b" };
-        return { label: "Rookie", color: "#ef4444" };
-    }
-
     // Prepare data depending on variant
     let title = "Steam5";
     let subtitle = "Review Guesser";
@@ -108,14 +91,17 @@ export async function GET(req: Request): Promise<ImageResponse> {
             subtitle = "Profile — Review Guesser";
             avatarSrc = sanitizeAvatarUrl(profile.avatar);
             primary = pickAccent(profile.steamId);
-            const totalPct = leaders ? percentileRank(profile.stats.totalPoints, leaders.map(l => l.totalPoints)) : 100;
-            const avgPct = leaders ? percentileRank(profile.stats.avgPoints, leaders.map(l => l.avgPoints)) : 100;
-            badge = rankBadge(totalPct);
+            const {totalPct, avgPct, badge: rankBadgeValue} =
+                profileRank(leaders, profile.stats.totalPoints, profile.stats.avgPoints);
+            badge = rankBadgeValue;
             statsLines = [
                 { label: "Total Points", value: String(profile.stats.totalPoints) },
-                { label: "Avg Points", value: profile.stats.avgPoints.toFixed(2) + ` · Top ${avgPct}%` },
+                {
+                    label: "Avg Points",
+                    value: profile.stats.avgPoints.toFixed(2) + (avgPct === null ? "" : ` · Top ${avgPct}%`),
+                },
                 { label: "Rounds", value: String(profile.stats.rounds) },
-                { label: "Top Rank", value: `Top ${totalPct}%` },
+                ...(totalPct === null ? [] : [{ label: "Top Rank", value: `Top ${totalPct}%` }]),
             ];
             // days are newest-first; the box says "Recent", so take the head and skip
             // today's still-ungraded rounds (the backend omits actualBucket for them).
