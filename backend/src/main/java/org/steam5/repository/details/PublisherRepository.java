@@ -11,7 +11,9 @@ import java.util.Optional;
 
 @Repository
 public interface PublisherRepository extends JpaRepository<Publisher, Long> {
-    Optional<Publisher> findByNameIgnoreCase(String name);
+    /** Matches the lower(name) functional index; derived IgnoreCase would emit UPPER(). */
+    @Query("select p from Publisher p where lower(p.name) = lower(:name)")
+    Optional<Publisher> findByNameIgnoreCase(@Param("name") String name);
 
     /** Serializes lookup-or-create for the same name across case variants. */
     @Query(value = "SELECT pg_advisory_xact_lock(hashtext('publisher-name'), hashtext(lower(:name)))", nativeQuery = true)

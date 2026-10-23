@@ -11,7 +11,9 @@ import java.util.Optional;
 
 @Repository
 public interface DeveloperRepository extends JpaRepository<Developer, Long> {
-    Optional<Developer> findByNameIgnoreCase(String name);
+    /** Matches the lower(name) functional index; derived IgnoreCase would emit UPPER(). */
+    @Query("select d from Developer d where lower(d.name) = lower(:name)")
+    Optional<Developer> findByNameIgnoreCase(@Param("name") String name);
 
     /** Serializes lookup-or-create for the same name across case variants. */
     @Query(value = "SELECT pg_advisory_xact_lock(hashtext('developer-name'), hashtext(lower(:name)))", nativeQuery = true)

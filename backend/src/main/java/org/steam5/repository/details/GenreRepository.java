@@ -11,7 +11,9 @@ import java.util.Optional;
 
 @Repository
 public interface GenreRepository extends JpaRepository<Genre, Long> {
-    Optional<Genre> findByDescriptionIgnoreCase(String description);
+    /** Matches the lower(description) functional index; derived IgnoreCase would emit UPPER(). */
+    @Query("select g from Genre g where lower(g.description) = lower(:description)")
+    Optional<Genre> findByDescriptionIgnoreCase(@Param("description") String description);
 
     /** Serializes lookup-or-create for the same description across case variants. */
     @Query(value = "SELECT pg_advisory_xact_lock(hashtext('genre-desc'), hashtext(lower(:description)))", nativeQuery = true)
