@@ -248,9 +248,9 @@ public interface GuessRepository extends JpaRepository<Guess, Long> {
 
     // Multi-scan CTE query. Cached in service layer today; consider a window-function rewrite if data volume grows.
     @Query(value = "WITH day_rounds AS (\n" +
-            "  SELECT game_date, MAX(round_index) AS rounds_per_day\n" +
-            "  FROM guesses\n" +
-            "  GROUP BY game_date\n" +
+            "  SELECT pick_date AS game_date, COUNT(*) AS rounds_per_day\n" +
+            "  FROM review_game_pick\n" +
+            "  GROUP BY pick_date\n" +
             "), user_day AS (\n" +
             "  SELECT g.steam_id, g.game_date, SUM(g.points) AS day_points, MAX(dr.rounds_per_day) AS rounds_per_day\n" +
             "  FROM guesses g JOIN day_rounds dr USING (game_date)\n" +
@@ -272,10 +272,10 @@ public interface GuessRepository extends JpaRepository<Guess, Long> {
 
     // Multi-scan CTE query. Cached in service layer today; consider a window-function rewrite if data volume grows.
     @Query(value = "WITH day_rounds AS (\n" +
-            "  SELECT game_date, MAX(round_index) AS rounds_per_day\n" +
-            "  FROM guesses\n" +
-            "  WHERE game_date BETWEEN :startDate AND :endDate\n" +
-            "  GROUP BY game_date\n" +
+            "  SELECT pick_date AS game_date, COUNT(*) AS rounds_per_day\n" +
+            "  FROM review_game_pick\n" +
+            "  WHERE pick_date BETWEEN :startDate AND :endDate\n" +
+            "  GROUP BY pick_date\n" +
             "), user_day AS (\n" +
             "  SELECT g.steam_id, g.game_date, SUM(g.points) AS day_points, MAX(dr.rounds_per_day) AS rounds_per_day\n" +
             "  FROM guesses g JOIN day_rounds dr USING (game_date)\n" +
@@ -317,14 +317,14 @@ public interface GuessRepository extends JpaRepository<Guess, Long> {
     @Query(value = "SELECT game_date AS gameDate, AVG(points) AS avgScore, COUNT(DISTINCT steam_id) AS playerCount " +
             "FROM guesses " +
             "GROUP BY game_date " +
-            "HAVING COUNT(*) >= 5 " +
+            "HAVING COUNT(DISTINCT steam_id) >= 5 " +
             "ORDER BY avgScore DESC", nativeQuery = true)
     List<DailyAvgScoreRow> findDailyAvgScoresDesc();
 
     @Query(value = "SELECT game_date AS gameDate, AVG(points) AS avgScore, COUNT(DISTINCT steam_id) AS playerCount " +
             "FROM guesses " +
             "GROUP BY game_date " +
-            "HAVING COUNT(*) >= 5 " +
+            "HAVING COUNT(DISTINCT steam_id) >= 5 " +
             "ORDER BY avgScore ASC", nativeQuery = true)
     List<DailyAvgScoreRow> findDailyAvgScoresAsc();
 
@@ -332,7 +332,7 @@ public interface GuessRepository extends JpaRepository<Guess, Long> {
             "FROM guesses " +
             "WHERE game_date BETWEEN :startDate AND :endDate " +
             "GROUP BY game_date " +
-            "HAVING COUNT(*) >= 5 " +
+            "HAVING COUNT(DISTINCT steam_id) >= 5 " +
             "ORDER BY game_date ASC", nativeQuery = true)
     List<DailyAvgScoreRow> findDailyAvgScoresInRange(@Param("startDate") LocalDate startDate,
                                                      @Param("endDate") LocalDate endDate);
@@ -445,19 +445,14 @@ public interface GuessRepository extends JpaRepository<Guess, Long> {
                                                                 @Param("minRounds") int minRounds);
 
     /**
-     * Row shape shared with the leaderboard materialized views (see
-     * backend/src/main/resources/db/mv-leaderboard-*.sql) and {@link #aggregateAllTimeStatsHavingMinRounds}.
-     * tooHigh/tooLow are computed by extracting the leading numeric threshold from each bucket
-     * label string (mirrors bucketOrderFromLabel in the controller).
+     * Minimal row shape for the player-spotlight eligibility query. Unlike the leaderboard
+     * materialized views it does not need hits/flops/tooHigh/tooLow, so those aggregates are
+     * not computed here.
      */
     interface AllTimeStatsRow {
         String getSteamId();
         Long getTotalPoints();
         Long getRounds();
-        Long getHits();
-        Long getFlops();
-        Long getTooHigh();
-        Long getTooLow();
         Double getAvgPoints();
     }
 
@@ -473,21 +468,10 @@ public interface GuessRepository extends JpaRepository<Guess, Long> {
                 g.steam_id                                                          AS steamId,
                 SUM(g.points)                                                       AS totalPoints,
                 COUNT(*)                                                            AS rounds,
-                SUM(CASE WHEN g.selected_bucket = g.actual_bucket THEN 1 ELSE 0 END) AS hits,
-                SUM(CASE WHEN g.points = 0 THEN 1 ELSE 0 END)                      AS flops,
-                SUM(CASE WHEN
-                    CAST(NULLIF(regexp_replace(g.selected_bucket, '^(\\d+).*', '\\1'), '') AS BIGINT) >
-                    CAST(NULLIF(regexp_replace(g.actual_bucket,   '^(\\d+).*', '\\1'), '') AS BIGINT)
-                THEN 1 ELSE 0 END)                                                  AS tooHigh,
-                SUM(CASE WHEN
-                    CAST(NULLIF(regexp_replace(g.selected_bucket, '^(\\d+).*', '\\1'), '') AS BIGINT) <
-                    CAST(NULLIF(regexp_replace(g.actual_bucket,   '^(\\d+).*', '\\1'), '') AS BIGINT)
-                THEN 1 ELSE 0 END)                                                  AS tooLow,
                 AVG(g.points)                                                       AS avgPoints
             FROM guesses g
             GROUP BY g.steam_id
             HAVING COUNT(*) >= :minRounds
-            ORDER BY SUM(g.points) DESC
             """, nativeQuery = true)
     List<AllTimeStatsRow> aggregateAllTimeStatsHavingMinRounds(@Param("minRounds") long minRounds);
 }
