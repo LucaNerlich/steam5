@@ -7,201 +7,46 @@ import org.springframework.cache.support.SimpleCacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.time.Duration;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 @Configuration
 public class CacheConfig {
 
     /**
-     * Configures the application's named Caffeine caches.
-     *
-     * @return a cache manager containing the configured caches
+     * One named cache with its TTL and size. The table in {@link #cacheManager()} is the single
+     * source of truth; registering a cache in a second list is what used to drift.
      */
+    private static CaffeineCache cache(final String name, final Duration ttl, final long maximumSize) {
+        return new CaffeineCache(name, Caffeine.newBuilder()
+                .expireAfterWrite(ttl)
+                .maximumSize(maximumSize)
+                .recordStats()
+                .build());
+    }
+
     @Bean
     public CacheManager cacheManager() {
-        final CaffeineCache cacheOneHour = new CaffeineCache(
-                "one-hour",
-                Caffeine.newBuilder()
-                        .expireAfterWrite(1, TimeUnit.HOURS)
-                        .maximumSize(500)
-                        .recordStats()
-                        .build()
-        );
-
-        final CaffeineCache cacheOneDay = new CaffeineCache(
-                "one-day",
-                Caffeine.newBuilder()
-                        .expireAfterWrite(24, TimeUnit.HOURS)
-                        .maximumSize(500)
-                        .recordStats()
-                        .build()
-        );
-
-        final CaffeineCache cacheReviewGame = new CaffeineCache(
-                "review-game",
-                Caffeine.newBuilder()
-                        .expireAfterWrite(24, TimeUnit.HOURS)
-                        .maximumSize(500)
-                        .recordStats()
-                        .build()
-        );
-
-        final CaffeineCache cacheStatsLong = new CaffeineCache(
-                "stats-long",
-                Caffeine.newBuilder()
-                        .expireAfterWrite(7, TimeUnit.DAYS)
-                        .maximumSize(500)
-                        .recordStats()
-                        .build()
-        );
-
-        final CaffeineCache cacheStatsDaily = new CaffeineCache(
-                "stats-daily",
-                Caffeine.newBuilder()
-                        .expireAfterWrite(24, TimeUnit.HOURS)
-                        .maximumSize(500)
-                        .recordStats()
-                        .build()
-        );
-
-        final CaffeineCache cacheStatsHourly = new CaffeineCache(
-                "stats-hourly",
-                Caffeine.newBuilder()
-                        .expireAfterWrite(1, TimeUnit.HOURS)
-                        .maximumSize(500)
-                        .recordStats()
-                        .build()
-        );
-
-        final CaffeineCache cacheStatsShort = new CaffeineCache(
-                "stats-short",
-                Caffeine.newBuilder()
-                        .expireAfterWrite(5, TimeUnit.MINUTES)
-                        .maximumSize(500)
-                        .recordStats()
-                        .build()
-        );
-
-        final CaffeineCache leaderboardLive = new CaffeineCache(
-                "leaderboard-live",
-                Caffeine.newBuilder()
-                        .expireAfterWrite(60, TimeUnit.SECONDS)
-                        .maximumSize(200)
-                        .recordStats()
-                        .build()
-        );
-
-        final CaffeineCache leaderboardStatic = new CaffeineCache(
-                "leaderboard-static",
-                Caffeine.newBuilder()
-                        .expireAfterWrite(10, TimeUnit.MINUTES)
-                        .maximumSize(200)
-                        .recordStats()
-                        .build()
-        );
-
-        final CaffeineCache cacheStatsEndpoint = new CaffeineCache(
-                "cache-stats",
-                Caffeine.newBuilder()
-                        .expireAfterWrite(1, TimeUnit.MINUTES)
-                        .maximumSize(5)
-                        .recordStats()
-                        .build()
-        );
-
-        final CaffeineCache seasonCurrent = new CaffeineCache(
-                "season-current-response",
-                Caffeine.newBuilder()
-                        .expireAfterWrite(15, TimeUnit.MINUTES)
-                        .maximumSize(50)
-                        .recordStats()
-                        .build()
-        );
-
-        final CaffeineCache seasonList = new CaffeineCache(
-                "season-list-response",
-                Caffeine.newBuilder()
-                        .expireAfterWrite(30, TimeUnit.MINUTES)
-                        .maximumSize(200)
-                        .recordStats()
-                        .build()
-        );
-
-        final CaffeineCache seasonAwardsResponse = new CaffeineCache(
-                "season-awards-response",
-                Caffeine.newBuilder()
-                        .expireAfterWrite(1, TimeUnit.HOURS)
-                        .maximumSize(200)
-                        .recordStats()
-                        .build()
-        );
-
-        final CaffeineCache seasonDetailResponse = new CaffeineCache(
-                "season-detail-response",
-                Caffeine.newBuilder()
-                        .expireAfterWrite(30, TimeUnit.MINUTES)
-                        .maximumSize(200)
-                        .recordStats()
-                        .build()
-        );
-
-        final CaffeineCache seasonAwards = new CaffeineCache(
-                "season-awards",
-                Caffeine.newBuilder()
-                        .expireAfterWrite(1, TimeUnit.HOURS)
-                        .maximumSize(200)
-                        .recordStats()
-                        .build()
-        );
-
-        final CaffeineCache playerAwards = new CaffeineCache(
-                "player-awards",
-                Caffeine.newBuilder()
-                        .expireAfterWrite(1, TimeUnit.HOURS)
-                        .maximumSize(500)
-                        .recordStats()
-                        .build()
-        );
-
-        final CaffeineCache playerSpotlights = new CaffeineCache(
-                "player-spotlights",
-                Caffeine.newBuilder()
-                        .expireAfterWrite(1, TimeUnit.HOURS)
-                        .maximumSize(500)
-                        .recordStats()
-                        .build()
-        );
-
-        final CaffeineCache commentsForDay = new CaffeineCache(
-                "comments-for-day",
-                Caffeine.newBuilder()
-                        .expireAfterWrite(60, TimeUnit.SECONDS)
-                        .maximumSize(500)
-                        .recordStats()
-                        .build()
-        );
-
         final SimpleCacheManager cacheManager = new SimpleCacheManager();
         cacheManager.setCaches(List.of(
-                cacheOneHour,
-                cacheOneDay,
-                cacheReviewGame,
-                cacheStatsLong,
-                cacheStatsDaily,
-                cacheStatsHourly,
-                cacheStatsShort,
-                leaderboardLive,
-                leaderboardStatic,
-                cacheStatsEndpoint,
-                seasonCurrent,
-                seasonList,
-                seasonAwardsResponse,
-                seasonDetailResponse,
-                seasonAwards,
-                playerAwards,
-                playerSpotlights,
-                commentsForDay
+                cache("one-hour", Duration.ofHours(1), 500),
+                cache("one-day", Duration.ofDays(1), 500),
+                cache("review-game", Duration.ofDays(1), 500),
+                cache("stats-long", Duration.ofDays(7), 500),
+                cache("stats-daily", Duration.ofDays(1), 500),
+                cache("stats-hourly", Duration.ofHours(1), 500),
+                cache("stats-short", Duration.ofMinutes(5), 500),
+                cache("leaderboard-live", Duration.ofSeconds(60), 200),
+                cache("leaderboard-static", Duration.ofMinutes(10), 200),
+                cache("cache-stats", Duration.ofMinutes(1), 5),
+                cache("season-current-response", Duration.ofMinutes(15), 50),
+                cache("season-list-response", Duration.ofMinutes(30), 200),
+                cache("season-awards-response", Duration.ofHours(1), 200),
+                cache("season-detail-response", Duration.ofMinutes(30), 200),
+                cache("season-awards", Duration.ofHours(1), 200),
+                cache("player-awards", Duration.ofHours(1), 500),
+                cache("player-spotlights", Duration.ofHours(1), 500),
+                cache("comments-for-day", Duration.ofSeconds(60), 500)
         ));
         return cacheManager;
     }

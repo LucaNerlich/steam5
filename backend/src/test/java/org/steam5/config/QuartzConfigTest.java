@@ -10,6 +10,7 @@ import org.quartz.Trigger;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.TimeZone;
+import java.util.function.Function;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -76,52 +77,47 @@ class QuartzConfigTest {
                 "Expected start delay ~60s but was " + startDelay + "ms");
     }
 
-    // ── Perfect Days ───────────────────────────────────────────────────────
+    // ── Every type ─────────────────────────────────────────────────────────
 
     @Test
-    void triggerLeaderboardRefreshPerfectDaysNightly_targetsThePerfectDaysJob() {
-        JobDetail job = jobWithKey("LeaderboardRefreshJob_PerfectDays");
+    void allLeaderboardTypesKeepTheirNightlyCronAndIntradayShape() {
+        assertNightly("AllTime", "0 40 0 * * ?", config::triggerLeaderboardRefreshAllTimeNightly);
+        assertNightly("Monthly", "0 42 0 * * ?", config::triggerLeaderboardRefreshMonthlyNightly);
+        assertNightly("Weekly", "0 44 0 * * ?", config::triggerLeaderboardRefreshWeeklyNightly);
+        assertNightly("Season", "0 46 0 * * ?", config::triggerLeaderboardRefreshSeasonNightly);
+        assertNightly("HardestGames", "0 48 0 * * ?", config::triggerLeaderboardRefreshHardestGamesNightly);
+        assertNightly("PerfectDays", "0 50 0 * * ?", config::triggerLeaderboardRefreshPerfectDaysNightly);
 
-        Trigger trigger = config.triggerLeaderboardRefreshPerfectDaysNightly(job);
-
-        assertEquals("LeaderboardRefreshJob_PerfectDays_Nightly_Trigger", trigger.getKey().getName());
-        assertEquals(job.getKey(), trigger.getJobKey());
+        assertIntraday("AllTime", config::triggerLeaderboardRefreshAllTimeIntraday);
+        assertIntraday("Monthly", config::triggerLeaderboardRefreshMonthlyIntraday);
+        assertIntraday("Weekly", config::triggerLeaderboardRefreshWeeklyIntraday);
+        assertIntraday("Season", config::triggerLeaderboardRefreshSeasonIntraday);
+        assertIntraday("HardestGames", config::triggerLeaderboardRefreshHardestGamesIntraday);
+        assertIntraday("PerfectDays", config::triggerLeaderboardRefreshPerfectDaysIntraday);
     }
 
-    @Test
-    void triggerLeaderboardRefreshPerfectDaysNightly_isADailyCronScheduleAtZeroFiftyUtc() {
-        JobDetail job = jobWithKey("LeaderboardRefreshJob_PerfectDays");
+    private static void assertNightly(String suffix, String cron, Function<JobDetail, Trigger> factory) {
+        final JobDetail job = jobWithKey("LeaderboardRefreshJob_" + suffix);
+        final Trigger trigger = factory.apply(job);
 
-        Trigger trigger = config.triggerLeaderboardRefreshPerfectDaysNightly(job);
-
-        CronTrigger cronTrigger = assertInstanceOf(CronTrigger.class, trigger);
-        assertEquals("0 50 0 * * ?", cronTrigger.getCronExpression());
+        assertEquals("LeaderboardRefreshJob_" + suffix + "_Nightly_Trigger", trigger.getKey().getName());
+        assertEquals(job.getKey(), trigger.getJobKey());
+        final CronTrigger cronTrigger = assertInstanceOf(CronTrigger.class, trigger);
+        assertEquals(cron, cronTrigger.getCronExpression());
         assertEquals(TimeZone.getTimeZone("UTC"), cronTrigger.getTimeZone());
     }
 
-    @Test
-    void triggerLeaderboardRefreshPerfectDaysIntraday_targetsThePerfectDaysJob() {
-        JobDetail job = jobWithKey("LeaderboardRefreshJob_PerfectDays");
+    private static void assertIntraday(String suffix, Function<JobDetail, Trigger> factory) {
+        final JobDetail job = jobWithKey("LeaderboardRefreshJob_" + suffix);
+        final Instant before = Instant.now();
+        final Trigger trigger = factory.apply(job);
 
-        Trigger trigger = config.triggerLeaderboardRefreshPerfectDaysIntraday(job);
-
-        assertEquals("LeaderboardRefreshJob_PerfectDays_Intraday_Trigger", trigger.getKey().getName());
+        assertEquals("LeaderboardRefreshJob_" + suffix + "_Intraday_Trigger", trigger.getKey().getName());
         assertEquals(job.getKey(), trigger.getJobKey());
-    }
-
-    @Test
-    void triggerLeaderboardRefreshPerfectDaysIntraday_isASimpleTriggerAtTenMinuteIntervalForever() {
-        JobDetail job = jobWithKey("LeaderboardRefreshJob_PerfectDays");
-
-        Instant before = Instant.now();
-        Trigger trigger = config.triggerLeaderboardRefreshPerfectDaysIntraday(job);
-
-        SimpleTrigger simpleTrigger = assertInstanceOf(SimpleTrigger.class, trigger);
+        final SimpleTrigger simpleTrigger = assertInstanceOf(SimpleTrigger.class, trigger);
         assertEquals(SimpleTrigger.REPEAT_INDEFINITELY, simpleTrigger.getRepeatCount());
         assertEquals(10L * 60L * 1000L, simpleTrigger.getRepeatInterval());
-
-        long startDelay = Duration.between(before, trigger.getStartTime().toInstant()).toMillis();
-        assertTrue(startDelay >= 50_000 && startDelay <= 90_000,
-                "Expected start delay ~60s but was " + startDelay + "ms");
+        final long startDelay = Duration.between(before, trigger.getStartTime().toInstant()).toMillis();
+        assertTrue(startDelay >= 50_000 && startDelay <= 90_000);
     }
 }
