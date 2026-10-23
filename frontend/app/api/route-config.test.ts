@@ -10,7 +10,6 @@ const CACHED_GET_ROUTES = [
     'app/api/leaderboard/today/route.ts',
     'app/api/leaderboard/weekly/route.ts',
     'app/api/leaderboard/achievements/route.ts',
-    'app/api/review-game/today/route.ts',
     'app/api/review-game/day/summary/[date]/route.ts',
     'app/api/stats/game/hardest/route.ts',
     'app/api/stats/game/perfect-days/route.ts',
