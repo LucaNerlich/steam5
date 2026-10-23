@@ -168,6 +168,12 @@ describe('ReactionBar Escape refocus', () => {
             const trigger = container.querySelector<HTMLButtonElement>('button[aria-haspopup="menu"]');
             if (!option || !trigger) throw new Error('reaction picker did not render');
 
+            const options = [...container.querySelectorAll('[role="menuitemcheckbox"]')];
+            expect(options).toHaveLength(4);
+            for (const item of options) {
+                expect(item.getAttribute('aria-label')).toBeTruthy();
+            }
+
             option.focus();
             expect(document.activeElement).toBe(option);
 

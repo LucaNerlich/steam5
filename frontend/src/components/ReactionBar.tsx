@@ -6,6 +6,7 @@ import {startSteamLogin} from "@/lib/steamLogin";
 import {focusWithinElement} from "@/lib/focusGuards";
 import {
     REACTION_EMOJI,
+    REACTION_LABELS,
     REACTION_TYPES,
     type CommentReactionDto,
     type ReactionType,
@@ -249,6 +250,7 @@ export default function ReactionBar(props: {
                                     type="button"
                                     role="menuitemcheckbox"
                                     aria-checked={active}
+                                    aria-label={REACTION_LABELS[type]}
                                     className={[
                                         "reaction-bar__option",
                                         active ? "reaction-bar__option--active" : "",
