@@ -72,6 +72,9 @@ here only reaches a deployment once the matching inlined copy is regenerated
 
 ```bash
 cd monitoring
+# The stack joins Coolify's external network for the in-network Postgres DSN;
+# create it once on a host that is not the Coolify box.
+docker network create coolify 2>/dev/null || true
 cp .env.example .env
 docker compose --env-file .env up -d
 ```

@@ -23,7 +23,11 @@
 # `PROMETHEUS_DATA_PATH`, `GRAFANA_DATA_PATH`); see `.env.example` for the
 # documented contract.
 #
-# Local quickstart: cp .env.example .env && docker compose --env-file .env up -d
+# Local quickstart:
+#   docker network create coolify 2>/dev/null || true
+#   cp .env.example .env && docker compose --env-file .env up -d
+# The external `coolify` network carries the in-network Postgres DSN; create it
+# once on any host that is not the Coolify box.
 
 services:
   prometheus:
