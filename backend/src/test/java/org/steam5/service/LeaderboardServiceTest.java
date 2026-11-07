@@ -230,20 +230,14 @@ class LeaderboardServiceTest {
         when(row.getAvgPoints()).thenReturn(5.0);
         when(leaderboardMvRepository.findAllTime()).thenReturn(List.of(row));
 
-        // A 450-day run: longer than any fixed window the leaderboard may have used.
-        final List<GuessRepository.UserDateRow> dates = java.util.stream.IntStream.rangeClosed(0, 449)
-                .mapToObj(offset -> {
-                    final GuessRepository.UserDateRow date = mock(GuessRepository.UserDateRow.class);
-                    when(date.getSteamId()).thenReturn("u1");
-                    when(date.getGameDate()).thenReturn(asOf.minusDays(offset));
-                    return date;
-                })
-                .toList();
-        when(guessRepository.findDistinctDatesUpToForUsers(anyList(), eq(asOf))).thenReturn(dates);
+        final GuessRepository.UserStreakRow streak = mock(GuessRepository.UserStreakRow.class);
+        when(streak.getSteamId()).thenReturn("u1");
+        when(streak.getCurrentStreak()).thenReturn(450);
+        when(guessRepository.findCurrentStreaks(anyList(), eq(asOf))).thenReturn(List.of(streak));
 
         final List<LeaderboardService.LeaderEntry> result = service.buildAllTimeLeaderboard(asOf);
 
         assertEquals(450, result.get(0).streak());
-        verify(guessRepository).findDistinctDatesUpToForUsers(anyList(), eq(asOf));
+        verify(guessRepository).findCurrentStreaks(anyList(), eq(asOf));
     }
 }

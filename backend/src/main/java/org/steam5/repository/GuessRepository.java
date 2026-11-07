@@ -140,6 +140,50 @@ public interface GuessRepository extends JpaRepository<Guess, Long> {
     List<UserDateRow> findDistinctDatesUpToForUsers(@Param("steamIds") List<String> steamIds,
                                                     @Param("asOfDate") LocalDate asOfDate);
 
+    /**
+     * Current consecutive-day streak per user, computed entirely in SQL. Returns at most one
+     * row per user rather than one row per played day: the window function splits each user's
+     * distinct dates into consecutive runs, and the final filter keeps only the run that is
+     * still active at {@code asOfDate} (ending on that day or the day before).
+     *
+     * <p>This keeps the result sent back to the JVM proportional to the number of players on
+     * the board, not players × days, while preserving the full streak length.</p>
+     */
+    @Query(value = """
+            with user_dates as (
+                select distinct g.steam_id,
+                                g.game_date
+                from guesses g
+                where g.steam_id in (:steamIds)
+                  and g.game_date <= cast(:asOfDate as date)
+            ),
+            grouped as (
+                select steam_id,
+                       game_date,
+                       game_date - (row_number() over (partition by steam_id order by game_date))::int as grp
+                from user_dates
+            ),
+            runs as (
+                select steam_id,
+                       grp,
+                       max(game_date) as end_date,
+                       count(*)::int as streak
+                from grouped
+                group by steam_id, grp
+            )
+            select steam_id as "steamId",
+                   streak as "currentStreak"
+            from runs
+            where end_date >= cast(:asOfDate as date) - 1
+            """, nativeQuery = true)
+    List<UserStreakRow> findCurrentStreaks(@Param("steamIds") List<String> steamIds,
+                                           @Param("asOfDate") LocalDate asOfDate);
+
+    interface UserStreakRow {
+        String getSteamId();
+        Integer getCurrentStreak();
+    }
+
     // Average submission time per user (in minutes since midnight)
     interface AvgTimeRow {
         String getSteamId();
