@@ -53,6 +53,42 @@ class GuessRepositoryQueryTest {
     }
 
     @Test
+    void playerStreakStatsAreOneRowPerUserWithBothStreaksAndRecentDates() throws Exception {
+        final String sql = query("findPlayerStreakStats", java.util.List.class, LocalDate.class);
+        assertTrue(sql.contains("row_number() over (partition by steam_id order by game_date desc)"), sql);
+        assertTrue(sql.contains("\"lastPlayed\""), sql);
+        assertTrue(sql.contains("\"previousPlayed\""), sql);
+        assertTrue(sql.contains("\"currentStreak\""), sql);
+        assertTrue(sql.contains("\"longestStreak\""), sql);
+    }
+
+    @Test
+    void seasonLongestStreaksAreAggregatedInSql() throws Exception {
+        final String sql = query("findSeasonLongestStreaks", LocalDate.class, LocalDate.class);
+        assertTrue(sql.contains("select distinct g.steam_id"), sql);
+        assertTrue(sql.contains("max(len) as \"longestStreak\""), sql);
+    }
+
+    @Test
+    void spotlightRecencyCountsRowsWithoutSelectingThem() throws Exception {
+        final String sql = query("countRoundsBySteamIdInAndGameDateBetween",
+                java.util.List.class, LocalDate.class, LocalDate.class);
+        assertTrue(sql.contains("count(g) as rounds"), sql);
+        assertTrue(sql.contains("group by g.steamId"), sql);
+    }
+
+    @Test
+    void profileStatsAndHistoryAreScopedToTheRequestedUser() throws Exception {
+        final String statsSql = query("findAllTimeStatsForUser", String.class);
+        assertTrue(statsSql.contains("WHERE g.steam_id = :steamId"), statsSql);
+        assertTrue(statsSql.contains("SUM(g.points)"), statsSql);
+
+        final String historySql = query("findRecentBySteamIdOrderByGameDateDescRoundIndexAsc",
+                String.class, LocalDate.class, LocalDate.class);
+        assertTrue(historySql.contains("g.gameDate between :startDate and :endDate"), historySql);
+    }
+
+    @Test
     void dailyAveragesRequireFiveDistinctPlayers() throws Exception {
         assertTrue(query("findDailyAvgScoresDesc").contains("HAVING COUNT(DISTINCT steam_id) >= 5"));
         assertTrue(query("findDailyAvgScoresAsc").contains("HAVING COUNT(DISTINCT steam_id) >= 5"));

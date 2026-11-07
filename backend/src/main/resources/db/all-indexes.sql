@@ -47,7 +47,7 @@
 
 -- Hibernate creates this non-concurrently via ddl-auto; on a large `guesses` table, rebuild it
 -- CONCURRENTLY during a maintenance window instead (see the NOTE on Guess.java's @Table).
--- Backs findAllBetween/findSeasonStats/findSeasonDates (see README's Query Performance Notes).
+-- Backs findAllBetween/findSeasonStats/findSeasonLongestStreaks (see README's Query Performance Notes).
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_guesses_game_date
     ON guesses (game_date);
 

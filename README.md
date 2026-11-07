@@ -244,7 +244,7 @@ npm run dev
 
 ## Query Performance Notes
 
-- `guesses` date-range queries (for example `findAllBetween`, `findSeasonStats`, `findSeasonDates`) rely on `idx_guesses_game_date`.
+- `guesses` date-range queries (for example `findAllBetween`, `findSeasonStats`, `findSeasonLongestStreaks`) rely on `idx_guesses_game_date`.
 - Leaderboard reads (`/api/leaderboard/all`, `/monthly`, `/weekly?floating=true`, `/season`) are served
   from materialized views (`mv_leaderboard_all_time`, `mv_leaderboard_monthly`, `mv_leaderboard_weekly`,
   `mv_leaderboard_season` — see `backend/src/main/resources/db/mv-leaderboard-*.sql`) instead of

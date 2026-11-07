@@ -12,7 +12,6 @@ import org.steam5.domain.Season;
 import org.steam5.domain.SeasonAwardCategory;
 import org.steam5.domain.SeasonAwardResult;
 import org.steam5.domain.SeasonStatus;
-import org.steam5.domain.StreakCalculator;
 import org.steam5.repository.GuessRepository;
 import org.steam5.repository.SeasonAwardResultRepository;
 import org.steam5.repository.SeasonRepository;
@@ -283,9 +282,9 @@ public class SeasonService {
         log.info("Finalizing season #{} ({} - {})", managed.getSeasonNumber(), managed.getStartDate(), managed.getEndDate());
 
         List<GuessRepository.SeasonStatRow> rows = guessRepository.findSeasonStats(managed.getStartDate(), managed.getEndDate());
-        Map<String, List<LocalDate>> participationDates = buildSeasonParticipationDates(managed.getStartDate(), managed.getEndDate());
+        Map<String, Integer> longestStreaks = loadLongestStreaks(managed.getStartDate(), managed.getEndDate());
         Map<String, SeasonStats> statsByPlayer = rows.stream()
-                .map(row -> buildSeasonStats(row, participationDates.getOrDefault(row.getSteamId(), List.of())))
+                .map(row -> buildSeasonStats(row, longestStreaks.getOrDefault(row.getSteamId(), 0)))
                 .collect(Collectors.toMap(SeasonStats::steamId, Function.identity()));
         final int minRoundsRequired = Math.max(1, seasonProperties.getAwards().getMinRounds());
         statsByPlayer.entrySet().removeIf(entry -> entry.getValue().rounds() < minRoundsRequired);
@@ -304,29 +303,20 @@ public class SeasonService {
         return seasonRepository.save(managed);
     }
 
-    private SeasonStats buildSeasonStats(GuessRepository.SeasonStatRow row, List<LocalDate> participationDates) {
+    private SeasonStats buildSeasonStats(GuessRepository.SeasonStatRow row, int longestStreak) {
         long totalPoints = coerce(row.getTotalPoints());
         long hits = coerce(row.getHits());
         long flops = coerce(row.getFlops());
         long rounds = coerce(row.getRounds());
-        long activeDays = row.getActiveDays() != null ? row.getActiveDays() : participationDates.size();
+        long activeDays = row.getActiveDays() != null ? row.getActiveDays() : 0;
         double avgPointsPerDay = activeDays > 0 ? (double) totalPoints / activeDays : 0d;
-        long longestStreak = StreakCalculator.longestStreak(participationDates);
         return new SeasonStats(row.getSteamId(), totalPoints, hits, flops, rounds, activeDays, avgPointsPerDay, longestStreak);
     }
 
-    private Map<String, List<LocalDate>> buildSeasonParticipationDates(LocalDate startDate, LocalDate endDate) {
-        List<GuessRepository.SeasonDateRow> rows = guessRepository.findSeasonDates(startDate, endDate);
-        Map<String, List<LocalDate>> map = new HashMap<>();
-        for (GuessRepository.SeasonDateRow row : rows) {
-            map.computeIfAbsent(row.getSteamId(), key -> new ArrayList<>());
-            List<LocalDate> dates = map.get(row.getSteamId());
-            LocalDate date = row.getGameDate();
-            if (dates.isEmpty() || !dates.get(dates.size() - 1).equals(date)) {
-                dates.add(date);
-            }
-        }
-        return map;
+    private Map<String, Integer> loadLongestStreaks(LocalDate startDate, LocalDate endDate) {
+        return guessRepository.findSeasonLongestStreaks(startDate, endDate).stream()
+                .collect(Collectors.toMap(GuessRepository.SeasonLongestStreakRow::getSteamId,
+                        row -> row.getLongestStreak() != null ? row.getLongestStreak() : 0));
     }
 
     private List<SeasonAwardResult> generateAwardsForCategory(Season season,
@@ -387,9 +377,9 @@ public class SeasonService {
 
     private List<PlayerSeasonStat> buildPlayerSeasonStats(Season season, LocalDate statsEnd) {
         List<GuessRepository.SeasonStatRow> rows = guessRepository.findSeasonStats(season.getStartDate(), statsEnd);
-        Map<String, List<LocalDate>> participationDates = buildSeasonParticipationDates(season.getStartDate(), statsEnd);
+        Map<String, Integer> longestStreaks = loadLongestStreaks(season.getStartDate(), statsEnd);
         return rows.stream()
-                .map(row -> buildSeasonStats(row, participationDates.getOrDefault(row.getSteamId(), List.of())))
+                .map(row -> buildSeasonStats(row, longestStreaks.getOrDefault(row.getSteamId(), 0)))
                 .map(this::mapPlayerSeasonStat)
                 .sorted(Comparator.comparingLong(PlayerSeasonStat::totalPoints)
                         .reversed()

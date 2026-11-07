@@ -66,26 +66,15 @@ class PlayerSpotlightServiceTest {
         when(commentRepository.findTopReactedCommentId(any())).thenReturn(Optional.empty());
         when(commentReactionRepository.countByCommentIds(anyList())).thenReturn(List.of());
         // Default: every requested steamId gets enough (35) low-signal rounds in the recency
-        // window to clear the activity floor. Wider history-prefetch windows (~60d) default to
-        // empty so tier tests that need specific history stub via stubRecentHistory(...).
+        // window to clear the activity floor. History-prefetch windows (~60d) default to empty
+        // so tier tests that need specific history stub via stubRecentHistory(...).
         // Use doAnswer (not when().thenAnswer) so re-stubbing in individual tests does not
         // re-enter this answer with null matcher args.
+        when(guessRepository.findBySteamIdInAndGameDateBetween(anyList(), any(), any())).thenReturn(List.of());
         doAnswer(invocation -> {
             final List<String> steamIds = invocation.getArgument(0);
-            final LocalDate start = invocation.getArgument(1);
-            final LocalDate end = invocation.getArgument(2);
-            final long spanDays = java.time.temporal.ChronoUnit.DAYS.between(start, end);
-            if (spanDays > 20) {
-                return List.<Guess>of();
-            }
-            final List<Guess> rows = new ArrayList<>();
-            for (final String steamId : steamIds) {
-                for (int i = 0; i < 35; i++) {
-                    rows.add(guess(steamId, today, 2));
-                }
-            }
-            return rows;
-        }).when(guessRepository).findBySteamIdInAndGameDateBetween(anyList(), any(), any());
+            return steamIds.stream().map(steamId -> roundCount(steamId, 35L)).toList();
+        }).when(guessRepository).countRoundsBySteamIdInAndGameDateBetween(anyList(), any(), any());
     }
 
     // NOTE: mocks referenced by an outer when(...).thenReturn(...) must be fully built
@@ -99,20 +88,81 @@ class PlayerSpotlightServiceTest {
         return row;
     }
 
-    private GuessRepository.UserDateRow dateRow(String steamId, LocalDate date) {
-        final GuessRepository.UserDateRow row = mock(GuessRepository.UserDateRow.class);
-        when(row.getSteamId()).thenReturn(steamId);
-        when(row.getGameDate()).thenReturn(date);
-        return row;
+    private record DateEntry(String steamId, LocalDate date) {
     }
 
-    /** dates descending, most recent first — matches findDistinctDatesUpToForUsers ordering. */
-    private List<GuessRepository.UserDateRow> consecutiveDaysEnding(String steamId, LocalDate lastDate, int count) {
-        final List<GuessRepository.UserDateRow> rows = new ArrayList<>();
+    private DateEntry dateRow(String steamId, LocalDate date) {
+        return new DateEntry(steamId, date);
+    }
+
+    /** dates descending, most recent first — mirrors the date list the old query returned. */
+    private List<DateEntry> consecutiveDaysEnding(String steamId, LocalDate lastDate, int count) {
+        final List<DateEntry> rows = new ArrayList<>();
         for (int i = 0; i < count; i++) {
             rows.add(dateRow(steamId, lastDate.minusDays(i)));
         }
         return rows;
+    }
+
+    private int currentStreak(List<LocalDate> datesDesc) {
+        if (datesDesc.isEmpty()) return 0;
+        final LocalDate latest = datesDesc.getFirst();
+        if (!latest.equals(today) && !latest.equals(today.minusDays(1))) return 0;
+        int streak = 0;
+        LocalDate next = latest;
+        for (final LocalDate date : datesDesc) {
+            if (date.equals(next)) {
+                streak++;
+                next = next.minusDays(1);
+            } else if (date.isBefore(next)) {
+                break;
+            }
+        }
+        return streak;
+    }
+
+    private static long longestStreak(List<LocalDate> datesAsc) {
+        long best = 0;
+        long current = 0;
+        LocalDate previous = null;
+        for (final LocalDate date : datesAsc) {
+            if (previous == null || !date.equals(previous.plusDays(1))) {
+                current = 1;
+            } else {
+                current++;
+            }
+            previous = date;
+            if (current > best) best = current;
+        }
+        return best;
+    }
+
+    /**
+     * Converts the date fixtures the tests already use into the per-player aggregate rows the
+     * service now consumes, so each scenario keeps expressing itself as play dates.
+     */
+    private void stubStreakStats(List<DateEntry> entries) {
+        final java.util.Map<String, List<LocalDate>> byUser = entries.stream()
+                .collect(java.util.stream.Collectors.groupingBy(
+                        DateEntry::steamId,
+                        java.util.stream.Collectors.mapping(DateEntry::date,
+                                java.util.stream.Collectors.toList())));
+        final List<GuessRepository.PlayerStreakRow> rows = byUser.entrySet().stream()
+                .map(entry -> {
+                    final List<LocalDate> datesDesc = entry.getValue().stream()
+                            .distinct()
+                            .sorted(java.util.Comparator.reverseOrder())
+                            .toList();
+                    final GuessRepository.PlayerStreakRow row = mock(GuessRepository.PlayerStreakRow.class);
+                    when(row.getSteamId()).thenReturn(entry.getKey());
+                    when(row.getLastPlayed()).thenReturn(datesDesc.getFirst());
+                    when(row.getPreviousPlayed()).thenReturn(datesDesc.size() > 1 ? datesDesc.get(1) : null);
+                    when(row.getCurrentStreak()).thenReturn(currentStreak(datesDesc));
+                    when(row.getLongestStreak()).thenReturn((int) longestStreak(datesDesc.stream().sorted().toList()));
+                    return row;
+                })
+                .toList();
+        when(guessRepository.findPlayerStreakStats(anyList(), eq(today))).thenReturn(rows);
     }
 
     private Guess guess(String steamId, LocalDate date, int points) {
@@ -133,26 +183,17 @@ class PlayerSpotlightServiceTest {
     }
 
     /**
-     * Stubs the wider (~60d) history prefetch used by MOST_IMPROVED / WELCOME_BACK / HOT_STREAK
-     * while keeping the default 14-day recency activity floor intact.
+     * Stubs the wider (~60d) history prefetch used by MOST_IMPROVED / WELCOME_BACK / HOT_STREAK.
      */
     private void stubRecentHistory(List<Guess> history) {
-        doAnswer(invocation -> {
-            final List<String> steamIds = invocation.getArgument(0);
-            final LocalDate start = invocation.getArgument(1);
-            final LocalDate end = invocation.getArgument(2);
-            final long spanDays = java.time.temporal.ChronoUnit.DAYS.between(start, end);
-            if (spanDays > 20) {
-                return history;
-            }
-            final List<Guess> rows = new ArrayList<>();
-            for (final String steamId : steamIds) {
-                for (int i = 0; i < 35; i++) {
-                    rows.add(guess(steamId, today, 2));
-                }
-            }
-            return rows;
-        }).when(guessRepository).findBySteamIdInAndGameDateBetween(anyList(), any(), any());
+        when(guessRepository.findBySteamIdInAndGameDateBetween(anyList(), any(), any())).thenReturn(history);
+    }
+
+    private GuessRepository.UserRoundCountRow roundCount(String steamId, long rounds) {
+        final GuessRepository.UserRoundCountRow row = mock(GuessRepository.UserRoundCountRow.class);
+        when(row.getSteamId()).thenReturn(steamId);
+        when(row.getRounds()).thenReturn(rounds);
+        return row;
     }
 
     private GuessRepository.DailyTotalRow dailyTotal(String steamId, LocalDate date, long points) {
@@ -169,10 +210,10 @@ class PlayerSpotlightServiceTest {
         final GuessRepository.AllTimeStatsRow eligible = allTimeRow("eligible", 100, 2.0);
         stubAllTimeStats(belowThreshold, eligible);
 
-        final List<GuessRepository.UserDateRow> allDates = new ArrayList<>();
+        final List<DateEntry> allDates = new ArrayList<>();
         allDates.addAll(consecutiveDaysEnding("belowThreshold", today, 1));
         allDates.addAll(consecutiveDaysEnding("eligible", today, 1));
-        when(guessRepository.findDistinctDatesUpToForUsers(anyList(), eq(today))).thenReturn(allDates);
+        stubStreakStats(allDates);
 
         service.computeAndPersistForToday();
 
@@ -187,17 +228,16 @@ class PlayerSpotlightServiceTest {
         final GuessRepository.AllTimeStatsRow active = allTimeRow("active", 100, 2.0);
         stubAllTimeStats(stale, active);
 
-        final List<GuessRepository.UserDateRow> allDates = new ArrayList<>();
+        final List<DateEntry> allDates = new ArrayList<>();
         allDates.addAll(consecutiveDaysEnding("stale", today.minusDays(20), 1)); // last played 20 days ago
         allDates.addAll(consecutiveDaysEnding("active", today, 1));
-        when(guessRepository.findDistinctDatesUpToForUsers(anyList(), eq(today))).thenReturn(allDates);
+        stubStreakStats(allDates);
 
         // Override the default (which would otherwise auto-grant "stale" 35 recent rounds
         // too): "stale" is genuinely dormant, so it's simply omitted here, leaving it with a
         // recent-rounds count of 0.
-        final List<Guess> recentRounds = new ArrayList<>();
-        for (int i = 0; i < 35; i++) recentRounds.add(guess("active", today, 2));
-        doReturn(recentRounds).when(guessRepository).findBySteamIdInAndGameDateBetween(anyList(), any(), any());
+        doReturn(List.of(roundCount("active", 35L)))
+                .when(guessRepository).countRoundsBySteamIdInAndGameDateBetween(anyList(), any(), any());
 
         service.computeAndPersistForToday();
 
@@ -216,15 +256,13 @@ class PlayerSpotlightServiceTest {
         final GuessRepository.AllTimeStatsRow active = allTimeRow("active", 100, 2.0);
         stubAllTimeStats(dormantVeteran, active);
 
-        final List<GuessRepository.UserDateRow> allDates = new ArrayList<>();
+        final List<DateEntry> allDates = new ArrayList<>();
         allDates.addAll(consecutiveDaysEnding("dormantVeteran", today, 1)); // played today, but just a fluke
         allDates.addAll(consecutiveDaysEnding("active", today, 1));
-        when(guessRepository.findDistinctDatesUpToForUsers(anyList(), eq(today))).thenReturn(allDates);
+        stubStreakStats(allDates);
 
-        final List<Guess> recentRounds = new ArrayList<>();
-        for (int i = 0; i < 5; i++) recentRounds.add(guess("dormantVeteran", today, 2)); // only 5 in the window
-        for (int i = 0; i < 35; i++) recentRounds.add(guess("active", today, 2));
-        doReturn(recentRounds).when(guessRepository).findBySteamIdInAndGameDateBetween(anyList(), any(), any());
+        doReturn(List.of(roundCount("dormantVeteran", 5L), roundCount("active", 35L)))
+                .when(guessRepository).countRoundsBySteamIdInAndGameDateBetween(anyList(), any(), any());
 
         service.computeAndPersistForToday();
 
@@ -239,10 +277,10 @@ class PlayerSpotlightServiceTest {
         final GuessRepository.AllTimeStatsRow oneAndDone = allTimeRow("oneAndDone", 100, 2.0);
         stubAllTimeStats(streaker, oneAndDone);
 
-        final List<GuessRepository.UserDateRow> allDates = new ArrayList<>();
+        final List<DateEntry> allDates = new ArrayList<>();
         allDates.addAll(consecutiveDaysEnding("streaker", today, 6)); // active 6-day streak, >= MIN_DAY_STREAK
         allDates.addAll(consecutiveDaysEnding("oneAndDone", today, 1)); // only played today — milestone tier only
-        when(guessRepository.findDistinctDatesUpToForUsers(anyList(), eq(today))).thenReturn(allDates);
+        stubStreakStats(allDates);
 
         service.computeAndPersistForToday();
 
@@ -257,8 +295,8 @@ class PlayerSpotlightServiceTest {
         final GuessRepository.AllTimeStatsRow onlySteadyPlayer = allTimeRow("onlySteadyPlayer", 90, 2.5);
         stubAllTimeStats(onlySteadyPlayer);
 
-        final List<GuessRepository.UserDateRow> dates = consecutiveDaysEnding("onlySteadyPlayer", today, 1);
-        when(guessRepository.findDistinctDatesUpToForUsers(anyList(), eq(today))).thenReturn(dates);
+        final List<DateEntry> dates = consecutiveDaysEnding("onlySteadyPlayer", today, 1);
+        stubStreakStats(dates);
 
         service.computeAndPersistForToday();
 
@@ -287,8 +325,8 @@ class PlayerSpotlightServiceTest {
         final GuessRepository.AllTimeStatsRow tooFewRounds = allTimeRow("tooFewRounds", 10, 2.0);
         stubAllTimeStats(tooFewRounds);
 
-        final List<GuessRepository.UserDateRow> dates = consecutiveDaysEnding("tooFewRounds", today, 1);
-        when(guessRepository.findDistinctDatesUpToForUsers(anyList(), eq(today))).thenReturn(dates);
+        final List<DateEntry> dates = consecutiveDaysEnding("tooFewRounds", today, 1);
+        stubStreakStats(dates);
 
         service.computeAndPersistForToday();
 
@@ -304,10 +342,10 @@ class PlayerSpotlightServiceTest {
         final GuessRepository.AllTimeStatsRow freshPlayer = allTimeRow("freshPlayer", 100, 2.0);
         stubAllTimeStats(recentlyFeatured, freshPlayer);
 
-        final List<GuessRepository.UserDateRow> allDates = new ArrayList<>();
+        final List<DateEntry> allDates = new ArrayList<>();
         allDates.addAll(consecutiveDaysEnding("recentlyFeatured", today, 1));
         allDates.addAll(consecutiveDaysEnding("freshPlayer", today, 1));
-        when(guessRepository.findDistinctDatesUpToForUsers(anyList(), eq(today))).thenReturn(allDates);
+        stubStreakStats(allDates);
 
         // Both candidates only qualify for the MILESTONE fallback (single date, no other
         // tier-qualifying signal), so once the cooldown drops "recentlyFeatured", "freshPlayer"
@@ -332,8 +370,8 @@ class PlayerSpotlightServiceTest {
         final GuessRepository.AllTimeStatsRow onlyPlayer = allTimeRow("onlyPlayer", 100, 2.0);
         stubAllTimeStats(onlyPlayer);
 
-        final List<GuessRepository.UserDateRow> dates = consecutiveDaysEnding("onlyPlayer", today, 1);
-        when(guessRepository.findDistinctDatesUpToForUsers(anyList(), eq(today))).thenReturn(dates);
+        final List<DateEntry> dates = consecutiveDaysEnding("onlyPlayer", today, 1);
+        stubStreakStats(dates);
 
         // "onlyPlayer" is the only eligible candidate today, but was also featured yesterday.
         // The player cooldown must not suppress the entire pool just to enforce variety.
@@ -368,10 +406,10 @@ class PlayerSpotlightServiceTest {
         final GuessRepository.AllTimeStatsRow playerB = allTimeRow("playerB", 90, 2.0);
         stubAllTimeStats(playerA, playerB);
 
-        final List<GuessRepository.UserDateRow> allDates = new ArrayList<>();
+        final List<DateEntry> allDates = new ArrayList<>();
         allDates.addAll(consecutiveDaysEnding("playerA", today, 1));
         allDates.addAll(consecutiveDaysEnding("playerB", today, 1));
-        when(guessRepository.findDistinctDatesUpToForUsers(anyList(), eq(today))).thenReturn(allDates);
+        stubStreakStats(allDates);
 
         service.computeAndPersistForToday();
         final ArgumentCaptor<PlayerSpotlight> captor = ArgumentCaptor.forClass(PlayerSpotlight.class);
@@ -391,8 +429,8 @@ class PlayerSpotlightServiceTest {
         final GuessRepository.AllTimeStatsRow commenter = allTimeRow("commenter", 100, 2.0);
         stubAllTimeStats(commenter);
 
-        final List<GuessRepository.UserDateRow> dates = consecutiveDaysEnding("commenter", yesterday, 1);
-        when(guessRepository.findDistinctDatesUpToForUsers(anyList(), eq(today))).thenReturn(dates);
+        final List<DateEntry> dates = consecutiveDaysEnding("commenter", yesterday, 1);
+        stubStreakStats(dates);
 
         final Comment comment = new Comment();
         comment.setId(77L);
@@ -427,8 +465,8 @@ class PlayerSpotlightServiceTest {
         final GuessRepository.AllTimeStatsRow recordBreaker = allTimeRow("recordBreaker", 100, 2.0);
         stubAllTimeStats(recordBreaker);
 
-        final List<GuessRepository.UserDateRow> dates = consecutiveDaysEnding("recordBreaker", yesterday, 1);
-        when(guessRepository.findDistinctDatesUpToForUsers(anyList(), eq(today))).thenReturn(dates);
+        final List<DateEntry> dates = consecutiveDaysEnding("recordBreaker", yesterday, 1);
+        stubStreakStats(dates);
 
         final List<GuessRepository.DailyTotalRow> dailyTotals = List.of(
                 dailyTotal("recordBreaker", yesterday.minusDays(10), 8),
@@ -451,8 +489,8 @@ class PlayerSpotlightServiceTest {
         final GuessRepository.AllTimeStatsRow oddsBeater = allTimeRow("oddsBeater", 100, 2.0);
         stubAllTimeStats(oddsBeater);
 
-        final List<GuessRepository.UserDateRow> dates = consecutiveDaysEnding("oddsBeater", yesterday, 1);
-        when(guessRepository.findDistinctDatesUpToForUsers(anyList(), eq(today))).thenReturn(dates);
+        final List<DateEntry> dates = consecutiveDaysEnding("oddsBeater", yesterday, 1);
+        stubStreakStats(dates);
 
         final GuessRepository.RoundAvgScoreRow hardRound = mock(GuessRepository.RoundAvgScoreRow.class);
         when(hardRound.getGameDate()).thenReturn(yesterday);
@@ -481,10 +519,10 @@ class PlayerSpotlightServiceTest {
         final GuessRepository.AllTimeStatsRow returner = allTimeRow("returner", 100, 2.0);
         stubAllTimeStats(returner);
 
-        final List<GuessRepository.UserDateRow> dates = new ArrayList<>();
+        final List<DateEntry> dates = new ArrayList<>();
         dates.add(dateRow("returner", mostRecent));
         dates.add(dateRow("returner", beforeGap));
-        when(guessRepository.findDistinctDatesUpToForUsers(anyList(), eq(today))).thenReturn(dates);
+        stubStreakStats(dates);
 
         stubRecentHistory(List.of(
                 guess("returner", mostRecent, 4),
@@ -505,10 +543,10 @@ class PlayerSpotlightServiceTest {
         final LocalDate beforeGap = mostRecent.minusDays(5); // five days apart => four days off
 
         stubAllTimeStats(allTimeRow("returner", 100, 2.0));
-        final List<GuessRepository.UserDateRow> dates = new ArrayList<>();
+        final List<DateEntry> dates = new ArrayList<>();
         dates.add(dateRow("returner", mostRecent));
         dates.add(dateRow("returner", beforeGap));
-        when(guessRepository.findDistinctDatesUpToForUsers(anyList(), eq(today))).thenReturn(dates);
+        stubStreakStats(dates);
         stubRecentHistory(List.of(guess("returner", mostRecent, 4), guess("returner", mostRecent, 3)));
 
         service.computeAndPersistForToday();
@@ -527,10 +565,10 @@ class PlayerSpotlightServiceTest {
         final LocalDate beforeGap = mostRecent.minusDays(4);
 
         stubAllTimeStats(allTimeRow("returner", 100, 2.0));
-        final List<GuessRepository.UserDateRow> dates = new ArrayList<>();
+        final List<DateEntry> dates = new ArrayList<>();
         dates.add(dateRow("returner", mostRecent));
         dates.add(dateRow("returner", beforeGap));
-        when(guessRepository.findDistinctDatesUpToForUsers(anyList(), eq(today))).thenReturn(dates);
+        stubStreakStats(dates);
         stubRecentHistory(List.of(guess("returner", mostRecent, 4), guess("returner", mostRecent, 3)));
 
         service.computeAndPersistForToday();
@@ -547,9 +585,8 @@ class PlayerSpotlightServiceTest {
         final GuessRepository.AllTimeStatsRow improver = allTimeRow("improver", 100, 2.0);
         stubAllTimeStats(improver);
 
-        final List<GuessRepository.UserDateRow> dates = consecutiveDaysEnding("improver", today, 1);
-        when(guessRepository.findDistinctDatesUpToForUsers(anyList(), eq(today)))
-                .thenReturn(dates);
+        final List<DateEntry> dates = consecutiveDaysEnding("improver", today, 1);
+        stubStreakStats(dates);
 
         final LocalDate last30Start = today.minusDays(30);
         final LocalDate prior30Start = today.minusDays(60);
@@ -581,10 +618,10 @@ class PlayerSpotlightServiceTest {
         final GuessRepository.AllTimeStatsRow improver = allTimeRow("improver", 100, 2.0);
         stubAllTimeStats(streaker, improver);
 
-        final List<GuessRepository.UserDateRow> allDates = new ArrayList<>();
+        final List<DateEntry> allDates = new ArrayList<>();
         allDates.addAll(consecutiveDaysEnding("streaker", today, 6)); // active 6-day streak, >= MIN_DAY_STREAK
         allDates.addAll(consecutiveDaysEnding("improver", today, 1)); // only played today — too short for DAY_STREAK
-        when(guessRepository.findDistinctDatesUpToForUsers(anyList(), eq(today))).thenReturn(allDates);
+        stubStreakStats(allDates);
 
         final LocalDate last30Start = today.minusDays(30);
         final LocalDate prior30Start = today.minusDays(60);
@@ -633,10 +670,10 @@ class PlayerSpotlightServiceTest {
         final GuessRepository.AllTimeStatsRow improver = allTimeRow("improver", 100, 2.0);
         stubAllTimeStats(streaker, improver);
 
-        final List<GuessRepository.UserDateRow> allDates = new ArrayList<>();
+        final List<DateEntry> allDates = new ArrayList<>();
         allDates.addAll(consecutiveDaysEnding("streaker", today, 6));
         allDates.addAll(consecutiveDaysEnding("improver", today, 1));
-        when(guessRepository.findDistinctDatesUpToForUsers(anyList(), eq(today))).thenReturn(allDates);
+        stubStreakStats(allDates);
 
         final LocalDate last30Start = today.minusDays(30);
         final LocalDate prior30Start = today.minusDays(60);
@@ -666,8 +703,8 @@ class PlayerSpotlightServiceTest {
         final GuessRepository.AllTimeStatsRow streaker = allTimeRow("streaker", 100, 2.0);
         stubAllTimeStats(streaker);
 
-        final List<GuessRepository.UserDateRow> dates = consecutiveDaysEnding("streaker", today, 6);
-        when(guessRepository.findDistinctDatesUpToForUsers(anyList(), eq(today))).thenReturn(dates);
+        final List<DateEntry> dates = consecutiveDaysEnding("streaker", today, 6);
+        stubStreakStats(dates);
 
         // DAY_STREAK is the only qualifying tier today, but it was also featured yesterday.
         // The cooldown must not suppress the entire competitive pool just to enforce variety.
@@ -717,8 +754,8 @@ class PlayerSpotlightServiceTest {
         final GuessRepository.AllTimeStatsRow achiever = allTimeRow("achiever", 100, 2.0);
         stubAllTimeStats(achiever);
 
-        final List<GuessRepository.UserDateRow> dates = consecutiveDaysEnding("achiever", today, 1);
-        when(guessRepository.findDistinctDatesUpToForUsers(anyList(), eq(today))).thenReturn(dates);
+        final List<DateEntry> dates = consecutiveDaysEnding("achiever", today, 1);
+        stubStreakStats(dates);
 
         final StatisticsService.UserLabel label = new StatisticsService.UserLabel(
                 "achiever", StatisticsService.UserAchievement.SHARPSHOOTER, null, 4.2, null, null, null);
@@ -741,9 +778,8 @@ class PlayerSpotlightServiceTest {
         when(almostCentury.getTotalPoints()).thenReturn(400L);
         stubAllTimeStats(almostCentury);
 
-        final List<GuessRepository.UserDateRow> dates = consecutiveDaysEnding("almostCentury", today, 1);
-        when(guessRepository.findDistinctDatesUpToForUsers(anyList(), eq(today)))
-                .thenReturn(dates);
+        final List<DateEntry> dates = consecutiveDaysEnding("almostCentury", today, 1);
+        stubStreakStats(dates);
 
         service.computeAndPersistForToday();
 
@@ -768,9 +804,8 @@ class PlayerSpotlightServiceTest {
         when(almostThousandPoints.getTotalPoints()).thenReturn(995L);
         stubAllTimeStats(almostThousandPoints);
 
-        final List<GuessRepository.UserDateRow> dates = consecutiveDaysEnding("almostThousandPoints", today, 1);
-        when(guessRepository.findDistinctDatesUpToForUsers(anyList(), eq(today)))
-                .thenReturn(dates);
+        final List<DateEntry> dates = consecutiveDaysEnding("almostThousandPoints", today, 1);
+        stubStreakStats(dates);
 
         service.computeAndPersistForToday();
 

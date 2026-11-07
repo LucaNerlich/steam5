@@ -8,9 +8,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.steam5.domain.GameDate;
 import org.steam5.domain.Guess;
-import org.steam5.domain.GuessStats;
 import org.steam5.domain.SeasonAwardResult;
-import org.steam5.domain.StreakCalculator;
 import org.steam5.domain.User;
 import org.steam5.repository.GuessRepository;
 import org.steam5.repository.UserRepository;
@@ -45,7 +43,11 @@ public class ProfileController {
             return ResponseEntity.status(404).body(Map.of("error", "not_found"));
         }
 
-        final List<Guess> guesses = guessRepository.findBySteamIdOrderByGameDateDescRoundIndexAsc(steamId);
+        final LocalDate todayUtc = GameDate.todayUtc();
+        // The page renders at most 365 days, so fetch only that window instead of the whole
+        // career. All-time stats and streaks use their own aggregate queries below.
+        final List<Guess> guesses = guessRepository.findRecentBySteamIdOrderByGameDateDescRoundIndexAsc(
+                steamId, todayUtc.minusDays(364), todayUtc);
 
         // Resolve app names in bulk to avoid N+1 lookups
         final Map<Long, String> appNames = guesses.stream()
@@ -59,7 +61,10 @@ public class ProfileController {
                         ))
                 ));
 
-        final GuessStats stats = GuessStats.from(guesses);
+        final GuessRepository.UserStatsRow stats = guessRepository.findAllTimeStatsForUser(steamId)
+                .stream()
+                .findFirst()
+                .orElse(null);
 
         // Group guesses by day for convenience in the UI
         Map<LocalDate, List<Guess>> byDay = guesses.stream()
@@ -68,14 +73,14 @@ public class ProfileController {
         // Streaks must come from the full history: the response below deliberately truncates
         // "days" to the most recent 365, and today's answers are hidden from the payload, so a
         // client-side calculation over the returned rounds would cap the streak and lose today.
-        final LocalDate todayUtc = GameDate.todayUtc();
-        final List<LocalDate> streakDatesDesc = guesses.stream()
-                .map(Guess::getGameDate)
-                .distinct()
-                .sorted(Comparator.reverseOrder())
-                .toList();
-        final int currentStreak = StreakCalculator.currentStreak(streakDatesDesc, todayUtc);
-        final long longestStreak = StreakCalculator.longestStreak(streakDatesDesc.stream().sorted().toList());
+        final GuessRepository.PlayerStreakRow streakStats = guessRepository
+                .findPlayerStreakStats(List.of(steamId), todayUtc).stream()
+                .findFirst()
+                .orElse(null);
+        final int currentStreak = streakStats != null && streakStats.getCurrentStreak() != null
+                ? streakStats.getCurrentStreak() : 0;
+        final long longestStreak = streakStats != null && streakStats.getLongestStreak() != null
+                ? streakStats.getLongestStreak() : 0L;
 
         final java.util.Map<String, Object> out = new java.util.LinkedHashMap<>();
         final String personaName = (user.getPersonaName() != null && !user.getPersonaName().isBlank()) ? user.getPersonaName() : user.getSteamId();
@@ -88,12 +93,12 @@ public class ProfileController {
         out.put("avatarBlurdata", avatarBlurdata);
         out.put("profileUrl", user.getProfileUrl());
         out.put("stats", Map.of(
-                "totalPoints", stats.totalPoints(),
-                "rounds", stats.rounds(),
-                "hits", stats.hits(),
-                "tooHigh", stats.tooHigh(),
-                "tooLow", stats.tooLow(),
-                "avgPoints", stats.avgPoints()
+                "totalPoints", stats != null && stats.getTotalPoints() != null ? stats.getTotalPoints() : 0L,
+                "rounds", stats != null && stats.getRounds() != null ? stats.getRounds() : 0L,
+                "hits", stats != null && stats.getHits() != null ? stats.getHits() : 0L,
+                "tooHigh", stats != null && stats.getTooHigh() != null ? stats.getTooHigh() : 0L,
+                "tooLow", stats != null && stats.getTooLow() != null ? stats.getTooLow() : 0L,
+                "avgPoints", stats != null && stats.getAvgPoints() != null ? stats.getAvgPoints() : 0.0
         ));
         out.put("streaks", Map.of(
                 "current", currentStreak,
