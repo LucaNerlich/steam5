@@ -45,6 +45,14 @@ class GuessRepositoryQueryTest {
     }
 
     @Test
+    void currentStreaksAreComputedAsTrailingRunsRatherThanEveryPlayedDay() throws Exception {
+        final String sql = query("findCurrentStreaks", java.util.List.class, LocalDate.class);
+        assertTrue(sql.contains("row_number() over (partition by steam_id order by game_date)"), sql);
+        assertTrue(sql.contains("group by steam_id, grp"), sql);
+        assertTrue(sql.contains("where end_date >= cast(:asOfDate as date) - 1"), sql);
+    }
+
+    @Test
     void dailyAveragesRequireFiveDistinctPlayers() throws Exception {
         assertTrue(query("findDailyAvgScoresDesc").contains("HAVING COUNT(DISTINCT steam_id) >= 5"));
         assertTrue(query("findDailyAvgScoresAsc").contains("HAVING COUNT(DISTINCT steam_id) >= 5"));

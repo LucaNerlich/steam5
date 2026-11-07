@@ -4,7 +4,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.steam5.domain.Guess;
 import org.steam5.domain.GuessStats;
-import org.steam5.domain.StreakCalculator;
 import org.steam5.domain.User;
 import org.steam5.repository.GuessRepository;
 import org.steam5.repository.LeaderboardMvRepository;
@@ -39,13 +38,10 @@ public class LeaderboardService {
         final Map<String, User> usersById = userRepository.findAllById(steamIds).stream()
                 .collect(Collectors.toMap(User::getSteamId, user -> user));
 
-        final Map<String, List<LocalDate>> streakDatesById = guessRepository.findDistinctDatesUpToForUsers(List.copyOf(steamIds), asOfDate)
-                .stream()
-                .collect(Collectors.groupingBy(GuessRepository.UserDateRow::getSteamId,
-                        Collectors.mapping(GuessRepository.UserDateRow::getGameDate, Collectors.toList())));
+        final Map<String, Integer> streakById = currentStreaks(List.copyOf(steamIds), asOfDate);
 
         return byUser.entrySet().stream()
-                .map(entry -> buildEntry(entry, usersById, streakDatesById, asOfDate))
+                .map(entry -> buildEntry(entry, usersById, streakById))
                 .sorted(Comparator.comparingLong(LeaderEntry::totalPoints).reversed()
                         .thenComparing(LeaderEntry::steamId))
                 .toList();
@@ -100,7 +96,7 @@ public class LeaderboardService {
 
     /**
      * Shared assembly step for the four materialized-view-backed leaderboards: overlays each
-     * row's current streak (computed live from {@code findDistinctDatesUpToForUsers}) onto the
+     * row's current streak (computed live from {@code findCurrentStreaks}) onto the
      * pre-aggregated MV columns. Row order (total points descending) comes from the MV query.
      */
     private List<LeaderEntry> buildFromMv(final List<LeaderboardMvRepository.LeaderboardMvRow> rows, final LocalDate asOfDate) {
@@ -109,16 +105,11 @@ public class LeaderboardService {
         }
 
         final List<String> steamIds = rows.stream().map(LeaderboardMvRepository.LeaderboardMvRow::getSteamId).toList();
-        final Map<String, List<LocalDate>> streakDatesById = guessRepository
-                .findDistinctDatesUpToForUsers(steamIds, asOfDate)
-                .stream()
-                .collect(Collectors.groupingBy(GuessRepository.UserDateRow::getSteamId,
-                        Collectors.mapping(GuessRepository.UserDateRow::getGameDate, Collectors.toList())));
+        final Map<String, Integer> streakById = currentStreaks(steamIds, asOfDate);
 
         return rows.stream()
                 .map(row -> {
-                    final List<LocalDate> dates = streakDatesById.getOrDefault(row.getSteamId(), List.of());
-                    final int streak = StreakCalculator.currentStreak(dates, asOfDate);
+                    final int streak = streakById.getOrDefault(row.getSteamId(), 0);
                     final String personaName = row.getPersonaName() != null && !row.getPersonaName().isBlank()
                             ? row.getPersonaName() : row.getSteamId();
                     return new LeaderEntry(
@@ -144,23 +135,30 @@ public class LeaderboardService {
     }
 
     /**
+     * Loads the active streak for each player on the board. Players without an active run
+     * are absent from the returned map, so callers should default to 0.
+     */
+    private Map<String, Integer> currentStreaks(final List<String> steamIds, final LocalDate asOfDate) {
+        return guessRepository.findCurrentStreaks(steamIds, asOfDate).stream()
+                .collect(Collectors.toMap(GuessRepository.UserStreakRow::getSteamId,
+                        GuessRepository.UserStreakRow::getCurrentStreak));
+    }
+
+    /**
      * Builds a leaderboard entry from a user's guesses and activity dates.
      *
-     * @param entry          the user's Steam ID and guesses
-     * @param usersById      user profiles keyed by Steam ID
-     * @param streakDatesById game dates keyed by Steam ID
-     * @param asOfDate       date used to calculate the current streak
+     * @param entry      the user's Steam ID and guesses
+     * @param usersById  user profiles keyed by Steam ID
+     * @param streakById current streaks keyed by Steam ID
      * @return the computed leaderboard entry
      */
     private LeaderEntry buildEntry(final Map.Entry<String, List<Guess>> entry,
                                     final Map<String, User> usersById,
-                                    final Map<String, List<LocalDate>> streakDatesById,
-                                    final LocalDate asOfDate) {
+                                    final Map<String, Integer> streakById) {
         final String steamId = entry.getKey();
         final GuessStats stats = GuessStats.from(entry.getValue());
         final User user = usersById.get(steamId);
-        final List<LocalDate> dates = streakDatesById.getOrDefault(steamId, List.of());
-        final int streak = StreakCalculator.currentStreak(dates, asOfDate);
+        final int streak = streakById.getOrDefault(steamId, 0);
         return getLeaderEntry(steamId, stats.totalPoints(), stats.rounds(), stats.hits(),
                 stats.flops(), stats.tooHigh(), stats.tooLow(), stats.avgPoints(), streak, user);
     }
