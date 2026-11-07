@@ -13,10 +13,19 @@ public interface GuessRepository extends JpaRepository<Guess, Long> {
     Optional<Guess> findBySteamIdAndGameDateAndRoundIndex(String steamId, LocalDate date, int roundIndex);
 
     /**
-     * Fetches one user's guess history in profile display order.
+     * Fetches one user's recent guess history in profile display order.
      * Uses the composite index on (steam_id, game_date, round_index).
      */
-    List<Guess> findBySteamIdOrderByGameDateDescRoundIndexAsc(String steamId);
+    @Query("""
+            select g
+            from Guess g
+            where g.steamId = :steamId
+              and g.gameDate between :startDate and :endDate
+            order by g.gameDate desc, g.roundIndex asc
+            """)
+    List<Guess> findRecentBySteamIdOrderByGameDateDescRoundIndexAsc(@Param("steamId") String steamId,
+                                                                   @Param("startDate") LocalDate startDate,
+                                                                   @Param("endDate") LocalDate endDate);
 
     /**
      * All players' guesses for one specific (date, round) pair in a single query — used to
@@ -52,6 +61,27 @@ public interface GuessRepository extends JpaRepository<Guess, Long> {
      * (irrelevant) history just to check recent activity.
      */
     List<Guess> findBySteamIdInAndGameDateBetween(List<String> steamIds, LocalDate start, LocalDate end);
+
+    interface UserRoundCountRow {
+        String getSteamId();
+        Long getRounds();
+    }
+
+    /**
+     * Round counts per user in a bounded range, without materializing the Guess rows. Used by
+     * the spotlight's recency eligibility floor, which only needs the counts.
+     */
+    @Query("""
+            select g.steamId as steamId,
+                   count(g) as rounds
+            from Guess g
+            where g.steamId in :steamIds
+              and g.gameDate between :startDate and :endDate
+            group by g.steamId
+            """)
+    List<UserRoundCountRow> countRoundsBySteamIdInAndGameDateBetween(@Param("steamIds") List<String> steamIds,
+                                                                     @Param("startDate") LocalDate startDate,
+                                                                     @Param("endDate") LocalDate endDate);
 
     @Query("select g from Guess g where g.steamId = :steamId and g.gameDate = :date order by g.roundIndex asc")
     List<Guess> findAllForDay(@Param("steamId") String steamId, @Param("date") LocalDate date);
@@ -105,40 +135,42 @@ public interface GuessRepository extends JpaRepository<Guess, Long> {
     List<SeasonStatRow> findSeasonStats(@Param("startDate") LocalDate startDate,
                                         @Param("endDate") LocalDate endDate);
 
-    interface SeasonDateRow {
+    interface SeasonLongestStreakRow {
         String getSteamId();
-        LocalDate getGameDate();
+        Integer getLongestStreak();
     }
 
     /**
-     * Returns ordered (user, date) participation rows for streak/season processing.
-     * Uses idx_guesses_game_date for the bounded date filter.
+     * Longest consecutive-day streak per user within a bounded date range, computed entirely
+     * in SQL. Uses idx_guesses_game_date for the range filter and returns one row per user
+     * instead of one row per played day.
      */
-    @Query("""
-            select g.steamId as steamId,
-                   g.gameDate as gameDate
-            from Guess g
-            where g.gameDate between :startDate and :endDate
-            order by g.steamId asc, g.gameDate asc
-            """)
-    List<SeasonDateRow> findSeasonDates(@Param("startDate") LocalDate startDate,
-                                        @Param("endDate") LocalDate endDate);
-
-    interface UserDateRow {
-        String getSteamId();
-        LocalDate getGameDate();
-    }
-
-    @Query("""
-            select distinct g.steamId as steamId,
-                   g.gameDate as gameDate
-            from Guess g
-            where g.steamId in :steamIds
-              and g.gameDate <= :asOfDate
-            order by g.steamId asc, g.gameDate desc
-            """)
-    List<UserDateRow> findDistinctDatesUpToForUsers(@Param("steamIds") List<String> steamIds,
-                                                    @Param("asOfDate") LocalDate asOfDate);
+    @Query(value = """
+            with user_dates as (
+                select distinct g.steam_id,
+                                g.game_date
+                from guesses g
+                where g.game_date between cast(:startDate as date) and cast(:endDate as date)
+            ),
+            grouped as (
+                select steam_id,
+                       game_date,
+                       game_date - (row_number() over (partition by steam_id order by game_date))::int as grp
+                from user_dates
+            ),
+            runs as (
+                select steam_id,
+                       count(*)::int as len
+                from grouped
+                group by steam_id, grp
+            )
+            select steam_id as "steamId",
+                   max(len) as "longestStreak"
+            from runs
+            group by steam_id
+            """, nativeQuery = true)
+    List<SeasonLongestStreakRow> findSeasonLongestStreaks(@Param("startDate") LocalDate startDate,
+                                                          @Param("endDate") LocalDate endDate);
 
     /**
      * Current consecutive-day streak per user, computed entirely in SQL. Returns at most one
@@ -183,6 +215,68 @@ public interface GuessRepository extends JpaRepository<Guess, Long> {
         String getSteamId();
         Integer getCurrentStreak();
     }
+
+    interface PlayerStreakRow {
+        String getSteamId();
+        LocalDate getLastPlayed();
+        LocalDate getPreviousPlayed();
+        Integer getCurrentStreak();
+        Integer getLongestStreak();
+    }
+
+    /**
+     * Streak and recency facts per user in one row, for callers that previously loaded every
+     * played day (spotlight candidate selection) or the whole profile history. The window
+     * functions split each user's dates into runs; the extra columns expose the trailing run,
+     * the all-time best run, and the two most recent play dates.
+     */
+    @Query(value = """
+            with user_dates as (
+                select distinct g.steam_id,
+                                g.game_date
+                from guesses g
+                where g.steam_id in (:steamIds)
+                  and g.game_date <= cast(:asOfDate as date)
+            ),
+            grouped as (
+                select steam_id,
+                       game_date,
+                       game_date - (row_number() over (partition by steam_id order by game_date))::int as grp
+                from user_dates
+            ),
+            runs as (
+                select steam_id,
+                       grp,
+                       max(game_date) as end_date,
+                       count(*)::int as len
+                from grouped
+                group by steam_id, grp
+            ),
+            ranked_dates as (
+                select steam_id,
+                       game_date,
+                       row_number() over (partition by steam_id order by game_date desc) as rn
+                from user_dates
+            )
+            select d.steam_id as "steamId",
+                   last_date.game_date as "lastPlayed",
+                   prev_date.game_date as "previousPlayed",
+                   case when last_date.game_date >= cast(:asOfDate as date) - 1
+                        then coalesce(current_run.len, 0) else 0 end as "currentStreak",
+                   coalesce(longest.len, 0) as "longestStreak"
+            from (select distinct steam_id from user_dates) d
+            left join ranked_dates last_date
+                   on last_date.steam_id = d.steam_id and last_date.rn = 1
+            left join ranked_dates prev_date
+                   on prev_date.steam_id = d.steam_id and prev_date.rn = 2
+            left join runs current_run
+                   on current_run.steam_id = d.steam_id and current_run.end_date = last_date.game_date
+            left join (
+                select steam_id, max(len) as len from runs group by steam_id
+            ) longest on longest.steam_id = d.steam_id
+            """, nativeQuery = true)
+    List<PlayerStreakRow> findPlayerStreakStats(@Param("steamIds") List<String> steamIds,
+                                                @Param("asOfDate") LocalDate asOfDate);
 
     // Average submission time per user (in minutes since midnight)
     interface AvgTimeRow {
@@ -500,4 +594,41 @@ public interface GuessRepository extends JpaRepository<Guess, Long> {
             HAVING COUNT(*) >= :minRounds
             """, nativeQuery = true)
     List<AllTimeStatsRow> aggregateAllTimeStatsHavingMinRounds(@Param("minRounds") long minRounds);
+
+    interface UserStatsRow {
+        String getSteamId();
+        Long getTotalPoints();
+        Long getRounds();
+        Long getHits();
+        Long getFlops();
+        Long getTooHigh();
+        Long getTooLow();
+        Double getAvgPoints();
+    }
+
+    /**
+     * Full career aggregates for one user, without materializing every Guess row. Mirrors the
+     * columns of {@code mv_leaderboard_all_time} so the profile endpoint stays exact even
+     * between materialized-view refreshes.
+     */
+    @Query(value = """
+            SELECT g.steam_id AS "steamId",
+                   SUM(g.points) AS "totalPoints",
+                   COUNT(*) AS "rounds",
+                   SUM(CASE WHEN g.selected_bucket = g.actual_bucket THEN 1 ELSE 0 END) AS "hits",
+                   SUM(CASE WHEN g.points = 0 THEN 1 ELSE 0 END) AS "flops",
+                   SUM(CASE WHEN
+                       CAST(NULLIF(regexp_replace(g.selected_bucket, '^(\\d+).*', '\\1'), '') AS BIGINT) >
+                       CAST(NULLIF(regexp_replace(g.actual_bucket,   '^(\\d+).*', '\\1'), '') AS BIGINT)
+                   THEN 1 ELSE 0 END) AS "tooHigh",
+                   SUM(CASE WHEN
+                       CAST(NULLIF(regexp_replace(g.selected_bucket, '^(\\d+).*', '\\1'), '') AS BIGINT) <
+                       CAST(NULLIF(regexp_replace(g.actual_bucket,   '^(\\d+).*', '\\1'), '') AS BIGINT)
+                   THEN 1 ELSE 0 END) AS "tooLow",
+                   AVG(g.points) AS "avgPoints"
+            FROM guesses g
+            WHERE g.steam_id = :steamId
+            GROUP BY g.steam_id
+            """, nativeQuery = true)
+    List<UserStatsRow> findAllTimeStatsForUser(@Param("steamId") String steamId);
 }

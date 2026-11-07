@@ -389,7 +389,7 @@ class SeasonServiceTest {
         GuessRepository.SeasonStatRow rowB = statRow("playerB", 80L, 6L, 0L, 12L, 10L);
 
         when(guessRepository.findSeasonStats(start, end)).thenReturn(List.of(rowA, rowB));
-        when(guessRepository.findSeasonDates(start, end)).thenReturn(List.of());
+        when(guessRepository.findSeasonLongestStreaks(start, end)).thenReturn(List.of());
 
         SeasonService.SeasonReport report = service.buildSeasonReport(completed);
 
@@ -405,6 +405,24 @@ class SeasonServiceTest {
         assertEquals(11L, summary.totalHits());
         assertEquals(9.0d, summary.averageActiveDays());
         assertEquals(end, summary.dataThrough());
+    }
+
+    @Test
+    void buildSeasonReport_usesAggregatedLongestStreaks() {
+        LocalDate start = LocalDate.of(2020, 1, 1);
+        LocalDate end = LocalDate.of(2020, 1, 30);
+        Season completed = seasonWith(2, start, end, SeasonStatus.FINALIZED);
+
+        GuessRepository.SeasonStatRow rowA = statRow("playerA", 50L, 5L, 1L, 10L, 8L);
+        GuessRepository.SeasonLongestStreakRow streak = mock(GuessRepository.SeasonLongestStreakRow.class);
+        when(streak.getSteamId()).thenReturn("playerA");
+        when(streak.getLongestStreak()).thenReturn(12);
+        when(guessRepository.findSeasonStats(start, end)).thenReturn(List.of(rowA));
+        when(guessRepository.findSeasonLongestStreaks(start, end)).thenReturn(List.of(streak));
+
+        SeasonService.SeasonReport report = service.buildSeasonReport(completed);
+
+        assertEquals(12L, report.players().getFirst().longestStreak());
     }
 
     // buildSeasonHighlights -------------------------------------------------------------------
@@ -587,7 +605,7 @@ class SeasonServiceTest {
         when(seasonRepository.claimForFinalization(20L)).thenReturn(1);
         when(guessRepository.findSeasonStats(season.getStartDate(), season.getEndDate()))
                 .thenReturn(List.of(rowA, rowB));
-        when(guessRepository.findSeasonDates(season.getStartDate(), season.getEndDate()))
+        when(guessRepository.findSeasonLongestStreaks(season.getStartDate(), season.getEndDate()))
                 .thenReturn(List.of());
         when(seasonRepository.save(any(Season.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -623,7 +641,7 @@ class SeasonServiceTest {
         when(seasonRepository.claimForFinalization(21L)).thenReturn(1);
         when(guessRepository.findSeasonStats(season.getStartDate(), season.getEndDate()))
                 .thenReturn(List.of(qualifies, tooFewRounds));
-        when(guessRepository.findSeasonDates(season.getStartDate(), season.getEndDate()))
+        when(guessRepository.findSeasonLongestStreaks(season.getStartDate(), season.getEndDate()))
                 .thenReturn(List.of());
         when(seasonRepository.save(any(Season.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -646,7 +664,7 @@ class SeasonServiceTest {
         when(seasonRepository.claimForFinalization(22L)).thenReturn(1);
         when(guessRepository.findSeasonStats(season.getStartDate(), season.getEndDate()))
                 .thenReturn(List.of());
-        when(guessRepository.findSeasonDates(season.getStartDate(), season.getEndDate()))
+        when(guessRepository.findSeasonLongestStreaks(season.getStartDate(), season.getEndDate()))
                 .thenReturn(List.of());
         when(seasonRepository.save(any(Season.class))).thenAnswer(inv -> inv.getArgument(0));
 

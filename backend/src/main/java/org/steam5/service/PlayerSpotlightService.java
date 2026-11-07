@@ -10,7 +10,6 @@ import org.steam5.domain.GameDate;
 import org.steam5.domain.Guess;
 import org.steam5.domain.PlayerSpotlight;
 import org.steam5.domain.PlayerSpotlightInsightType;
-import org.steam5.domain.StreakCalculator;
 import org.steam5.domain.User;
 import org.steam5.repository.CommentReactionRepository;
 import org.steam5.repository.CommentRepository;
@@ -398,13 +397,9 @@ public class PlayerSpotlightService {
         }
 
         final List<String> candidateIds = new ArrayList<>(eligibleAllTime.keySet());
-        final Map<String, List<LocalDate>> datesByUser = guessRepository
-                .findDistinctDatesUpToForUsers(candidateIds, today).stream()
-                .collect(Collectors.groupingBy(
-                        GuessRepository.UserDateRow::getSteamId,
-                        LinkedHashMap::new,
-                        Collectors.mapping(GuessRepository.UserDateRow::getGameDate, Collectors.toList())
-                ));
+        final Map<String, GuessRepository.PlayerStreakRow> streakStatsByUser = guessRepository
+                .findPlayerStreakStats(candidateIds, today).stream()
+                .collect(Collectors.toMap(GuessRepository.PlayerStreakRow::getSteamId, Function.identity()));
 
         // Established (>=70 all-time, or the relaxed floor above) isn't enough on its own — a
         // long-dormant veteran who banked those rounds long ago, then plays a single light day,
@@ -414,8 +409,9 @@ public class PlayerSpotlightService {
         // window too), so that separate date check is removed.
         final LocalDate recencyWindowStart = today.minusDays(RECENCY_WINDOW_DAYS - 1L);
         final Map<String, Long> recentRoundsBySteamId = guessRepository
-                .findBySteamIdInAndGameDateBetween(candidateIds, recencyWindowStart, today).stream()
-                .collect(Collectors.groupingBy(Guess::getSteamId, Collectors.counting()));
+                .countRoundsBySteamIdInAndGameDateBetween(candidateIds, recencyWindowStart, today).stream()
+                .collect(Collectors.toMap(GuessRepository.UserRoundCountRow::getSteamId,
+                        row -> row.getRounds() != null ? row.getRounds() : 0L));
 
         final List<Candidate> eligible = new ArrayList<>();
         for (final String steamId : candidateIds) {
@@ -423,8 +419,15 @@ public class PlayerSpotlightService {
             if (roundsInWindow < minRoundsInRecencyWindow) {
                 continue;
             }
-            final List<LocalDate> datesDesc = datesByUser.getOrDefault(steamId, List.of());
-            eligible.add(new Candidate(steamId, eligibleAllTime.get(steamId), datesDesc));
+            final GuessRepository.PlayerStreakRow streakStats = streakStatsByUser.get(steamId);
+            final LocalDate lastPlayed = streakStats != null ? streakStats.getLastPlayed() : null;
+            final LocalDate previousPlayed = streakStats != null ? streakStats.getPreviousPlayed() : null;
+            final int currentStreak = streakStats != null && streakStats.getCurrentStreak() != null
+                    ? streakStats.getCurrentStreak() : 0;
+            final long longestStreak = streakStats != null && streakStats.getLongestStreak() != null
+                    ? streakStats.getLongestStreak() : 0L;
+            eligible.add(new Candidate(steamId, eligibleAllTime.get(steamId),
+                    lastPlayed, previousPlayed, currentStreak, longestStreak));
         }
         return eligible;
     }
@@ -437,13 +440,10 @@ public class PlayerSpotlightService {
 
         final List<Tiered> tier = new ArrayList<>();
         for (final Candidate c : eligible) {
-            final int currentStreak = StreakCalculator.currentStreak(c.datesDesc(), today);
+            final int currentStreak = c.currentStreak();
             if (currentStreak < MIN_DAY_STREAK) continue;
 
-            final List<LocalDate> datesAsc = new ArrayList<>(c.datesDesc());
-            Collections.reverse(datesAsc);
-            final long longest = StreakCalculator.longestStreak(datesAsc);
-            final boolean isPersonalBest = currentStreak >= longest;
+            final boolean isPersonalBest = currentStreak >= c.longestStreak();
 
             final String detail = String.format(isPersonalBest ? personalBestTemplate : plainStreakTemplate, currentStreak);
             tier.add(new Tiered(c.steamId(), PlayerSpotlightInsightType.DAY_STREAK,
@@ -523,11 +523,9 @@ public class PlayerSpotlightService {
 
         final List<Tiered> tier = new ArrayList<>();
         for (final Candidate c : eligible) {
-            final List<LocalDate> datesDesc = c.datesDesc();
-            if (datesDesc.size() < 2) continue;
-
-            final LocalDate mostRecent = datesDesc.get(0);
-            final LocalDate previous = datesDesc.get(1);
+            final LocalDate mostRecent = c.lastPlayed();
+            final LocalDate previous = c.previousPlayed();
+            if (mostRecent == null || previous == null) continue;
             // Days actually skipped, not the calendar distance: `between` counts the return
             // day itself, so a player back after four days off spans five. The copy and the
             // threshold both read this value, so both were a day looser than intended.
@@ -802,7 +800,8 @@ public class PlayerSpotlightService {
         return entity;
     }
 
-    private record Candidate(String steamId, GuessRepository.AllTimeStatsRow allTime, List<LocalDate> datesDesc) {
+    private record Candidate(String steamId, GuessRepository.AllTimeStatsRow allTime, LocalDate lastPlayed,
+                             LocalDate previousPlayed, int currentStreak, long longestStreak) {
     }
 
     private record Tiered(String steamId, PlayerSpotlightInsightType insightType, String headline, String detail,
