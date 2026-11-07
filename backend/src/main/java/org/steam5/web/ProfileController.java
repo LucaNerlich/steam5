@@ -10,6 +10,7 @@ import org.steam5.domain.GameDate;
 import org.steam5.domain.Guess;
 import org.steam5.domain.GuessStats;
 import org.steam5.domain.SeasonAwardResult;
+import org.steam5.domain.StreakCalculator;
 import org.steam5.domain.User;
 import org.steam5.repository.GuessRepository;
 import org.steam5.repository.UserRepository;
@@ -64,6 +65,18 @@ public class ProfileController {
         Map<LocalDate, List<Guess>> byDay = guesses.stream()
                 .collect(Collectors.groupingBy(Guess::getGameDate));
 
+        // Streaks must come from the full history: the response below deliberately truncates
+        // "days" to the most recent 365, and today's answers are hidden from the payload, so a
+        // client-side calculation over the returned rounds would cap the streak and lose today.
+        final LocalDate todayUtc = GameDate.todayUtc();
+        final List<LocalDate> streakDatesDesc = guesses.stream()
+                .map(Guess::getGameDate)
+                .distinct()
+                .sorted(Comparator.reverseOrder())
+                .toList();
+        final int currentStreak = StreakCalculator.currentStreak(streakDatesDesc, todayUtc);
+        final long longestStreak = StreakCalculator.longestStreak(streakDatesDesc.stream().sorted().toList());
+
         final java.util.Map<String, Object> out = new java.util.LinkedHashMap<>();
         final String personaName = (user.getPersonaName() != null && !user.getPersonaName().isBlank()) ? user.getPersonaName() : user.getSteamId();
         final String avatar = (user.getAvatarFull() != null && !user.getAvatarFull().isBlank()) ? user.getAvatarFull() : user.getAvatar();
@@ -82,7 +95,10 @@ public class ProfileController {
                 "tooLow", stats.tooLow(),
                 "avgPoints", stats.avgPoints()
         ));
-        final LocalDate todayUtc = GameDate.todayUtc();
+        out.put("streaks", Map.of(
+                "current", currentStreak,
+                "longest", longestStreak
+        ));
         out.put("days", byDay.entrySet().stream()
                         .sorted(Map.Entry.<LocalDate, List<Guess>>comparingByKey().reversed())
                         .limit(365)

@@ -18,6 +18,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -106,6 +107,41 @@ class ProfileControllerTest {
         assertEquals(10, yesterdayRound.get("points"));
         assertTrue(yesterdayRound.containsKey("actualBucket"));
         assertTrue(yesterdayRound.containsKey("points"));
+    }
+
+    @Test
+    void getProfile_computesStreaksFromFullHistoryBeyondTheTruncatedDaysPayload() {
+        final LocalDate today = GameDate.todayUtc();
+
+        final User user = new User();
+        user.setSteamId(STEAM_ID);
+        user.setPersonaName("Alice");
+        when(userRepository.findById(STEAM_ID)).thenReturn(Optional.of(user));
+
+        // 400 consecutive days: longer than the 365-day "days" window in the response.
+        final List<Guess> guesses = IntStream.range(0, 400)
+                .mapToObj(offset -> guess(STEAM_ID, today.minusDays(offset), 1,
+                        570L, "1-100", "1-100", 5))
+                .toList();
+        when(guessRepository.findBySteamIdOrderByGameDateDescRoundIndexAsc(STEAM_ID))
+                .thenReturn(guesses);
+        when(appIndexRepository.findAllById(List.of(570L)))
+                .thenReturn(List.of(new SteamAppIndex(570L, "Dota 2")));
+        when(seasonService.listAwardsForPlayer(STEAM_ID)).thenReturn(List.of());
+        when(playerSpotlightService.listSpotlightsForPlayer(STEAM_ID)).thenReturn(List.of());
+
+        final ResponseEntity<?> response = controller.getProfile(STEAM_ID);
+
+        @SuppressWarnings("unchecked")
+        final Map<String, Object> body = (Map<String, Object>) response.getBody();
+        @SuppressWarnings("unchecked")
+        final Map<String, Object> streaks = (Map<String, Object>) body.get("streaks");
+        assertEquals(400, ((Number) streaks.get("current")).intValue());
+        assertEquals(400L, ((Number) streaks.get("longest")).longValue());
+
+        @SuppressWarnings("unchecked")
+        final List<Map<String, Object>> days = (List<Map<String, Object>>) body.get("days");
+        assertEquals(365, days.size(), "the display payload stays bounded to 365 days");
     }
 
     private static Guess guess(
