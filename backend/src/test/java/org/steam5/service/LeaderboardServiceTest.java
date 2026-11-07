@@ -133,7 +133,7 @@ class LeaderboardServiceTest {
         // r2.getPersonaName() intentionally left unstubbed (null) — exercises the steamId fallback
 
         when(leaderboardMvRepository.findAllTime()).thenReturn(List.of(r1, r2));
-        // The bounded streak query is intentionally left unstubbed —
+        // The streak query is intentionally left unstubbed —
         // Mockito's empty-list default exercises the null-safe streak fallback path.
 
         List<LeaderboardService.LeaderEntry> result = service.buildAllTimeLeaderboard(LocalDate.now());
@@ -217,7 +217,7 @@ class LeaderboardServiceTest {
     }
 
     @Test
-    void buildAllTimeLeaderboard_boundsTheStreakWindowAndCountsConsecutiveDays() {
+    void buildAllTimeLeaderboard_countsTheFullStreakWithoutTruncatingIt() {
         final LocalDate asOf = LocalDate.of(2026, 10, 21);
         final LeaderboardMvRepository.LeaderboardMvRow row = mock(LeaderboardMvRepository.LeaderboardMvRow.class);
         when(row.getSteamId()).thenReturn("u1");
@@ -230,21 +230,20 @@ class LeaderboardServiceTest {
         when(row.getAvgPoints()).thenReturn(5.0);
         when(leaderboardMvRepository.findAllTime()).thenReturn(List.of(row));
 
-        final GuessRepository.UserDateRow today = mock(GuessRepository.UserDateRow.class);
-        when(today.getSteamId()).thenReturn("u1");
-        when(today.getGameDate()).thenReturn(asOf);
-        final GuessRepository.UserDateRow yesterday = mock(GuessRepository.UserDateRow.class);
-        when(yesterday.getSteamId()).thenReturn("u1");
-        when(yesterday.getGameDate()).thenReturn(asOf.minusDays(1));
-        when(guessRepository.findDistinctDatesUpToForUsersSince(anyList(), any(), any()))
-                .thenReturn(List.of(today, yesterday));
+        // A 450-day run: longer than any fixed window the leaderboard may have used.
+        final List<GuessRepository.UserDateRow> dates = java.util.stream.IntStream.rangeClosed(0, 449)
+                .mapToObj(offset -> {
+                    final GuessRepository.UserDateRow date = mock(GuessRepository.UserDateRow.class);
+                    when(date.getSteamId()).thenReturn("u1");
+                    when(date.getGameDate()).thenReturn(asOf.minusDays(offset));
+                    return date;
+                })
+                .toList();
+        when(guessRepository.findDistinctDatesUpToForUsers(anyList(), eq(asOf))).thenReturn(dates);
 
         final List<LeaderboardService.LeaderEntry> result = service.buildAllTimeLeaderboard(asOf);
 
-        assertEquals(2, result.get(0).streak());
-        final org.mockito.ArgumentCaptor<LocalDate> since = org.mockito.ArgumentCaptor.forClass(LocalDate.class);
-        verify(guessRepository).findDistinctDatesUpToForUsersSince(anyList(), eq(asOf), since.capture());
-        assertEquals(asOf.minusDays(400), since.getValue(),
-                "the leaderboard must not read more than the 400-day streak window");
+        assertEquals(450, result.get(0).streak());
+        verify(guessRepository).findDistinctDatesUpToForUsers(anyList(), eq(asOf));
     }
 }
