@@ -15,10 +15,12 @@ import ImprovementTrend from "./performance/ImprovementTrend";
 import BiasBadge from "./performance/BiasBadge";
 import BucketCallouts from "./performance/BucketCallouts";
 
-export default function PerformanceSection({rounds, globalHitRate = null, todayUtc}: {
+export default function PerformanceSection({rounds, globalHitRate = null, todayUtc, currentStreak, longestStreak}: {
     rounds: FlatRound[];
     globalHitRate?: number | null;
     todayUtc: string;
+    currentStreak?: number;
+    longestStreak?: number;
 }): React.ReactElement | null {
     if (rounds.length === 0) return null;
 
@@ -30,7 +32,7 @@ export default function PerformanceSection({rounds, globalHitRate = null, todayU
                 <PointsByRoundChart rounds={rounds} todayUtc={todayUtc} />
                 <OutcomeMixBar rounds={rounds} />
                 <RollingHitRateSpark rounds={rounds} todayUtc={todayUtc} />
-                <StreaksCard rounds={rounds} todayUtc={todayUtc} />
+                <StreaksCard rounds={rounds} todayUtc={todayUtc} currentStreak={currentStreak} longestStreak={longestStreak} />
                 <BucketAccuracyBars rounds={rounds} />
                 <HitRateVsAverageCard rounds={rounds} globalHitRate={globalHitRate} />
                 <RoundPositionChart rounds={rounds} />

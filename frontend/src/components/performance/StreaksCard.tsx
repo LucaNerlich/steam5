@@ -9,9 +9,13 @@ function toUTCDate(d: string): number {
     return new Date(d + "T00:00:00Z").getTime();
 }
 
-export default function StreaksCard({rounds, todayUtc: serverTodayUtc}: {
+export default function StreaksCard({rounds, todayUtc: serverTodayUtc, currentStreak, longestStreak}: {
     rounds: Round[];
     todayUtc: string;
+    // Server-computed values from the full history. The rounds prop only covers the recent
+    // display window and omits today's hidden answers, so it cannot produce these on its own.
+    currentStreak?: number;
+    longestStreak?: number;
 }): React.ReactElement {
     // Start from the server's UTC day (so SSR and hydration agree), then refresh at each
     // UTC midnight while mounted.
@@ -33,7 +37,7 @@ export default function StreaksCard({rounds, todayUtc: serverTodayUtc}: {
         const yesterday = new Date(new Date(todayUtc + "T00:00:00Z").getTime() - 86400000);
         return yesterday.toISOString().slice(0, 10);
     })();
-    const {current, longest} = (() => {
+    const {current: computedCurrent, longest: computedLongest} = (() => {
         // Build unique played days from rounds
         const dateSet = new Set<string>();
         for (const r of rounds) if (r.date) dateSet.add(r.date);
@@ -71,6 +75,9 @@ export default function StreaksCard({rounds, todayUtc: serverTodayUtc}: {
 
         return {current, longest: best};
     })();
+
+    const current = currentStreak ?? computedCurrent;
+    const longest = longestStreak ?? computedLongest;
 
     return (
         <div className="perf-card">

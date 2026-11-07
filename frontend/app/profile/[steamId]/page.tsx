@@ -24,6 +24,10 @@ type ProfileResponse = {
         tooLow: number;
         avgPoints: number;
     };
+    streaks?: {
+        current: number;
+        longest: number;
+    };
     days: Array<{
         date: string;
         rounds: Array<{
@@ -185,7 +189,8 @@ export default async function ProfilePage({params}: { params: { steamId: string 
                     )}
                 </section>
 
-                <PerformanceSection rounds={flattenDayRounds(allDays)} globalHitRate={globalHitRate} todayUtc={todayStr} />
+                <PerformanceSection rounds={flattenDayRounds(allDays)} globalHitRate={globalHitRate} todayUtc={todayStr}
+                                    currentStreak={data.streaks?.current} longestStreak={data.streaks?.longest} />
 
                 <section aria-labelledby="days-title">
                     <h2 id="days-title">Review Guesser — Rounds by day</h2>
