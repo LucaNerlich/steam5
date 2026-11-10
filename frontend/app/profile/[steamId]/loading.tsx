@@ -10,7 +10,7 @@ export default function Loading() {
                     </div>
                 </div>
                 <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8}}>
-                    {Array.from({length: 6}).map((_, i) => (
+                    {Array.from({length: 7}).map((_, i) => (
                         <div key={i} style={{height: 40, background: 'var(--color-border)'}}/>
                     ))}
                 </div>

@@ -73,6 +73,7 @@ class ProfileControllerTest {
         final GuessRepository.UserStatsRow statsRow = userStats(14L, 2L, 1L, 0L, 1L, 7.0);
         final GuessRepository.PlayerStreakRow streakRow = streakStats(2, 2);
         when(guessRepository.findAllTimeStatsForUser(STEAM_ID)).thenReturn(List.of(statsRow));
+        when(guessRepository.countPerfectDaysForUser(STEAM_ID)).thenReturn(3L);
         when(guessRepository.findPlayerStreakStats(anyList(), any())).thenReturn(List.of(streakRow));
 
         when(appIndexRepository.findAllById(List.of(570L, 730L))).thenReturn(List.of(
@@ -90,6 +91,10 @@ class ProfileControllerTest {
         @SuppressWarnings("unchecked")
         final List<Map<String, Object>> days = (List<Map<String, Object>>) body.get("days");
         assertEquals(2, days.size());
+
+        @SuppressWarnings("unchecked")
+        final Map<String, Object> stats = (Map<String, Object>) body.get("stats");
+        assertEquals(3L, ((Number) stats.get("perfectDays")).longValue());
 
         @SuppressWarnings("unchecked")
         final Map<String, Object> todayDay = days.stream()

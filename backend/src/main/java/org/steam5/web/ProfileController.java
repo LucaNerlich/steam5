@@ -98,7 +98,8 @@ public class ProfileController {
                 "hits", stats != null && stats.getHits() != null ? stats.getHits() : 0L,
                 "tooHigh", stats != null && stats.getTooHigh() != null ? stats.getTooHigh() : 0L,
                 "tooLow", stats != null && stats.getTooLow() != null ? stats.getTooLow() : 0L,
-                "avgPoints", stats != null && stats.getAvgPoints() != null ? stats.getAvgPoints() : 0.0
+                "avgPoints", stats != null && stats.getAvgPoints() != null ? stats.getAvgPoints() : 0.0,
+                "perfectDays", guessRepository.countPerfectDaysForUser(steamId)
         ));
         out.put("streaks", Map.of(
                 "current", currentStreak,
