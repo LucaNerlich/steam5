@@ -23,6 +23,7 @@ type ProfileResponse = {
         tooHigh: number;
         tooLow: number;
         avgPoints: number;
+        perfectDays: number;
     };
     streaks?: {
         current: number;
@@ -126,6 +127,7 @@ export default async function ProfilePage({params}: { params: { steamId: string 
                         <div><dt>Too High</dt><dd>{data.stats.tooHigh}</dd></div>
                         <div><dt>Too Low</dt><dd>{data.stats.tooLow}</dd></div>
                         <div><dt>Avg</dt><dd>{data.stats.avgPoints.toFixed(2)}</dd></div>
+                        <div><dt>Perfect Days</dt><dd>{data.stats.perfectDays}</dd></div>
                     </dl>
                 </section>
 

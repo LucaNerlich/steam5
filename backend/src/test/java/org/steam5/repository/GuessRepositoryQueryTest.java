@@ -28,6 +28,7 @@ class GuessRepositoryQueryTest {
         for (final String sql : new String[]{
                 query("findUsersByPerfectDaysDesc", int.class),
                 query("findUsersByPerfectDaysDescInRange", LocalDate.class, LocalDate.class, int.class),
+                query("countPerfectDaysForUser", String.class),
         }) {
             assertTrue(sql.contains("FROM review_game_pick"), sql);
             assertFalse(sql.contains("MAX(round_index)"), sql);

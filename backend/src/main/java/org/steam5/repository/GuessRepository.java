@@ -418,6 +418,31 @@ public interface GuessRepository extends JpaRepository<Guess, Long> {
                                                             @Param("endDate") LocalDate endDate,
                                                             @Param("minRounds") int minRounds);
 
+    /**
+     * Perfect-day count for one user, using the same definition as the perfect-days
+     * leaderboard: the user's points on a day equal 5 × that day's generated round count.
+     * The join drops days without generated picks, which would otherwise make a 0-point
+     * day look perfect.
+     */
+    @Query(value = """
+            SELECT COUNT(*)
+            FROM (
+                SELECT g.game_date AS game_date,
+                       SUM(g.points) AS day_points
+                FROM guesses g
+                WHERE g.steam_id = :steamId
+                GROUP BY g.game_date
+            ) ud
+            JOIN (
+                SELECT p.pick_date AS game_date,
+                       COUNT(*) AS rounds_per_day
+                FROM review_game_pick p
+                GROUP BY p.pick_date
+            ) dr ON dr.game_date = ud.game_date
+            WHERE ud.day_points = 5 * dr.rounds_per_day
+            """, nativeQuery = true)
+    long countPerfectDaysForUser(@Param("steamId") String steamId);
+
     // Daily average scores
     interface DailyAvgScoreRow {
         LocalDate getGameDate();
