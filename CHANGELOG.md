@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.1.0] - 2026-11-10
+
+### Added
+
+- Profile pages show an all-time perfect-days count, using the same definition as the perfect-days leaderboard
+
+### Changed
+
+- Profile stats and streaks come from SQL aggregates over the full guess history instead of loading a player's entire career, and only the 365-day display window is fetched for the day list
+- Leaderboard streaks are computed as trailing runs in SQL, so a refresh returns one row per active player instead of one row per played day
+
+### Fixed
+
+- A profile streak longer than the 365-day history payload no longer renders truncated on the performance card
+- Leaderboard streaks longer than 401 days are no longer truncated
+- A failed auth check returns 5xx instead of showing the user as signed out
+- Frontend-only builds skip the backend manifest check, and the OG card keeps its rank import
+- pnpm is pinned to 10.33.2 so Railpack's bundled mise can resolve its release asset
+
 ## [2.0.0] - 2026-10-23
 
 ### Changed
