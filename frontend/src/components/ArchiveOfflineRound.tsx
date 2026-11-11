@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, {useState} from "react";
 import useStoredDay, {notifyStoredDayChanged} from "@/components/round/useStoredDay";
 import Link from "next/link";
 import RoundResultDialog from "@/components/RoundResultDialog";
@@ -43,7 +43,10 @@ export default function ArchiveOfflineRound(props: Readonly<Props>): React.React
     // local progress after mount). Mirroring it into useState needed an effect and
     // could drift from a reset elsewhere on the page.
     const stored = useStoredDay(gameDate);
-    const {selectedLabel, submitted} = storedSelection(stored, roundIndex);
+    const [unsavedLabel, setUnsavedLabel] = useState<string | null>(null);
+    const fromStore = storedSelection(stored, roundIndex);
+    const selectedLabel = fromStore.selectedLabel ?? unsavedLabel;
+    const submitted = fromStore.submitted || unsavedLabel !== null;
 
     const prevHref = roundIndex > 1 ? `#round-${roundIndex - 1}` : null;
     const nextHref = roundIndex < totalRounds ? `#round-${roundIndex + 1}` : null;
@@ -69,7 +72,12 @@ export default function ArchiveOfflineRound(props: Readonly<Props>): React.React
             totalReviews: offlineAnswer.totalReviews,
             correct: offlineAnswer.actualBucket === label,
         };
-        saveRound(gameDate, roundIndex, totalRounds, result);
+        if (!saveRound(gameDate, roundIndex, totalRounds, result)) {
+            // Storage unavailable (private mode, quota): the stored day cannot drive the UI,
+            // so keep the guess for this session instead of silently ignoring the click.
+            setUnsavedLabel(label);
+            return;
+        }
         // The shared store backs the reset controls on this page; without this notification they
         // still showed "no progress" until a reload or navigation.
         notifyStoredDayChanged();

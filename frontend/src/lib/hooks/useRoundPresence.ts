@@ -328,11 +328,12 @@ export function useRoundPresence(scopeKey: string | null): PresenceSnapshot & {
 
         // Reset presence for the new scope. Deferred to a microtask so the effect
         // doesn't synchronously cascade an extra render — the socket connect below
-        // is async anyway, so no message can arrive before this runs.
+        // is async anyway, so no message can arrive before this runs. Status is not
+        // reset here: start() reports "connecting" synchronously, which this
+        // microtask would overwrite, and the previous cleanup already set "idle".
         queueMicrotask(() => {
             if (disposed) return;
             setSnapshot(EMPTY_SNAPSHOT);
-            setStatus("idle");
         });
 
         const connection = new PresenceConnection(scopeKey ?? "", Boolean(isSignedIn), {
