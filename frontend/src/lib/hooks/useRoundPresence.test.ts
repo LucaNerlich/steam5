@@ -32,8 +32,7 @@ class FakeSocket {
 
 const callbacks = {
     onSnapshot: () => undefined,
-    onConnectedChange: () => undefined,
-    onReconnectingChange: () => undefined,
+    onStatusChange: () => undefined,
 };
 
 function startConnection(): PresenceConnection {
@@ -104,6 +103,59 @@ describe('PresenceConnection reconnect guard', () => {
         vi.advanceTimersByTime(60_000);
 
         expect(FakeSocket.instances.length).toBeGreaterThan(1);
+        connection.destroy();
+    });
+});
+
+describe('PresenceConnection status', () => {
+    function startRecording(): { connection: PresenceConnection; statuses: string[] } {
+        const statuses: string[] = [];
+        const connection = new PresenceConnection('review-guesser:2026-10-16', false, {
+            onSnapshot: () => undefined,
+            onStatusChange: (status) => statuses.push(status),
+        });
+        connection.start();
+        return {connection, statuses};
+    }
+
+    it('reports one status through connecting, live, reconnecting, and idle', () => {
+        const {connection, statuses} = startRecording();
+        expect(statuses).toEqual(['connecting']);
+
+        const socket = FakeSocket.instances[0];
+        socket.readyState = FakeSocket.OPEN;
+        socket.onopen?.();
+        expect(statuses.at(-1)).toBe('live');
+
+        socket.readyState = FakeSocket.CLOSED;
+        socket.onclose?.();
+        expect(statuses.at(-1)).toBe('reconnecting');
+
+        connection.destroy();
+        expect(statuses.at(-1)).toBe('idle');
+    });
+
+    it('reports idle instead of a stale reconnecting while the tab is hidden', () => {
+        const {connection, statuses} = startRecording();
+
+        vi.stubGlobal('document', {visibilityState: 'hidden', addEventListener: () => undefined, removeEventListener: () => undefined});
+        FakeSocket.instances[0].openThenServerClose();
+
+        expect(statuses.at(-1)).toBe('idle');
+        connection.destroy();
+    });
+
+    it('returns to live when a paused tab resumes with the socket still open', () => {
+        const {connection, statuses} = startRecording();
+        const socket = FakeSocket.instances[0];
+        socket.readyState = FakeSocket.OPEN;
+        socket.onopen?.();
+
+        connection.pause();
+        expect(statuses.at(-1)).toBe('idle');
+
+        connection.resume();
+        expect(statuses.at(-1)).toBe('live');
         connection.destroy();
     });
 });

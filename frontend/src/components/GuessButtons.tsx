@@ -12,22 +12,20 @@ type GuessButtonsProps = {
     bucketTitles?: string[];
     selectedLabel: string | null;
     onSelect: (label: string) => void;
-    submitted: boolean;
     isPending: boolean;
     formAction: (formData: FormData) => void;
     helperText?: string;
 };
 
-function BucketButton({label, title, selectedLabel, onSelect, submitted, isPending}: {
+function BucketButton({label, title, selectedLabel, onSelect, isPending}: {
     label: string;
     title?: string;
     selectedLabel: string | null;
     onSelect: (label: string) => void;
-    submitted: boolean;
     isPending: boolean;
 }) {
     const isSelected = selectedLabel === label;
-    const disabled = (submitted || isPending);
+    const disabled = isPending;
     const showLoading = isPending && isSelected;
     return (
         <button
@@ -46,7 +44,7 @@ function BucketButton({label, title, selectedLabel, onSelect, submitted, isPendi
 }
 
 export default function GuessButtons(props: Readonly<GuessButtonsProps>): React.ReactElement {
-    const {appId, buckets, bucketTitles, selectedLabel, onSelect, submitted, isPending, formAction, helperText} = props;
+    const {appId, buckets, bucketTitles, selectedLabel, onSelect, isPending, formAction, helperText} = props;
 
     const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -76,7 +74,6 @@ export default function GuessButtons(props: Readonly<GuessButtonsProps>): React.
                                   title={(bucketTitles && bucketTitles[i] ? bucketTitles[i] : undefined)}
                                   selectedLabel={selectedLabel}
                                   onSelect={onSelect}
-                                  submitted={submitted}
                                   isPending={isPending}
                     />
                 ))}

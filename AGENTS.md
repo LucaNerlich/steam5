@@ -67,3 +67,7 @@ a schema change that isn't a migration either fails startup or silently never re
 - Hibernate runs `ddl-auto: update` in dev, but production validates the schema (`ddl-auto: validate`). Every schema change ships as a new Flyway migration — see "Database migrations (Flyway)" above.
 - No ESLint config exists for the frontend; use `pnpm build` as the lint/type check.
 - Node 22 is installed via nvm. Source nvm before running frontend commands: `export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"`
+
+### UI state
+
+- Client-side state machines are inventoried in `docs/state-machines.md`. New multi-state UI (loading / pending / error / complete) is one discriminated union plus a pure derive/transition function in `frontend/src/lib/`, with a colocated test — not a set of independent booleans.

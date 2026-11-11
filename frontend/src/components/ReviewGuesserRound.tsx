@@ -1,7 +1,6 @@
 "use client";
 
 import {useActionState, useEffect, useState, useTransition} from "react";
-import type {GuessResponse} from "@/types/review-game";
 import type {GuessActionState} from "../../app/review-guesser/[round]/actions";
 import {submitGuessAction} from "../../app/review-guesser/[round]/actions";
 import AuthWarningModal from "@/components/AuthWarningModal";
@@ -15,8 +14,8 @@ import type {CommentGameRef} from "@/lib/comments";
 import useServerGuesses from "@/lib/hooks/useServerGuesses";
 import useRoundArrowNavigation from "@/lib/hooks/useRoundArrowNavigation";
 import {saveRound, type RoundResult} from "@/lib/storage";
-import {isActionStateForPick, isRoundSubmitted, prefillToResponse, resolveEffectiveResponse, resolveSubmissionTarget, type RoundSubmission} from "@/lib/guessResolution";
-import {computeSignedOutDuringPlay} from "@/lib/authGuard";
+import {resolveSubmissionTarget, type RoundSubmission} from "@/lib/guessResolution";
+import {deriveRoundPlay} from "@/lib/roundPlay";
 import {validatedResultsForDay} from "@/lib/rounds";
 import {Routes} from "../../app/routes";
 import "@/styles/components/reviewGuesserRound.css";
@@ -133,23 +132,49 @@ export default function ReviewGuesserRound({
         ? storedResults[roundIndex]
         : (isForCurrentPick(serverResults[roundIndex]) ? serverResults[roundIndex] : undefined);
 
-    // Prefer the response for this round; fall back to the stored/server result for it.
-    const computedPrefill = (() => {
-        const g = serverGuesses[roundIndex];
-        if (!g || g.appId !== appId) return undefined;
-        return {
-            selectedLabel: g.selectedLabel,
-            actualBucket: g.actualBucket,
-            totalReviews: g.totalReviews,
-        };
-    })();
-    const effectiveResponse = resolveEffectiveResponse(state, storedThisRound, prefillToResponse(appId, computedPrefill), appId);
+    // Determine auth state (client-side) to conditionally show the sign-in nudge.
+    const {isSignedIn, refreshAuth} = useAuth();
 
-    // Effective selected label used for rendering, derived during render instead
-    // of mirrored into state: the user's fresh pick wins, otherwise the restored
-    // result for this round (stored/server), else the server-prefilled label.
-    const restoredLabel = storedThisRound?.selectedLabel || computedPrefill?.selectedLabel || null;
-    const renderSelectedLabel = selectedLabel ?? restoredLabel;
+    const submitGuess = (formData: FormData) => {
+        // Capture the whole submission identity (also for the deferred modal paths) so the
+        // resolving response is persisted for the round actually guessed, even when the
+        // player has moved on and the round-scope reset has cleared the live selection.
+        const label = formData.get('bucketGuess');
+        if (typeof label === 'string' && label) {
+            setSubmission({gameDate, roundIndex, totalRounds, appId, pickName, label});
+        }
+        startTransition(() => {
+            formAction(formData);
+        });
+    };
+
+    // Must run before deriveRoundPlay: the pre-submit auth probe is a pending phase.
+    const {
+        showAuthWarning,
+        isGating,
+        handleAuthGuardedSubmit,
+        handleLogin,
+        handleSkip,
+        handleIgnore
+    } = useAuthWarningGate(isSignedIn, refreshAuth, submitGuess);
+
+    // The stored label wins over a live selection: after a round change the live
+    // selection is cleared, but the stored result still names the guessed bucket.
+    const selectedForRound = storedThisRound?.selectedLabel ?? selectedLabel;
+
+    // One explicit phase for the round view; see lib/roundPlay.ts. It replaces the
+    // former mix of isPending/isGating/submitted/error booleans, so "submitted with
+    // no result" and similar combinations can no longer be rendered.
+    const play = deriveRoundPlay({
+        appId,
+        actionState: state,
+        stored: storedThisRound,
+        selection: selectedForRound,
+        pending: isPending || isGating,
+        signedIn: isSignedIn,
+    });
+    const effectiveResponse = play.phase === "graded" ? play.response : null;
+    const signedOutDuringPlay = play.signedOut;
 
     // Merge the "current" submitted/effective response into server results so
     // authenticated users see completion immediately without relying on SSR re-fetch
@@ -158,7 +183,7 @@ export default function ReviewGuesserRound({
         mergedServerResults[roundIndex] = {
             appId,
             pickName, // preserve current round's name
-            selectedLabel: storedThisRound?.selectedLabel ?? (renderSelectedLabel ?? ''),
+            selectedLabel: selectedForRound ?? '',
             actualBucket: effectiveResponse.actualBucket,
             totalReviews: effectiveResponse.totalReviews,
             correct: effectiveResponse.correct,
@@ -178,67 +203,26 @@ export default function ReviewGuesserRound({
         {
             appId,
             pickName,
-            selectedLabel: (storedThisRound?.selectedLabel ?? renderSelectedLabel ?? '') as string,
+            selectedLabel: (selectedForRound ?? '') as string,
             actualBucket: effectiveResponse ? effectiveResponse.actualBucket : (storedThisRound?.actualBucket ?? ''),
             totalReviews: effectiveResponse ? effectiveResponse.totalReviews : (storedThisRound?.totalReviews ?? 0),
             correct: effectiveResponse ? effectiveResponse.correct : (storedThisRound?.correct ?? false),
         };
 
-    // Submitted flag: either current state submitted, or restored from storage, or authenticated prefilled for this round.
-    // Note: state.error alone does not mark the round as submitted — a failed submission
-    // must keep the guess buttons enabled so the player can retry without a page reload.
-    const submittedFlag = isRoundSubmitted(state, appId, storedThisRound, false);
-
     // Single source of truth: when to show ShareControls
     const hasServerResults = Object.keys(serverResults).length > 0;
-    const canShowShare = Boolean(
-        effectiveResponse ||
-        storedThisRound ||
-        (!serverGuessesLoading && hasServerResults)
-    );
-
-    // Determine auth state (client-side) to conditionally show the sign-in nudge
-    const {isSignedIn, refreshAuth} = useAuth();
-    const signedIn = isSignedIn;
+    const canShowShare = Boolean(effectiveResponse) || (!serverGuessesLoading && hasServerResults);
 
     // Detect a silently-lost session: either the backend rejected our cookie (401),
     // or the UI believed we were signed in but the guess was saved anonymously
     // (cookie was dropped while the SPA stayed open). In both cases the result did
     // not count, so re-sync the auth state and surface a clear notice.
-    // Only a state stamped for this pick counts: the round page reuses its component,
-    // so a stale failure from the previous round must neither show its banner here nor
-    // re-fire refreshAuth().
-    const stateForThisPick = isActionStateForPick(state, appId);
-    const signedOutDuringPlay = computeSignedOutDuringPlay(signedIn, stateForThisPick ? state : undefined);
     useEffect(() => {
         if (signedOutDuringPlay) refreshAuth();
     }, [signedOutDuringPlay, refreshAuth]);
 
-    const submitGuess = (formData: FormData) => {
-        // Capture the whole submission identity (also for the deferred modal paths) so the
-        // resolving response is persisted for the round actually guessed, even when the
-        // player has moved on and the round-scope reset has cleared the live selection.
-        const label = formData.get('bucketGuess');
-        if (typeof label === 'string' && label) {
-            setSubmission({gameDate, roundIndex, totalRounds, appId, pickName, label});
-        }
-        startTransition(() => {
-            formAction(formData);
-        });
-    };
-
-    const {
-        showAuthWarning,
-        isGating,
-        handleAuthGuardedSubmit,
-        handleLogin,
-        handleSkip,
-        handleIgnore
-    } = useAuthWarningGate(signedIn, refreshAuth, submitGuess);
     useRoundArrowNavigation({prevHref, nextHref, hasNextRound, disabled: showAuthWarning});
 
-    const submitError = state && !state.ok && stateForThisPick ? state.error : undefined;
-    const shouldShowGuessControls = !(effectiveResponse || storedThisRound);
     // A result only counts toward completion when it belongs to one of today's picks:
     // after a regenerated pick set, round-index keys from the old games must not unlock
     // comments or leak into the shared score.
@@ -254,27 +238,26 @@ export default function ReviewGuesserRound({
         : undefined;
     return (
         <>
-            {shouldShowGuessControls && (
+            {play.phase !== "graded" && (
                 <GuessSubmissionCard
                     appId={appId}
                     buckets={buckets}
                     bucketTitles={bucketTitles}
-                    selectedLabel={renderSelectedLabel}
+                    selectedLabel={play.selection}
                     onSelect={setSelectedLabel}
-                    submitted={submittedFlag}
-                    isPending={isPending || isGating}
+                    isPending={play.phase === "submitting"}
                     formAction={handleAuthGuardedSubmit}
                     signedOutDuringPlay={signedOutDuringPlay}
-                    error={submitError}
+                    error={play.phase === "rejected" ? play.error : undefined}
                 />
             )}
 
-            {effectiveResponse && (
+            {play.phase === "graded" && (
                 <RoundResultSection
                     appId={appId}
                     buckets={buckets}
-                    selectedLabel={storedThisRound?.selectedLabel ?? renderSelectedLabel ?? (computedPrefill?.selectedLabel ?? null)}
-                    result={effectiveResponse}
+                    selectedLabel={play.selection}
+                    result={play.response}
                     prevHref={prevHref}
                     nextHref={roundIndex < totalRounds ? nextHref : null}
                     randomArchiveHref={roundIndex >= totalRounds ? Routes.randomArchive : null}
@@ -285,7 +268,7 @@ export default function ReviewGuesserRound({
                     latest={latestForShare}
                     shareResults={shareResults}
                     hasServerResults={hasServerResults}
-                    signedIn={signedIn}
+                    signedIn={isSignedIn}
                     signedOutDuringPlay={signedOutDuringPlay}
                 />
             )}

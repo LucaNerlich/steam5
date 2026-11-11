@@ -48,9 +48,14 @@ function presenceLabel(uniquePlayerCount: number, reconnecting: boolean): string
  * @returns The presence indicator shell (empty while inactive).
  */
 export default function OtherPlayersNow(): React.ReactElement {
-    const {uniquePlayerCount, players, connected, reconnecting} = useRoundPresenceContext();
+    const {uniquePlayerCount, players, status} = useRoundPresenceContext();
 
-    const inactive = (!connected && !reconnecting) || (!reconnecting && uniquePlayerCount === 0);
+    // One status, one render rule: show content only when a live socket has players,
+    // or while a dropped socket is being retried. Idle/connecting keep the reserved
+    // shell so delayed presence data cannot expand the parent header.
+    const reconnecting = status === "reconnecting";
+    const inactive = status === "idle" || status === "connecting"
+        || (status === "live" && uniquePlayerCount === 0);
     const visible = players.slice(0, MAX_VISIBLE_AVATARS);
     const overflow = Math.max(0, players.length - visible.length);
     const label = presenceLabel(uniquePlayerCount, reconnecting);
@@ -63,7 +68,7 @@ export default function OtherPlayersNow(): React.ReactElement {
         >
             {!inactive && (
                 <>
-                    {visible.length > 0 && !reconnecting && (
+                    {visible.length > 0 && status === "live" && (
                         <div className="other-players__avatars mobile__hide">
                             {visible.map((player) => (
                                 <PlayerAvatar key={player.steamId} player={player}/>

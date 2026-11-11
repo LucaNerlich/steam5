@@ -1,11 +1,10 @@
 "use client";
 
 import {createContext, useContext, type ReactNode} from "react";
-import {useRoundPresence, type PresenceSnapshot} from "@/lib/hooks/useRoundPresence";
+import {useRoundPresence, type PresenceSnapshot, type PresenceStatus} from "@/lib/hooks/useRoundPresence";
 
 export type RoundPresenceState = PresenceSnapshot & {
-    connected: boolean;
-    reconnecting: boolean;
+    status: PresenceStatus;
 };
 
 const RoundPresenceContext = createContext<RoundPresenceState | null>(null);
