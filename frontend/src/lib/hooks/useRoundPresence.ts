@@ -24,6 +24,18 @@ const EMPTY_SNAPSHOT: PresenceSnapshot = {
     players: [],
 };
 
+/**
+ * One status for the presence socket. Replaces the previous `connected` +
+ * `reconnecting` boolean pair, whose combinations (both true, both false while
+ * still connecting) had no meaning but were renderable.
+ *
+ * - idle:         not connecting (paused tab, disposed, or waiting for a recovery trigger)
+ * - connecting:   first attempt (ticket fetch + handshake)
+ * - live:         socket open, snapshot streaming
+ * - reconnecting: a previous socket dropped; a retry is scheduled or in flight
+ */
+export type PresenceStatus = "idle" | "connecting" | "live" | "reconnecting";
+
 const BASE_DELAY_MS = 1000;
 const MAX_DELAY_MS = 30000;
 const CLIENT_PING_INTERVAL_MS = 30000;
@@ -44,8 +56,7 @@ function toWsOrigin(origin: string): string {
 
 type PresenceCallbacks = {
     onSnapshot: (snapshot: PresenceSnapshot) => void;
-    onConnectedChange: (connected: boolean) => void;
-    onReconnectingChange: (reconnecting: boolean) => void;
+    onStatusChange: (status: PresenceStatus) => void;
 };
 
 /**
@@ -107,6 +118,7 @@ export class PresenceConnection {
         this.paused = true;
         this.clearPing();
         this.clearReconnect();
+        this.callbacks.onStatusChange("idle");
     }
 
     /** Resumes keepalive or reconnects once the tab is visible again. */
@@ -114,7 +126,13 @@ export class PresenceConnection {
         this.paused = false;
         const readyState = this.ws?.readyState;
         if (readyState === WebSocket.OPEN) {
+            this.callbacks.onStatusChange("live");
             this.startPing();
+            return;
+        }
+        if (readyState === WebSocket.CONNECTING) {
+            // A handshake survived the pause; report it instead of leaving the stale idle.
+            this.callbacks.onStatusChange(this.retryCount > 0 ? "reconnecting" : "connecting");
             return;
         }
         this.recover();
@@ -136,6 +154,7 @@ export class PresenceConnection {
             }
         }
         this.ticketController.abort();
+        this.callbacks.onStatusChange("idle");
     }
 
     private clearReconnect(): void {
@@ -190,7 +209,7 @@ export class PresenceConnection {
 
     private async connect(): Promise<void> {
         if (this.disposed) return;
-        this.callbacks.onReconnectingChange(this.retryCount > 0);
+        this.callbacks.onStatusChange(this.retryCount > 0 ? "reconnecting" : "connecting");
         const connectionId = ++this.connectionId;
 
         let ticket: string | null = null;
@@ -234,8 +253,7 @@ export class PresenceConnection {
         ws.onopen = () => {
             if (this.disposed || this.ws !== ws) return;
             this.retryCount = 0;
-            this.callbacks.onConnectedChange(true);
-            this.callbacks.onReconnectingChange(false);
+            this.callbacks.onStatusChange("live");
             this.startPing();
         };
 
@@ -262,10 +280,13 @@ export class PresenceConnection {
 
         ws.onclose = () => {
             if (this.disposed || this.ws !== ws) return;
-            this.callbacks.onConnectedChange(false);
             this.clearPing();
             this.ws = null;
-            if (!this.closedByUser) this.scheduleReconnect();
+            if (this.closedByUser) {
+                this.callbacks.onStatusChange("idle");
+            } else {
+                this.scheduleReconnect();
+            }
         };
     }
 
@@ -273,8 +294,11 @@ export class PresenceConnection {
         // Don't burn reconnect attempts while the tab is backgrounded overnight: pings stop
         // while hidden, so the server's idle sweep closes the socket, and without this guard
         // onclose would immediately reopen it — forever, from every hidden tab.
-        if (this.disposed || this.closedByUser || this.paused || isDocumentHidden()) return;
-        this.callbacks.onReconnectingChange(true);
+        if (this.disposed || this.closedByUser || this.paused || isDocumentHidden()) {
+            this.callbacks.onStatusChange("idle");
+            return;
+        }
+        this.callbacks.onStatusChange("reconnecting");
         const attempt = this.retryCount++;
         const delay = Math.min(BASE_DELAY_MS * Math.pow(2, attempt), MAX_DELAY_MS)
             + Math.floor(Math.random() * RECONNECT_JITTER_MS);
@@ -293,13 +317,11 @@ export class PresenceConnection {
  * @returns The current presence snapshot and connection status
  */
 export function useRoundPresence(scopeKey: string | null): PresenceSnapshot & {
-    connected: boolean;
-    reconnecting: boolean;
+    status: PresenceStatus;
 } {
     const {isSignedIn} = useAuth();
     const [snapshot, setSnapshot] = useState<PresenceSnapshot>(EMPTY_SNAPSHOT);
-    const [connected, setConnected] = useState(false);
-    const [reconnecting, setReconnecting] = useState(false);
+    const [status, setStatus] = useState<PresenceStatus>("idle");
 
     useEffect(() => {
         let disposed = false;
@@ -310,14 +332,12 @@ export function useRoundPresence(scopeKey: string | null): PresenceSnapshot & {
         queueMicrotask(() => {
             if (disposed) return;
             setSnapshot(EMPTY_SNAPSHOT);
-            setConnected(false);
-            setReconnecting(false);
+            setStatus("idle");
         });
 
         const connection = new PresenceConnection(scopeKey ?? "", Boolean(isSignedIn), {
             onSnapshot: setSnapshot,
-            onConnectedChange: setConnected,
-            onReconnectingChange: setReconnecting,
+            onStatusChange: setStatus,
         });
 
         const handleRecovery = () => {
@@ -347,10 +367,9 @@ export function useRoundPresence(scopeKey: string | null): PresenceSnapshot & {
             window.removeEventListener("focus", handleRecovery);
             document.removeEventListener("visibilitychange", handleVisibilityChange);
             connection.destroy();
-            setConnected(false);
-            setReconnecting(false);
+            setStatus("idle");
         };
     }, [scopeKey, isSignedIn]);
 
-    return {...snapshot, connected, reconnecting};
+    return {...snapshot, status};
 }

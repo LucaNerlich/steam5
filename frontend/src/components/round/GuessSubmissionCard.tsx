@@ -10,7 +10,6 @@ type GuessSubmissionCardProps = {
     bucketTitles?: string[];
     selectedLabel: string | null;
     onSelect: (label: string) => void;
-    submitted: boolean;
     isPending: boolean;
     formAction: (formData: FormData) => void;
     /** True when the session was lost mid-round (result did not count). */
@@ -29,7 +28,6 @@ export default function GuessSubmissionCard({
                                                 bucketTitles,
                                                 selectedLabel,
                                                 onSelect,
-                                                submitted,
                                                 isPending,
                                                 formAction,
                                                 signedOutDuringPlay,
@@ -47,7 +45,6 @@ export default function GuessSubmissionCard({
                 bucketTitles={bucketTitles}
                 selectedLabel={selectedLabel}
                 onSelect={onSelect}
-                submitted={submitted}
                 isPending={isPending}
                 formAction={formAction}
                 helperText="Pick the review bucket that best matches this game."

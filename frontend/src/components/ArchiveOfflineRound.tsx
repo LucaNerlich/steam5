@@ -1,6 +1,6 @@
 "use client";
 
-import React, {useEffect, useState} from "react";
+import React from "react";
 import useStoredDay, {notifyStoredDayChanged} from "@/components/round/useStoredDay";
 import Link from "next/link";
 import RoundResultDialog from "@/components/RoundResultDialog";
@@ -38,18 +38,12 @@ export function storedSelection(
 export default function ArchiveOfflineRound(props: Readonly<Props>): React.ReactElement {
     const {appId, buckets, bucketTitles, roundIndex, totalRounds, pickName, gameDate, offlineAnswer} = props;
 
-    // Initialize state empty so the server render and the first client render match;
-    // persisted local progress is loaded after mount to avoid a hydration mismatch.
-    const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
-    const [submitted, setSubmitted] = useState<boolean>(false);
-    // Shared store: a reset elsewhere clears it, so this card learns about the reset too.
+    // The stored day is the single source of truth (useStoredDay is a
+    // useSyncExternalStore, so the server render is empty and the client picks up
+    // local progress after mount). Mirroring it into useState needed an effect and
+    // could drift from a reset elsewhere on the page.
     const stored = useStoredDay(gameDate);
-
-    useEffect(() => {
-        const next = storedSelection(stored, roundIndex);
-        setSelectedLabel(next.selectedLabel);
-        setSubmitted(next.submitted);
-    }, [stored, roundIndex]);
+    const {selectedLabel, submitted} = storedSelection(stored, roundIndex);
 
     const prevHref = roundIndex > 1 ? `#round-${roundIndex - 1}` : null;
     const nextHref = roundIndex < totalRounds ? `#round-${roundIndex + 1}` : null;
@@ -66,9 +60,7 @@ export default function ArchiveOfflineRound(props: Readonly<Props>): React.React
     })();
 
     const onSelect = (label: string) => {
-        if (submitted) return;
-        setSelectedLabel(label);
-        if (!offlineAnswer) return;
+        if (submitted || !offlineAnswer) return;
         const result = {
             appId,
             pickName,
@@ -81,7 +73,6 @@ export default function ArchiveOfflineRound(props: Readonly<Props>): React.React
         // The shared store backs the reset controls on this page; without this notification they
         // still showed "no progress" until a reload or navigation.
         notifyStoredDayChanged();
-        setSubmitted(true);
     };
 
     return (

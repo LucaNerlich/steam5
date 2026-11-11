@@ -1,47 +1,18 @@
 import type {GuessResponse} from "@/types/review-game";
 import type {RoundResult} from "@/lib/storage";
 
-type ActionState = { ok: boolean; appId?: number; error?: string; response?: GuessResponse };
-type Prefill = { selectedLabel: string; actualBucket?: string; totalReviews?: number };
-
 /**
- * Converts a server-prefill shape to a GuessResponse, or returns null when
- * no label is present. The `correct` flag is derived from the data rather
- * than stored, so it is always consistent.
+ * The shape `submitGuessAction` returns. Declared structurally (not imported
+ * from the server-action module) so the pure rules stay usable in tests.
  */
-export function prefillToResponse(appId: number, prefill: Prefill | undefined): GuessResponse | null {
-    if (!prefill?.selectedLabel) return null;
-    return {
-        appId,
-        totalReviews: prefill.totalReviews ?? 0,
-        actualBucket: prefill.actualBucket ?? '',
-        correct: prefill.actualBucket
-            ? prefill.actualBucket === prefill.selectedLabel
-            : false,
-    };
-}
-
-/**
- * Whether the round should render as already submitted: a successful action
- * state whose response was graded for this round's pick, or a restored result
- * (stored/server) or an authenticated prefill for this round. The round page
- * reuses its component across rounds, so a stale ok-state can still hold the
- * previous round's response while the new submit is in flight — it must never
- * mark this round submitted, or the guess buttons would render disabled with
- * no result and no error shown.
- */
-export function isRoundSubmitted(
-    state: ActionState | null | undefined,
-    appId: number,
-    storedThisRound: RoundResult | undefined,
-    prefilled: boolean,
-): boolean {
-    return Boolean(
-        (state?.ok && state.response?.appId === appId)
-        || storedThisRound
-        || prefilled,
-    );
-}
+export type RoundActionState = {
+    ok: boolean;
+    appId?: number;
+    error?: string;
+    response?: GuessResponse;
+    unauthorized?: boolean;
+    persisted?: boolean;
+};
 
 /**
  * Whether an action state was produced for the given pick. `submitGuessAction`
@@ -50,7 +21,7 @@ export function isRoundSubmitted(
  * round the player has just moved to.
  */
 export function isActionStateForPick(
-    state: ActionState | null | undefined,
+    state: RoundActionState | null | undefined,
     appId: number,
 ): boolean {
     return state?.appId === appId;
@@ -77,7 +48,7 @@ export type RoundSubmission = {
  * impossible: the response only saves where the guess was actually made.
  */
 export function resolveSubmissionTarget(
-    state: ActionState | null | undefined,
+    state: RoundActionState | null | undefined,
     submission: RoundSubmission | null | undefined,
 ): { gameDate: string; roundIndex: number; totalRounds: number; result: RoundResult } | null {
     if (!state?.ok || !state.response || !submission?.gameDate) return null;
@@ -101,15 +72,13 @@ export function resolveSubmissionTarget(
  * Priority order for the result to display for a completed round:
  *   1. Live action state (just submitted this session)
  *   2. Stored result from localStorage or server (authenticated restore)
- *   3. Server-prefilled result (SSR preload)
  *
  * Extracting this pure function makes the priority rule testable without
  * mounting the component.
  */
 export function resolveEffectiveResponse(
-    state: ActionState | null | undefined,
+    state: RoundActionState | null | undefined,
     storedThisRound: RoundResult | undefined,
-    prefilledResponse: GuessResponse | null,
     appId: number,
 ): GuessResponse | null {
     // The round page component is reused across rounds, so the action state can still hold
@@ -124,5 +93,5 @@ export function resolveEffectiveResponse(
             correct: storedThisRound.correct,
         };
     }
-    return prefilledResponse;
+    return null;
 }
