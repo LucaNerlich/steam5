@@ -477,7 +477,9 @@ public class SeasonService {
     }
 
     private int tieBreakRoll(Season season, SeasonAwardCategory category, String steamId) {
-        int hash = Objects.hash(season.getAwardSeed(), category, steamId);
+        // Enum.hashCode() is identity-based, so hashing the constant made the stored
+        // awardSeed per-JVM deterministic only. Hash the name to keep it reproducible.
+        int hash = Objects.hash(season.getAwardSeed(), category.name(), steamId);
         int roll = Math.floorMod(hash, TIE_ROLL_MAX);
         return roll == 0 ? 1 : roll;
     }
