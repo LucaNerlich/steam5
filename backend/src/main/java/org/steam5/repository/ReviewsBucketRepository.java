@@ -138,6 +138,7 @@ public class ReviewsBucketRepository {
                 "         END AS label,\n" +
                 "     count_in_bucket\n" +
                 " FROM counts\n" +
+                " WHERE upper IS NULL OR lower <= upper\n" +
                 " ORDER BY idx;";
         return mapRows(sql);
     }
