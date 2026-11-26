@@ -14,7 +14,11 @@ import React from "react";
 import {Routes} from "../../../routes";
 import {BACKEND_ORIGIN as backend, BACKEND_TIMEOUT_MS } from "@/lib/backend";
 
-export const revalidate = 31536000;
+// The page rejects today's date with notFound(), and Next caches a prerendered
+// notFound() like any other response. A year-long revalidate would keep serving that
+// 404 after the day ends, so the HTML revalidates hourly while the data fetches below
+// keep their own year-long revalidation.
+export const revalidate = 3600;
 
 export async function loadArchived(date: string): Promise<ReviewGameState | null> {
     const res = await fetch(`${backend}/api/review-game/day/${encodeURIComponent(date)}`, {
@@ -31,7 +35,7 @@ export async function loadArchived(date: string): Promise<ReviewGameState | null
 
 type DayAnswer = { appId: number; totalReviews: number; actualBucket: string };
 
-async function loadAnswers(date: string): Promise<Record<number, {
+export async function loadAnswers(date: string): Promise<Record<number, {
     actualBucket: string;
     totalReviews: number
 }>> {

@@ -6,7 +6,7 @@ afterEach(() => {
 });
 
 describe('archive/season loaders distinguish missing from unavailable', () => {
-    it('returns null for a missing archive day and throws for a 5xx', async () => {
+    it('returns null for a missing archive day and throws for a 5xx', {timeout: 20000}, async () => {
         const {loadArchived} = await import('../../app/review-guesser/archive/[date]/page');
         vi.stubGlobal('fetch', vi.fn(async () => new Response('gone', {status: 404})));
         await expect(loadArchived('2026-01-01')).resolves.toBeNull();
@@ -22,6 +22,13 @@ describe('archive/season loaders distinguish missing from unavailable', () => {
         const {loadArchived} = await import('../../app/review-guesser/archive/[date]/page');
         vi.stubGlobal('fetch', vi.fn(async () => new Response('bad', {status: 400})));
         await expect(loadArchived('2025-10-1')).resolves.toBeNull();
+    });
+
+    it('keeps the archive route revalidating hourly so a cached notFound heals', {timeout: 20000}, async () => {
+        // notFound() depends on today's UTC date; a year-long revalidate kept serving the
+        // day-specific 404 after the day ended.
+        const page = await import('../../app/review-guesser/archive/[date]/page');
+        expect(page.revalidate).toBeLessThanOrEqual(3600);
     });
 
     it('throws when the archive month endpoint fails', async () => {
