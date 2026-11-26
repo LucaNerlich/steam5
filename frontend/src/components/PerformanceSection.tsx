@@ -30,11 +30,11 @@ export default function PerformanceSection({rounds, globalHitRate = null, todayU
             <div className="perf-grid">
                 <CalendarHeatmap rounds={rounds} todayUtc={todayUtc} />
                 <PointsByRoundChart rounds={rounds} todayUtc={todayUtc} />
-                <OutcomeMixBar rounds={rounds} />
+                <OutcomeMixBar rounds={rounds} todayUtc={todayUtc} />
                 <RollingHitRateSpark rounds={rounds} todayUtc={todayUtc} />
                 <StreaksCard rounds={rounds} todayUtc={todayUtc} currentStreak={currentStreak} longestStreak={longestStreak} />
-                <BucketAccuracyBars rounds={rounds} />
-                <HitRateVsAverageCard rounds={rounds} globalHitRate={globalHitRate} />
+                <BucketAccuracyBars rounds={rounds} todayUtc={todayUtc} />
+                <HitRateVsAverageCard rounds={rounds} globalHitRate={globalHitRate} todayUtc={todayUtc} />
                 <RoundPositionChart rounds={rounds} />
                 <DayOfWeekChart rounds={rounds} />
                 <ImprovementTrend rounds={rounds} />

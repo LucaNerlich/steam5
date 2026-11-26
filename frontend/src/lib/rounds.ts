@@ -38,7 +38,14 @@ export function flattenDayRounds(days: Day[]): FlatRound[] {
  * before slicing the ISO (UTC) representation — kept as-is from the copies so this refactor does
  * not change any chart's output.
  */
-export function cutoffDateString(daysWindow: number): string {
+export function cutoffDateString(daysWindow: number, todayUtc?: string): string {
+    // With a server-provided anchor the window is deterministic on both renders; without
+    // one, keep the original local-date arithmetic for callers that predate it.
+    if (todayUtc) {
+        const cutoffDate = new Date(`${todayUtc}T00:00:00Z`);
+        cutoffDate.setUTCDate(cutoffDate.getUTCDate() - daysWindow);
+        return cutoffDate.toISOString().slice(0, 10);
+    }
     const now = new Date();
     const cutoffDate = new Date(now);
     cutoffDate.setDate(cutoffDate.getDate() - daysWindow);

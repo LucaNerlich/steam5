@@ -29,12 +29,14 @@ function Row({y, label, pct, color}: { y: number; label: string; pct: number | n
     );
 }
 
-export default function HitRateVsAverageCard({rounds, globalHitRate}: {
+export default function HitRateVsAverageCard({rounds, globalHitRate, todayUtc}: {
     rounds: Round[];
     /** All-time hit rate across every player, computed by the server; null when unavailable. */
     globalHitRate: number | null;
+    /** The server's UTC game day; anchors the window so server and client agree. */
+    todayUtc: string;
 }): React.ReactElement {
-    const cutoff = cutoffDateString(DAYS_WINDOW);
+    const cutoff = cutoffDateString(DAYS_WINDOW, todayUtc);
 
     // null (not 0) when nothing falls inside the window: the card's own "No data" branches are
     // for exactly that state, and collapsing it to 0 reported a measured 0% for a player who

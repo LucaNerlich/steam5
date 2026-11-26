@@ -17,6 +17,8 @@ import CalendarHeatmap from './CalendarHeatmap';
  * Fixtures dated far in the past make the window empty for the same reason.
  */
 const DATED = '2099-01-01';
+// Anchor the window on the same future day so the fixture stays inside it.
+const TODAY = '2099-01-02';
 const STALE = '2000-01-01';
 
 describe('performance charts expose their values', () => {
@@ -25,7 +27,7 @@ describe('performance charts expose their values', () => {
             <BucketAccuracyBars rounds={[
                 {selectedBucket: '1-100', actualBucket: '1-100', date: DATED},
                 {selectedBucket: '101-1000', actualBucket: '1-100', date: DATED},
-            ]}/>,
+            ]} todayUtc={TODAY}/>,
         );
 
         expect(html).toContain('aria-label="Accuracy by bucket: 1-100 50%"');
@@ -38,7 +40,7 @@ describe('performance charts expose their values', () => {
                 {selectedBucket: '1-100', actualBucket: '1-100', date: DATED},
                 {selectedBucket: '101-1000', actualBucket: '1-100', date: DATED},
                 {selectedBucket: '1-100', actualBucket: '101-1000', date: DATED},
-            ]}/>,
+            ]} todayUtc={TODAY}/>,
         );
 
         expect(html).toContain('aria-label="Outcome mix: Hit 2 (50%), Too High 1 (25%), Too Low 1 (25%)"');
@@ -48,7 +50,7 @@ describe('performance charts expose their values', () => {
         const html = renderToStaticMarkup(
             <HitRateVsAverageCard rounds={[
                 {selectedBucket: '1-100', actualBucket: '1-100', date: STALE},
-            ]} globalHitRate={null}/>,
+            ]} globalHitRate={null} todayUtc={TODAY}/>,
         );
 
         expect(html).toContain('aria-label="Hit rate vs average: yours no data, global no data"');
@@ -60,7 +62,7 @@ describe('performance charts expose their values', () => {
         const html = renderToStaticMarkup(
             <HitRateVsAverageCard rounds={[
                 {selectedBucket: '1-100', actualBucket: '1-100', date: STALE},
-            ]} globalHitRate={62}/>,
+            ]} globalHitRate={62} todayUtc={TODAY}/>,
         );
 
         expect(html).toContain('global 62%');
@@ -145,7 +147,7 @@ describe('performance charts expose their values', () => {
         ];
 
         const badge = renderToStaticMarkup(<BiasBadge rounds={rounds}/>);
-        const mix = renderToStaticMarkup(<OutcomeMixBar rounds={rounds}/>);
+        const mix = renderToStaticMarkup(<OutcomeMixBar rounds={rounds} todayUtc={TODAY}/>);
 
         expect(badge).toContain('33% too high, 33% hits, 33% too low');
         expect(mix).toContain('Outcome mix: Hit 1 (33%), Too High 1 (33%), Too Low 1 (33%)');
