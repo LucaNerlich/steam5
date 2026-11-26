@@ -73,6 +73,9 @@ function parseAboutHtml(html: string): ReturnType<typeof parse> {
                 // undefined would fall back to the default renderer, so drop the node.
                 if (!isSafeUrl(srcRaw)) return <></>;
                 const src = normalizeToHttps(srcRaw);
+                // normalizeToHttps is case-sensitive and returns "" for "HTTPS://…", which
+                // isSafeUrl accepts; never hand next/image an empty src.
+                if (!src) return <></>;
                 const alt = el.attribs?.alt || "";
                 const widthAttr = el.attribs?.width;
                 const heightAttr = el.attribs?.height;

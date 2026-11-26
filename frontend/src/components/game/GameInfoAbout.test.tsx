@@ -26,4 +26,13 @@ describe('GameInfoAbout', () => {
         expect(html).not.toContain('<img');
         expect(html).toContain('<p>Hi</p>');
     });
+
+    it('drops an img whose scheme is not lower-case', () => {
+        // isSafeUrl lowercases the scheme; normalizeToHttps does not, and returned "".
+        const html = renderToStaticMarkup(
+            <GameInfoAbout html={'<p>Hi</p><img src="HTTPS://cdn.example/x.png" alt="x"/>'}/>,
+        );
+
+        expect(html).not.toContain('<img');
+    });
 });
