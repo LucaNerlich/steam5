@@ -5,9 +5,10 @@ import {usePathname} from "next/navigation";
 import {useLayoutEffect, useRef, useState} from "react";
 
 import {LEADERBOARD_ROUTES} from "@/lib/leaderboardRoutes";
+import {Routes} from "../../app/routes";
 
 function isActive(pathname: string, href: string): boolean {
-    if (href === "/review-guesser/leaderboard") {
+    if (href === Routes.leaderboard) {
         return pathname === href;
     }
     return pathname.startsWith(href);
