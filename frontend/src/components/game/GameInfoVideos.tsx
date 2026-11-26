@@ -63,6 +63,9 @@ const loadDashModule = (): Promise<any> => {
         .then((mod) => mod ?? null)
         .catch((err) => {
             console.error("Failed to load dash.js", err);
+            // Never cache the failure: one flaky chunk load used to disable DASH playback
+            // for the rest of the page session, even after connectivity returned.
+            dashModulePromise = null;
             return null;
         });
     return dashModulePromise;
