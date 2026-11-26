@@ -15,4 +15,15 @@ describe('GameInfoAbout', () => {
         expect(html).not.toContain('<script');
         expect(html).not.toContain('<style');
     });
+
+    it('drops an img whose src is not http(s)', () => {
+        // The img branch used to skip isSafeUrl, so a publisher-supplied ftp:// URL reached
+        // next/image as an empty src instead of being dropped like any other URL attribute.
+        const html = renderToStaticMarkup(
+            <GameInfoAbout html={'<p>Hi</p><img src="ftp://cdn.example/x.png" alt="x"/>'}/>,
+        );
+
+        expect(html).not.toContain('<img');
+        expect(html).toContain('<p>Hi</p>');
+    });
 });
