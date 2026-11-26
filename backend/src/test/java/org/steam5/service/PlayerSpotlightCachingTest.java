@@ -21,9 +21,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * #706: `unless = "#result == null"` on an Optional cached Optional.empty() for the full TTL, so
- * a request made before the nightly job hid the spotlight for five extra minutes. The annotation
- * is invisible to the compiler, so drive the real proxy.
+ * #706: `unless` runs on the value Spring unwraps from the Optional (ObjectUtils.unwrapOptional),
+ * so `#result == null` is the only safe emptiness check — calling a method on the unwrapped
+ * result throws. Drive the real proxy, initialised the way the container initialises it.
  */
 class PlayerSpotlightCachingTest {
 
@@ -31,6 +31,37 @@ class PlayerSpotlightCachingTest {
     void anAbsentSpotlightIsNotCached() {
         final PlayerSpotlightRepository repository = mock(PlayerSpotlightRepository.class);
         when(repository.findById(GameDate.todayUtc())).thenReturn(Optional.empty());
+
+        final PlayerSpotlightService proxied = proxyFor(repository);
+
+        assertTrue(proxied.getTodaySpotlight().isEmpty());
+        assertTrue(proxied.getTodaySpotlight().isEmpty());
+
+        verify(repository, times(2)).findById(GameDate.todayUtc());
+    }
+
+    @Test
+    void aPresentSpotlightIsCachedAndServed() {
+        // Without this case the test cannot tell "not cached" from "caching never ran".
+        final PlayerSpotlightRepository repository = mock(PlayerSpotlightRepository.class);
+        final org.steam5.domain.PlayerSpotlight row = new org.steam5.domain.PlayerSpotlight();
+        row.setGameDate(GameDate.todayUtc());
+        row.setSteamId("76561198028075069");
+        row.setInsightType(org.steam5.domain.PlayerSpotlightInsightType.DAY_STREAK);
+        row.setHeadline("Day streak");
+        row.setDetail("5 days in a row");
+        row.setStatLabel("5");
+        when(repository.findById(GameDate.todayUtc())).thenReturn(Optional.of(row));
+
+        final PlayerSpotlightService proxied = proxyFor(repository);
+
+        assertTrue(proxied.getTodaySpotlight().isPresent());
+        assertTrue(proxied.getTodaySpotlight().isPresent());
+
+        verify(repository, times(1)).findById(GameDate.todayUtc());
+    }
+
+    private static PlayerSpotlightService proxyFor(PlayerSpotlightRepository repository) {
         final PlayerSpotlightService target = new PlayerSpotlightService(
                 mock(GuessRepository.class),
                 mock(UserRepository.class),
@@ -46,12 +77,10 @@ class PlayerSpotlightCachingTest {
         interceptor.setCacheOperationSource(new AnnotationCacheOperationSource());
         interceptor.setCacheManager(cacheManager);
         factory.addAdvice(interceptor);
-        final PlayerSpotlightService proxied = (PlayerSpotlightService) factory.getProxy();
-
-        assertTrue(proxied.getTodaySpotlight().isEmpty());
-        assertTrue(proxied.getTodaySpotlight().isEmpty());
-
-        // A cached empty Optional would answer the second call from the cache.
-        verify(repository, times(2)).findById(GameDate.todayUtc());
+        // CacheAspectSupport.execute() bypasses caching until the bean lifecycle runs; without
+        // these two calls the test silently exercises no cache at all.
+        interceptor.afterPropertiesSet();
+        interceptor.afterSingletonsInstantiated();
+        return (PlayerSpotlightService) factory.getProxy();
     }
 }
