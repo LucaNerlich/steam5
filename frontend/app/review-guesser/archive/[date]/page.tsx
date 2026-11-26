@@ -42,27 +42,27 @@ export async function loadAnswers(date: string): Promise<Record<number, {
     // Dedicated read-only endpoint that serves the finished day's answers.
     // Restricted server-side to days before today, so the archive can never
     // expose a live day's results.
-    try {
-        const res = await fetch(`${backend}/api/review-game/day/${encodeURIComponent(date)}/answers`, {
-            signal: AbortSignal.timeout(BACKEND_TIMEOUT_MS),
-            headers: {'accept': 'application/json'},
-            next: {revalidate: 31536000},
-        });
-        if (!res.ok) return {};
-        const rows: unknown = await res.json();
-        if (!Array.isArray(rows)) return {};
-        const out: Record<number, { actualBucket: string; totalReviews: number }> = {};
-        for (const row of rows as DayAnswer[]) {
-            if (typeof row?.appId === 'number'
-                && typeof row.actualBucket === 'string'
-                && typeof row.totalReviews === 'number') {
-                out[row.appId] = {actualBucket: row.actualBucket, totalReviews: row.totalReviews};
-            }
+    const res = await fetch(`${backend}/api/review-game/day/${encodeURIComponent(date)}/answers`, {
+        signal: AbortSignal.timeout(BACKEND_TIMEOUT_MS),
+        headers: {'accept': 'application/json'},
+        next: {revalidate: 31536000},
+    });
+    // Only "this day has no answers" may render the offline-unavailable UI; an outage or a
+    // malformed payload must reach the error boundary so it is never baked into the page's
+    // year-long cache (loadArchived makes the same distinction).
+    if (res.status === 404 || res.status === 400) return {};
+    if (!res.ok) throw new Error(`Failed to load archive answers ${date} (${res.status})`);
+    const rows: unknown = await res.json();
+    if (!Array.isArray(rows)) throw new Error(`Unexpected answers payload for ${date}`);
+    const out: Record<number, { actualBucket: string; totalReviews: number }> = {};
+    for (const row of rows as DayAnswer[]) {
+        if (typeof row?.appId === 'number'
+            && typeof row.actualBucket === 'string'
+            && typeof row.totalReviews === 'number') {
+            out[row.appId] = {actualBucket: row.actualBucket, totalReviews: row.totalReviews};
         }
-        return out;
-    } catch {
-        return {};
     }
+    return out;
 }
 
 export default async function ArchivePage({params}: { params: Promise<{ date: string }> }) {
