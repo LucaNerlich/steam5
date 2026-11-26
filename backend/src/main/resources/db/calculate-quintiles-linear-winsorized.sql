@@ -9,17 +9,20 @@ WITH r AS (
              CAST(percentile_disc(0.995) WITHIN GROUP (ORDER BY total) AS bigint) AS cap
          FROM r
      ),
-     bins AS (
-         SELECT gs AS idx, mn, cap,
-                CEIL(((cap - mn + 1)::numeric) / 5.0)::bigint AS width
-         FROM ext, generate_series(1, 5) AS gs
+     -- Same edge formula as ReviewsBucketRepository.linearWinsorized(); the last bucket
+     -- stays open-ended (upper NULL) and empty buckets are dropped below.
+     edges AS (
+         SELECT i, ext.mn + ((ext.cap - ext.mn + 1) * i) / 5 AS edge
+         FROM ext, generate_series(0, 5) AS i
      ),
      bounds AS (
          SELECT
-             idx,
-             (mn + (idx - 1) * width) AS lower,
-             CASE WHEN idx < 5 THEN (mn + idx * width - 1) ELSE cap END AS upper
-         FROM bins
+             e0.i + 1 AS idx,
+             e0.edge AS lower,
+             CASE WHEN e0.i < 4 THEN e1.edge - 1 ELSE NULL END AS upper
+         FROM edges e0
+                  JOIN edges e1 ON e1.i = e0.i + 1
+         WHERE e0.i BETWEEN 0 AND 4
      ),
      counts AS (
          SELECT
@@ -44,4 +47,5 @@ SELECT
         END AS label,
     count_in_bucket
 FROM counts
+WHERE upper IS NULL OR lower <= upper
 ORDER BY idx;

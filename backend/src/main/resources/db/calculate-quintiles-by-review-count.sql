@@ -9,19 +9,20 @@ WITH r AS (
          SELECT MIN(total)::bigint AS mn, MAX(total)::bigint AS mx
          FROM r
      ),
-     bins AS (
-         SELECT gs AS idx,
-                ext.mn,
-                ext.mx,
-                CEIL(((ext.mx - ext.mn + 1)::numeric) / 5.0)::bigint AS width
-         FROM ext, generate_series(1, 5) AS gs
+     -- Same monotonic edge formula as ReviewsBucketRepository.equalWidth(): a fixed
+     -- CEIL width can put bucket 5's lower edge past mx ("13-11"), so derive edges 0..5.
+     edges AS (
+         SELECT i, ext.mn + ((ext.mx - ext.mn + 1) * i) / 5 AS edge
+         FROM ext, generate_series(0, 5) AS i
      ),
      bounds AS (
          SELECT
-             idx,
-             (mn + (idx - 1) * width) AS lower,
-             CASE WHEN idx < 5 THEN (mn + idx * width - 1) ELSE mx END AS upper
-         FROM bins
+             e0.i + 1 AS idx,
+             e0.edge AS lower,
+             e1.edge - 1 AS upper
+         FROM edges e0
+                  JOIN edges e1 ON e1.i = e0.i + 1
+         WHERE e0.i BETWEEN 0 AND 4
      ),
      counts AS (
          SELECT
@@ -40,4 +41,5 @@ SELECT
     (lower::bigint || '-' || upper::bigint) AS label,
     count_in_bucket
 FROM counts
+WHERE lower <= upper
 ORDER BY idx;
