@@ -36,6 +36,20 @@ class GuessRepositoryQueryTest {
     }
 
     @Test
+    void averageSubmissionTimeQueriesBreakTiesOnSteamId() throws Exception {
+        // awardFirst takes the first row; without a unique tie-break two users with the same
+        // minute-precision average could win EARLY_BIRD/NIGHT_OWL on different refreshes.
+        for (final String sql : new String[]{
+                query("findUsersByAvgSubmissionTimeAsc", int.class),
+                query("findUsersByAvgSubmissionTimeDesc", int.class),
+                query("findUsersByAvgSubmissionTimeAscInRange", LocalDate.class, LocalDate.class, int.class),
+                query("findUsersByAvgSubmissionTimeDescInRange", LocalDate.class, LocalDate.class, int.class),
+        }) {
+            assertTrue(sql.matches("(?s).*ORDER BY avgMinutes (ASC|DESC), steam_id ASC.*"), sql);
+        }
+    }
+
+    @Test
     void perfectDaysMaterializedViewUsesTheSameRoundSource() throws Exception {
         try (InputStream in = GuessRepositoryQueryTest.class.getResourceAsStream("/db/mv-perfect-days.sql")) {
             assertNotNull(in);
