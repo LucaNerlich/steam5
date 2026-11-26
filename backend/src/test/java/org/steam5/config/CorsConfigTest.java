@@ -63,4 +63,13 @@ class CorsConfigTest {
         assertThrows(IllegalStateException.class, () -> config.corsConfigurationSource(""));
         assertThrows(IllegalStateException.class, () -> config.corsConfigurationSource("   "));
     }
+
+    @Test
+    void refusesToReflectAnyOriginWithCredentials() {
+        // Spring checks credentials against allowedOrigins only; "*" in allowedOriginPatterns
+        // would otherwise answer every caller with its own origin plus allow-credentials.
+        final CorsConfig config = new CorsConfig();
+        assertThrows(IllegalStateException.class, () -> config.corsConfigurationSource("*"));
+        assertThrows(IllegalStateException.class, () -> config.corsConfigurationSource("https://steam5.org, *"));
+    }
 }
