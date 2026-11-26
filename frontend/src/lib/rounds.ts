@@ -34,14 +34,13 @@ export function flattenDayRounds(days: Day[]): FlatRound[] {
  * yyyy-mm-dd cutoff for a window that ends today, `daysWindow` days back.
  *
  * The charts filter stored round dates (UTC game dates) with this string, so it is defined once
- * here rather than copied into each card. Note it derives the cutoff with local-date arithmetic
- * before slicing the ISO (UTC) representation — kept as-is from the copies so this refactor does
- * not change any chart's output.
+ * here rather than copied into each card. It always anchors on the server's UTC day.
  */
-export function cutoffDateString(daysWindow: number): string {
-    const now = new Date();
-    const cutoffDate = new Date(now);
-    cutoffDate.setDate(cutoffDate.getDate() - daysWindow);
+export function cutoffDateString(daysWindow: number, todayUtc: string): string {
+    // Anchored on the server's UTC game day, so server and client renders agree and a
+    // midnight rollover cannot move the window between them.
+    const cutoffDate = new Date(`${todayUtc}T00:00:00Z`);
+    cutoffDate.setUTCDate(cutoffDate.getUTCDate() - daysWindow);
     return cutoffDate.toISOString().slice(0, 10);
 }
 

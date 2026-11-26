@@ -1,5 +1,5 @@
-import {describe, expect, it} from 'vitest';
-import {bucketOutcome, flattenDayRounds, outcomeCounts, recentRounds, validatedResultsForDay} from './rounds';
+import {afterEach, describe, expect, it, vi} from 'vitest';
+import {bucketOutcome, flattenDayRounds, outcomeCounts, recentRounds, validatedResultsForDay, cutoffDateString} from './rounds';
 
 const round = (roundIndex: number, appId: number) => ({
     roundIndex,
@@ -103,5 +103,24 @@ describe('recentRounds', () => {
         ];
         expect(recentRounds(days, 2).map(r => r.actualBucket)).toEqual(['1-13', '14-111']);
         expect(recentRounds(days, 10)).toHaveLength(2);
+    });
+});
+
+describe('cutoffDateString', () => {
+    afterEach(() => {
+        vi.useRealTimers();
+    });
+
+    it('anchors the window on the given UTC day, not the clock', () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date('2099-01-03T00:30:00Z'));
+
+        expect(cutoffDateString(30, '2099-01-02')).toBe('2098-12-03');
+        expect(cutoffDateString(30, '2099-01-02')).not.toBe(cutoffDateString(30, '2099-01-03'));
+    });
+
+    it('rolls over months and years', () => {
+        expect(cutoffDateString(1, '2099-01-01')).toBe('2098-12-31');
+        expect(cutoffDateString(1, '2099-03-01')).toBe('2099-02-28');
     });
 });
