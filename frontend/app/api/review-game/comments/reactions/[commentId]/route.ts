@@ -1,3 +1,4 @@
+import {cookies} from "next/headers";
 import {NextRequest, NextResponse} from "next/server";
 import {proxyCommentMutation} from "@/lib/commentMutation";
 import {rejectUntrustedOrigin} from "@/lib/requestOrigin";
@@ -19,6 +20,11 @@ export async function POST(
     // req.json() would otherwise buffer an unauthenticated cross-site body first.
     const rejected = rejectUntrustedOrigin(req.headers, "comments/reactions", commentId);
     if (rejected) return rejected;
+    // Auth before the body too: Origin is not authenticated, so any client can send a trusted
+    // value and still force the parse the issue is about.
+    if (!(await cookies()).get("s5_token")?.value) {
+        return NextResponse.json({error: "Unauthorized"}, {status: 401, headers: NO_STORE});
+    }
     let body: unknown;
     try {
         body = await req.json();
