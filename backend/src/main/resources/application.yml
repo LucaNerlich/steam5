@@ -61,9 +61,6 @@ spring:
     properties:
       org.quartz.scheduler.idleWaitTime: 1000 # 1000 is minimum
       org.quartz.threadPool.threadCount: 5
-  web:
-    error:
-      include-message: always
 cors:
   # Relaxed binding for env vars: the camelCase @Value this replaced could only be set as
   # CORS_ALLOWEDORIGINS, so the conventional CORS_ALLOWED_ORIGINS silently did nothing.
