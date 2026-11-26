@@ -30,6 +30,7 @@ export default function ConfirmModal({
 }: Readonly<ConfirmModalProps>): React.ReactElement | null {
     const dialogRef = useRef<HTMLDialogElement | null>(null);
     const contentRef = useRef<HTMLDivElement | null>(null);
+    const cancelRef = useRef<HTMLButtonElement | null>(null);
 
     // Clicks on ::backdrop target the <dialog> element itself; attached in the
     // effect so the non-interactive <dialog> keeps no JSX interaction handler.
@@ -46,6 +47,10 @@ export default function ConfirmModal({
         if (!dialog) return;
 
         dialog.showModal();
+        // showModal() focuses the first focusable element — the destructive Confirm button,
+        // because React's autoFocus prop only calls .focus() (a no-op while the dialog is
+        // display:none) and never writes the autofocus attribute. Focus Cancel explicitly.
+        cancelRef.current?.focus();
         dialog.addEventListener("click", onBackdropClick);
 
         return () => {
@@ -74,12 +79,9 @@ export default function ConfirmModal({
                 <button type="button" className="btn-cta" onClick={onConfirm}>
                     {confirmLabel}
                 </button>
-                {/* autoFocus: default focus to the last action (Cancel) rather
-                    than the first (Confirm), so an accidental Enter can't
-                    trigger a destructive action — per WAI-ARIA guidance for
-                    confirmation dialogs. The native dialog focusing steps honor
-                    `autofocus` over the first focusable element. */}
-                <button type="button" className="btn-ghost" onClick={onCancel} autoFocus>
+                {/* Focused explicitly in the showModal effect: an accidental Enter must
+                    cancel, not confirm (WAI-ARIA guidance for confirmation dialogs). */}
+                <button ref={cancelRef} type="button" className="btn-ghost" onClick={onCancel}>
                     {cancelLabel}
                 </button>
             </div>
