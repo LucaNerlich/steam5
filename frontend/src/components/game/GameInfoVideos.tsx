@@ -151,7 +151,7 @@ export default function GameInfoVideos({appId, movies}: {
                         if (!videoEl) return;
                         const generation = ++playerGenerationRef.current;
                         void loadDashModule().then((dashjsModule) => {
-                            if (disposed || generation !== playerGenerationRef.current) return;
+                            if (disposed || !videoEl.isConnected || generation !== playerGenerationRef.current) return;
                             if (!dashjsModule) return;
                             const dashLib = dashjsModule.default ?? dashjsModule;
                             if (!dashLib?.MediaPlayer) return;
@@ -162,9 +162,13 @@ export default function GameInfoVideos({appId, movies}: {
                             playersByVideoEl.set(videoEl, player);
                         });
                     },
-                    "Carousel.detachSlideEl": (_fancyboxRef: unknown, _carouselRef: unknown, slide: { src?: string; el?: HTMLElement }) => {
-                        // Fancybox is removing this slide's element, so its player must go with it.
-                        releasePlayerFor(slide?.el?.querySelector("video") as HTMLVideoElement | null);
+                    "Carousel.detachSlideEl": () => {
+                        // Fancybox's own Video plugin removes the slide's <video> before this
+                        // event reaches us, so a querySelector lookup always returned null and
+                        // the released player kept fetching segments. Sweep by DOM presence.
+                        for (const videoEl of Array.from(playersByVideoEl.keys())) {
+                            if (!videoEl.isConnected) releasePlayerFor(videoEl);
+                        }
                     },
                     destroy: () => {
                         disposePlayers();
