@@ -30,6 +30,7 @@ export default function ShareControls(props: {
 }) {
     const {buckets, gameDate, totalRounds, latestRound, latest, results, hasServerResults} = props;
     const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle');
+    const resetTimer = useRef<number | null>(null);
     const isLocalhost = typeof window !== 'undefined' && (location.hostname === 'localhost' || location.hostname === '127.0.0.1');
 
     const namesFetchUrl = `/api/review-game/day/summary/${encodeURIComponent(gameDate)}`;
@@ -145,6 +146,13 @@ export default function ShareControls(props: {
         const text = buildShareText();
         if (!text) return;
 
+        const showCopyState = (next: 'copied' | 'failed') => {
+            setCopyState(next);
+            if (resetTimer.current !== null) window.clearTimeout(resetTimer.current);
+            // The failure message stays a little longer than the success confirmation.
+            resetTimer.current = window.setTimeout(() => setCopyState('idle'), next === 'failed' ? 4000 : 1500);
+        };
+
         const copyWithTextarea = () => {
             try {
                 const textarea = document.createElement('textarea');
@@ -165,21 +173,19 @@ export default function ShareControls(props: {
         try {
             if (typeof navigator !== 'undefined' && navigator.clipboard && window.isSecureContext) {
                 await navigator.clipboard.writeText(text);
-                setCopyState('copied');
-                setTimeout(() => setCopyState('idle'), 1500);
+                showCopyState('copied');
                 return;
             }
         } catch {
             // fall through to textarea fallback
         }
         if (copyWithTextarea()) {
-            setCopyState('copied');
+            showCopyState('copied');
         } else {
             // The clipboard API is unavailable and the deprecated fallback refused: say so,
             // instead of leaving the button looking like it did nothing.
-            setCopyState('failed');
+            showCopyState('failed');
         }
-        setTimeout(() => setCopyState('idle'), 1500);
     }
 
     return (
@@ -196,7 +202,7 @@ export default function ShareControls(props: {
                 className={`share-copied ${copyState === 'idle' ? '' : 'is-visible'}`}
                 aria-live="polite"
             >
-                {copyState === 'failed' ? 'Copy failed' : 'Copied'}
+                {copyState === 'idle' ? '' : copyState === 'failed' ? 'Copy failed' : 'Copied'}
             </span>
         </div>
     );

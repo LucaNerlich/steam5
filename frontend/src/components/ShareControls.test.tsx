@@ -40,7 +40,8 @@ describe('ShareControls share block markup', () => {
         expect(html).toContain('<div class="share-inline">');
         expect(html).toContain('data-umami-event="share-results"');
         expect(html).toContain('Share Results');
-        expect(html).toMatch(/share-copied[^>]*>Copied</);
+        // The idle live region is empty so assistive tech does not announce a stale "Copied".
+        expect(html).toMatch(/share-copied[^>]*><\/span>/);
     });
 
     it('renders the share button for a complete authoritative map', () => {
