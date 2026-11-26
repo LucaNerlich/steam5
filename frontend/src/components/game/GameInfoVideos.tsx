@@ -151,7 +151,7 @@ export default function GameInfoVideos({appId, movies}: {
                         if (!videoEl) return;
                         const generation = ++playerGenerationRef.current;
                         void loadDashModule().then((dashjsModule) => {
-                            if (disposed || generation !== playerGenerationRef.current) return;
+                            if (disposed || !videoEl.isConnected || generation !== playerGenerationRef.current) return;
                             if (!dashjsModule) return;
                             const dashLib = dashjsModule.default ?? dashjsModule;
                             if (!dashLib?.MediaPlayer) return;
