@@ -88,6 +88,7 @@ export default function LeaderboardToggle() {
                         linkRefs.current[index] = el;
                     }}
                     href={route.href}
+                    aria-current={isActive(pathname, route.href) ? "page" : undefined}
                     className={`btn-ghost leaderboard__toggle-btn${isActive(pathname, route.href) ? " is-active" : ""}`}
                 >
                     {route.label}
