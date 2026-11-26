@@ -3,32 +3,18 @@
 import {useRouter} from "next/navigation";
 import {Routes} from "../../app/routes";
 import {useAuthSignedIn} from "@/contexts/AuthContext";
-
-function getLocalDateYYYYMMDD(): string {
-    const now = new Date();
-    const y = String(now.getFullYear());
-    const m = String(now.getMonth() + 1).padStart(2, '0');
-    const d = String(now.getDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
-}
+import {clearDay} from "@/lib/storage";
+import {notifyStoredDayChanged} from "@/components/round/useStoredDay";
 
 export default function ResetTodayButton() {
     const signedIn = useAuthSignedIn();
     const router = useRouter()
 
     const onReset = () => {
-        try {
-            const prefix = 'review-guesser:';
-            const utcToday = new Date().toISOString().slice(0, 10);
-            const localToday = getLocalDateYYYYMMDD();
-            const candidates = new Set<string>([
-                `${prefix}${utcToday}`,
-                `${prefix}${localToday}`,
-            ]);
-            candidates.forEach((k) => localStorage.removeItem(k));
-        } catch {
-            // ignore
-        }
+        // Stored days are keyed by the backend's UTC game date. The browser's local date is a
+        // *different* archive day in UTC-negative zones, so never clear it here.
+        clearDay(new Date().toISOString().slice(0, 10));
+        notifyStoredDayChanged();
         try {
             router.push(Routes.reviewGuesser + '/1')
         } catch { /* noop */
