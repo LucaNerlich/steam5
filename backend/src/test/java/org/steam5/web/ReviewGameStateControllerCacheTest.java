@@ -123,6 +123,28 @@ public class ReviewGameStateControllerCacheTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
+    void myDay_today_dropsGuessesNotBelongingToCurrentPicks() {
+        // /my/today already hid stale picks; /my/day for today must agree or the client
+        // believes the round is still unguessed.
+        final LocalDate today = GameDate.todayUtc();
+        when(service.generateDailyPicks())
+                .thenReturn(List.of(new ReviewGamePick(1L, today, 42L, OffsetDateTime.now())));
+        final Guess current = new Guess(1L, "u1", today, 1, 42L, "1-100", "1-100", 5, OffsetDateTime.now());
+        final Guess stale = new Guess(2L, "u1", today, 1, 99L, "101-1000", "1-100", 0, OffsetDateTime.now());
+        when(guessRepository.findAllForDay("u1", today)).thenReturn(List.of(current, stale));
+
+        final ResponseEntity<?> res = controller.myDay(today.toString(), "u1");
+
+        assertEquals(200, res.getStatusCode().value());
+        final List<ReviewGameStateController.MyGuessDto> body =
+                (List<ReviewGameStateController.MyGuessDto>) res.getBody();
+        assertNotNull(body);
+        assertEquals(1, body.size(), "only the current pick's guess may remain");
+        assertEquals(42L, body.getFirst().appId());
+    }
+
+    @Test
     void myDay_today_returnsPrivateLiveCacheControl() {
         final LocalDate today = LocalDate.now();
         when(guessRepository.findAllForDay("u1", today)).thenReturn(List.of());
