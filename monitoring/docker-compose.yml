@@ -350,7 +350,7 @@ configs:
                 severity: critical
               annotations:
                 summary: "Daily picks have not been generated in >26h"
-                description: "ReviewGameStateJob last succeeded at {{ humanizeTimestamp $$value }} — players will see no games today."
+                description: "Daily picks were last generated at {{ humanizeTimestamp $$value }} — players will see no games today."
 
             - alert: Steam5HikariSaturated
               expr: hikaricp_connections_pending{application="steam5"} > 0
