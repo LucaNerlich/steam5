@@ -40,9 +40,12 @@ class PublicHttpUrlTest {
                 .getDeclaredConstructor(String.class, int.class, InetAddress.class, HttpsURLConnection.class);
         ctor.setAccessible(true);
         final HttpsURLConnection connection = org.mockito.Mockito.mock(HttpsURLConnection.class);
-        org.mockito.Mockito.when(connection.getConnectTimeout()).thenReturn(-1);
+        // The default is read first: the caller sets the timeout *after* the factory exists, so
+        // an eager snapshot in the constructor must not be able to pass this test.
+        org.mockito.Mockito.when(connection.getConnectTimeout()).thenReturn(0);
         final Object factory = ctor.newInstance("example.com", 443,
                 InetAddress.getByAddress(new byte[]{8, 8, 8, 8}), connection);
+        org.mockito.Mockito.when(connection.getConnectTimeout()).thenReturn(-1);
 
         final java.lang.reflect.Method create = factory.getClass().getDeclaredMethod("createPlainSocket");
         create.setAccessible(true);
