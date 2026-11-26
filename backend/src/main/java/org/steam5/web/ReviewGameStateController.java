@@ -249,10 +249,18 @@ public class ReviewGameStateController {
         }
         if (end.isBefore(start)) return ResponseEntity.badRequest().build();
 
-        final var guesses = guessRepository.findBySteamIdBetween(steamId, start, end);
+        final var picks = pickRepository.findByPickDateBetween(start, end);
+        // A guess is only worth counting when it belongs to a pick still served for that day:
+        // picks can be regenerated for a date, and the baseline rounds are current picks only.
+        final Set<String> servedPicks = new HashSet<>();
+        for (ReviewGamePick pick : picks) {
+            servedPicks.add(pick.getPickDate() + "|" + pick.getAppId());
+        }
+        final var guesses = guessRepository.findBySteamIdBetween(steamId, start, end).stream()
+                .filter(g -> servedPicks.contains(g.getGameDate() + "|" + g.getAppId()))
+                .toList();
         final Map<Long, Integer> totalReviewsByAppId = lookupTotalReviewsByAppId(guesses);
-        final Map<String, Integer> recordedByDayApp =
-                recordedTotalsByDayApp(pickRepository.findByPickDateBetween(start, end));
+        final Map<String, Integer> recordedByDayApp = recordedTotalsByDayApp(picks);
         final var dtos = guesses.stream().map(g -> new MyGuessDto(
                 g.getRoundIndex(),
                 g.getAppId(),

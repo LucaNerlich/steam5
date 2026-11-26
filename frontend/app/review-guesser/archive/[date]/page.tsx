@@ -91,6 +91,7 @@ export default async function ArchivePage({params}: { params: Promise<{ date: st
                 date={date}
                 bucketLabels={data.buckets}
                 bucketTitles={data.bucketTitles || data.buckets}
+                pickAppIds={data.picks.map((pick) => pick.appId)}
             />
             <nav aria-label="Rounds table of contents" className="archive__toc">
                 <ol>
