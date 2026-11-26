@@ -283,6 +283,22 @@ public class ReviewGameStateServiceTest {
         assertEquals(0.0, registry.get("steam5.daily.picks.last.success.epoch.seconds").gauge().value());
     }
 
+    @Test
+    void registerPicksGaugesSeedsFromTheNewestGeneratedDay() {
+        // A restart starts both values at 0 and would trip the missing-picks alert even when
+        // today's picks already exist; seed from the newest generated day.
+        final OffsetDateTime created = OffsetDateTime.now().minusHours(2);
+        final var latest = new ReviewGamePick(1L, GameDate.todayUtc(), 42L, created);
+        when(pickRepository.findTopByOrderByCreatedAtDesc()).thenReturn(java.util.Optional.of(latest));
+        when(pickRepository.findByPickDate(GameDate.todayUtc())).thenReturn(List.of(latest));
+
+        service.registerPicksGauges();
+
+        assertEquals((double) created.toEpochSecond(),
+                registry.get("steam5.daily.picks.last.success.epoch.seconds").gauge().value());
+        assertEquals(1.0, registry.get("steam5.daily.picks.last.success.size").gauge().value());
+    }
+
     private ReviewGameStateService stubbedServiceFor(ReviewGameStateService.BUCKET_STRATEGY strategy) {
         return new ReviewGameStateService(
                 registry,
