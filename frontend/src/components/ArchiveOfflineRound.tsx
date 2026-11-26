@@ -26,11 +26,16 @@ type Props = {
 
 /** Selection restored from the shared stored day; empty when the day was reset. */
 export function storedSelection(
-    stored: {results?: Record<number, {selectedLabel?: string}>} | null,
+    stored: {results?: Record<number, {selectedLabel?: string; appId?: number}>} | null,
     roundIndex: number,
+    appId?: number,
 ): {selectedLabel: string | null; submitted: boolean} {
     const existing = stored?.results?.[roundIndex];
-    return existing?.selectedLabel
+    // A stored result is only this round's answer when it was recorded for the app the
+    // archive is actually serving: picks can be regenerated for the same date, leaving a
+    // stale result at the same round index that must not look answered.
+    const belongsToThisPick = appId === undefined || existing?.appId === appId;
+    return existing?.selectedLabel && belongsToThisPick
         ? {selectedLabel: existing.selectedLabel, submitted: true}
         : {selectedLabel: null, submitted: false};
 }
@@ -44,7 +49,7 @@ export default function ArchiveOfflineRound(props: Readonly<Props>): React.React
     // could drift from a reset elsewhere on the page.
     const stored = useStoredDay(gameDate);
     const [unsavedLabel, setUnsavedLabel] = useState<string | null>(null);
-    const fromStore = storedSelection(stored, roundIndex);
+    const fromStore = storedSelection(stored, roundIndex, appId);
     const selectedLabel = fromStore.selectedLabel ?? unsavedLabel;
     const submitted = fromStore.submitted || unsavedLabel !== null;
 

@@ -30,6 +30,8 @@ interface ArchiveSummaryProps {
     date?: string;
     bucketLabels: string[];
     bucketTitles: string[];
+    /** App ids served for this date; guesses for any other pick are stale and excluded. */
+    pickAppIds?: number[];
 }
 
 const jsonFetcher = (url: string) => fetch(url, {headers: {'accept': 'application/json'}}).then(r => {
@@ -43,7 +45,7 @@ const myGuessFetcher = (url: string) => fetch(url).then(r => {
     return r.json();
 });
 
-export default function ArchiveSummary({date, bucketLabels, bucketTitles}: ArchiveSummaryProps) {
+export default function ArchiveSummary({date, bucketLabels, bucketTitles, pickAppIds}: ArchiveSummaryProps) {
     const baselineUrl = date
         ? `${BACKEND_ORIGIN}/api/review-game/history/always-pick?from=${encodeURIComponent(date)}&to=${encodeURIComponent(date)}`
         : `${BACKEND_ORIGIN}/api/review-game/history/always-pick`;
@@ -59,7 +61,9 @@ export default function ArchiveSummary({date, bucketLabels, bucketTitles}: Archi
     );
 
     const isSignedIn = myData && !myData._unauthorized && Array.isArray(myData);
-    const myGuesses: MyGuessDto[] | null = isSignedIn ? myData : null;
+    const myGuesses: MyGuessDto[] | null = isSignedIn
+        ? (myData as MyGuessDto[]).filter(g => !pickAppIds || pickAppIds.includes(g.appId))
+        : null;
     const loading = baselineLoading || myLoading;
 
     if (loading || !baseline) {
