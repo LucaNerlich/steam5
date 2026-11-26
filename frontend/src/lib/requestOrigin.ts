@@ -10,7 +10,7 @@ export function trustedSiteOrigin(): string {
 }
 
 /** Strip control chars and bound length before logging untrusted header/path values. */
-function sanitizeForLog(value: string | null | undefined, maxLen = 200): string {
+export function sanitizeForLog(value: string | null | undefined, maxLen = 200): string {
     if (value == null || value === "") return "";
     return value.replace(/[\u0000-\u001f\u007f]/g, "").slice(0, maxLen);
 }

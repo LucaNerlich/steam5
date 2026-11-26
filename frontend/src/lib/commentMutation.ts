@@ -1,7 +1,7 @@
 import {cookies} from "next/headers";
 import {NextRequest, NextResponse} from "next/server";
 import {BACKEND_ORIGIN, BACKEND_TIMEOUT_MS, bearerAuthHeaders, forwardedForHeaders} from "@/lib/backend";
-import {rejectUntrustedOrigin} from "@/lib/requestOrigin";
+import {rejectUntrustedOrigin, sanitizeForLog} from "@/lib/requestOrigin";
 
 const NO_STORE = {"Cache-Control": "private, no-store"} as const;
 
@@ -31,7 +31,7 @@ export async function proxyCommentMutation(req: NextRequest, options: CommentMut
     if (rejected) return rejected;
     const token = (await cookies()).get("s5_token")?.value;
     if (!token) {
-        console.error(`[${options.route}] Missing authentication`, {commentId: options.commentId});
+        console.error(`[${options.route}] Missing authentication`, {commentId: sanitizeForLog(options.commentId, 64)});
         return NextResponse.json({error: "Unauthorized"}, {status: 401, headers: NO_STORE});
     }
     const auth = bearerAuthHeaders(token);
