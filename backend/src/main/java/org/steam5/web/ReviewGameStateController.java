@@ -577,7 +577,10 @@ public class ReviewGameStateController {
                 .map(e -> new ArchiveMonthDay(e.getKey(), e.getValue()))
                 .toList();
 
-        final boolean isCurrentMonth = ym.equals(YearMonth.now());
+        // The game calendar is UTC everywhere else (GameDate.todayUtc(), the frontend's
+        // getUTCFullYear/month) — a host-local year-month would mark the current month
+        // historical in UTC-negative zones and cache it as immutable for a year.
+        final boolean isCurrentMonth = ym.equals(YearMonth.from(GameDate.todayUtc()));
         final String cacheControl = isCurrentMonth
                 ? "public, s-maxage=86400, max-age=3600"
                 : "public, max-age=31536000, immutable";
