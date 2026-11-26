@@ -50,6 +50,7 @@ public class ReviewGameStateServiceTest {
     private PlatformTransactionManager transactionManager;
 
     private ReviewGameStateService service;
+    private io.micrometer.core.instrument.simple.SimpleMeterRegistry registry;
 
     @BeforeEach
     void setUp() throws Exception {
@@ -64,7 +65,9 @@ public class ReviewGameStateServiceTest {
         transactionManager = mock(PlatformTransactionManager.class);
         when(transactionManager.getTransaction(any())).thenReturn(new SimpleTransactionStatus());
 
+        registry = new io.micrometer.core.instrument.simple.SimpleMeterRegistry();
         service = new ReviewGameStateService(
+                registry,
                 reviewsRepository,
                 reviewsFetcher,
                 detailsFetcher,
@@ -266,8 +269,39 @@ public class ReviewGameStateServiceTest {
         verify(excludedAppRepository, atLeastOnce()).save(any());
     }
 
+    @Test
+    void readingExistingPicksDoesNotAdvanceTheLastSuccessGauges() {
+        // /today and /guess-auth call generateDailyPicks on every request; if a read counted
+        // as success the Steam5DailyPicksMissing alert could not fire through an outage.
+        when(pickRepository.findByPickDate(GameDate.todayUtc())).thenReturn(List.of(
+                new ReviewGamePick(1L, GameDate.todayUtc(), 42L, OffsetDateTime.now())));
+        service.registerPicksGauges();
+
+        service.generateDailyPicks();
+
+        assertEquals(0.0, registry.get("steam5.daily.picks.last.success.size").gauge().value());
+        assertEquals(0.0, registry.get("steam5.daily.picks.last.success.epoch.seconds").gauge().value());
+    }
+
+    @Test
+    void registerPicksGaugesSeedsFromTheNewestGeneratedDay() {
+        // A restart starts both values at 0 and would trip the missing-picks alert even when
+        // today's picks already exist; seed from the newest generated day.
+        final OffsetDateTime created = OffsetDateTime.now().minusHours(2);
+        final var latest = new ReviewGamePick(1L, GameDate.todayUtc(), 42L, created);
+        when(pickRepository.findTopByOrderByCreatedAtDesc()).thenReturn(java.util.Optional.of(latest));
+        when(pickRepository.findByPickDate(GameDate.todayUtc())).thenReturn(List.of(latest));
+
+        service.registerPicksGauges();
+
+        assertEquals((double) created.toEpochSecond(),
+                registry.get("steam5.daily.picks.last.success.epoch.seconds").gauge().value());
+        assertEquals(1.0, registry.get("steam5.daily.picks.last.success.size").gauge().value());
+    }
+
     private ReviewGameStateService stubbedServiceFor(ReviewGameStateService.BUCKET_STRATEGY strategy) {
         return new ReviewGameStateService(
+                registry,
                 reviewsRepository,
                 reviewsFetcher,
                 detailsFetcher,

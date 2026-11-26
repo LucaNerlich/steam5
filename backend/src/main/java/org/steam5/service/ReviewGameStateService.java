@@ -33,6 +33,43 @@ public class ReviewGameStateService {
     /** One in-JVM generator at a time: the DB advisory lock only guards the short persist. */
     private final java.util.concurrent.atomic.AtomicBoolean generating = new java.util.concurrent.atomic.AtomicBoolean(false);
 
+    // Owned here, not by the Quartz job: /today, /weekly and /monthly also generate picks,
+    // and the Steam5DailyPicksMissing alert means "picks are available", not "the job ran".
+    private final java.util.concurrent.atomic.AtomicLong lastSuccessEpochSeconds = new java.util.concurrent.atomic.AtomicLong(0L);
+    private final java.util.concurrent.atomic.AtomicLong lastSuccessSize = new java.util.concurrent.atomic.AtomicLong(0L);
+
+    @jakarta.annotation.PostConstruct
+    public void registerPicksGauges() {
+        io.micrometer.core.instrument.Gauge.builder("steam5.daily.picks.last.success.epoch.seconds", lastSuccessEpochSeconds, java.util.concurrent.atomic.AtomicLong::doubleValue)
+                .description("Unix timestamp of the last successful daily-picks generation")
+                .register(meterRegistry);
+        io.micrometer.core.instrument.Gauge.builder("steam5.daily.picks.last.success.size", lastSuccessSize, java.util.concurrent.atomic.AtomicLong::doubleValue)
+                .description("Number of picks produced by the last successful daily-picks generation")
+                .register(meterRegistry);
+
+        // A restart starts both values at 0 and would trip the alert even when today's picks
+        // exist; seed from the newest generated day. Every later generation updates them.
+        pickRepository.findTopByOrderByCreatedAtDesc().ifPresent(latest -> {
+            if (latest.getCreatedAt() != null) {
+                lastSuccessEpochSeconds.set(latest.getCreatedAt().toEpochSecond());
+                lastSuccessSize.set(pickRepository.findByPickDate(latest.getPickDate()).size());
+            }
+        });
+    }
+
+    /**
+     * Advance the "picks are available" gauges from an actual generation — never from a plain
+     * read of rows that already existed, or a generation outage would stay green all day.
+     */
+    private void recordPicksAvailable(List<ReviewGamePick> picks) {
+        if (picks.isEmpty()) return;
+        final OffsetDateTime created = picks.getFirst().getCreatedAt();
+        lastSuccessEpochSeconds.set(created != null
+                ? created.toEpochSecond()
+                : System.currentTimeMillis() / 1000L);
+        lastSuccessSize.set(picks.size());
+    }
+
     public List<ReviewGamePick> generateDailyPicks() {
         final LocalDate today = GameDate.todayUtc();
         final List<ReviewGamePick> existing = pickRepository.findByPickDate(today);
@@ -43,11 +80,16 @@ public class ReviewGameStateService {
         // The advisory lock is taken only after Steam selection, so serialize the whole
         // generation in this JVM; concurrent callers wait outside any transaction.
         if (!generating.compareAndSet(false, true)) {
-            return waitForPicks(today);
+            final List<ReviewGamePick> concurrent = waitForPicks(today);
+            recordPicksAvailable(concurrent);
+            return concurrent;
         }
         try {
             final List<ReviewGamePick> recheck = pickRepository.findByPickDate(today);
             if (!recheck.isEmpty()) {
+                // Another instance (or an earlier caller) generated the day; its rows are the
+                // success signal this instance must also report, or its gauge never advances.
+                recordPicksAvailable(recheck);
                 return recheck;
             }
 
@@ -103,6 +145,11 @@ public class ReviewGameStateService {
             transaction.executeWithoutResult(status -> saved.forEach(p ->
                     eventPublisher.publishEvent(new BlurhashEncodeRequested(p.getAppId(), null, BlurhashEnqueueListener.Type.SCREENSHOT))));
             cacheEvictor.evictReviewGameState();
+            // Only a real generation advances the "picks are available" gauges: reads that
+            // return today's existing picks (every /today and /guess-auth call) must not
+            // keep Steam5DailyPicksMissing green through a generation outage.
+            lastSuccessEpochSeconds.set(System.currentTimeMillis() / 1000L);
+            recordPicksAvailable(saved);
             return saved;
         } finally {
             generating.set(false);
@@ -285,6 +332,7 @@ public class ReviewGameStateService {
             }
         }
 
+        private final io.micrometer.core.instrument.MeterRegistry meterRegistry;
         private final SteamAppReviewsRepository reviewsRepository;
         private final SteamAppReviewsFetcher reviewsFetcher;
         private final SteamAppDetailsFetcher detailsFetcher;
