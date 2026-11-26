@@ -393,8 +393,11 @@ function MentionMenu(props: {
             if (event.key === "Escape") {
                 onClose();
                 // The suggestions unmount with the menu; put the caret back in the composer
-                // instead of dropping focus to <body>.
-                focusOnClose?.current?.focus();
+                // instead of dropping focus to <body> — but only when focus was inside the
+                // menu, so Escape elsewhere cannot yank it away from the control in use.
+                if (focusWithinElement(rootRef.current, document.activeElement)) {
+                    focusOnClose?.current?.focus();
+                }
             }
         };
 
