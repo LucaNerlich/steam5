@@ -48,7 +48,8 @@ public class ReviewGameStateControllerRandomArchiveTest {
         final Scheduler scheduler = mock(Scheduler.class);
         final MeterRegistry meterRegistry = mock(MeterRegistry.class);
         controller = new ReviewGameStateController(service, detailService, guessRepository,
-                reviewsRepository, pickRepository, scheduler, meterRegistry);
+                reviewsRepository, pickRepository, scheduler, meterRegistry,
+                new tools.jackson.databind.ObjectMapper());
     }
 
     @Test

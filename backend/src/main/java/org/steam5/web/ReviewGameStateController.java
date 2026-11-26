@@ -57,6 +57,7 @@ public class ReviewGameStateController {
     private final org.steam5.repository.ReviewGamePickRepository pickRepository;
     private final Scheduler scheduler;
     private final MeterRegistry meterRegistry;
+    private final tools.jackson.databind.ObjectMapper objectMapper;
 
     // Live daily data — rounds regenerate at ~00:01 UTC; 30 min CDN window absorbs
     // traffic spikes while keeping staleness bounded. must-revalidate forbids any
@@ -107,24 +108,13 @@ public class ReviewGameStateController {
         return month.isBefore(YearMonth.from(todayUtc));
     }
 
-    private static String weakEtagForPicks(List<SteamAppDetail> details) {
-        final List<String> fields = new java.util.ArrayList<>();
-        for (SteamAppDetail d : details) {
-            fields.add(String.valueOf(d.getAppId()));
-            fields.add(d.getName());
-            fields.add(d.getReleaseDate());
-            if (d.getPriceOverview() != null) {
-                fields.add(d.getPriceOverview().getCurrency());
-                fields.add(Long.toString(d.getPriceOverview().getFinalAmount()));
-            }
-            // screenshot paths influence visual content; limit sample for speed
-            int i = 0;
-            if (d.getScreenshots() != null) for (var s : d.getScreenshots()) {
-                if (i++ >= 2) break;
-                fields.add(s.getPathFull());
-            }
-        }
-        return Etags.weakEtag(fields);
+    /**
+     * Hash the serialized payload, not a sample of it: a 304 promises the representation is
+     * unchanged, and any field the sampler skipped (descriptions, images, flags, extra media)
+     * would otherwise keep answering 304 with a stale body after a re-ingest.
+     */
+    private String weakEtagForPicks(List<SteamAppDetail> details) {
+        return Etags.weakEtag(List.of(objectMapper.writeValueAsString(details)));
     }
 
     private static String weakEtagForStringLists(List<? extends List<String>> lists) {

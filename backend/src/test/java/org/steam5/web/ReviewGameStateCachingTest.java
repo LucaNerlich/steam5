@@ -55,7 +55,8 @@ class ReviewGameStateCachingTest {
                 mock(SteamAppReviewsRepository.class),
                 pickRepository,
                 mock(Scheduler.class),
-                new SimpleMeterRegistry());
+                new SimpleMeterRegistry(),
+                new tools.jackson.databind.ObjectMapper());
     }
 
     @Test

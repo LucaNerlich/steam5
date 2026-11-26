@@ -21,6 +21,7 @@ import java.util.Optional;
 public class SteamAppDetailController {
 
     private final SteamAppDetailService detailService;
+    private final tools.jackson.databind.ObjectMapper objectMapper;
 
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Map<String, String>> indexJson() {
@@ -84,40 +85,13 @@ public class SteamAppDetailController {
         return ResponseEntity.ok().contentType(MediaType.TEXT_HTML).body(html);
     }
 
-    private static String weakEtagForDetail(SteamAppDetail d) {
-        final java.util.List<String> fields = new java.util.ArrayList<>();
-        fields.add(String.valueOf(d.getAppId()));
-        fields.add(d.getName());
-        fields.add(d.getReleaseDate());
-        if (d.getPriceOverview() != null) {
-            fields.add(d.getPriceOverview().getCurrency());
-            fields.add(String.valueOf(d.getPriceOverview().getFinalAmount()));
-        }
-        if (d.getDevelopers() != null) d.getDevelopers().forEach(dev -> fields.add(dev.getName()));
-        if (d.getPublisher() != null) d.getPublisher().forEach(pub -> fields.add(pub.getName()));
-        if (d.getGenres() != null) d.getGenres().forEach(g -> fields.add(g.getDescription()));
-        if (d.getCategories() != null) d.getCategories().forEach(c -> fields.add(c.getDescription()));
-        if (d.getScreenshots() != null) {
-            int i = 0;
-            for (org.steam5.domain.details.Screenshot s : d.getScreenshots()) {
-                if (i++ >= 5) break; // limit for speed
-                fields.add(s.getPathThumbnail());
-                fields.add(s.getPathFull());
-            }
-        }
-        if (d.getMovies() != null) {
-            int i = 0;
-            for (org.steam5.domain.details.Movie m : d.getMovies()) {
-                if (i++ >= 3) break;
-                fields.add(m.getThumbnail());
-                fields.add(m.getWebm());
-                fields.add(m.getMp4());
-                fields.add(m.getDashAv1());
-                fields.add(m.getDashH264());
-                fields.add(m.getHlsH264());
-            }
-        }
-        return Etags.weakEtag(fields);
+    /**
+     * Hash the serialized payload, not a sample of it: a 304 promises the representation is
+     * unchanged, and any field the sampler skipped (descriptions, images, flags, extra media)
+     * would otherwise keep answering 304 with a stale body after a re-ingest.
+     */
+    private String weakEtagForDetail(SteamAppDetail d) {
+        return Etags.weakEtag(java.util.List.of(objectMapper.writeValueAsString(d)));
     }
     @GetMapping("/{appId}")
     @Transactional(readOnly = true)

@@ -22,7 +22,7 @@ public class SteamAppDetailControllerTest {
     @Test
     void indexJson_returnsLinks() {
         SteamAppDetailService detailService = mock(SteamAppDetailService.class);
-        SteamAppDetailController controller = new SteamAppDetailController(detailService);
+        SteamAppDetailController controller = new SteamAppDetailController(detailService, new tools.jackson.databind.ObjectMapper());
         ResponseEntity<Map<String, String>> res = controller.indexJson();
         assertEquals(200, res.getStatusCode().value());
         assertNotNull(res.getBody());
@@ -35,7 +35,7 @@ public class SteamAppDetailControllerTest {
     @Test
     void indexHtml_returnsHtml() {
         SteamAppDetailService detailService = mock(SteamAppDetailService.class);
-        SteamAppDetailController controller = new SteamAppDetailController(detailService);
+        SteamAppDetailController controller = new SteamAppDetailController(detailService, new tools.jackson.databind.ObjectMapper());
         ResponseEntity<String> res = controller.indexHtml();
         assertEquals(200, res.getStatusCode().value());
         assertEquals(MediaType.TEXT_HTML, res.getHeaders().getContentType());
@@ -48,7 +48,7 @@ public class SteamAppDetailControllerTest {
     @Test
     void getDetails_found_and_notFound() {
         SteamAppDetailService detailService = mock(SteamAppDetailService.class);
-        SteamAppDetailController controller = new SteamAppDetailController(detailService);
+        SteamAppDetailController controller = new SteamAppDetailController(detailService, new tools.jackson.databind.ObjectMapper());
 
         // not found
         when(detailService.findByAppId(anyLong())).thenReturn(Optional.empty());
