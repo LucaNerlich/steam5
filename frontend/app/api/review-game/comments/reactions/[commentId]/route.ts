@@ -1,5 +1,6 @@
 import {NextRequest, NextResponse} from "next/server";
 import {proxyCommentMutation} from "@/lib/commentMutation";
+import {rejectUntrustedOrigin} from "@/lib/requestOrigin";
 
 const NO_STORE = {"Cache-Control": "private, no-store"} as const;
 
@@ -14,6 +15,10 @@ export async function POST(
     {params}: { params: Promise<{ commentId: string }> },
 ) {
     const {commentId} = await params;
+    // Gate before parsing: the shared helper's contract is origin → auth → body, and
+    // req.json() would otherwise buffer an unauthenticated cross-site body first.
+    const rejected = rejectUntrustedOrigin(req.headers, "comments/reactions", commentId);
+    if (rejected) return rejected;
     let body: unknown;
     try {
         body = await req.json();
