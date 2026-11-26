@@ -8,6 +8,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.steam5.config.SeasonProperties;
+import org.steam5.domain.GameDate;
 import org.steam5.domain.Season;
 import org.steam5.domain.SeasonAwardCategory;
 import org.steam5.domain.SeasonAwardResult;
@@ -20,7 +21,6 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.function.Function;
@@ -84,7 +84,7 @@ public class SeasonService {
     @Transactional(readOnly = true)
     public SeasonReport buildSeasonReport(Season season) {
         Objects.requireNonNull(season, "season");
-        LocalDate today = todayUtc();
+        LocalDate today = GameDate.todayUtc();
         LocalDate candidateEnd = season.getEndDate().isBefore(today) ? season.getEndDate() : today;
         boolean hasStats = !candidateEnd.isBefore(season.getStartDate());
         List<PlayerSeasonStat> players = hasStats
@@ -98,7 +98,7 @@ public class SeasonService {
     @Transactional(readOnly = true)
     public SeasonDailyHighlights buildSeasonHighlights(Season season) {
         Objects.requireNonNull(season, "season");
-        LocalDate today = todayUtc();
+        LocalDate today = GameDate.todayUtc();
         LocalDate candidateEnd = season.getEndDate().isBefore(today) ? season.getEndDate() : today;
         if (candidateEnd.isBefore(season.getStartDate())) {
             return new SeasonDailyHighlights(null, null, null, null, null);
@@ -196,7 +196,7 @@ public class SeasonService {
         // A future start date stores a season that no date can be "current" for, and the creator
         // only advances forward, so the site would serve a future season until an operator fixed
         // the rows. The admin endpoint validates ordering only; refuse the range here.
-        if (startInclusive.isAfter(LocalDate.now(ZoneOffset.UTC))) {
+        if (startInclusive.isAfter(GameDate.todayUtc())) {
             throw new IllegalArgumentException("startDate must not be in the future");
         }
 
@@ -265,7 +265,7 @@ public class SeasonService {
         // Guard: only seasons that have fully ended may be finalized — freezing
         // awards computed from partial mid-season data would corrupt published
         // results permanently.
-        if (!managed.getEndDate().isBefore(todayUtc())) {
+        if (!managed.getEndDate().isBefore(GameDate.todayUtc())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "Season #" + managed.getSeasonNumber() + " has not ended yet and cannot be finalized");
         }
@@ -482,10 +482,6 @@ public class SeasonService {
         int hash = Objects.hash(season.getAwardSeed(), category.name(), steamId);
         int roll = Math.floorMod(hash, TIE_ROLL_MAX);
         return roll == 0 ? 1 : roll;
-    }
-
-    private static LocalDate todayUtc() {
-        return OffsetDateTime.now(ZoneOffset.UTC).toLocalDate();
     }
 
     private static long coerce(Long value) {

@@ -6,13 +6,12 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
 import org.steam5.domain.LeaderboardType;
 import org.steam5.domain.Season;
+import org.steam5.domain.GameDate;
 import org.steam5.service.DomainCacheEvictor;
 import org.steam5.service.LeaderboardRefreshService;
 import org.steam5.service.SeasonService;
 
 import java.time.LocalDate;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.util.List;
 
 @Component
@@ -32,7 +31,7 @@ public class SeasonFinalizerJob implements Job {
 
     @Override
     public void execute(JobExecutionContext context) throws JobExecutionException {
-        final LocalDate todayUtc = OffsetDateTime.now(ZoneOffset.UTC).toLocalDate();
+        final LocalDate todayUtc = GameDate.todayUtc();
         try {
             // Ensure there is a season covering today
             Season current = seasonService.ensureSeasonForDate(todayUtc);
