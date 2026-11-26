@@ -185,6 +185,9 @@ export default function ReactionBar(props: {
                         return (
                             <span
                                 key={type}
+                                // role="img" gives the chip a role ARIA allows to be named;
+                                // a generic span would drop this label in the accessibility tree.
+                                role="img"
                                 className="reaction-bar__chip"
                                 aria-label={`${REACTION_EMOJI[type]} reaction, ${count}${tooltip ? ` — ${tooltip}` : ""}`}
                                 title={tooltip}
