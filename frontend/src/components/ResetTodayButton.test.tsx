@@ -13,21 +13,21 @@ beforeEach(() => {
     (globalThis as {IS_REACT_ACT_ENVIRONMENT?: boolean}).IS_REACT_ACT_ENVIRONMENT = true;
     window.localStorage.clear();
     push.mockClear();
+    // 03:00Z is still the previous day in New York, which is the whole point of #693.
+    vi.stubEnv('TZ', 'America/New_York');
+    vi.useFakeTimers({toFake: ['Date'], now: new Date('2026-11-26T03:00:00Z')});
 });
 
 afterEach(() => {
-    vi.restoreAllMocks();
+    vi.useRealTimers();
     vi.unstubAllEnvs();
+    vi.restoreAllMocks();
 });
 
 describe('ResetTodayButton', () => {
     it('clears only the UTC day, never the previous day in UTC-negative zones', async () => {
-        // In UTC-5 the browser's local date is still yesterday right after UTC midnight, and
-        // that key is a real archive day. The old code removed both.
-        const utcToday = new Date().toISOString().slice(0, 10);
-        const previousUtcDay = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
-        window.localStorage.setItem(`review-guesser:${utcToday}`, '{}');
-        window.localStorage.setItem(`review-guesser:${previousUtcDay}`, '{}');
+        window.localStorage.setItem('review-guesser:2026-11-26', '{}');
+        window.localStorage.setItem('review-guesser:2026-11-25', '{}');
 
         const container = document.createElement('div');
         document.body.appendChild(container);
@@ -36,8 +36,8 @@ describe('ResetTodayButton', () => {
         const button = container.querySelector('button') as HTMLButtonElement;
         await act(async () => button.click());
 
-        expect(window.localStorage.getItem(`review-guesser:${utcToday}`)).toBeNull();
-        expect(window.localStorage.getItem(`review-guesser:${previousUtcDay}`)).toBe('{}');
+        expect(window.localStorage.getItem('review-guesser:2026-11-26')).toBeNull();
+        expect(window.localStorage.getItem('review-guesser:2026-11-25')).toBe('{}');
         act(() => root.unmount());
         container.remove();
     });
