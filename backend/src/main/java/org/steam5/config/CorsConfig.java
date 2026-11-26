@@ -60,7 +60,9 @@ public class CorsConfig {
             // whole-host pattern like "https://*" would reflect any caller's origin together
             // with Access-Control-Allow-Credentials: true.
             throw new IllegalStateException(
-                    "cors.allowed-origins must not be '*' while credentialed requests are allowed");
+                    "cors.allowed-origins must not contain wildcard patterns while credentialed "
+                            + "requests are allowed; remove the '*' from: "
+                            + allowedOrigins.stream().filter(origin -> origin.contains("*")).toList());
         }
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowCredentials(true);
