@@ -14,6 +14,11 @@ export interface CommentMutationOptions {
     errorMessage: string;
     /** JSON body; omit for a body-less POST. */
     body?: unknown;
+    /**
+     * Lazy body reader for routes whose request body must not be consumed before the origin
+     * and auth gates run. Returning a rejected promise is answered with 400.
+     */
+    parseBody?: () => Promise<unknown>;
 }
 
 /**
@@ -31,16 +36,24 @@ export async function proxyCommentMutation(req: NextRequest, options: CommentMut
     }
     const auth = bearerAuthHeaders(token);
     if (!auth) return NextResponse.json({error: "Backend origin not allowed"}, {status: 503, headers: NO_STORE});
+    let body = options.body;
+    if (options.parseBody) {
+        try {
+            body = await options.parseBody();
+        } catch {
+            return NextResponse.json({error: "bad_request"}, {status: 400, headers: NO_STORE});
+        }
+    }
     try {
         const res = await fetch(`${BACKEND_ORIGIN}${options.path}`, {
             method: "POST",
             headers: {
                 accept: "application/json",
-                ...(options.body === undefined ? {} : {"content-type": "application/json"}),
+                ...(body === undefined ? {} : {"content-type": "application/json"}),
                 ...auth,
                 ...forwardedForHeaders(req),
             },
-            body: options.body === undefined ? undefined : JSON.stringify(options.body),
+            body: body === undefined ? undefined : JSON.stringify(body),
             cache: "no-store",
             signal: AbortSignal.timeout(BACKEND_TIMEOUT_MS),
         });

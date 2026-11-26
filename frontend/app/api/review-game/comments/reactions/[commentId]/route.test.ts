@@ -1,7 +1,7 @@
 import {afterEach, describe, expect, it, vi} from 'vitest';
 import {NextRequest, NextResponse} from 'next/server';
 
-const cookieGet = vi.fn(() => ({value: 'jwt-token'}));
+const cookieGet = vi.fn<(name: string) => {value: string} | undefined>(() => ({value: 'jwt-token'}));
 vi.mock('next/headers', () => ({
     cookies: async () => ({get: cookieGet}),
 }));
@@ -61,6 +61,27 @@ describe('POST', () => {
         const res = await POST(request(JSON.stringify({reaction: 'like'}), 'https://evil.example'), {params});
 
         expect(res.status).toBe(403);
+        expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it('rejects a malformed body from an untrusted origin with 403, not 400', async () => {
+        // The honest probe for "gated before the body": the old order parsed first and
+        // answered 400 for this request.
+        vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
+        const res = await POST(request('nope', 'https://evil.example', 'text/plain'), {params});
+
+        expect(res.status).toBe(403);
+    });
+
+    it('answers 401 before parsing when there is no session cookie', async () => {
+        cookieGet.mockReturnValue(undefined);
+        const fetchMock = vi.fn();
+        vi.stubGlobal('fetch', fetchMock);
+
+        const res = await POST(request('nope', 'https://steam5.org', 'text/plain'), {params});
+
+        expect(res.status).toBe(401);
         expect(fetchMock).not.toHaveBeenCalled();
     });
 });
