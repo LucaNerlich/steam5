@@ -30,8 +30,8 @@ describe('proxyCommentMutation missing-auth log', () => {
         });
 
         expect(res.status).toBe(401);
-        const line = JSON.stringify(logged[0] ?? {});
-        expect(line).not.toContain('\n');
-        expect(line).toContain('FAKE-LOG-LINE');
+        // Assert the value itself: JSON.stringify escapes the newline, so a stringified
+        // check would pass with the unsanitized id.
+        expect(logged[0]).toEqual({commentId: '7FAKE-LOG-LINE'});
     });
 });
