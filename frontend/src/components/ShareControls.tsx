@@ -29,7 +29,8 @@ export default function ShareControls(props: {
     hasServerResults?: boolean,
 }) {
     const {buckets, gameDate, totalRounds, latestRound, latest, results, hasServerResults} = props;
-    const [copied, setCopied] = useState(false);
+    const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle');
+    const resetTimer = useRef<number | null>(null);
     const isLocalhost = typeof window !== 'undefined' && (location.hostname === 'localhost' || location.hostname === '127.0.0.1');
 
     const namesFetchUrl = `/api/review-game/day/summary/${encodeURIComponent(gameDate)}`;
@@ -145,6 +146,13 @@ export default function ShareControls(props: {
         const text = buildShareText();
         if (!text) return;
 
+        const showCopyState = (next: 'copied' | 'failed') => {
+            setCopyState(next);
+            if (resetTimer.current !== null) window.clearTimeout(resetTimer.current);
+            // The failure message stays a little longer than the success confirmation.
+            resetTimer.current = window.setTimeout(() => setCopyState('idle'), next === 'failed' ? 4000 : 1500);
+        };
+
         const copyWithTextarea = () => {
             try {
                 const textarea = document.createElement('textarea');
@@ -154,9 +162,9 @@ export default function ShareControls(props: {
                 textarea.style.left = '-9999px';
                 document.body.appendChild(textarea);
                 textarea.select();
-                document.execCommand('copy');
+                const copied = document.execCommand('copy');
                 document.body.removeChild(textarea);
-                return true;
+                return copied;
             } catch {
                 return false;
             }
@@ -165,16 +173,18 @@ export default function ShareControls(props: {
         try {
             if (typeof navigator !== 'undefined' && navigator.clipboard && window.isSecureContext) {
                 await navigator.clipboard.writeText(text);
-                setCopied(true);
-                setTimeout(() => setCopied(false), 1500);
+                showCopyState('copied');
                 return;
             }
         } catch {
             // fall through to textarea fallback
         }
         if (copyWithTextarea()) {
-            setCopied(true);
-            setTimeout(() => setCopied(false), 1500);
+            showCopyState('copied');
+        } else {
+            // The clipboard API is unavailable and the deprecated fallback refused: say so,
+            // instead of leaving the button looking like it did nothing.
+            showCopyState('failed');
         }
     }
 
@@ -188,7 +198,12 @@ export default function ShareControls(props: {
                 title={namesLoading ? 'Preparing…' : undefined}
                 data-umami-event="share-results">Share Results <ExportIcon size={28}/>
             </button>
-            <span className={`share-copied ${copied ? 'is-visible' : ''}`}>Copied</span>
+            <span
+                className={`share-copied ${copyState === 'idle' ? '' : 'is-visible'}`}
+                aria-live="polite"
+            >
+                {copyState === 'idle' ? '' : copyState === 'failed' ? 'Copy failed' : 'Copied'}
+            </span>
         </div>
     );
 }
