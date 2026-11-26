@@ -1,18 +1,20 @@
 import {cache} from "react";
 import Link from "next/link";
-import {BACKEND_ORIGIN, BACKEND_TIMEOUT_MS} from "@/lib/backend";
+import {fetchBackendJson} from "@/lib/backend";
 import {Routes} from "../../app/routes";
 
+type SeasonCountdownData = {
+    season: { seasonNumber: number; endDate: string };
+    daysRemaining: number;
+};
+
 const getSeasonCountdown = cache(async () => {
-    const res = await fetch(`${BACKEND_ORIGIN}/api/seasons/current`, {
-        next: {revalidate: 900, tags: ["season-current"]},
-        signal: AbortSignal.timeout(BACKEND_TIMEOUT_MS),
+    // fetchBackendJson resolves null on any failure: this is a footer line, and a backend
+    // outage must not throw out of the root layout (which has no global-error boundary).
+    const {data} = await fetchBackendJson<SeasonCountdownData>("/api/seasons/current", {
+        revalidate: 900,
+        tags: ["season-current"],
     });
-    if (!res.ok) return null;
-    const data = await res.json() as {
-        season: { seasonNumber: number; endDate: string };
-        daysRemaining: number;
-    };
     return data;
 });
 
