@@ -102,6 +102,11 @@ public class ReviewGameStateController {
         return Math.max(0, max - step * d);
     }
 
+    /** The current month in the same UTC calendar the frontend and the rest of the app use. */
+    static boolean isCurrentMonth(YearMonth month, LocalDate todayUtc) {
+        return month.equals(YearMonth.from(todayUtc));
+    }
+
     private static String weakEtagForPicks(List<SteamAppDetail> details) {
         final List<String> fields = new java.util.ArrayList<>();
         for (SteamAppDetail d : details) {
@@ -580,7 +585,7 @@ public class ReviewGameStateController {
         // The game calendar is UTC everywhere else (GameDate.todayUtc(), the frontend's
         // getUTCFullYear/month) — a host-local year-month would mark the current month
         // historical in UTC-negative zones and cache it as immutable for a year.
-        final boolean isCurrentMonth = ym.equals(YearMonth.from(GameDate.todayUtc()));
+        final boolean isCurrentMonth = isCurrentMonth(ym, GameDate.todayUtc());
         final String cacheControl = isCurrentMonth
                 ? "public, s-maxage=86400, max-age=3600"
                 : "public, max-age=31536000, immutable";
