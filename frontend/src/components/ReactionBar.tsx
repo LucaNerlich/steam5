@@ -121,22 +121,28 @@ export default function ReactionBar(props: {
         };
     }, [open]);
 
+    // Captured before the request: the focused option and the trigger are both disabled
+    // while pending, which moves focus to <body> and makes a later focus() a no-op.
+    const restoreFocusOnClose = useRef(false);
+
+    useEffect(() => {
+        if (open || !restoreFocusOnClose.current) return;
+        restoreFocusOnClose.current = false;
+        if (!pending) triggerRef.current?.focus();
+    }, [open, pending]);
+
     const handleToggle = async (reactionType: ReactionType) => {
         if (readOnly || pending) return;
         if (!canReact) {
             startSteamLogin();
             return;
         }
+        restoreFocusOnClose.current = focusWithinElement(rootRef.current, document.activeElement);
         setPending(reactionType);
         setError(null);
         try {
             await toggleReaction(commentId, reactionType);
             await onToggled();
-            // Same guard as the Escape path: the focused option unmounts with the picker,
-            // so without this focus falls to <body> after every successful reaction.
-            if (focusWithinElement(rootRef.current, document.activeElement)) {
-                triggerRef.current?.focus();
-            }
             onPickerOpenChange?.(false);
         } catch (e) {
             const message = e instanceof Error ? e.message : "";
