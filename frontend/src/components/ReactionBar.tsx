@@ -121,12 +121,23 @@ export default function ReactionBar(props: {
         };
     }, [open]);
 
+    // Captured before the request: the focused option and the trigger are both disabled
+    // while pending, which moves focus to <body> and makes a later focus() a no-op.
+    const restoreFocusOnClose = useRef(false);
+
+    useEffect(() => {
+        if (open || !restoreFocusOnClose.current) return;
+        restoreFocusOnClose.current = false;
+        if (!pending) triggerRef.current?.focus();
+    }, [open, pending]);
+
     const handleToggle = async (reactionType: ReactionType) => {
         if (readOnly || pending) return;
         if (!canReact) {
             startSteamLogin();
             return;
         }
+        restoreFocusOnClose.current = focusWithinElement(rootRef.current, document.activeElement);
         setPending(reactionType);
         setError(null);
         try {
@@ -134,6 +145,8 @@ export default function ReactionBar(props: {
             await onToggled();
             onPickerOpenChange?.(false);
         } catch (e) {
+            // The picker stays open on failure, so a later close is not this restore's business.
+            restoreFocusOnClose.current = false;
             const message = e instanceof Error ? e.message : "";
             if (
                 message === "unauthorized"
