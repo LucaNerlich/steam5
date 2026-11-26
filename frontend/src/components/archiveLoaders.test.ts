@@ -31,6 +31,23 @@ describe('archive/season loaders distinguish missing from unavailable', () => {
         expect(page.revalidate).toBeLessThanOrEqual(3600);
     });
 
+    it('answers {} only for an absent day and throws on a real failure', {timeout: 20000}, async () => {
+        // The throw is the whole fix: a swallowed 5xx used to be baked into the page cache.
+        const {loadAnswers} = await import('../../app/review-guesser/archive/[date]/page');
+        vi.stubGlobal('fetch', vi.fn(async () => new Response('gone', {status: 404})));
+        await expect(loadAnswers('2026-01-01')).resolves.toEqual({});
+
+        vi.stubGlobal('fetch', vi.fn(async () => new Response('boom', {status: 503})));
+        await expect(loadAnswers('2026-01-01')).rejects.toThrow('503');
+
+        vi.stubGlobal('fetch', vi.fn(async () => new Response('"nope"', {status: 200})));
+        await expect(loadAnswers('2026-01-01')).rejects.toThrow('Unexpected answers payload');
+
+        // The removed code also swallowed a rejected fetch; a timeout must not be baked in.
+        vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('network'); }));
+        await expect(loadAnswers('2026-01-01')).rejects.toThrow('network');
+    });
+
     it('throws when the archive month endpoint fails', async () => {
         const {loadMonthArchiveDays} = await import('../../app/review-guesser/archive/page');
         vi.stubGlobal('fetch', vi.fn(async () => new Response('boom', {status: 500})));
