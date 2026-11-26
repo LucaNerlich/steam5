@@ -41,7 +41,8 @@ function setThemeCookie(theme: Theme) {
     document.cookie = `theme=${theme}; path=/; max-age=${365 * 24 * 60 * 60}; SameSite=Lax`;
 }
 
-function applyTheme(theme: Theme) {
+/** Applies a theme without recording a choice — used while the OS preference is in charge. */
+function setTheme(theme: Theme) {
     currentTheme = theme;
     const root = document.documentElement;
     if (theme === "dark") {
@@ -49,9 +50,14 @@ function applyTheme(theme: Theme) {
     } else {
         root.removeAttribute("data-theme");
     }
+    notifyListeners();
+}
+
+/** Applies a theme and records it as the user's explicit choice. */
+function applyTheme(theme: Theme) {
+    setTheme(theme);
     writeStoredTheme(theme);
     setThemeCookie(theme);
-    notifyListeners();
 }
 
 function subscribe(callback: () => void) {
@@ -85,7 +91,9 @@ export default function ThemeToggle() {
         const handler = () => {
             const s = readStoredTheme();
             if (s !== "light" && s !== "dark") {
-                applyTheme(media.matches ? "dark" : "light");
+                // Persisting here would create the stored choice that blocks the next OS
+                // change, silently pinning the visitor to the first theme we saw.
+                setTheme(media.matches ? "dark" : "light");
             }
         };
         media.addEventListener("change", handler);
