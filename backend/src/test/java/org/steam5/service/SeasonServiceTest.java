@@ -689,12 +689,15 @@ class SeasonServiceTest {
     @Test
     void finalizeSeason_skipsWhenClaimedConcurrently() {
         Season season = seasonWith(31, LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 10), SeasonStatus.ACTIVE);
-        when(seasonRepository.findById(31L)).thenReturn(Optional.of(season));
+        // The bulk claim clears the persistence context, so the loser re-reads: return the
+        // committed FINALIZED row from the second read, not the ACTIVE snapshot it loaded.
+        final Season finalized = seasonWith(31, LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 10), SeasonStatus.FINALIZED);
+        when(seasonRepository.findById(31L)).thenReturn(Optional.of(season), Optional.of(finalized));
         when(seasonRepository.claimForFinalization(31L)).thenReturn(0);
 
         Season result = service.finalizeSeason(season);
 
-        assertEquals(season, result);
+        assertEquals(SeasonStatus.FINALIZED, result.getStatus());
         verify(guessRepository, never()).findSeasonStats(any(), any());
         verify(awardResultRepository, never()).deleteAllBySeasonId(any());
     }
