@@ -54,9 +54,10 @@ public class CorsConfig {
             throw new IllegalStateException(
                     "cors.allowed-origins resolved to an empty list; unset CORS_ALLOWED_ORIGINS to use the default");
         }
-        if (allowedOrigins.contains("*")) {
+        if (allowedOrigins.stream().anyMatch(origin -> origin.contains("*"))) {
             // Spring validates credentials against allowedOrigins but not against
-            // allowedOriginPatterns, so "*" here would reflect any caller's origin together
+            // allowedOriginPatterns, and turns every "*" into ".*", so both "*" and a
+            // whole-host pattern like "https://*" would reflect any caller's origin together
             // with Access-Control-Allow-Credentials: true.
             throw new IllegalStateException(
                     "cors.allowed-origins must not be '*' while credentialed requests are allowed");

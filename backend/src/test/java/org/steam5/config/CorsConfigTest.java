@@ -71,5 +71,7 @@ class CorsConfigTest {
         final CorsConfig config = new CorsConfig();
         assertThrows(IllegalStateException.class, () -> config.corsConfigurationSource("*"));
         assertThrows(IllegalStateException.class, () -> config.corsConfigurationSource("https://steam5.org, *"));
+        // A whole-host pattern is the same reflection: Spring expands every * to .*.
+        assertThrows(IllegalStateException.class, () -> config.corsConfigurationSource("https://*"));
     }
 }
