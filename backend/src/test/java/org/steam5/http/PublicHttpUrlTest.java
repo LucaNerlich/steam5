@@ -31,6 +31,28 @@ class PublicHttpUrlTest {
     }
 
     @Test
+    void connectTimeoutIsReadFromTheConnectionAtConnectTime() throws Exception {
+        // A literal 15_000 ignored conn.setConnectTimeout(); the caller sets it AFTER the
+        // factory is built, so the value must be read lazily. A negative timeout is rejected by
+        // Socket.connect, which proves the factory used the connection's value, not a literal.
+        final java.lang.reflect.Constructor<?> ctor = Class.forName(
+                        "org.steam5.http.PublicHttpUrl$PinnedAddressSocketFactory")
+                .getDeclaredConstructor(String.class, int.class, InetAddress.class, HttpsURLConnection.class);
+        ctor.setAccessible(true);
+        final HttpsURLConnection connection = org.mockito.Mockito.mock(HttpsURLConnection.class);
+        org.mockito.Mockito.when(connection.getConnectTimeout()).thenReturn(-1);
+        final Object factory = ctor.newInstance("example.com", 443,
+                InetAddress.getByAddress(new byte[]{8, 8, 8, 8}), connection);
+
+        final java.lang.reflect.Method create = factory.getClass().getDeclaredMethod("createPlainSocket");
+        create.setAccessible(true);
+
+        final var thrown = org.junit.jupiter.api.Assertions.assertThrows(
+                java.lang.reflect.InvocationTargetException.class, () -> create.invoke(factory));
+        assertTrue(thrown.getCause() instanceof IllegalArgumentException, String.valueOf(thrown.getCause()));
+    }
+
+    @Test
     void rejectsNonHttpSchemes() {
         assertTrue(PublicHttpUrl.httpsTarget("file:///etc/passwd").isEmpty());
         assertTrue(PublicHttpUrl.httpsTarget("ftp://example.com/a.png").isEmpty());
