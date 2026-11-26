@@ -97,19 +97,19 @@ public class ReviewGameStateServiceTest {
         when(reviewsRepository.findPercentileThresholds(anyDouble(), anyDouble())).thenReturn(thresholds);
 
         // Candidates per bucket (simple distinct ids)
-        when(reviewsRepository.findRandomBetween(any(LocalDate.class), eq(1), eq(100), any(PageRequest.class)))
+        when(reviewsRepository.findRandomAppIds(any(LocalDate.class), eq(1), eq(100), any(PageRequest.class)))
                 .thenReturn(List.of(1L, 2L, 3L));
-        when(reviewsRepository.findRandomBetween(any(LocalDate.class), eq(101), eq(1000), any(PageRequest.class)))
+        when(reviewsRepository.findRandomAppIds(any(LocalDate.class), eq(101), eq(1000), any(PageRequest.class)))
                 .thenReturn(List.of(4L, 5L, 6L));
-        when(reviewsRepository.findRandomBetween(any(LocalDate.class), eq(1001), eq(10000), any(PageRequest.class)))
+        when(reviewsRepository.findRandomAppIds(any(LocalDate.class), eq(1001), eq(10000), any(PageRequest.class)))
                 .thenReturn(List.of(7L, 8L, 9L));
-        when(reviewsRepository.findRandomBetween(any(LocalDate.class), eq(10001), eq(100000), any(PageRequest.class)))
+        when(reviewsRepository.findRandomAppIds(any(LocalDate.class), eq(10001), eq(100000), any(PageRequest.class)))
                 .thenReturn(List.of(10L, 11L, 12L));
-        when(reviewsRepository.findRandomGte(any(LocalDate.class), eq(100001), any(PageRequest.class)))
+        when(reviewsRepository.findRandomAppIds(any(LocalDate.class), eq(100001), eq(Integer.MAX_VALUE), any(PageRequest.class)))
                 .thenReturn(List.of(13L, 14L, 15L));
 
         // ANY fallback
-        when(reviewsRepository.findRandomAnyAppIds(any(LocalDate.class), any(PageRequest.class)))
+        when(reviewsRepository.findRandomAppIds(any(LocalDate.class), eq(1), eq(Integer.MAX_VALUE), any(PageRequest.class)))
                 .thenReturn(List.of(1000L, 1001L, 1002L));
 
         // Details validation succeeds; do not write anything in test
