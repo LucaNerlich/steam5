@@ -48,8 +48,8 @@ export async function loadAnswers(date: string): Promise<Record<number, {
         next: {revalidate: 31536000},
     });
     // Only "this day has no answers" may render the offline-unavailable UI; an outage or a
-    // malformed payload must reach the error boundary so it is never baked into the page's
-    // year-long cache (loadArchived makes the same distinction).
+    // malformed payload must reach the error boundary so it is never baked into the cached page
+    // (loadArchived makes the same distinction).
     if (res.status === 404 || res.status === 400) return {};
     if (!res.ok) throw new Error(`Failed to load archive answers ${date} (${res.status})`);
     const rows: unknown = await res.json();
