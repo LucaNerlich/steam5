@@ -22,19 +22,21 @@ public class ReviewsBucketRepository {
                 "         SELECT MIN(total)::bigint AS mn, MAX(total)::bigint AS mx\n" +
                 "         FROM r\n" +
                 "     ),\n" +
-                "     bins AS (\n" +
-                "         SELECT gs AS idx,\n" +
-                "                ext.mn,\n" +
-                "                ext.mx,\n" +
-                "                CEIL(((ext.mx - ext.mn + 1)::numeric) / 5.0)::bigint AS width\n" +
-                "         FROM ext, generate_series(1, 5) AS gs\n" +
+                // Bucket edges from one monotonic formula: a fixed CEIL width could push
+                // bucket 5's lower edge past mx (an inverted "13-11" label), so derive
+                // edges 0..5 as mn + (span * i) / 5 with span = mx - mn + 1 and drop empties.
+                "     edges AS (\n" +
+                "         SELECT i, ext.mn + ((ext.mx - ext.mn + 1) * i) / 5 AS edge\n" +
+                "         FROM ext, generate_series(0, 5) AS i\n" +
                 "     ),\n" +
                 "     bounds AS (\n" +
                 "         SELECT\n" +
-                "             idx,\n" +
-                "             (mn + (idx - 1) * width) AS lower,\n" +
-                "             CASE WHEN idx < 5 THEN (mn + idx * width - 1) ELSE mx END AS upper\n" +
-                "         FROM bins\n" +
+                "             e0.i + 1 AS idx,\n" +
+                "             e0.edge AS lower,\n" +
+                "             e1.edge - 1 AS upper\n" +
+                "         FROM edges e0\n" +
+                "                  JOIN edges e1 ON e1.i = e0.i + 1\n" +
+                "         WHERE e0.i BETWEEN 0 AND 4\n" +
                 "     ),\n" +
                 "     counts AS (\n" +
                 "         SELECT\n" +
@@ -53,6 +55,7 @@ public class ReviewsBucketRepository {
                 "     (lower::bigint || '-' || upper::bigint) AS label,\n" +
                 "     count_in_bucket\n" +
                 " FROM counts\n" +
+                " WHERE lower <= upper\n" +
                 " ORDER BY idx;";
         return mapRows(sql);
     }
@@ -97,17 +100,20 @@ public class ReviewsBucketRepository {
                 "              CAST(percentile_disc(0.995) WITHIN GROUP (ORDER BY total) AS bigint) AS cap\n" +
                 "          FROM r\n" +
                 "      ),\n" +
-                "      bins AS (\n" +
-                "          SELECT gs AS idx, mn, cap,\n" +
-                "                 CEIL(((cap - mn + 1)::numeric) / 5.0)::bigint AS width\n" +
-                "          FROM ext, generate_series(1, 5) AS gs\n" +
+                // Same edge formula as equalWidth(): a fixed CEIL width could put the
+                // open-ended bucket's lower edge above the cap it is supposed to start below.
+                "      edges AS (\n" +
+                "          SELECT i, ext.mn + ((ext.cap - ext.mn + 1) * i) / 5 AS edge\n" +
+                "          FROM ext, generate_series(0, 5) AS i\n" +
                 "      ),\n" +
                 "      bounds AS (\n" +
                 "          SELECT\n" +
-                "              idx,\n" +
-                "              (mn + (idx - 1) * width) AS lower,\n" +
-                "              CASE WHEN idx < 5 THEN (mn + idx * width - 1) ELSE cap END AS upper\n" +
-                "          FROM bins\n" +
+                "              e0.i + 1 AS idx,\n" +
+                "              e0.edge AS lower,\n" +
+                "              CASE WHEN e0.i < 4 THEN e1.edge - 1 ELSE NULL END AS upper\n" +
+                "          FROM edges e0\n" +
+                "                   JOIN edges e1 ON e1.i = e0.i + 1\n" +
+                "          WHERE e0.i BETWEEN 0 AND 4\n" +
                 "      ),\n" +
                 "      counts AS (\n" +
                 "          SELECT\n" +
