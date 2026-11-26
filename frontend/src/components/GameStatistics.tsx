@@ -56,20 +56,20 @@ export default function GameStatistics() {
     const archiveHref = (date: string | null | undefined) =>
         date && date < today ? `/review-guesser/archive/${date}` : null;
 
-    if (loading) {
-        return (
-            <section className="game-statistics">
-                <h2>Game Statistics</h2>
-                <p className="text-muted">Loading...</p>
-            </section>
-        );
-    }
-
     if (statsError && !stats) {
         return (
             <section className="game-statistics">
                 <h2>Game Statistics</h2>
                 <p className="text-muted">Game statistics are unavailable right now.</p>
+            </section>
+        );
+    }
+
+    if (loading) {
+        return (
+            <section className="game-statistics">
+                <h2>Game Statistics</h2>
+                <p className="text-muted">Loading...</p>
             </section>
         );
     }
