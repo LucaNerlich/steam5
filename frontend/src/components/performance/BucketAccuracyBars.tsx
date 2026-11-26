@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import {cutoffDateString} from "@/lib/rounds";
+import {cutoffDateString, leadingBucketOrder} from "@/lib/rounds";
 
 type Round = { selectedBucket: string; actualBucket: string; date?: string };
 
@@ -20,12 +20,8 @@ export default function BucketAccuracyBars({rounds, todayUtc}: { rounds: Round[]
             if (r.selectedBucket === r.actualBucket) entry.hits += 1;
             map.set(key, entry);
         }
-        const parseStart = (label: string) => {
-            const m = label.match(/^(\d+)/);
-            return m ? parseInt(m[1], 10) : Number.MAX_SAFE_INTEGER;
-        };
         return Array.from(map.entries())
-            .sort((a, b) => parseStart(a[0]) - parseStart(b[0]))
+            .sort((a, b) => leadingBucketOrder(a[0]) - leadingBucketOrder(b[0]))
             .map(([label, v]) => ({label, pct: v.total > 0 ? (v.hits / v.total) * 100 : 0}));
     })();
 
