@@ -117,6 +117,17 @@ public class ReviewGameStateController {
         return Etags.weakEtag(List.of(objectMapper.writeValueAsString(body)));
     }
 
+    private static Set<Long> currentAppIds(List<ReviewGamePick> picks) {
+        final Set<Long> ids = new HashSet<>();
+        for (ReviewGamePick p : picks) ids.add(p.getAppId());
+        return ids;
+    }
+
+    private static List<org.steam5.domain.Guess> currentPicksOnly(
+            List<org.steam5.domain.Guess> guesses, Set<Long> appIds) {
+        return guesses.stream().filter(g -> appIds.contains(g.getAppId())).toList();
+    }
+
     private static String weakEtagForStringLists(List<? extends List<String>> lists) {
         return Etags.weakEtagForGroups(new java.util.ArrayList<>(lists));
     }
@@ -171,12 +182,9 @@ public class ReviewGameStateController {
         // regenerated for the same date, the user's earlier guesses remain dated
         // today but point at replaced games — exclude them so stale results are
         // never surfaced on the new picks.
-        final Set<Long> currentAppIds = new HashSet<>();
-        for (ReviewGamePick p : picks) currentAppIds.add(p.getAppId());
+        final Set<Long> todayAppIds = currentAppIds(picks);
 
-        final var guesses = guessRepository.findAllForDay(steamId, date).stream()
-                .filter(g -> currentAppIds.contains(g.getAppId()))
-                .toList();
+        final var guesses = currentPicksOnly(guessRepository.findAllForDay(steamId, date), todayAppIds);
 
         final Map<Long, Integer> totalReviewsByAppId = new HashMap<>(lookupTotalReviewsByAppId(guesses));
         totalReviewsByAppId.putAll(recordedTotalsByAppId(picks));
@@ -206,7 +214,13 @@ public class ReviewGameStateController {
             return ResponseEntity.badRequest().build();
         }
 
-        final var guesses = guessRepository.findAllForDay(steamId, day);
+        final var allGuesses = guessRepository.findAllForDay(steamId, day);
+        final boolean isToday = day.equals(GameDate.todayUtc());
+        // /my/today already hides guesses for picks that were replaced on the same date;
+        // /my/day for today must agree or the client believes the round is still unguessed.
+        final var guesses = isToday
+                ? currentPicksOnly(allGuesses, currentAppIds(service.generateDailyPicks()))
+                : allGuesses;
         final Map<Long, Integer> totalReviewsByAppId = new HashMap<>(lookupTotalReviewsByAppId(guesses));
         totalReviewsByAppId.putAll(recordedTotalsByAppId(pickRepository.findByPickDate(day)));
         final var dtos = guesses.stream().map(g -> new MyGuessDto(
@@ -217,7 +231,6 @@ public class ReviewGameStateController {
                 totalReviewsByAppId.getOrDefault(g.getAppId(), 0)
         )).toList();
 
-        final boolean isToday = day.equals(GameDate.todayUtc());
         // Per-user data: never let a shared/CDN cache store it (would leak one
         // user's guesses to another). `private` restricts caching to the caller's
         // own browser.
@@ -411,10 +424,22 @@ public class ReviewGameStateController {
         final int roundIndex = foundIdx + 1;
         final int points = scorePoints(service.getBucketLabels(), req.bucketGuess, computedActual);
 
-        // If exists, return existing without overwriting
+        // If exists, return existing without overwriting — unless the row belongs to a
+        // different app at the same round index. That is a stale guess from picks that
+        // were regenerated for this date, not a duplicate submission: replace it so the
+        // new round is recordable and /my/day agrees with /my/today.
         final var existingOpt = guessRepository.findBySteamIdAndGameDateAndRoundIndex(steamId, date, roundIndex);
         if (existingOpt.isPresent()) {
             final var g = existingOpt.get();
+            if (!Objects.equals(g.getAppId(), req.appId)) {
+                g.setAppId(req.appId);
+                g.setSelectedBucket(req.bucketGuess);
+                g.setActualBucket(computedActual);
+                g.setPoints(points);
+                guessRepository.save(g);
+                return ResponseEntity.ok(new GuessResponse(req.appId, total, computedActual,
+                        computedActual.equals(req.bucketGuess)));
+            }
             final boolean alreadyOk = g.getActualBucket() != null && g.getActualBucket().equals(g.getSelectedBucket());
             return ResponseEntity.ok(new GuessResponse(g.getAppId(), total, g.getActualBucket(), alreadyOk));
         }
