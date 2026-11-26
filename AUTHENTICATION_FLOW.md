@@ -148,7 +148,7 @@ sequenceDiagram
 ```yaml
 auth:
   jwtSecret: ${AUTH_JWT_SECRET:change-me-please-change-me-32-bytes-min}
-  redirectBase: ${REDIRECT_BASE:http://localhost:3000}
+  redirectBase: ${REDIRECT_BASE:https://steam5.org}
 
 admin:
   api-token: ${ADMIN_API_TOKEN:}
@@ -157,7 +157,7 @@ admin:
 | Variable          | Default                                   | Required            | Description                                                                                                                                   |
 |-------------------|-------------------------------------------|---------------------|-----------------------------------------------------------------------------------------------------------------------------------------------|
 | `AUTH_JWT_SECRET` | `change-me-please-change-me-32-bytes-min` | **Yes (in prod)**   | HMAC key for signing JWTs. Must be ≥ 32 bytes. Startup throws `IllegalStateException` if shorter; logs a `warn` if it looks like the default. |
-| `REDIRECT_BASE`   | `http://localhost:3000`                   | Yes                 | Trusted frontend origin. The `redirect` parameter on `/api/auth/steam/login` is rejected unless its origin matches this value.                |
+| `REDIRECT_BASE`   | `https://steam5.org` (dev profile: `http://localhost:3000`) | Yes                 | Trusted frontend origin. The `redirect` parameter on `/api/auth/steam/login` is rejected unless its origin matches this value.                |
 | `ADMIN_API_TOKEN` | _(empty)_                                 | For admin endpoints | Shared secret for `X-Admin-Token` header. If empty, all admin calls return 401.                                                               |
 
 > **Generating a production secret:**
