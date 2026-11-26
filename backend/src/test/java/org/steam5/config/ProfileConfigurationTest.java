@@ -52,6 +52,19 @@ class ProfileConfigurationTest {
         assertEquals("${REDIRECT_BASE:http://localhost:3000}", devAuth.get("redirectBase"));
     }
 
+    @Test
+    @SuppressWarnings("unchecked")
+    void theBaseProfileDoesNotOverrideBootsErrorMessageDefault() throws Exception {
+        // include-message: always re-opened the disclosure GlobalExceptionHandler closes, on
+        // every error path outside the advice.
+        final Map<String, Object> base = yaml("/application.yml");
+        final Map<String, Object> spring = (Map<String, Object>) base.get("spring");
+        final Map<String, Object> web = spring == null ? null : (Map<String, Object>) spring.get("web");
+        final Map<String, Object> error = web == null ? null : (Map<String, Object>) web.get("error");
+        assertTrue(error == null || !error.containsKey("include-message"),
+                "include-message must stay at Boot's `never` default");
+    }
+
     @SuppressWarnings("unchecked")
     private static Map<String, Object> yaml(String resource) throws Exception {
         try (InputStream in = ProfileConfigurationTest.class.getResourceAsStream(resource)) {
