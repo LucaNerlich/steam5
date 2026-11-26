@@ -36,6 +36,11 @@ describe('ArchiveOfflineRound', () => {
         await act(async () => button?.click());
 
         expect(container.textContent).not.toContain('Submit Your Guess');
+        // The point of the fallback: the guess is actually graded and shown, not just the
+        // submit card hidden. `submitted` is also true when only unsavedLabel is set.
+        const result = container.querySelector('.review-round__result');
+        expect(result).not.toBeNull();
+        expect(result?.textContent).toContain('50');
         act(() => root.unmount());
         container.remove();
     });
