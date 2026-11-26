@@ -10,25 +10,11 @@ package org.steam5.domain;
  * WEEKLY_ACHIEVEMENT and MILESTONE are sequential fallbacks used only when
  * the competitive pool has zero qualifying tiers for the day.
  * <p>
- * <b>Production-readiness warning for future maintainers:</b> this enum is
- * persisted via {@code @Enumerated(EnumType.STRING)} on
- * {@link PlayerSpotlight#getInsightType()}. Hibernate auto-generates a
- * Postgres {@code CHECK} constraint on {@code player_spotlights.insight_type}
- * listing this enum's values AT TABLE-CREATION TIME, and this codebase's
- * {@code ddl-auto: update} setting does NOT widen that constraint when this
- * enum grows later (the same limitation affects the enum-backed
- * {@code season_award_results} and {@code seasons} tables). If you add a new
- * value here, you MUST run, in every already-provisioned environment after
- * deploying:
- * <pre>
- * ALTER TABLE player_spotlights DROP CONSTRAINT player_spotlights_insight_type_check;
- * </pre>
- * (or an equivalent widening {@code ALTER}). Skipping this will not fail
- * loudly: {@link org.steam5.job.PlayerSpotlightJob#execute()} catches and
- * merely logs persistence failures, so on any day the new tier wins the
- * lottery, the INSERT will throw a CHECK-constraint violation and the
- * spotlight box will simply disappear from the site that day with no
- * visible error. See also {@code db/player-spotlights-widen-insight-type.sql}.
+ * Persisted as {@code @Enumerated(EnumType.STRING)} on
+ * {@link PlayerSpotlight#getInsightType()}. The column is plain
+ * {@code varchar(32)} (see {@link PlayerSpotlight}); V5 dropped the generated CHECK
+ * constraint that used to be the real whitelist, so adding a constant needs no migration.
+ * Hibernate still adds that check to tables it creates itself.
  */
 public enum PlayerSpotlightInsightType {
     DAY_STREAK,
