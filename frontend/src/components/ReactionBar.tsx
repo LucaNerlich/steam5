@@ -179,12 +179,15 @@ export default function ReactionBar(props: {
         if (present.length === 0) return null;
         return (
             <div className="reaction-bar" ref={rootRef}>
-                <div className="reaction-bar__summary" aria-label="Reactions">
+                <div className="reaction-bar__summary" role="group" aria-label="Reactions">
                     {present.map(({type, count, reactors}) => {
                         const tooltip = reactorTooltip(count, reactors);
                         return (
                             <span
                                 key={type}
+                                // role="img" gives the chip a role ARIA allows to be named;
+                                // a generic span would drop this label in the accessibility tree.
+                                role="img"
                                 className="reaction-bar__chip"
                                 aria-label={`${REACTION_EMOJI[type]} reaction, ${count}${tooltip ? ` — ${tooltip}` : ""}`}
                                 title={tooltip}
@@ -204,7 +207,7 @@ export default function ReactionBar(props: {
     return (
         <div className="reaction-bar" ref={rootRef}>
             {present.length > 0 && (
-                <div className="reaction-bar__summary" aria-label="Reactions">
+                <div className="reaction-bar__summary" role="group" aria-label="Reactions">
                     {present.map(({type, count, active, reactors}) => {
                         const actionHint = canReact ? (active ? "Remove reaction" : "Add reaction") : "Sign in to react";
                         const tooltip = reactorTooltip(count, reactors);
