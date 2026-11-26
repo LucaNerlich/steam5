@@ -21,16 +21,15 @@ class UserRepositoryQueryTest {
                 "upsertTokenNotValidBefore", String.class, OffsetDateTime.class, OffsetDateTime.class);
         final Query query = method.getAnnotation(Query.class);
         assertTrue(query != null && query.nativeQuery(), "must stay a native upsert");
-        final String sql = query.value().toLowerCase();
+        final String sql = query.value().toLowerCase(java.util.Locale.ROOT).replaceAll("\\s+", " ");
 
         assertTrue(sql.contains("on conflict (steam_id) do update"), sql);
-        assertTrue(sql.contains("greatest(users.token_not_valid_before, excluded.token_not_valid_before)"), sql);
-        assertTrue(sql.contains("insert into users"), sql);
-        // Profile columns must never appear in the update list; a whole-row write is what #695 was.
-        for (final String column : new String[]{
-                "persona_name", "profile_url", "avatar", "created_at =", "blurhash",
-        }) {
-            assertFalse(sql.contains(column), column + " must not be written by the logout upsert");
-        }
+        // Pin both clauses whole: a blocklist of profile column names missed persona_state,
+        // country_code and friends, and never checked the insert's columns or value order.
+        assertTrue(sql.contains("insert into users (steam_id, created_at, updated_at, token_not_valid_before) "
+                + "values (:steamid, :now, :now, :cutoff)"), sql);
+        assertTrue(sql.contains("set token_not_valid_before = greatest(users.token_not_valid_before, "
+                + "excluded.token_not_valid_before), updated_at = excluded.updated_at"), sql);
+        assertFalse(sql.contains("update users set"), "a whole-row update is what #695 was");
     }
 }
