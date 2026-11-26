@@ -56,7 +56,8 @@ public class ReviewGameStateControllerGuessTest {
                 mock(SteamAppReviewsRepository.class),
                 mock(ReviewGamePickRepository.class),
                 mock(Scheduler.class),
-                meterRegistry);
+                meterRegistry,
+                new tools.jackson.databind.ObjectMapper());
 
         when(service.generateDailyPicks()).thenReturn(
                 List.of(new ReviewGamePick(1L, LocalDate.now(), LIVE_APP_ID, OffsetDateTime.now())));

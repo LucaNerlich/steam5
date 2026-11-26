@@ -77,7 +77,8 @@ public class ReviewGameStateControllerCacheTest {
         scheduler = mock(Scheduler.class);
         meterRegistry = mock(MeterRegistry.class);
         controller = new ReviewGameStateController(service, detailService, guessRepository,
-                reviewsRepository, pickRepository, scheduler, meterRegistry);
+                reviewsRepository, pickRepository, scheduler, meterRegistry,
+                new tools.jackson.databind.ObjectMapper());
     }
 
     // --- Finding 2: per-user data must never be publicly cacheable ---

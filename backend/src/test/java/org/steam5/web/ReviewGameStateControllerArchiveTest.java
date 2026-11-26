@@ -27,7 +27,8 @@ class ReviewGameStateControllerArchiveTest {
                 mock(SteamAppReviewsRepository.class),
                 mock(ReviewGamePickRepository.class),
                 mock(Scheduler.class),
-                mock(MeterRegistry.class));
+                mock(MeterRegistry.class),
+                new tools.jackson.databind.ObjectMapper());
     }
 
     @Test

@@ -48,7 +48,8 @@ public class ReviewGameStateControllerDayAnswersTest {
                 mock(SteamAppReviewsRepository.class),
                 pickRepository,
                 mock(Scheduler.class),
-                mock(MeterRegistry.class));
+                mock(MeterRegistry.class),
+                new tools.jackson.databind.ObjectMapper());
     }
 
     @Test
