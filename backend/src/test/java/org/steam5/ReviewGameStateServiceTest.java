@@ -50,6 +50,7 @@ public class ReviewGameStateServiceTest {
     private PlatformTransactionManager transactionManager;
 
     private ReviewGameStateService service;
+    private io.micrometer.core.instrument.simple.SimpleMeterRegistry registry;
 
     @BeforeEach
     void setUp() throws Exception {
@@ -64,7 +65,9 @@ public class ReviewGameStateServiceTest {
         transactionManager = mock(PlatformTransactionManager.class);
         when(transactionManager.getTransaction(any())).thenReturn(new SimpleTransactionStatus());
 
+        registry = new io.micrometer.core.instrument.simple.SimpleMeterRegistry();
         service = new ReviewGameStateService(
+                registry,
                 reviewsRepository,
                 reviewsFetcher,
                 detailsFetcher,
@@ -266,8 +269,23 @@ public class ReviewGameStateServiceTest {
         verify(excludedAppRepository, atLeastOnce()).save(any());
     }
 
+    @Test
+    void generationByAnyCallerRecordsTheLastSuccessGauges() {
+        // /today, /weekly and /monthly all reach generateDailyPicks; the alert means
+        // "picks exist", so a request that generated them must update the gauge too.
+        when(pickRepository.findByPickDate(GameDate.todayUtc())).thenReturn(List.of(
+                new ReviewGamePick(1L, GameDate.todayUtc(), 42L, OffsetDateTime.now())));
+        service.registerPicksGauges();
+
+        service.generateDailyPicks();
+
+        assertEquals(1.0, registry.get("steam5.daily.picks.last.success.size").gauge().value());
+        assertTrue(registry.get("steam5.daily.picks.last.success.epoch.seconds").gauge().value() > 0);
+    }
+
     private ReviewGameStateService stubbedServiceFor(ReviewGameStateService.BUCKET_STRATEGY strategy) {
         return new ReviewGameStateService(
+                registry,
                 reviewsRepository,
                 reviewsFetcher,
                 detailsFetcher,

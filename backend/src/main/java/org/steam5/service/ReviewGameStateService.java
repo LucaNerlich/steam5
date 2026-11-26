@@ -33,7 +33,42 @@ public class ReviewGameStateService {
     /** One in-JVM generator at a time: the DB advisory lock only guards the short persist. */
     private final java.util.concurrent.atomic.AtomicBoolean generating = new java.util.concurrent.atomic.AtomicBoolean(false);
 
+    // Owned here, not by the Quartz job: /today, /weekly and /monthly also generate picks,
+    // and the Steam5DailyPicksMissing alert means "picks are available", not "the job ran".
+    private final java.util.concurrent.atomic.AtomicLong lastSuccessEpochSeconds = new java.util.concurrent.atomic.AtomicLong(0L);
+    private final java.util.concurrent.atomic.AtomicLong lastSuccessSize = new java.util.concurrent.atomic.AtomicLong(0L);
+
+    @jakarta.annotation.PostConstruct
+    public void registerPicksGauges() {
+        io.micrometer.core.instrument.Gauge.builder("steam5.daily.picks.last.success.epoch.seconds", lastSuccessEpochSeconds, java.util.concurrent.atomic.AtomicLong::doubleValue)
+                .description("Unix timestamp of the last successful daily-picks generation")
+                .register(meterRegistry);
+        io.micrometer.core.instrument.Gauge.builder("steam5.daily.picks.last.success.size", lastSuccessSize, java.util.concurrent.atomic.AtomicLong::doubleValue)
+                .description("Number of picks produced by the last successful daily-picks generation")
+                .register(meterRegistry);
+
+        // A restart starts both values at 0 and would trip the alert even when today's picks
+        // exist; seed from the newest generated day. Every later generation updates them.
+        if (lastSuccessEpochSeconds.get() == 0L) {
+            pickRepository.findTopByOrderByCreatedAtDesc().ifPresent(latest -> {
+                if (latest.getCreatedAt() != null) {
+                    lastSuccessEpochSeconds.set(latest.getCreatedAt().toEpochSecond());
+                    lastSuccessSize.set(pickRepository.findByPickDate(latest.getPickDate()).size());
+                }
+            });
+        }
+    }
+
     public List<ReviewGamePick> generateDailyPicks() {
+        final List<ReviewGamePick> picks = generateDailyPicksInternal();
+        if (!picks.isEmpty()) {
+            lastSuccessEpochSeconds.set(System.currentTimeMillis() / 1000L);
+            lastSuccessSize.set(picks.size());
+        }
+        return picks;
+    }
+
+    private List<ReviewGamePick> generateDailyPicksInternal() {
         final LocalDate today = GameDate.todayUtc();
         final List<ReviewGamePick> existing = pickRepository.findByPickDate(today);
         if (!existing.isEmpty()) {
@@ -285,6 +320,7 @@ public class ReviewGameStateService {
             }
         }
 
+        private final io.micrometer.core.instrument.MeterRegistry meterRegistry;
         private final SteamAppReviewsRepository reviewsRepository;
         private final SteamAppReviewsFetcher reviewsFetcher;
         private final SteamAppDetailsFetcher detailsFetcher;
