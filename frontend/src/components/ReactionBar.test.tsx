@@ -2,7 +2,7 @@
 // The Escape-refocus wiring runs in effects against a live document, so this file
 // needs a DOM; the static-markup tests here are env-agnostic and run under it too.
 // (Vitest 4 removed `environmentMatchGlobs`, so the per-file docblock is the hook.)
-import {act} from 'react';
+import React, {act} from 'react';
 import {createRoot} from 'react-dom/client';
 import {describe, expect, it, vi} from 'vitest';
 import {renderToStaticMarkup} from 'react-dom/server';
@@ -187,6 +187,46 @@ describe('ReactionBar Escape refocus', () => {
             container.remove();
         }
     });
+
+describe('ReactionBar success refocus', () => {
+    (globalThis as {IS_REACT_ACT_ENVIRONMENT?: boolean}).IS_REACT_ACT_ENVIRONMENT = true;
+
+    it('puts focus back on the trigger after a successful toggle closes the picker', async () => {
+        // The focused option unmounts with the picker; without the deferred restore focus
+        // falls to <body> and the next Tab restarts at the top of the page.
+        vi.stubGlobal('fetch', vi.fn(async () => new Response('{}', {
+            status: 200, headers: {'content-type': 'application/json'},
+        })));
+        const container = document.createElement('div');
+        document.body.appendChild(container);
+        const root = createRoot(container);
+        try {
+            function Harness() {
+                const [open, setOpen] = React.useState(true);
+                return (
+                    <ReactionBar
+                        commentId={1}
+                        reactions={[]}
+                        canReact={true}
+                        onToggled={async () => {}}
+                        open={open}
+                        onPickerOpenChange={setOpen}
+                    />
+                );
+            }
+            await act(async () => root.render(<Harness/>));
+            const trigger = container.querySelector('.reaction-bar__trigger') as HTMLButtonElement;
+            const option = container.querySelector('[role="menu"] button') as HTMLButtonElement;
+            await act(async () => option.focus());
+            await act(async () => { option.click(); });
+
+            expect(document.activeElement).toBe(trigger);
+        } finally {
+            await act(async () => root.unmount());
+            container.remove();
+        }
+    });
+});
 
 describe('ReactionBar error surface', () => {
     (globalThis as {IS_REACT_ACT_ENVIRONMENT?: boolean}).IS_REACT_ACT_ENVIRONMENT = true;

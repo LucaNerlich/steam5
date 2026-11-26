@@ -145,6 +145,8 @@ export default function ReactionBar(props: {
             await onToggled();
             onPickerOpenChange?.(false);
         } catch (e) {
+            // The picker stays open on failure, so a later close is not this restore's business.
+            restoreFocusOnClose.current = false;
             const message = e instanceof Error ? e.message : "";
             if (
                 message === "unauthorized"
