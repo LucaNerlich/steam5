@@ -23,6 +23,9 @@ describe('LeaderboardToggle', () => {
             const html = renderToStaticMarkup(<LeaderboardToggle/>);
             const matches = html.match(/aria-current="page"/g) ?? [];
             expect(matches, route).toHaveLength(1);
+            // Wrong-tab marking must fail too: match the anchor carrying the marker.
+            const tag = html.match(/<a[^>]*aria-current="page"[^>]*>/)?.[0] ?? '';
+            expect(tag, route).toContain(`href="${route}"`);
         }
     });
 });
