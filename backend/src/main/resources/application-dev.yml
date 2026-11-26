@@ -1,4 +1,6 @@
 name: dev-local
+auth:
+  redirectBase: ${REDIRECT_BASE:http://localhost:3000}
 management:
   server:
     port: ${MANAGEMENT_SERVER_PORT:8081}
