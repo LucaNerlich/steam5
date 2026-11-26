@@ -113,8 +113,8 @@ public class ReviewGameStateController {
      * unchanged, and any field the sampler skipped (descriptions, images, flags, extra media)
      * would otherwise keep answering 304 with a stale body after a re-ingest.
      */
-    private String weakEtagForPicks(List<SteamAppDetail> details) {
-        return Etags.weakEtag(List.of(objectMapper.writeValueAsString(details)));
+    private String weakEtagForBody(Object body) {
+        return Etags.weakEtag(List.of(objectMapper.writeValueAsString(body)));
     }
 
     private static String weakEtagForStringLists(List<? extends List<String>> lists) {
@@ -283,12 +283,13 @@ public class ReviewGameStateController {
             throw new ReviewGameException(500, "Number of appIds and details don't match");
         }
 
-        final LocalDate date = picks.isEmpty() ? GameDate.todayUtc() : picks.getFirst().getPickDate();
-        final String etag = weakEtagForPicks(details);
+        final LocalDate day = picks.isEmpty() ? GameDate.todayUtc() : picks.getFirst().getPickDate();
+        final var body = new ReviewGameStateDto(day, service.getBucketLabels(), service.getBucketTitles(), details);
+        final String etag = weakEtagForBody(body);
         return ResponseEntity.ok()
                 .eTag(etag)
                 .header("Cache-Control", CACHE_LIVE)
-                .body(new ReviewGameStateDto(date, service.getBucketLabels(), service.getBucketTitles(), details));
+                .body(body);
     }
 
     public record ReviewGameStateDto(LocalDate date, List<String> buckets, List<String> bucketTitles,
@@ -476,12 +477,13 @@ public class ReviewGameStateController {
             throw new ReviewGameException(500, "Number of appIds and details don't match for day " + date);
         }
         final boolean isToday = day.equals(GameDate.todayUtc());
-        final String etag = weakEtagForPicks(details);
+        final var body = new ReviewGameStateDto(day, service.getBucketLabels(), service.getBucketTitles(), details);
+        final String etag = weakEtagForBody(body);
         final String cc = isToday ? CACHE_LIVE : CACHE_HISTORICAL;
         return ResponseEntity.ok()
                 .eTag(etag)
                 .header("Cache-Control", cc)
-                .body(new ReviewGameStateDto(day, service.getBucketLabels(), service.getBucketTitles(), details));
+                .body(body);
     }
 
     public record DayAnswer(Long appId, int totalReviews, String actualBucket) {
