@@ -15,4 +15,24 @@ describe('GameInfoAbout', () => {
         expect(html).not.toContain('<script');
         expect(html).not.toContain('<style');
     });
+
+    it('drops an img whose src is not http(s)', () => {
+        // The img branch used to skip isSafeUrl; a data: URL still renders when the allowlist
+        // is removed, which the ftp:// case did not prove.
+        const html = renderToStaticMarkup(
+            <GameInfoAbout html={'<p>Hi</p><img src="data:image/svg+xml,<svg onload=alert(1)>" alt="x"/>'}/>,
+        );
+
+        expect(html).not.toContain('<img');
+        expect(html).toContain('<p>Hi</p>');
+    });
+
+    it('drops an img whose scheme is not lower-case', () => {
+        // isSafeUrl lowercases the scheme; normalizeToHttps does not, and returned "".
+        const html = renderToStaticMarkup(
+            <GameInfoAbout html={'<p>Hi</p><img src="HTTPS://cdn.example/x.png" alt="x"/>'}/>,
+        );
+
+        expect(html).not.toContain('<img');
+    });
 });

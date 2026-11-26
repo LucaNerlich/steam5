@@ -68,7 +68,15 @@ function parseAboutHtml(html: string): ReturnType<typeof parse> {
             if (el.name === "img") {
                 const srcRaw = el.attribs?.src || "";
                 if (!srcRaw) return undefined;
+                // The img branch used to skip the allowlist every other URL attribute goes
+                // through, so a non-http(s) scheme reached next/image as an empty src.
+                // undefined would fall back to the default renderer, so drop the node.
+                if (!isSafeUrl(srcRaw)) return <></>;
                 const src = normalizeToHttps(srcRaw);
+                // next/image only consumes absolute https URLs: normalizeToHttps is
+                // case-sensitive (returns "" for "HTTPS://…"), and a relative src throws in
+                // dev and is rejected by the optimizer. Drop everything else.
+                if (!src.startsWith("https://")) return <></>;
                 const alt = el.attribs?.alt || "";
                 const widthAttr = el.attribs?.width;
                 const heightAttr = el.attribs?.height;
