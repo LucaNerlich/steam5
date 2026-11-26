@@ -94,8 +94,6 @@ export type ProxyOptions = {
     bearerToken?: string;
     /** Send `Cache-Control: private, no-store` on both success and error. */
     privateNoStore?: boolean;
-    /** `Cache-Control` for an error response; defaults to `no-store`. */
-    errorCacheControl?: string;
     /** Emit an RFC 9457 problem+json body on upstream errors (perfect-days contract). */
     problemJsonOnError?: boolean;
 };
@@ -120,7 +118,6 @@ export async function proxyBackendJson(req: NextRequest, options: ProxyOptions):
         timeoutMs = BACKEND_TIMEOUT_MS,
         bearerToken,
         privateNoStore,
-        errorCacheControl = "no-store",
         problemJsonOnError,
     } = options;
 
@@ -157,7 +154,7 @@ export async function proxyBackendJson(req: NextRequest, options: ProxyOptions):
             // when it is not JSON. Errors are logged once and never publicly cacheable.
             const errorBody: unknown = await res.json().catch(() => null);
             console.error(`[proxy] ${path} responded ${res.status}`);
-            relayed["Cache-Control"] = privateNoStore ? "private, no-store" : errorCacheControl;
+            relayed["Cache-Control"] = privateNoStore ? "private, no-store" : "no-store";
             if (problemJsonOnError) {
                 return NextResponse.json(
                     {type: "about:blank", title: "Bad Gateway", status: res.status, detail: errorMessage},
@@ -173,7 +170,7 @@ export async function proxyBackendJson(req: NextRequest, options: ProxyOptions):
         return NextResponse.json(data, {status: res.status, headers: relayed});
     } catch (error) {
         console.error(`[proxy] ${path} failed`, error);
-        const headers = {"Cache-Control": privateNoStore ? "private, no-store" : errorCacheControl};
+        const headers = {"Cache-Control": privateNoStore ? "private, no-store" : "no-store"};
         if (problemJsonOnError) {
             return NextResponse.json(
                 {type: "about:blank", title: "Bad Gateway", status: 502, detail: errorMessage},

@@ -189,20 +189,6 @@ describe('proxyBackendJson', () => {
         expect(res.headers.get('cache-control')).toBe('private, no-store');
     });
 
-    it('uses a custom error cache control on an upstream error', async () => {
-        vi.spyOn(console, 'error').mockImplementation(() => undefined);
-        vi.stubGlobal('fetch', vi.fn(async () => new NextResponse('nope', {status: 500})));
-
-        const res = await proxyBackendJson(req(), {
-            path: '/api/x',
-            errorMessage: 'failed',
-            errorCacheControl: 'no-cache',
-        });
-
-        expect(res.status).toBe(500);
-        expect(res.headers.get('cache-control')).toBe('no-cache');
-    });
-
     it('keeps the problem+json contract when asked', async () => {
         vi.spyOn(console, 'error').mockImplementation(() => undefined);
         vi.stubGlobal('fetch', vi.fn(async () => new NextResponse('nope', {status: 500})));
