@@ -14,7 +14,6 @@ import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.net.Socket;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 import java.util.List;
 import java.util.Locale;
@@ -68,9 +67,19 @@ public final class PublicHttpUrl {
         }
         final URI https;
         try {
-            final int httpsPort = (port == -1 || port == 80) ? -1 : port;
-            https = new URI("https", null, uri.getHost(), httpsPort, uri.getPath(), uri.getQuery(), uri.getFragment());
-        } catch (URISyntaxException ex) {
+            // Drop a port only when it is the scheme default. :80 on an explicit https URL
+            // (and :443 on http) is meaningful and must survive.
+            final boolean dropPort = port == -1
+                    || ("http".equals(scheme) && port == 80)
+                    || ("https".equals(scheme) && port == 443);
+            // Rebuild from the raw components: the multi-arg URI constructor takes decoded
+            // ones and re-encodes them, so %2F/%26 in a path or a signed query lose their
+            // meaning and the request no longer matches the URL that was validated.
+            https = URI.create("https://" + uri.getHost() + (dropPort ? "" : ":" + port)
+                    + uri.getRawPath()
+                    + (uri.getRawQuery() == null ? "" : "?" + uri.getRawQuery())
+                    + (uri.getRawFragment() == null ? "" : "#" + uri.getRawFragment()));
+        } catch (IllegalArgumentException ex) {
             return Optional.empty();
         }
         try {
