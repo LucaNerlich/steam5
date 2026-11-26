@@ -12,11 +12,23 @@ import java.util.Optional;
 
 import javax.net.ssl.HttpsURLConnection;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class PublicHttpUrlTest {
+
+    @Test
+    void keepsRawPercentEncodingAndExplicitPorts() {
+        // The seven-arg URI constructor decoded %2F/%26 and rewrote :80, so the fetched URL
+        // differed from the one that was validated (presigned CDN URLs then 403ed).
+        assertEquals("https://8.8.8.8/a%2Fb.png?sig=a%2Fb%26c&t=1",
+                PublicHttpUrl.httpsTarget("https://8.8.8.8/a%2Fb.png?sig=a%2Fb%26c&t=1").orElseThrow().toString());
+        assertEquals("https://8.8.8.8/x", PublicHttpUrl.httpsTarget("https://8.8.8.8:443/x").orElseThrow().toString());
+        assertEquals("https://8.8.8.8:80/x", PublicHttpUrl.httpsTarget("https://8.8.8.8:80/x").orElseThrow().toString());
+        assertEquals("https://8.8.8.8/x", PublicHttpUrl.httpsTarget("http://8.8.8.8/x").orElseThrow().toString());
+    }
 
     @Test
     void rejectsNonHttpSchemes() {

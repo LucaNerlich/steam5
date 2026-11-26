@@ -14,7 +14,6 @@ import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.net.Socket;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 import java.util.List;
 import java.util.Locale;
@@ -345,7 +344,7 @@ public final class PublicHttpUrl {
 
         private Socket createPlainSocket() throws IOException {
             final Socket socket = new Socket(Proxy.NO_PROXY);
-socket.connect(new InetSocketAddress(address, this.port), 15_000);
+            socket.connect(new InetSocketAddress(address, this.port), 15_000);
             return socket;
         }
 
