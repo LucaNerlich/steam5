@@ -102,9 +102,9 @@ public class ReviewGameStateController {
         return Math.max(0, max - step * d);
     }
 
-    /** The current month in the same UTC calendar the frontend and the rest of the app use. */
-    static boolean isCurrentMonth(YearMonth month, LocalDate todayUtc) {
-        return month.equals(YearMonth.from(todayUtc));
+    /** True for months that have fully ended in the same UTC calendar the app uses. */
+    static boolean isHistoricalMonth(YearMonth month, LocalDate todayUtc) {
+        return month.isBefore(YearMonth.from(todayUtc));
     }
 
     private static String weakEtagForPicks(List<SteamAppDetail> details) {
@@ -583,12 +583,12 @@ public class ReviewGameStateController {
                 .toList();
 
         // The game calendar is UTC everywhere else (GameDate.todayUtc(), the frontend's
-        // getUTCFullYear/month) — a host-local year-month would mark the current month
-        // historical in UTC-negative zones and cache it as immutable for a year.
-        final boolean isCurrentMonth = isCurrentMonth(ym, GameDate.todayUtc());
-        final String cacheControl = isCurrentMonth
-                ? "public, s-maxage=86400, max-age=3600"
-                : "public, max-age=31536000, immutable";
+        // getUTCFullYear/month). Only a month that has fully ended is immutable: the current
+        // month and a future one (which returns an empty list) must revalidate daily, or a
+        // crawler can pin "no games yet" for that URL for a year.
+        final String cacheControl = isHistoricalMonth(ym, GameDate.todayUtc())
+                ? "public, max-age=31536000, immutable"
+                : "public, s-maxage=86400, max-age=3600";
         final String etag = weakEtagForStringLists(
                 out.stream()
                         .map(day -> {

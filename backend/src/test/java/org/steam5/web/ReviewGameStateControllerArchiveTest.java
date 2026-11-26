@@ -37,15 +37,16 @@ class ReviewGameStateControllerArchiveTest {
     }
 
     @Test
-    void isCurrentMonth_readsTheUtcDayNotTheHostClock() {
+    void isHistoricalMonth_readsTheUtcDayNotTheHostClock() {
         // The archive month's cache header used YearMonth.now() (JVM default zone) while every
         // other consumer of the game calendar is UTC, so a host behind UTC marked the new month
         // historical and served it immutable for a year.
-        assertTrue(ReviewGameStateController.isCurrentMonth(
-                YearMonth.of(2026, 11), LocalDate.of(2026, 11, 1)));
-        assertFalse(ReviewGameStateController.isCurrentMonth(
+        assertTrue(ReviewGameStateController.isHistoricalMonth(
                 YearMonth.of(2026, 10), LocalDate.of(2026, 11, 1)));
-        assertFalse(ReviewGameStateController.isCurrentMonth(
+        assertFalse(ReviewGameStateController.isHistoricalMonth(
+                YearMonth.of(2026, 11), LocalDate.of(2026, 11, 1)));
+        // Not yet started: returns an empty list and must not be pinned for a year.
+        assertFalse(ReviewGameStateController.isHistoricalMonth(
                 YearMonth.of(2026, 12), LocalDate.of(2026, 11, 30)));
     }
 
