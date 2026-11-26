@@ -23,9 +23,8 @@ const fetcher = (url: string) => fetchRefreshedJson<LeaderEntry[]>(url);
  * @param props - Leaderboard configuration, including the timeframe, refresh interval, and optional initial data.
  */
 export default function LeaderboardTable(props: {
-    mode: 'today' | 'weekly' | 'weekly-floating' | 'season' | 'all';
+    mode: 'today' | 'weekly-floating' | 'season' | 'all';
     refreshMs?: number;
-    ariaLabel?: string;
     initialData?: LeaderEntry[] | null;
     initialAchievements?: { data: UserAchievement[] } | null;
 }) {
@@ -35,24 +34,20 @@ export default function LeaderboardTable(props: {
     switch (props.mode) {
         case 'today':
             endpoint = '/api/leaderboard/today';
-            aria = props.ariaLabel ?? 'Today Leaderboard';
+            aria = 'Today Leaderboard';
             break;
         case 'season':
             endpoint = '/api/leaderboard/season';
-            aria = props.ariaLabel ?? 'Season Leaderboard';
-            break;
-        case 'weekly':
-            endpoint = '/api/leaderboard/weekly';
-            aria = props.ariaLabel ?? 'Weekly Leaderboard';
+            aria = 'Season Leaderboard';
             break;
         case 'weekly-floating':
             endpoint = '/api/leaderboard/weekly?floating=true';
-            aria = props.ariaLabel ?? 'Weekly Leaderboard';
+            aria = 'Weekly Leaderboard';
             break;
         case 'all':
         default:
             endpoint = '/api/leaderboard/all';
-            aria = props.ariaLabel ?? 'All-time Leaderboard';
+            aria = 'All-time Leaderboard';
 
     }
 
@@ -71,7 +66,7 @@ export default function LeaderboardTable(props: {
     // Determine timeframe for achievements based on leaderboard mode
     const achievementTimeframe = props.mode === 'today' ? 'daily' :
                                   props.mode === 'season' ? 'season' :
-                                  (props.mode === 'weekly' || props.mode === 'weekly-floating') ? 'weekly' :
+                                  props.mode === 'weekly-floating' ? 'weekly' :
                                   'all';
 
     const endpointAchievements = `/api/leaderboard/achievements?timeframe=${achievementTimeframe}`;
@@ -158,7 +153,7 @@ export default function LeaderboardTable(props: {
 
     // Only the MV-backed leaderboards have a meaningful refresh cadence to report;
     // 'today' is always computed live.
-    const showLastUpdated = props.mode === 'season' || props.mode === 'all' || props.mode === 'weekly-floating';
+    const showLastUpdated = props.mode !== 'today';
     const lastUpdatedText = showLastUpdated ? formatRefreshedAt(refreshedAt) : null;
 
     // SWR keeps the previous payload on a failed revalidation; only show the error when
