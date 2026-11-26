@@ -138,6 +138,8 @@ describe('ReactionBar reactor tooltip', () => {
             />,
         );
 
+        // A generic span cannot carry a name, so the label was dropped until role="img".
+        expect(html).toContain('role="img"');
         expect(html).toContain('aria-label="👍 reaction, 5 — Alice, Bob and 3 more"');
     });
 });
