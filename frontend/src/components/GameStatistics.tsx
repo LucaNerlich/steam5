@@ -30,25 +30,42 @@ interface GameStatisticsData {
     dailyAvgScores: DailyAvgScoreStats;
 }
 
-const jsonFetcher = (url: string) => fetch(url, {headers: {'accept': 'application/json'}}).then(r => {
-    if (!r.ok) return null;
+// Stats are the section's own content: a failure must be visible, not render as "no data".
+const jsonFetcher = async (url: string) => {
+    const r = await fetch(url, {headers: {'accept': 'application/json'}});
+    if (!r.ok) throw new Error(`Failed to load ${url} (${r.status})`);
     return r.json();
-});
+};
+// The total-rounds line is decoration; its failure must not hide the section.
+const optionalFetcher = (url: string) => fetch(url, {headers: {'accept': 'application/json'}})
+    .then(r => (r.ok ? r.json() : null))
+    .catch(() => null);
 
 export default function GameStatistics() {
-    const {data: stats, isLoading: statsLoading} = useSWR<GameStatisticsData | null>(
+    const {data: stats, isLoading: statsLoading, error: statsError} = useSWR<GameStatisticsData>(
         '/api/stats/game', jsonFetcher, {revalidateOnFocus: false}
     );
     const {data: picksData, isLoading: picksLoading} = useSWR<{totalPicks: number} | null>(
-        `${BACKEND_ORIGIN}/api/metrics/picks/summary`, jsonFetcher, {revalidateOnFocus: false}
+        `${BACKEND_ORIGIN}/api/metrics/picks/summary`, optionalFetcher, {revalidateOnFocus: false}
     );
     const totalRounds = picksData?.totalPicks ?? null;
-    const loading = statsLoading || picksLoading;
+    // Only the stats request gates the section: the total-rounds line is decoration and
+    // renders when it arrives, so a hung picks call must not withhold the statistics.
+    const loading = statsLoading;
     // The archive route 404s today's date, so never link a day that has not ended;
     // /stats/game derives these dates from picks and can return today's.
     const today = new Date().toISOString().slice(0, 10);
     const archiveHref = (date: string | null | undefined) =>
         date && date < today ? `/review-guesser/archive/${date}` : null;
+
+    if (statsError && !stats) {
+        return (
+            <section className="game-statistics">
+                <h2>Game Statistics</h2>
+                <p className="text-muted">Game statistics are unavailable right now.</p>
+            </section>
+        );
+    }
 
     if (loading) {
         return (
