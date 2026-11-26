@@ -111,16 +111,9 @@ public class AuthTokenService {
         // missing, so stopping here left a retained token valid for its full 30 days while
         // the caller was told logout succeeded. The row can legitimately be absent: the
         // profile upsert is @Async, and a deployment whose profile fetch returns nothing
-        // never creates it. Persist the minimal row that carries the cutoff.
-        //
-        // A concurrent logout for the same steamId can insert first; the unique constraint
-        // then aborts this transaction and logout answers 5xx. That is the honest outcome —
-        // it must not report success when no cutoff was recorded.
-        final User user = new User();
-        user.setSteamId(steamId);
-        user.setCreatedAt(OffsetDateTime.now());
-        user.setTokenNotValidBefore(cutoff);
-        userRepository.save(user);
+        // never creates it. Insert-or-advance in one statement: a merge would copy null
+        // profile columns over a row the async profile writer just created.
+        userRepository.upsertTokenNotValidBefore(steamId, cutoff, OffsetDateTime.now());
     }
 }
 
