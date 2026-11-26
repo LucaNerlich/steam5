@@ -112,7 +112,7 @@ public class StatisticsService {
     }
 
     public List<UserLabel> getUserAchievementsSeason() {
-        final LocalDate today = OffsetDateTime.now(ZoneOffset.UTC).toLocalDate();
+        final LocalDate today = GameDate.todayUtc();
         final Season season = seasonService.findSeasonContaining(today)
                 .orElseGet(() -> seasonService.ensureSeasonForDate(today));
         final LocalDate asOfDate = season.getEndDate().isBefore(today) ? season.getEndDate() : today;
