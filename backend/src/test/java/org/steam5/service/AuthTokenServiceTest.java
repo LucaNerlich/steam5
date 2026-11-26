@@ -116,9 +116,8 @@ class AuthTokenServiceTest {
 
         service.invalidateTokensIssuedBefore(STEAM_ID, instant);
 
-        final ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
-        verify(userRepository).save(captor.capture());
-        assertEquals(STEAM_ID, captor.getValue().getSteamId());
-        assertEquals(instant, captor.getValue().getTokenNotValidBefore());
+        final ArgumentCaptor<OffsetDateTime> cutoff = ArgumentCaptor.forClass(OffsetDateTime.class);
+        verify(userRepository).upsertTokenNotValidBefore(eq(STEAM_ID), cutoff.capture(), any(OffsetDateTime.class));
+        assertEquals(instant, cutoff.getValue());
     }
 }

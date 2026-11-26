@@ -53,6 +53,24 @@ public interface UserRepository extends JpaRepository<User, String> {
                                  @Param("data") String data);
 
     /**
+     * Inserts the cutoff row when it is missing, or advances an existing row's cutoff —
+     * without loading or copying the other columns. `save()` on this entity is a merge
+     * (the id is assigned), which would overwrite a concurrently created profile with nulls.
+     */
+    @Modifying
+    @Transactional
+    @Query(value = """
+            insert into users (steam_id, created_at, updated_at, token_not_valid_before)
+            values (:steamId, :now, :now, :cutoff)
+            on conflict (steam_id) do update
+               set token_not_valid_before = greatest(users.token_not_valid_before, excluded.token_not_valid_before),
+                   updated_at = excluded.updated_at
+            """, nativeQuery = true)
+    int upsertTokenNotValidBefore(@Param("steamId") String steamId,
+                                  @Param("cutoff") OffsetDateTime cutoff,
+                                  @Param("now") OffsetDateTime now);
+
+    /**
      * Finds up to 10 users whose persona name contains the given substring (case-insensitive),
      * ordered by persona name for deterministic results. Backs the mention-autocomplete search.
      */
