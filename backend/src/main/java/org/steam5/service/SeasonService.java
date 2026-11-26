@@ -275,10 +275,14 @@ public class SeasonService {
         // sets; the loser skips the duplicate work entirely.
         final int claimed = seasonRepository.claimForFinalization(managed.getId());
         if (claimed == 0) {
-            log.info("Season #{} finalization was claimed by another instance; skipping duplicate work.", managed.getSeasonNumber());
-            return managed;
+            // The bulk update cleared the persistence context; re-read so the loser reports
+            // the committed FINALIZED row rather than the ACTIVE snapshot it loaded above.
+            final Season finalized = seasonRepository.findById(managed.getId()).orElse(managed);
+            log.info("Season #{} finalization was claimed by another instance; skipping duplicate work.", finalized.getSeasonNumber());
+            return finalized;
         }
 
+        managed = seasonRepository.findById(managed.getId()).orElse(managed);
         log.info("Finalizing season #{} ({} - {})", managed.getSeasonNumber(), managed.getStartDate(), managed.getEndDate());
 
         List<GuessRepository.SeasonStatRow> rows = guessRepository.findSeasonStats(managed.getStartDate(), managed.getEndDate());
