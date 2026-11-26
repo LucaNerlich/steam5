@@ -46,6 +46,28 @@ public class SteamAppDetailControllerTest {
     }
 
     @Test
+    void etagChangesWhenOnlyAnUnsampledFieldChanges() throws Exception {
+        // The old sampler hashed name/release/price/5 screenshots/3 movies; a description or
+        // header-image change kept answering 304 with the stale body.
+        final SteamAppDetail a = new SteamAppDetail();
+        a.setAppId(1L);
+        a.setName("Game");
+        a.setShortDescription("before");
+        final SteamAppDetail b = new SteamAppDetail();
+        b.setAppId(1L);
+        b.setName("Game");
+        b.setShortDescription("after");
+
+        final java.lang.reflect.Method detail = SteamAppDetailController.class
+                .getDeclaredMethod("weakEtagForDetail", SteamAppDetail.class);
+        detail.setAccessible(true);
+        final SteamAppDetailController controller =
+                new SteamAppDetailController(mock(SteamAppDetailService.class), new tools.jackson.databind.ObjectMapper());
+
+        assertNotEquals(detail.invoke(controller, a), detail.invoke(controller, b));
+    }
+
+    @Test
     void getDetails_found_and_notFound() {
         SteamAppDetailService detailService = mock(SteamAppDetailService.class);
         SteamAppDetailController controller = new SteamAppDetailController(detailService, new tools.jackson.databind.ObjectMapper());
