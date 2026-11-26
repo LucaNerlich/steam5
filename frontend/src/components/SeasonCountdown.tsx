@@ -31,6 +31,9 @@ export default async function SeasonCountdown() {
             {label} · Ends {new Date(season.endDate).toLocaleDateString('en-US', {
                 month: "short",
                 day: "numeric",
+                // endDate is a date-only string, which Date parses as UTC midnight; without a
+                // fixed zone a non-UTC runtime renders the previous day.
+                timeZone: "UTC",
             })}
         </Link>
     );
