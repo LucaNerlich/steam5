@@ -111,7 +111,7 @@ public final class PublicHttpUrl {
         final InetAddress connectAddress = selectConnectAddress(host);
 
         final HttpsURLConnection conn = (HttpsURLConnection) httpsUri.toURL().openConnection(Proxy.NO_PROXY);
-        conn.setSSLSocketFactory(new PinnedAddressSocketFactory(host, port, connectAddress));
+        conn.setSSLSocketFactory(new PinnedAddressSocketFactory(host, port, connectAddress, conn));
         // No custom HostnameVerifier: the default one validates the peer certificate
         // against the URL host, which is exactly what the pinned connect intends.
         // A verifier that compares the host to itself would disable that check.
@@ -294,11 +294,14 @@ public final class PublicHttpUrl {
         private final String hostname;
         private final int port;
         private final InetAddress address;
+        private final HttpsURLConnection connection;
 
-        private PinnedAddressSocketFactory(String hostname, int port, InetAddress address) {
+        private PinnedAddressSocketFactory(String hostname, int port, InetAddress address,
+                                           HttpsURLConnection connection) {
             this.hostname = hostname;
             this.port = port;
             this.address = address;
+            this.connection = connection;
         }
 
         @Override
@@ -344,7 +347,9 @@ public final class PublicHttpUrl {
 
         private Socket createPlainSocket() throws IOException {
             final Socket socket = new Socket(Proxy.NO_PROXY);
-            socket.connect(new InetSocketAddress(address, this.port), 15_000);
+            // The caller owns the timeout (HttpsURLConnection default 0 = no limit);
+            // NetworkClient's later connect(addr, timeout) lands on PinnedSslSocket's no-op.
+            socket.connect(new InetSocketAddress(address, this.port), connection.getConnectTimeout());
             return socket;
         }
 
