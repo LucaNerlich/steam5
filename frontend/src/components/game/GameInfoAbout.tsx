@@ -73,9 +73,10 @@ function parseAboutHtml(html: string): ReturnType<typeof parse> {
                 // undefined would fall back to the default renderer, so drop the node.
                 if (!isSafeUrl(srcRaw)) return <></>;
                 const src = normalizeToHttps(srcRaw);
-                // normalizeToHttps is case-sensitive and returns "" for "HTTPS://…", which
-                // isSafeUrl accepts; never hand next/image an empty src.
-                if (!src) return <></>;
+                // next/image only consumes absolute https URLs: normalizeToHttps is
+                // case-sensitive (returns "" for "HTTPS://…"), and a relative src throws in
+                // dev and is rejected by the optimizer. Drop everything else.
+                if (!src.startsWith("https://")) return <></>;
                 const alt = el.attribs?.alt || "";
                 const widthAttr = el.attribs?.width;
                 const heightAttr = el.attribs?.height;

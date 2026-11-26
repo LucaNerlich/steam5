@@ -17,10 +17,10 @@ describe('GameInfoAbout', () => {
     });
 
     it('drops an img whose src is not http(s)', () => {
-        // The img branch used to skip isSafeUrl, so a publisher-supplied ftp:// URL reached
-        // next/image as an empty src instead of being dropped like any other URL attribute.
+        // The img branch used to skip isSafeUrl; a data: URL still renders when the allowlist
+        // is removed, which the ftp:// case did not prove.
         const html = renderToStaticMarkup(
-            <GameInfoAbout html={'<p>Hi</p><img src="ftp://cdn.example/x.png" alt="x"/>'}/>,
+            <GameInfoAbout html={'<p>Hi</p><img src="data:image/svg+xml,<svg onload=alert(1)>" alt="x"/>'}/>,
         );
 
         expect(html).not.toContain('<img');
