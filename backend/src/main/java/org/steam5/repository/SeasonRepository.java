@@ -31,7 +31,7 @@ public interface SeasonRepository extends JpaRepository<Season, Long> {
      * The status flip happens before any award computation, so a second instance
      * (or a re-finalization attempt) sees zero rows and must skip.
      */
-    @Modifying
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("UPDATE Season s SET s.status = org.steam5.domain.SeasonStatus.FINALIZED WHERE s.id = :id AND s.status = org.steam5.domain.SeasonStatus.ACTIVE")
     int claimForFinalization(@Param("id") Long id);
 
