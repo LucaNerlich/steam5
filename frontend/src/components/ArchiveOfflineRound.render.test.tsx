@@ -40,7 +40,7 @@ describe('ArchiveOfflineRound', () => {
         // submit card hidden. `submitted` is also true when only unsavedLabel is set.
         const result = container.querySelector('.review-round__result');
         expect(result).not.toBeNull();
-        expect(result?.textContent).toContain('50');
+        expect(result?.textContent).toContain('Σ=50');
         act(() => root.unmount());
         container.remove();
     });
