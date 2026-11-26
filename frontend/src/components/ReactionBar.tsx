@@ -132,6 +132,11 @@ export default function ReactionBar(props: {
         try {
             await toggleReaction(commentId, reactionType);
             await onToggled();
+            // Same guard as the Escape path: the focused option unmounts with the picker,
+            // so without this focus falls to <body> after every successful reaction.
+            if (focusWithinElement(rootRef.current, document.activeElement)) {
+                triggerRef.current?.focus();
+            }
             onPickerOpenChange?.(false);
         } catch (e) {
             const message = e instanceof Error ? e.message : "";
