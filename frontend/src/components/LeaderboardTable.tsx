@@ -20,7 +20,7 @@ const fetcher = (url: string) => fetchRefreshedJson<LeaderEntry[]>(url);
 /**
  * Displays a sortable leaderboard with player statistics, achievements, and average points.
  *
- * @param props - Leaderboard configuration, including the timeframe, refresh interval, accessibility label, and optional initial data.
+ * @param props - Leaderboard configuration, including the timeframe, refresh interval, and optional initial data.
  */
 export default function LeaderboardTable(props: {
     mode: 'today' | 'weekly' | 'weekly-floating' | 'season' | 'all';
@@ -157,7 +157,7 @@ export default function LeaderboardTable(props: {
     })();
 
     // Only the MV-backed leaderboards have a meaningful refresh cadence to report;
-    // 'today' and non-floating 'weekly' are always computed live.
+    // 'today' is always computed live.
     const showLastUpdated = props.mode === 'season' || props.mode === 'all' || props.mode === 'weekly-floating';
     const lastUpdatedText = showLastUpdated ? formatRefreshedAt(refreshedAt) : null;
 
