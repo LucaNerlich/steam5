@@ -44,6 +44,11 @@ export default function GameStatistics() {
     );
     const totalRounds = picksData?.totalPicks ?? null;
     const loading = statsLoading || picksLoading;
+    // The archive route 404s today's date, so never link a day that has not ended;
+    // /stats/game derives these dates from picks and can return today's.
+    const today = new Date().toISOString().slice(0, 10);
+    const archiveHref = (date: string | null | undefined) =>
+        date && date < today ? `/review-guesser/archive/${date}` : null;
 
     if (loading) {
         return (
@@ -72,8 +77,9 @@ export default function GameStatistics() {
                 <dd>
                     <ol>
                         {stats.topGamesByReviewCount.map((game) => {
-                            const archiveUrl = game.pickDate 
-                                ? `/review-guesser/archive/${game.pickDate}${game.roundIndex ? `#round-${game.roundIndex}` : ''}`
+                            const archiveUrl = archiveHref(game.pickDate);
+                            const archiveLink = archiveUrl
+                                ? `${archiveUrl}${game.roundIndex ? `#round-${game.roundIndex}` : ''}`
                                 : null;
                             return (
                                 <li key={game.appId}>
@@ -82,10 +88,10 @@ export default function GameStatistics() {
                                     </Link>
                                     {' '}
                                     <span className="text-muted">({game.totalReviews.toLocaleString()} reviews)</span>
-                                    {archiveUrl && (
+                                    {archiveLink && (
                                         <>
                                             {' '}
-                                            <Link href={archiveUrl} className="archive-link">
+                                            <Link href={archiveLink} className="archive-link">
                                                 archive
                                             </Link>
                                         </>
@@ -99,9 +105,11 @@ export default function GameStatistics() {
                     <>
                         <dt>Day with Highest Average User Score</dt>
                         <dd>
-                            <Link href={`/review-guesser/archive/${stats.dailyAvgScores.highest.date}`}>
-                                {formatDate(stats.dailyAvgScores.highest.date)}
-                            </Link>
+                            {archiveHref(stats.dailyAvgScores.highest.date) ? (
+                                <Link href={archiveHref(stats.dailyAvgScores.highest.date)!}>
+                                    {formatDate(stats.dailyAvgScores.highest.date)}
+                                </Link>
+                            ) : formatDate(stats.dailyAvgScores.highest.date)}
                             {' '}
                             <span className="text-muted">
                                 (avg: {stats.dailyAvgScores.highest.avgScore.toFixed(2)} points, {stats.dailyAvgScores.highest.playerCount} players)
@@ -113,9 +121,11 @@ export default function GameStatistics() {
                     <>
                         <dt>Day with Lowest Average User Score</dt>
                         <dd>
-                            <Link href={`/review-guesser/archive/${stats.dailyAvgScores.lowest.date}`}>
-                                {formatDate(stats.dailyAvgScores.lowest.date)}
-                            </Link>
+                            {archiveHref(stats.dailyAvgScores.lowest.date) ? (
+                                <Link href={archiveHref(stats.dailyAvgScores.lowest.date)!}>
+                                    {formatDate(stats.dailyAvgScores.lowest.date)}
+                                </Link>
+                            ) : formatDate(stats.dailyAvgScores.lowest.date)}
                             {' '}
                             <span className="text-muted">
                                 (avg: {stats.dailyAvgScores.lowest.avgScore.toFixed(2)} points, {stats.dailyAvgScores.lowest.playerCount} players)
