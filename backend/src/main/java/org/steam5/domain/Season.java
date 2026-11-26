@@ -10,8 +10,9 @@ import java.time.OffsetDateTime;
 
 @Entity
 @Table(name = "seasons", indexes = {
-        @Index(name = "ux_season_number", columnList = "season_number", unique = true),
-        @Index(name = "ix_season_dates", columnList = "start_date,end_date", unique = true)
+        @Index(name = "ux_season_number", columnList = "season_number", unique = true)
+        // (start_date, end_date) uniqueness is the named constraint uq_seasons_dates
+        // added in V2; ix_season_dates was a duplicate btree and is dropped in V6.
 })
 @Data
 @NoArgsConstructor
