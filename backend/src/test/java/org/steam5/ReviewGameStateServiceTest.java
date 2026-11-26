@@ -270,17 +270,17 @@ public class ReviewGameStateServiceTest {
     }
 
     @Test
-    void generationByAnyCallerRecordsTheLastSuccessGauges() {
-        // /today, /weekly and /monthly all reach generateDailyPicks; the alert means
-        // "picks exist", so a request that generated them must update the gauge too.
+    void readingExistingPicksDoesNotAdvanceTheLastSuccessGauges() {
+        // /today and /guess-auth call generateDailyPicks on every request; if a read counted
+        // as success the Steam5DailyPicksMissing alert could not fire through an outage.
         when(pickRepository.findByPickDate(GameDate.todayUtc())).thenReturn(List.of(
                 new ReviewGamePick(1L, GameDate.todayUtc(), 42L, OffsetDateTime.now())));
         service.registerPicksGauges();
 
         service.generateDailyPicks();
 
-        assertEquals(1.0, registry.get("steam5.daily.picks.last.success.size").gauge().value());
-        assertTrue(registry.get("steam5.daily.picks.last.success.epoch.seconds").gauge().value() > 0);
+        assertEquals(0.0, registry.get("steam5.daily.picks.last.success.size").gauge().value());
+        assertEquals(0.0, registry.get("steam5.daily.picks.last.success.epoch.seconds").gauge().value());
     }
 
     private ReviewGameStateService stubbedServiceFor(ReviewGameStateService.BUCKET_STRATEGY strategy) {

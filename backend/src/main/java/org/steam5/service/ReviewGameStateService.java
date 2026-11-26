@@ -60,12 +60,7 @@ public class ReviewGameStateService {
     }
 
     public List<ReviewGamePick> generateDailyPicks() {
-        final List<ReviewGamePick> picks = generateDailyPicksInternal();
-        if (!picks.isEmpty()) {
-            lastSuccessEpochSeconds.set(System.currentTimeMillis() / 1000L);
-            lastSuccessSize.set(picks.size());
-        }
-        return picks;
+        return generateDailyPicksInternal();
     }
 
     private List<ReviewGamePick> generateDailyPicksInternal() {
@@ -138,6 +133,11 @@ public class ReviewGameStateService {
             transaction.executeWithoutResult(status -> saved.forEach(p ->
                     eventPublisher.publishEvent(new BlurhashEncodeRequested(p.getAppId(), null, BlurhashEnqueueListener.Type.SCREENSHOT))));
             cacheEvictor.evictReviewGameState();
+            // Only a real generation advances the "picks are available" gauges: reads that
+            // return today's existing picks (every /today and /guess-auth call) must not
+            // keep Steam5DailyPicksMissing green through a generation outage.
+            lastSuccessEpochSeconds.set(System.currentTimeMillis() / 1000L);
+            lastSuccessSize.set(saved.size());
             return saved;
         } finally {
             generating.set(false);
