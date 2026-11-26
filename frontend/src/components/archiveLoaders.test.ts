@@ -42,6 +42,10 @@ describe('archive/season loaders distinguish missing from unavailable', () => {
 
         vi.stubGlobal('fetch', vi.fn(async () => new Response('"nope"', {status: 200})));
         await expect(loadAnswers('2026-01-01')).rejects.toThrow('Unexpected answers payload');
+
+        // The removed code also swallowed a rejected fetch; a timeout must not be baked in.
+        vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('network'); }));
+        await expect(loadAnswers('2026-01-01')).rejects.toThrow('network');
     });
 
     it('throws when the archive month endpoint fails', async () => {
