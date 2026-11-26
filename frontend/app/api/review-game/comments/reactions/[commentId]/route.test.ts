@@ -1,7 +1,7 @@
 import {afterEach, describe, expect, it, vi} from 'vitest';
 import {NextRequest, NextResponse} from 'next/server';
 
-const cookieGet = vi.fn(() => ({value: 'jwt-token'}));
+const cookieGet = vi.fn<(name: string) => {value: string} | undefined>(() => ({value: 'jwt-token'}));
 vi.mock('next/headers', () => ({
     cookies: async () => ({get: cookieGet}),
 }));
