@@ -26,6 +26,7 @@ public class DomainCacheEvictor {
     static final String LEADERBOARD_STATIC = "leaderboard-static";
     static final String STATS_HOURLY = "stats-hourly";
     static final String COMMENTS_FOR_DAY = "comments-for-day";
+    static final String PLAYER_SPOTLIGHTS = "player-spotlights";
 
     private final CacheManager cacheManager;
 
@@ -35,6 +36,15 @@ public class DomainCacheEvictor {
      */
     public void evictReviewGameState() {
         clear(REVIEW_GAME);
+    }
+
+    /**
+     * Drop every player's cached spotlight list. Call after today's spotlight row is
+     * written: the featured player's profile would otherwise show yesterday's list for
+     * the rest of the one-hour TTL.
+     */
+    public void evictPlayerSpotlights() {
+        clear(PLAYER_SPOTLIGHTS);
     }
 
     /**
