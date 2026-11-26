@@ -27,6 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -169,6 +170,29 @@ public class ReviewGameStateControllerGuessTest {
         assertTrue(res.getBody().correct());
         // The loser persisted nothing, so the throughput counter must not move.
         assertTrue(meterRegistry.find("steam5.guesses").counters().isEmpty());
+    }
+
+    @Test
+    void submitGuessAuthenticated_replacesAStaleGuessForAnotherApp() {
+        // Picks regenerated for the same date leave an old row at the same round index; a
+        // 200 with that app's bucket used to be returned without storing the new guess.
+        final LocalDate today = LocalDate.now();
+        final Guess stale = new Guess(7L, "u1", today, 1, HISTORICAL_APP_ID,
+                "1-100", "1-100", 5, OffsetDateTime.now());
+        when(guessRepository.findBySteamIdAndGameDateAndRoundIndex("u1", today, 1))
+                .thenReturn(Optional.of(stale));
+
+        final ResponseEntity<ReviewGameStateController.GuessResponse> res =
+                controller.submitGuessAuthenticated("u1",
+                        new ReviewGameStateController.GuessRequest(LIVE_APP_ID, "101-1000"));
+
+        assertEquals(200, res.getStatusCode().value());
+        assertEquals(LIVE_APP_ID, res.getBody().appId());
+        assertEquals(LIVE_APP_ID, stale.getAppId(), "the stale row is updated in place");
+        assertEquals("101-1000", stale.getSelectedBucket());
+        assertEquals("101-1000", stale.getActualBucket());
+        assertEquals(5, stale.getPoints());
+        verify(guessRepository).save(stale);
     }
 
     @Test
