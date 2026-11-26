@@ -27,9 +27,9 @@ spring:
       validation-timeout: ${SPRING_DATASOURCE_HIKARI_VALIDATION_TIMEOUT:5000}
       leak-detection-threshold: ${SPRING_DATASOURCE_HIKARI_LEAK_DETECTION_THRESHOLD:0}
   jackson:
-    serialization:
-      indent-output: true
-      order-map-entries-by-keys: true
+    # No indent-output / order-map-entries-by-keys: both were base-profile defaults, so
+    # production paid 10-40% larger list payloads and map buffering for machine clients.
+    # Put them in application-dev.yml when readable local output is wanted.
   jpa:
     open-in-view: false
     hibernate:
