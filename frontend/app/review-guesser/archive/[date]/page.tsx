@@ -35,7 +35,7 @@ export async function loadArchived(date: string): Promise<ReviewGameState | null
 
 type DayAnswer = { appId: number; totalReviews: number; actualBucket: string };
 
-async function loadAnswers(date: string): Promise<Record<number, {
+export async function loadAnswers(date: string): Promise<Record<number, {
     actualBucket: string;
     totalReviews: number
 }>> {
