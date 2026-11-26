@@ -192,9 +192,8 @@ public class ReviewGameStateService {
             for (Integer bucketIndex : bucketOrder) {
                 final int[] range = bucketRanges.get(bucketIndex);
                 boolean added = false;
-                final List<Long> candidates = (range[1] == Integer.MAX_VALUE)
-                        ? reviewsRepository.findRandomGte(excludeSince, range[0], PageRequest.of(0, 8))
-                        : reviewsRepository.findRandomBetween(excludeSince, range[0], range[1], PageRequest.of(0, 8));
+                final List<Long> candidates =
+                        reviewsRepository.findRandomAppIds(excludeSince, range[0], range[1], PageRequest.of(0, 8));
 
                 for (Long id : candidates) {
                     if (!chosenIds.contains(id) && validateAppOrExclude(id)) {
@@ -208,7 +207,7 @@ public class ReviewGameStateService {
 
                 if (!added) {
                     // fallback ANY
-                    final List<Long> anyIds = reviewsRepository.findRandomAnyAppIds(excludeSince, PageRequest.of(0, 10));
+                    final List<Long> anyIds = reviewsRepository.findRandomAppIds(excludeSince, 1, Integer.MAX_VALUE, PageRequest.of(0, 10));
                     for (Long id : anyIds) {
                         if (!chosenIds.contains(id) && validateAppOrExclude(id)) {
                             chosenIds.add(id);
