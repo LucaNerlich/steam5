@@ -1,14 +1,117 @@
 import {afterEach, describe, expect, it, vi} from 'vitest';
-import {cutoffDateString} from './rounds';
+import {bucketOutcome, flattenDayRounds, outcomeCounts, recentRounds, validatedResultsForDay, cutoffDateString} from './rounds';
 
-afterEach(() => {
-    vi.useRealTimers();
+const round = (roundIndex: number, appId: number) => ({
+    roundIndex,
+    appId,
+    selectedBucket: 'a',
+    actualBucket: 'a',
+    points: 5,
+});
+
+describe('flattenDayRounds', () => {
+    it('returns an empty array for no days', () => {
+        expect(flattenDayRounds([])).toEqual([]);
+    });
+
+    it('attaches the day date to each round', () => {
+        const flat = flattenDayRounds([{date: '2024-01-01', rounds: [round(1, 10)]}]);
+        expect(flat).toEqual([{...round(1, 10), date: '2024-01-01'}]);
+    });
+
+    it('orders by date ascending, then by roundIndex within a day', () => {
+        const flat = flattenDayRounds([
+            {date: '2024-01-02', rounds: [round(2, 22), round(1, 21)]},
+            {date: '2024-01-01', rounds: [round(3, 13), round(1, 11)]},
+        ]);
+        expect(flat.map(r => [r.date, r.roundIndex])).toEqual([
+            ['2024-01-01', 1],
+            ['2024-01-01', 3],
+            ['2024-01-02', 1],
+            ['2024-01-02', 2],
+        ]);
+    });
+
+    it('treats a missing roundIndex as 0 for ordering', () => {
+        const flat = flattenDayRounds([
+            {date: '2024-01-01', rounds: [round(1, 11), {...round(0, 10), roundIndex: undefined as unknown as number}]},
+        ]);
+        expect(flat.map(r => r.appId)).toEqual([10, 11]);
+    });
+});
+
+describe('bucketOutcome', () => {
+    it('treats equal labels as a hit', () => {
+        expect(bucketOutcome('112-855', '112-855')).toBe('hit');
+    });
+
+    it('compares by bucket order, not by label text', () => {
+        // Lexicographically "14-111" sorts AFTER "112-855", which inverted the verdict.
+        expect(bucketOutcome('14-111', '112-855')).toBe('low');
+        expect(bucketOutcome('112-855', '14-111')).toBe('high');
+        expect(bucketOutcome('856-6467', '14-111')).toBe('high');
+        expect(bucketOutcome('14-111', '856-6467')).toBe('low');
+    });
+
+    it('reports unknown when a label has no bucket order', () => {
+        expect(bucketOutcome('', '112-855')).toBe('unknown');
+        expect(bucketOutcome('112-855', 'n/a')).toBe('unknown');
+    });
+});
+
+describe('outcomeCounts', () => {
+    it('counts hits, too-high and too-low in bucket order', () => {
+        expect(outcomeCounts([
+            {selectedBucket: '112-855', actualBucket: '112-855'},
+            {selectedBucket: '112-855', actualBucket: '14-111'},
+            {selectedBucket: '14-111', actualBucket: '112-855'},
+            {selectedBucket: '1-13', actualBucket: '14-111'},
+            {selectedBucket: '856-6467', actualBucket: '1-13'},
+        ])).toEqual({hits: 1, tooHigh: 2, tooLow: 2});
+    });
+
+    it('ignores rounds with an unparseable label', () => {
+        expect(outcomeCounts([{selectedBucket: '', actualBucket: ''}]))
+            .toEqual({hits: 0, tooHigh: 0, tooLow: 0});
+    });
+});
+
+describe('validatedResultsForDay', () => {
+    const result = (appId: number) => ({appId, selectedLabel: '1-13', actualBucket: '1-13', totalReviews: 10, correct: true});
+    const games = [{appId: 11}, {appId: 22}, {appId: 33}, {appId: 44}, {appId: 55}];
+
+    it('drops a stored result whose app no longer belongs to that round', () => {
+        const stored = {1: result(11), 2: result(999), 3: result(33)};
+        const validated = validatedResultsForDay(games, stored, {}, 5);
+        expect(Object.keys(validated).map(Number).sort()).toEqual([1, 3]);
+    });
+
+    it('keeps a server result that matches the served pick', () => {
+        const server = {1: result(11), 2: result(22), 3: result(33), 4: result(44), 5: result(55)};
+        const validated = validatedResultsForDay(games, {}, server, 5);
+        expect(Object.keys(validated)).toHaveLength(5);
+    });
+});
+
+describe('recentRounds', () => {
+    const day = (date: string, rounds: Array<{actualBucket?: string}>) => ({date, rounds});
+
+    it('takes the newest graded rounds and skips ungraded ones', () => {
+        const days = [
+            day('2026-10-20', [{actualBucket: '1-13'}, {actualBucket: undefined}]),
+            day('2026-10-19', [{actualBucket: '14-111'}]),
+        ];
+        expect(recentRounds(days, 2).map(r => r.actualBucket)).toEqual(['1-13', '14-111']);
+        expect(recentRounds(days, 10)).toHaveLength(2);
+    });
 });
 
 describe('cutoffDateString', () => {
+    afterEach(() => {
+        vi.useRealTimers();
+    });
+
     it('anchors the window on the given UTC day, not the clock', () => {
-        // Three cards derived this from new Date() during render while their siblings used
-        // the server's day; a midnight rollover made them disagree and broke hydration.
         vi.useFakeTimers();
         vi.setSystemTime(new Date('2099-01-03T00:30:00Z'));
 
