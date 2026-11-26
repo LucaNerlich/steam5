@@ -2,43 +2,15 @@
 
 import {usePathname} from "next/navigation";
 
-type HeaderCopy = {
-    title: string;
-    subline: string;
-};
+import {LEADERBOARD_ROUTES} from "@/lib/leaderboardRoutes";
+import {Routes} from "../../app/routes";
 
-const DEFAULT_COPY: HeaderCopy = {
-    title: "All-time",
-    subline: "Overall points summed across all days",
-};
-
-const COPY_BY_PATH: Record<string, HeaderCopy> = {
-    "/review-guesser/leaderboard/today": {
-        title: "Today",
-        subline: "Today's total points by player",
-    },
-    "/review-guesser/leaderboard/weekly": {
-        title: "Weekly",
-        subline: "Last seven days",
-    },
-    "/review-guesser/leaderboard/season": {
-        title: "Season",
-        subline: "Current season standings",
-    },
-    "/review-guesser/leaderboard/hardest": {
-        title: "Hardest Games",
-        subline: "Steam games players struggle with the most — ranked by lowest average score",
-    },
-    "/review-guesser/leaderboard/perfect-days": {
-        title: "Perfect Days",
-        subline: "Players who scored 25 out of 25 points in a single day",
-    },
-    "/review-guesser/leaderboard": DEFAULT_COPY,
-};
+// Falls back to the All-time copy, which is also the /leaderboard entry.
+const DEFAULT_COPY = LEADERBOARD_ROUTES.find((route) => route.href === Routes.leaderboard)!;
 
 export default function LeaderboardHeader() {
     const pathname = usePathname();
-    const copy = COPY_BY_PATH[pathname] ?? DEFAULT_COPY;
+    const copy = LEADERBOARD_ROUTES.find((route) => route.href === pathname) ?? DEFAULT_COPY;
 
     return (
         <>
