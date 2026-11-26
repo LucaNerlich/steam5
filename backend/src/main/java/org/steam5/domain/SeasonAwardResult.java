@@ -28,7 +28,7 @@ public class SeasonAwardResult {
     private Season season;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "category", nullable = false, length = 64, columnDefinition = "varchar(64)")
+    @Column(name = "category", nullable = false, length = 64)
     private SeasonAwardCategory category;
 
     /**

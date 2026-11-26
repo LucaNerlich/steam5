@@ -12,9 +12,9 @@ package org.steam5.domain;
  * <p>
  * Persisted as {@code @Enumerated(EnumType.STRING)} on
  * {@link PlayerSpotlight#getInsightType()}. The column is plain
- * {@code varchar(32)} (see {@link PlayerSpotlight}), so adding a constant needs no
- * migration — V5 dropped the generated CHECK constraint that used to be the real
- * whitelist.
+ * {@code varchar(32)} (see {@link PlayerSpotlight}); V5 dropped the generated CHECK
+ * constraint that used to be the real whitelist, so adding a constant needs no migration.
+ * Hibernate still adds that check to tables it creates itself.
  */
 public enum PlayerSpotlightInsightType {
     DAY_STREAK,

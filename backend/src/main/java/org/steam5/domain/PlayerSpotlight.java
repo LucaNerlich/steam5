@@ -27,7 +27,7 @@ public class PlayerSpotlight {
     private String steamId;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "insight_type", nullable = false, length = 32, columnDefinition = "varchar(32)")
+    @Column(name = "insight_type", nullable = false, length = 32)
     private PlayerSpotlightInsightType insightType;
 
     @Column(name = "headline", nullable = false, length = 255)
