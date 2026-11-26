@@ -109,8 +109,7 @@ export async function GET(req: Request): Promise<ImageResponse> {
             const recent = recentRounds(profile.days);
             const {hits, tooHigh, tooLow} = outcomeCounts(recent);
             kdaText = recent.length > 0 ? `${hits} / ${tooHigh} / ${tooLow}` : null;
-            // Show explicit breakdown
-            statsLines.push({ label: "Recent H/H/L", value: `${hits}/${tooHigh}/${tooLow}` });
+            // The side box already shows this breakdown; a second line repeated it.
         }
     } else {
         // Fallback generic card
@@ -204,14 +203,6 @@ export async function GET(req: Request): Promise<ImageResponse> {
                         <div style={sideBox}>
                             <div style={{ display: "flex", color: "#9ca3af", fontSize: 18 }}>Recent H/H/L</div>
                             <div style={{ display: "flex", fontSize: 36, fontWeight: 700, color: accent }}>{kdaText || "—"}</div>
-                        </div>
-                        <div style={sideBox}>
-                            <div style={{ display: "flex", color: "#9ca3af", fontSize: 18 }}>Team</div>
-                            <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
-                                <div style={{ display: "flex", width: 20, height: 20, background: accent, borderRadius: 4 }} />
-                                <div style={{ display: "flex", width: 20, height: 20, background: panelBorder, borderRadius: 4 }} />
-                                <div style={{ display: "flex", width: 20, height: 20, background: "#e5e7eb", borderRadius: 4 }} />
-                            </div>
                         </div>
                     </div>
                 </div>
