@@ -32,7 +32,7 @@ public class Season {
     private LocalDate endDate;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false, length = 32)
+    @Column(name = "status", nullable = false, length = 32, columnDefinition = "varchar(32)")
     private SeasonStatus status = SeasonStatus.PLANNED;
 
     /**

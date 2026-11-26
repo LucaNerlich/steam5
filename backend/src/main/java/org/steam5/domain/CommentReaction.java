@@ -35,7 +35,7 @@ public class CommentReaction {
     private String steamId;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "reaction_type", nullable = false, length = 32)
+    @Column(name = "reaction_type", nullable = false, length = 32, columnDefinition = "varchar(32)")
     private ReactionType reactionType;
 
     @Column(name = "created_at", nullable = false)
