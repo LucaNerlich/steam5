@@ -621,6 +621,13 @@ class SeasonServiceTest {
         List<SeasonAwardResult> saved = captor.getValue();
 
         assertEquals(2, saved.size());
+        // The roll must be reproducible across JVMs: hash the enum NAME, not the constant
+        // (Enum.hashCode is identity-based).
+        for (SeasonAwardResult award : saved) {
+            final int expected = Math.floorMod(java.util.Objects.hash(
+                    42L, award.getCategory().name(), award.getSteamId()), 1_000_000);
+            assertEquals(expected == 0 ? 1 : expected, award.getTiebreakRoll());
+        }
         assertEquals("playerA", saved.get(0).getSteamId());
         assertEquals(1, saved.get(0).getPlacementLevel());
         assertEquals(100L, saved.get(0).getMetricValue());
