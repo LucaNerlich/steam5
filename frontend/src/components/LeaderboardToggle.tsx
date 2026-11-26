@@ -4,14 +4,7 @@ import Link from "next/link";
 import {usePathname} from "next/navigation";
 import {useLayoutEffect, useRef, useState} from "react";
 
-const ROUTES = [
-    {href: "/review-guesser/leaderboard/today", label: "Today"},
-    {href: "/review-guesser/leaderboard/weekly", label: "Weekly"},
-    {href: "/review-guesser/leaderboard/season", label: "Season"},
-    {href: "/review-guesser/leaderboard", label: "All-time"},
-    {href: "/review-guesser/leaderboard/perfect-days", label: "Perfect Days"},
-    {href: "/review-guesser/leaderboard/hardest", label: "Hardest Games"},
-];
+import {LEADERBOARD_ROUTES} from "@/lib/leaderboardRoutes";
 
 function isActive(pathname: string, href: string): boolean {
     if (href === "/review-guesser/leaderboard") {
@@ -36,7 +29,7 @@ export default function LeaderboardToggle() {
     const linkRefs = useRef<Array<HTMLAnchorElement | null>>([]);
     const [indicator, setIndicator] = useState<IndicatorGeometry>(INITIAL_GEOMETRY);
 
-    const activeIndex = ROUTES.findIndex((route) => isActive(pathname, route.href));
+    const activeIndex = LEADERBOARD_ROUTES.findIndex((route) => isActive(pathname, route.href));
 
     useLayoutEffect(() => {
         const updateIndicator = () => {
@@ -81,7 +74,7 @@ export default function LeaderboardToggle() {
                     height: `${indicator.height}px`,
                 }}
             />
-            {ROUTES.map((route, index) => (
+            {LEADERBOARD_ROUTES.map((route, index) => (
                 <Link
                     key={route.href}
                     ref={(el) => {
