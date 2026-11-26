@@ -29,7 +29,7 @@ export default function ShareControls(props: {
     hasServerResults?: boolean,
 }) {
     const {buckets, gameDate, totalRounds, latestRound, latest, results, hasServerResults} = props;
-    const [copied, setCopied] = useState(false);
+    const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle');
     const isLocalhost = typeof window !== 'undefined' && (location.hostname === 'localhost' || location.hostname === '127.0.0.1');
 
     const namesFetchUrl = `/api/review-game/day/summary/${encodeURIComponent(gameDate)}`;
@@ -165,17 +165,21 @@ export default function ShareControls(props: {
         try {
             if (typeof navigator !== 'undefined' && navigator.clipboard && window.isSecureContext) {
                 await navigator.clipboard.writeText(text);
-                setCopied(true);
-                setTimeout(() => setCopied(false), 1500);
+                setCopyState('copied');
+                setTimeout(() => setCopyState('idle'), 1500);
                 return;
             }
         } catch {
             // fall through to textarea fallback
         }
         if (copyWithTextarea()) {
-            setCopied(true);
-            setTimeout(() => setCopied(false), 1500);
+            setCopyState('copied');
+        } else {
+            // The clipboard API is unavailable and the deprecated fallback refused: say so,
+            // instead of leaving the button looking like it did nothing.
+            setCopyState('failed');
         }
+        setTimeout(() => setCopyState('idle'), 1500);
     }
 
     return (
@@ -188,7 +192,12 @@ export default function ShareControls(props: {
                 title={namesLoading ? 'Preparing…' : undefined}
                 data-umami-event="share-results">Share Results <ExportIcon size={28}/>
             </button>
-            <span className={`share-copied ${copied ? 'is-visible' : ''}`}>Copied</span>
+            <span
+                className={`share-copied ${copyState === 'idle' ? '' : 'is-visible'}`}
+                aria-live="polite"
+            >
+                {copyState === 'failed' ? 'Copy failed' : 'Copied'}
+            </span>
         </div>
     );
 }
