@@ -65,6 +65,18 @@ class ProfileConfigurationTest {
                 "include-message must stay at Boot's `never` default");
     }
 
+    @Test
+    @SuppressWarnings("unchecked")
+    void theBaseProfileKeepsJacksonAtBootsDefaults() throws Exception {
+        // indent-output and map-key ordering are the kind of "readable locally" setting that
+        // gets re-added to the base profile; nothing else notices the production cost.
+        final Map<String, Object> base = yaml("/application.yml");
+        final Map<String, Object> spring = (Map<String, Object>) base.get("spring");
+        final Map<String, Object> jackson = spring == null ? null : (Map<String, Object>) spring.get("jackson");
+        assertTrue(jackson == null || jackson.get("serialization") == null,
+                "spring.jackson.serialization must stay at Boot's defaults");
+    }
+
     @SuppressWarnings("unchecked")
     private static Map<String, Object> yaml(String resource) throws Exception {
         try (InputStream in = ProfileConfigurationTest.class.getResourceAsStream(resource)) {
