@@ -49,7 +49,9 @@ export default function GameStatistics() {
         `${BACKEND_ORIGIN}/api/metrics/picks/summary`, optionalFetcher, {revalidateOnFocus: false}
     );
     const totalRounds = picksData?.totalPicks ?? null;
-    const loading = statsLoading || picksLoading;
+    // Only the stats request gates the section: the total-rounds line is decoration and
+    // renders when it arrives, so a hung picks call must not withhold the statistics.
+    const loading = statsLoading;
     // The archive route 404s today's date, so never link a day that has not ended;
     // /stats/game derives these dates from picks and can return today's.
     const today = new Date().toISOString().slice(0, 10);
