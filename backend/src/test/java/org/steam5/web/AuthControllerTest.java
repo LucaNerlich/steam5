@@ -29,6 +29,21 @@ public class AuthControllerTest {
                 controller.verificationRequest("openid.mode=check_authentication").timeout().orElseThrow());
     }
 
+    @org.junit.jupiter.api.Test
+    void aBlankRedirectBaseRefusesToStart() {
+        // A present-but-empty REDIRECT_BASE beats the placeholder default and would produce a
+        // relative openid.return_to and a null://null realm; the guard must stop startup.
+        final AuthController controller = controller(
+                mock(AuthTokenService.class), mock(SteamUserService.class),
+                mock(org.steam5.repository.UserRepository.class), mock(OpenIdNonceStore.class));
+        org.springframework.test.util.ReflectionTestUtils.setField(controller, "defaultRedirectBase", " ");
+
+        assertThrows(IllegalStateException.class, controller::requireRedirectBase);
+
+        org.springframework.test.util.ReflectionTestUtils.setField(controller, "defaultRedirectBase", "https://steam5.org");
+        controller.requireRedirectBase();
+    }
+
     private static final String CALLBACK_BASE = "https://steam5.org/api/auth/steam/callback";
     private static final String STEAM_ID = "76561198000000000";
     private static final String CLAIMED_ID = "https://steamcommunity.com/openid/id/" + STEAM_ID;

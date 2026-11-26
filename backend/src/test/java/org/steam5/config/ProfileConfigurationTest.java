@@ -8,6 +8,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * The active Spring profile must not have a default.
@@ -34,5 +35,28 @@ class ProfileConfigurationTest {
 
         assertEquals("${SPRING_PROFILE}", profiles.get("active"),
                 "spring.profiles.active must have no default: a fallback silently enables the dev profile");
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void theBaseRedirectBaseIsTheProductionOriginAndDevKeepsLocalhost() throws Exception {
+        // The localhost fallback lived in the base profile: a deployment that forgot
+        // REDIRECT_BASE sent every login and its OpenID assertion to the visitor's machine.
+        final Map<String, Object> base = yaml("/application.yml");
+        final Map<String, Object> auth = (Map<String, Object>) base.get("auth");
+        assertEquals("${REDIRECT_BASE:https://steam5.org}", auth.get("redirectBase"));
+
+        final Map<String, Object> dev = yaml("/application-dev.yml");
+        final Map<String, Object> devAuth = (Map<String, Object>) dev.get("auth");
+        assertNotNull(devAuth, "application-dev.yml must keep the local login convenience");
+        assertEquals("${REDIRECT_BASE:http://localhost:3000}", devAuth.get("redirectBase"));
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> yaml(String resource) throws Exception {
+        try (InputStream in = ProfileConfigurationTest.class.getResourceAsStream(resource)) {
+            assertNotNull(in, resource + " must be on the test classpath");
+            return new Yaml().load(in);
+        }
     }
 }

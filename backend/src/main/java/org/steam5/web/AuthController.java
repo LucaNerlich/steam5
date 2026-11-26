@@ -61,6 +61,15 @@ public class AuthController {
     @Value("${auth.redirectBase:https://steam5.org}")
     private String defaultRedirectBase;
 
+    @jakarta.annotation.PostConstruct
+    void requireRedirectBase() {
+        // A present-but-blank REDIRECT_BASE beats the placeholder default, and then every
+        // login returns to a relative path with a null://null realm. Refuse to start instead.
+        if (defaultRedirectBase == null || defaultRedirectBase.isBlank()) {
+            throw new IllegalStateException("auth.redirectBase (REDIRECT_BASE) must not be blank");
+        }
+    }
+
     @GetMapping("/steam/login")
     public ResponseEntity<Void> startLogin(
             @RequestParam(value = "redirect", required = false) String redirect,

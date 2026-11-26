@@ -98,7 +98,10 @@ management:
 # Logging configuration is in logback-spring.xml
 auth:
   jwtSecret: ${AUTH_JWT_SECRET:change-me-please-change-me-32-bytes-min}
-  redirectBase: ${REDIRECT_BASE:http://localhost:3000}
+  # Production default: the localhost dev fallback lived here and a deployment that
+  # forgot REDIRECT_BASE sent every login (and its OpenID assertion) to the visitor's
+  # machine. application-dev.yml overrides this for local work.
+  redirectBase: ${REDIRECT_BASE:https://steam5.org}
 admin:
   api-token: ${ADMIN_API_TOKEN:}
 review:
