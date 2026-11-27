@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.1.1] - 2026-11-27
+
+### Changed
+
+- Round and presence state are explicit state machines: a round moves through opening, submitting, graded or rejected, and presence through idle, connecting, live or reconnecting, with the transitions documented in `docs/state-machines.md`
+
 ## [2.1.0] - 2026-11-10
 
 ### Added
